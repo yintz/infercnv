@@ -89,7 +89,7 @@ check_arguments <- function(arguments){
                        collapse=",", sep=""))
     }
     # Warn that an average of the samples is used in the absence of normal / reference samples
-    if (is.na(arguments$reference_observations)){
+    if (is.null(arguments$reference_observations)){
         logwarn(paste(C_PROGRAM_NAME,
                       ":: --reference_observations: No reference samples were given, ",
                       "the average of the samples will be used.",
@@ -180,8 +180,11 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs,
     loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Drawing plots to file:", pdf_path, sep=""))
     loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Current data dimensions (r,c) = ",
                   paste(dim(data_smoothed), collapse=","), sep=""))
-    plot_cnv(data_smoothed, paste(as.vector(as.matrix(chr_order))), pdf_path)
-    loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Writing final data to",
+    plot_cnv(data_smoothed,
+             paste(as.vector(as.matrix(chr_order))),
+             reference_obs,
+             pdf_path)
+    loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Writing final data to ",
                   paste(pdf_path, ".txt", sep=""), sep=""))
     write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
 }
@@ -195,81 +198,69 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs,
 #'
 #' Returns:
 #'    @return No return
-plot_cnv <- function(plot_data, contigs, pdf_path){
+plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
 
-    print(contigs)
-    # Plot heatmap 
-    # Cluster CNV patterns
-    # TODO change to using Sam's tool.
     loginfo(paste(C_PROGRAM_NAME, "::plot_cnv:Start", sep=""))
     logdebug(paste(C_PROGRAM_NAME, "::plot_cnv:Current data dimensions (r,c) = ", 
                    paste(dim(plot_data), collapse=","), sep=""))
-    #plot_data <- t(plot_data)
     logdebug(paste(head(plot_data[1]), collapse=","))
 
-    # Heatmaps using CompoHeatMap
     # Rows observations, Columns CHR
-    # Observation clustering
     pdf(pdf_path, useDingbats=FALSE)
     # Contigs
-    ## Define the colors corresponding to contigs
-    ## Make sure there are no spaces in the name
     unique_contigs <- unique(contigs)
-    ct.colors <- colorRampPalette(brewer.pal(8,"Accent"))(length(unique_contigs))
-    #names(ct.colors) <- unique_contigs
-    #row.names(plot_data) <- contigs
+    ct.colors <- colorRampPalette(brewer.pal(8,"Set1"))(length(unique_contigs))
+    names(ct.colors) <- unique_contigs
 
     # Row seperation based on reference
-    ref_blocks <- unique(unlist(tapply(reference_idx, c(0,cumsum(diff(refernce_idx)!=1)),range)))
-    ref_sep = setdiff( c(ref_blocks-1, ref_blocks+1), ref_blocks)
-
-    ## Define data for row cluster size => will be used to create a vertical barplot
-    clu.sz <- as.integer(c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19))
-    names(clu.sz) <- contigs
-    clu.sz.colors <- color.palette(c("white", "purple"), 20)(20)
+    #ref_sep <- NULL
+    #if (!is.null(reference_idx) && length(reference_idx) < ncol(plot_data)){
+    #    reference_idx <- which(reference_idx%in%colnames(plot_data))
+    #    print(reference_idx)
+    #    ref_blocks <- unique(unlist(tapply(reference_idx, c(0,cumsum(diff(reference_idx)!=1)),range)))
+    #    print(ref_blocks)
+    #    ref_sep <- setdiff( c(ref_blocks-1, ref_blocks+1), ref_blocks)
+    #    ref_sep <- c(0,ref_blocks)
+    #    print(ref_sep)
+    #}
 
     ## Define data for for row conditions => will be used to create a colorstack
     row.conditions <- contigs
     names(row.conditions) <- contigs
 
-    ## Test building each plot component and composing them all in one command.
-    ## The supporting components of the plot can be accessed in the returned list.
-    #p.complete.l=create.gg.hmap.w.barps(hmap.dat=plot_data,
-    #    barp.dat.v=clu.sz,
-    #    colorstack.dat.l=list(row.conditions),
-    #    colorstack.fill.l=list(ct.colors),
-    #    widths=c(2,1,27),
-    #    plot.title="Copy Number Variation Inference",
-    #    leg.title.l=c("Contig"),
-    #    print.plot=FALSE,
-    #    ## heatmap-specific arguments follow
-    #    dend.c.ord=NULL,
-    #    dend.r.ord=NULL,
-    #    dend.r=FALSE,
-    #    dend.c=FALSE,
-    #    cut.frac.r.h=NULL,
-    #    cut.frac.c.h=NULL,
-    #    hmap.col=get.hmap.col(range.val=range(plot_data),mid.val=0),
-    #    leg.title="Centered RNA-Seq Intensity",
-    #    norm.rows=FALSE)
+    ## Column seperation by contig and label axes with only one instance of name
+    contig_tbl <- table(contigs)
+    col_sep <- cumsum(contig_tbl)
+    col_sep <- col_sep[-1*length(col_sep)]
+    contig_labels = c()
+    for(contig_name in names(contig_tbl)){
+        contig_labels <- c(contig_labels,
+                           contig_name,
+                           rep("", contig_tbl[contig_name] - 1))
+    }
 
-    heatmap.2(plot_data,
+    # Plot heatmap
+    heatmap.2(t(plot_data),
         main="Copy Number Variation Inference",
+        ylab="Cell",
+        xlab="Genomic Region",
+        key=TRUE,
+        labCol=contig_labels,
         notecol="black",
         density.info="histogram",
+        denscol="blue",
         trace="none",
         dendrogram="row",
-        ColV=FALSE,
+        Colv=FALSE,
         scale="none",
-        col="heat.colors",
+        col="cm.colors",
         # Seperate by contigs
-        colsep=table(contigs),
+        colsep=col_sep,
         # Seperate by reference / not reference
-        rowsep=ref_sep,
-        sepcolor="white",
-        sepwdith=c(0.5,0.5),
+        sepcolor="black",
+        sepwidth=c(0.1,0.1),
         # Color by contigs
-        ColSideColors=ct.colors[ct.colors])
+        ColSideColors=ct.colors[contigs])
     dev.off()
 }
 
@@ -465,7 +456,7 @@ if (identical(environment(),globalenv()) &&
 
     pArgs <- add_option(pArgs, c("--ref"),
                         type="character",
-                        default=NA,
+                        default=NULL,
                         action="store",
                         dest="reference_observations",
                         metavar="Input_reference_observations",
@@ -509,7 +500,7 @@ if (identical(environment(),globalenv()) &&
 
     # Default the reference samples to all
     input_reference_samples <- colnames(expression_data)
-    if (!is.na(args$reference_observations)){
+    if (!is.null(args$reference_observations)){
         input_reference_samples <- unique(unlist(split(args$reference_observations,",")))
     }
 
