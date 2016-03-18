@@ -50,7 +50,7 @@ Please use the following citation:
 
 
 ## Additional parameters
-To view documentation on paramters please use the following command.
+To view documentation on parameters please use the following command.
 
 ./inferCNV/R/inferCNV.R --help
 
@@ -85,3 +85,7 @@ To create the measurements input values are log2 + 1 transformed and filtered re
 
 In the resulting gbm.pdf file we can patterns of expression consistent with genomic order that are not in the reference (or global average). One can infer these increases and decreased in expression to be a result of copy number variation. ***TODO***
 
+## Making Genomic Position Files
+Genomic Position Files are a tab delimited file containing gene name, contig, start, and stop site. This file helps order the RNA-Seq expression by genomic location to visualize if patterns are associated with genomic regions. Genomic position files for several standard references have been generated and can be found at data.broadinstitute.org/Trinity/CTAT/cnv . If you do not see the reference and annotation you need but have a GTF file, a script is provided to generate a genomic position file from the GTF file. An example of using the script given an input example.gtf to generate a genomic positioncalled example_gen_pos.txt is as follows:
+
+./inferCNV/src/gtf_to_position_file.py example.gtf example_gen_pos.txt
