@@ -348,9 +348,23 @@ above_cutoff <- function(data, cutoff){
     }
 }
 
+#' Order the data and subset the data to data in the genomic position file.
+#'
+#' Args:
+#'    @param data: Data (expression) matrix where the row names should be in the row names 
+#'                 of the genomic_position file.
+#'    @param genomic_position:
+#'
+#' Returns:
+#'    @return Returns a matrix of expression in the order of the genomic_position file.
+#'            NULL is returned if the genes in both data parameters do not match.
 order_reduce <- function(data, genomic_position){
-    print(genomic_position)
-    print(expression_data)
+    keep_genes <- which(row.names(genomic_position) %in% row.names(expression_data))
+    if(length(keep_genes)){
+        return(expression_data[keep_genes,])
+    } else {
+        return(NULL)
+    }
 }
 
 #' Remove values that are too close to the average and are considered noise.
@@ -559,7 +573,8 @@ if (identical(environment(),globalenv()) &&
     # If given a file read and sort and order.
     input_gene_order <- seq(1, nrow(expression_data), 1)
     if (args$gene_order != ""){
-        input_gene_order <- read.table(args$gene_order, col.names=c("chr", "start", "stop"))
+        input_gene_order <- read.table(args$gene_order, row.names=1)
+        names(input_gene_order) <- c("chr", "start", "stop")
     }
     loginfo(paste(C_PROGRAM_NAME, "::Reading gene order.", sep=""))
     logdebug(paste(head(args$gene_order[1]), collapse=","))
@@ -583,6 +598,12 @@ if (identical(environment(),globalenv()) &&
     # Order and reduce the expression to the genomic file.
     expression_data = order_reduce(data=expression_data,
                                    genomic_position=input_gene_order)
+    print(expression_data)
+    if(is.null(expression_data)){
+        error_message = paste(C_PROGRAM_NAME,
+                              "None of the genes in the expression data matched the genes in the reference genomic position file. Analysis Stopped.")
+        stop(error_message)
+    }
 
     # Run CNV inference
     infer_cnv(data=expression_data,
