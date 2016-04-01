@@ -122,8 +122,8 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs,
 
     # Remove any gene without position information
     remove_by_position <- -1 * which(gene_order[2] + gene_order[3] == 0)
-    gene_order <- gene_order[remove_by_position, ]
-    data <- data[remove_by_position, ]
+    gene_order <- gene_order[remove_by_position,]
+    data <- data[remove_by_position,]
     loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Reduction from positional data, new dimensions (r,c) = ",
                   paste(dim(data), collapse=","),".", sep=""))
     logdebug(paste(C_PROGRAM_NAME, "::infer_cnv:Removed indices:"))
@@ -132,8 +132,8 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs,
     # Reduce by cutoff
     keep_gene_indices <- above_cutoff(data, cutoff)
     if (!is.null(keep_gene_indices)){
-        data <- data[keep_gene_indices, ]
-        gene_order <- gene_order[keep_gene_indices, ]
+        data <- data[keep_gene_indices,]
+        gene_order <- gene_order[keep_gene_indices,]
         loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Reduce by cutoff, new dimensions (r,c) = ",
                       paste(dim(data), collapse=","), sep=""))
         logdebug(paste(C_PROGRAM_NAME, "::infer_cnv:Keeping indices.", sep=""))
@@ -156,7 +156,6 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs,
 
     # Smooth the data with gene windows
     data_smoothed <- smooth_window(data, window_length)
-    print(data_smoothed)
     data = NULL
     loginfo(paste(C_PROGRAM_NAME, "::infer_cnv:Smoothed data.", sep=""))
 
@@ -205,24 +204,19 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
                    paste(dim(plot_data), collapse=","), sep=""))
     logdebug(paste(head(plot_data[1]), collapse=","))
 
-    # Rows observations, Columns CHR
-    pdf(pdf_path, useDingbats=FALSE)
     # Contigs
     unique_contigs <- unique(contigs)
-    ct.colors <- colorRampPalette(brewer.pal(8,"Set1"))(length(unique_contigs))
+    ct.colors <- colorRampPalette(brewer.pal(12,"Set3"))(length(unique_contigs))
     names(ct.colors) <- unique_contigs
 
     # Row seperation based on reference
-    #ref_sep <- NULL
-    #if (!is.null(reference_idx) && length(reference_idx) < ncol(plot_data)){
-    #    reference_idx <- which(reference_idx%in%colnames(plot_data))
-    #    print(reference_idx)
-    #    ref_blocks <- unique(unlist(tapply(reference_idx, c(0,cumsum(diff(reference_idx)!=1)),range)))
-    #    print(ref_blocks)
-    #    ref_sep <- setdiff( c(ref_blocks-1, ref_blocks+1), ref_blocks)
-    #    ref_sep <- c(0,ref_blocks)
-    #    print(ref_sep)
-    #}
+    ref_idx <- NULL
+    if (!is.null(reference_idx) && length(reference_idx) < ncol(plot_data)){
+        reference_idx <- which(colnames(plot_data)%in%reference_idx)
+        if(length(reference_idx)>0){
+            ref_idx=reference_idx
+        }
+    }
 
     ## Define data for for row conditions => will be used to create a colorstack
     row.conditions <- contigs
@@ -239,8 +233,33 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
                            rep("", contig_tbl[contig_name] - 1))
     }
 
+    # Heatmap elements widths
+    heatmap_widths = c(1,6)
+
+    # Rows observations, Columns CHR
+    pdf(pdf_path,
+        useDingbats=FALSE,
+        width=10,
+        height=7.5,
+        paper="USr")
+
     # Plot heatmap
-    heatmap.2(t(plot_data),
+    par(mar=c(.5,.5,.5,.5))
+    plot_data = t(plot_data)
+
+    # Plot Observation Samples
+    obs_data = plot_data
+    if(!is.null(ref_idx)){
+        obs_data = plot_data[-1*ref_idx,,drop=FALSE]
+        #TODO there will always be more obs, flip this with ref.
+        if(nrow(obs_data)==1){
+                plot_data = rbind(obs_data, obs_data)
+                row.names(obs_data) = c("",row.names(obs_data)[1])
+        }
+    }
+
+    par(fig=c(0,1,0,1), new=FALSE)
+    heatmap.2(obs_data,
         main="Copy Number Variation Inference",
         ylab="Cell",
         xlab="Genomic Region",
@@ -252,15 +271,57 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
         trace="none",
         dendrogram="row",
         Colv=FALSE,
+        cexRow=0.8,
         scale="none",
         col="cm.colors",
         # Seperate by contigs
         colsep=col_sep,
         # Seperate by reference / not reference
         sepcolor="black",
-        sepwidth=c(0.1,0.1),
+        sepwidth=c(0.01,0.01),
         # Color by contigs
-        ColSideColors=ct.colors[contigs])
+        ColSideColors=ct.colors[contigs],
+        # Position heatmap elements
+        lmat=rbind(c(5,4),c(0,1),c(3,2)),
+        lhei=c(1.9,0.1,4),
+        lwid=heatmap_widths)
+    obs_data = NULL
+
+    # Plot Reference Samples
+    if(!is.null(ref_idx)){
+        # heatmap2 requires a 2 x 2 matrix, so with one reference
+        # I just duplicate the row and hid the second name so it
+        # visually looks like it is just taking up the full realestate.
+        plot_data = plot_data[ref_idx,, drop=FALSE]
+        if(nrow(plot_data)==1){
+            plot_data = rbind(plot_data, plot_data)
+            row.names(plot_data) = c("",row.names(plot_data)[1])
+        }
+        # Print controls
+        par(fig=c(0,1,0,1), new=TRUE)
+        heatmap.2(plot_data,
+            main=NA,
+            ylab=NA,
+            xlab=NA,
+            key=FALSE,
+            labCol=rep("",nrow(plot_data)),
+            notecol="black",
+            trace="none",
+            dendrogram="none",
+            Colv=FALSE,
+            cexRow=0.8,
+            scale="none",
+            col="cm.colors",
+            # Seperate by contigs
+            colsep=col_sep,
+            # Seperate by reference / not reference
+            sepcolor="black",
+            sepwidth=c(0.01,0.01),
+            # Color by contigs
+            lmat=rbind(c(2,1),c(4,5),c(3,0)),
+            lhei=c(.25,.8,1.6),
+            lwid=heatmap_widths)
+    }
     dev.off()
 }
 
@@ -285,6 +346,11 @@ above_cutoff <- function(data, cutoff){
     } else {
         return(NULL)
     }
+}
+
+order_reduce <- function(data, genomic_position){
+    print(genomic_position)
+    print(expression_data)
 }
 
 #' Remove values that are too close to the average and are considered noise.
@@ -323,15 +389,15 @@ remove_noise <- function(ref, smooth_matrix, threshold){
 remove_tails <- function(smooth_matrix, chr, tail_length){
 
     logdebug(paste(C_PROGRAM_NAME, "::remove_tails:Start.", sep=""))
-    if (tail_length < 1 ){
+    if (tail_length < 1){
         return(smooth_matrix)
     }
     if (length(chr) < (tail_length * 2)){
-         smooth_matrix[chr, ] <- 0
+         smooth_matrix[chr,] <- 0
     } else {
          chr_length <- length(chr)
-         smooth_matrix[chr[1:tail_length], ] <- 0
-         smooth_matrix[chr[((chr_length+1) - tail_length):chr_length], ] <- 0
+         smooth_matrix[chr[1:tail_length],] <- 0
+         smooth_matrix[chr[((chr_length+1) - tail_length):chr_length],] <- 0
     }
     return(smooth_matrix)
 }
@@ -460,7 +526,7 @@ if (identical(environment(),globalenv()) &&
                         action="store",
                         dest="reference_observations",
                         metavar="Input_reference_observations",
-                        help="Tab delimited integers are expected. Indices of the subset of samples ( data's columns ) that should be used as references if not given, the average of all samples will be the reference. [Default %default]")
+                        help="Tab delimited characters are expected. Names of the subset of samples ( data's columns ) that should be used as references if not given, the average of all samples will be the reference. [Default %default]")
 
     pArgs <- add_option(pArgs, c("--window"),
                         type="integer",
@@ -501,7 +567,7 @@ if (identical(environment(),globalenv()) &&
     # Default the reference samples to all
     input_reference_samples <- colnames(expression_data)
     if (!is.null(args$reference_observations)){
-        input_reference_samples <- unique(unlist(split(args$reference_observations,",")))
+        input_reference_samples <- unique(unlist(strsplit(args$reference_observations,",",fixed=FALSE)))
     }
 
     # Make sure the given reference samples are in the matrix.
@@ -513,6 +579,10 @@ if (identical(environment(),globalenv()) &&
         logerror(error_message)
         stop(error_message)
     }
+
+    # Order and reduce the expression to the genomic file.
+    expression_data = order_reduce(data=expression_data,
+                                   genomic_position=input_gene_order)
 
     # Run CNV inference
     infer_cnv(data=expression_data,
