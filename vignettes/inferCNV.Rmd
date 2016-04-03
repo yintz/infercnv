@@ -1,7 +1,7 @@
 [![Travis-CI Build Status](https://travis-ci.org/broadinstitute/inferCNV.svg?branch=master)](https://travis-ci.org/broadinstitute/inferCNV)
 
-# Infer copy number variation using RNA-Seq expression data.
-
+## Infer Copy Number Variation using Single-cell RNA-Seq Expression Data.
+Authors: Timothy Tickle, Itay Tirosh, Brian Haas
 
 ## Quick Start
 To use clone the git hub repo:
