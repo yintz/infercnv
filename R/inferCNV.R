@@ -17,7 +17,7 @@
 average_over_ref <- function(average_data, ref_observations){
 
     logging::logdebug(paste("::average_over_ref:Start", sep=""))
-    average_reference_obs <- average_data[, ref_observations[1]]
+    average_reference_obs <- average_data[, ref_observations]
     if (length(ref_observations) > 1){
         average_reference_obs <- rowMeans(average_data[, ref_observations],
                                           na.rm=TRUE)
