@@ -1,17 +1,6 @@
----
-title: "Inferring Copy Number Variation in Single-Cell RNA-Seq"
-author: "Timothy Tickle,\nItay Tirosh,\nBrian Haas"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Inferring Copy Number Variation in Single-Cell RNA-Seq}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
 [![Travis-CI Build Status](https://travis-ci.org/broadinstitute/inferCNV.svg?branch=master)](https://travis-ci.org/broadinstitute/inferCNV)
 
-Infer copy number variation using RNA-Seq expression data.
+# Infer copy number variation using RNA-Seq expression data.
 
 
 ## Quick Start
