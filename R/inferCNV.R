@@ -567,10 +567,9 @@ if (identical(environment(),globalenv()) &&
                         default="INFO",
                         dest="log_level",
                         metavar="LogLevel",
-                        help=paste("Logging level. Valid choices are ",
-                                   C_LEVEL_CHOICES,
-                                   "[Default %default]",
-                                   collapse=","))
+                        help=paste("Logging level. Valid choices are",
+                                   paste(C_LEVEL_CHOICES,collapse=", "),
+                                   "[Default %default]"))
 
     pargs <- optparse::add_option(pargs, c("--noise_filter"),
                         type="integer",
