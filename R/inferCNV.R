@@ -16,7 +16,7 @@
 #'            observations removed.
 average_over_ref <- function(average_data, ref_observations){
 
-    logging::logdebug(paste("::average_over_ref:Start", sep=""))
+    logging::loginfo(paste("::average_over_ref:Start", sep=""))
     average_reference_obs <- average_data[, ref_observations]
     if (length(ref_observations) > 1){
         average_reference_obs <- rowMeans(average_data[, ref_observations],
@@ -35,7 +35,7 @@ average_over_ref <- function(average_data, ref_observations){
 #'    @return Centered and thresholded matrix
 center_with_threshold <- function(center_data, threshold){
 
-    logging::logdebug(paste("::center_with_threshold:Start", sep=""))
+    logging::loginfo(paste("::center_with_threshold:Start", sep=""))
     # Center data (automatically ignores zeros)
     center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
     # Cap values between threshold and -threshold and recenter
@@ -54,7 +54,7 @@ center_with_threshold <- function(center_data, threshold){
 #'    @return No return.
 check_arguments <- function(arguments){
 
-    logging::logdebug(paste("::check_arguments:Start", sep=""))
+    logging::loginfo(paste("::check_arguments:Start", sep=""))
     # Require an input matrix
     #     if (!("input_matrix" %in% names(arguments)) ||
     #          (arguments$input_matrix == "")){
@@ -83,6 +83,7 @@ check_arguments <- function(arguments){
                                 "greater or equal to zero for the cut off.",
                                 sep=""))
     }
+
     # Require the logging level to be one handled by logging
     if (!(arguments$log_level %in% C_LEVEL_CHOICES)){
         logging::logerror(paste(":: --log_level: Please use a logging level ",
@@ -92,10 +93,21 @@ check_arguments <- function(arguments){
     # Warn that an average of the samples is used in the absence of
     # normal / reference samples
     if (is.null(arguments$reference_observations)){
-        logwarn(paste(":: --reference_observations: No reference samples were",
+        logging::logwarn(paste(":: --reference_observations: No reference samples were",
                       " given, the average of the samples will be used.",
                       sep=""))
     }
+
+    # Require the contig tail to be above 0
+    if (is.na(arguments$contig_tail)){
+        arguments$contig_tail <- (arguments$window_length - 1) / 2
+    }
+    if (arguments$contig_tail < 0){
+        logging::logerror(paste(":: --tail: Please enter a value",
+                                "greater or equal to zero for the tail.",
+                                sep=""))
+    }
+    return(arguments)
 }
 
 #' Infer CNV changes given a matrix of RNASeq counts.
@@ -127,83 +139,131 @@ check_arguments <- function(arguments){
 #' Returns:
 #'    @return No return.
 #' @export
-infer_cnv <- function(data, gene_order, cutoff, reference_obs,
+infer_cnv <- function(data, gene_order, cutoff, reference_obs, transform_data,
                       window_length, max_centered_threshold,
-                      noise_threshold, pdf_path){
+                      noise_threshold, pdf_path, contig_tail=(window_length - 1) / 2){
 
-    logging::logdebug(paste("::infer_cnv:Start", sep=""))
-
+    logging::loginfo(paste("::infer_cnv:Start", sep=""))
     # Remove any gene without position information
     remove_by_position <- -1 * which(gene_order[2] + gene_order[3] == 0)
-    gene_order <- gene_order[remove_by_position,]
-    data <- data[remove_by_position,]
+    if(length(remove_by_position)){
+        gene_order <- gene_order[remove_by_position,]
+        data <- data[remove_by_position,]
+    }
     logging::loginfo(paste("::infer_cnv:Reduction from positional ",
                            "data, new dimensions (r,c) = ",
-                           paste(dim(data), collapse=","),".", sep=""))
+                           paste(dim(data), collapse=","),
+                           " Total=", sum(data),
+                           " Min=", min(data),
+                           " Max=", max(data),
+                           ".", sep=""))
     logging::logdebug(paste("::infer_cnv:Removed indices:"))
     logging::logdebug(paste(remove_by_position * -1, collapse=","))
+    #write.table(data, file="01_remove_pos.txt")
+
+    # Make sure data is log transformed + 1
+    if (transform_data){
+        data <- log2(data + 1)
+    }
 
     # Reduce by cutoff
-    keep_gene_indices <- infercnv::above_cutoff(data, cutoff)
+    keep_gene_indices <- above_cutoff(data, cutoff)
     if (!is.null(keep_gene_indices)){
         data <- data[keep_gene_indices,]
         gene_order <- gene_order[keep_gene_indices,]
         logging::loginfo(paste("::infer_cnv:Reduce by cutoff, ",
                       "new dimensions (r,c) = ",
-                      paste(dim(data), collapse=","), sep=""))
+                      paste(dim(data), collapse=","),
+                           " Total=", sum(data),
+                           " Min=", min(data),
+                           " Max=", max(data),
+                           ".", sep=""))
         logging::logdebug(paste("::infer_cnv:Keeping indices.", sep=""))
         logging::logdebug(paste(keep_gene_indices, collapse=","))
     } else {
         logging::loginfo(paste("::infer_cnv:Reduce by cutoff.", sep=""))
-        logwarn(paste("::infer_cnv::No indicies left to keep.",
-                      " Stoppping."))
+        logging::logwarn(paste("::infer_cnv::No indicies left to keep.",
+                      " Stoping."))
         stop()
     }
+    #write.table(data, file="02_cutoff.txt")
+    #write.table(gene_order, file="02b_cutoff.txt")
 
     # Order data by genomic region
     data <- data[with(gene_order, order(chr,start,stop)),]
     # Order gene order the same way
     chr_order <- gene_order[with(gene_order, order(chr,start,stop)),][1]
     gene_order <- NULL
+    #write.table(data, file="03a_ordered.txt")
+    #write.table(chr_order, file="03b_ordered_chr.txt")
 
     # Center data (automatically ignores zeros)
-    data <- infercnv::center_with_threshold(data, max_centered_threshold)
-    logging::loginfo(paste("::infer_cnv:Outlier removal.", sep=""))
+    data <- center_with_threshold(data, max_centered_threshold)
+    logging::loginfo(paste("::infer_cnv:Outlier removal, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data), collapse=","),
+                           " Total=", sum(data),
+                           " Min=", min(data),
+                           " Max=", max(data),
+                           ".", sep=""))
+    #write.table(data, file="04_center.txt")
 
     # Smooth the data with gene windows
-    data_smoothed <- infercnv::smooth_window(data, window_length)
+    data_smoothed <- smooth_window(data, window_length)
     data <- NULL
     logging::loginfo(paste("::infer_cnv:Smoothed data.", sep=""))
 
     # Remove average reference
-    data_smoothed <- infercnv::average_over_ref(average_data=data_smoothed,
+    data_smoothed <- average_over_ref(average_data=data_smoothed,
                                             ref_observations=reference_obs)
-    logging::loginfo(paste("::infer_cnv:Remove average.", sep=""))
+    logging::loginfo(paste("::infer_cnv:Remove average, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data_smoothed), collapse=","),
+                           " Total=", sum(data_smoothed),
+                           " Min=", min(data_smoothed),
+                           " Max=", max(data_smoothed),
+                           ".", sep=""))
+    #write.table(data_smoothed, file="05_remove_average.txt")
 
     # Remove Ends
-    logging::loginfo(chr_order)
+    logging::logdebug(chr_order)
     for (chr in unlist(unique(chr_order))){
         logging::loginfo(paste("::infer_cnv:Remove tail contig ",
                                chr,
                                ".",
                                sep=""))
-        data_smoothed <- infercnv::remove_tails(data_smoothed,
-                                                which(chr_order == chr),
-                                                (window_length - 1) / 2)
+        data_smoothed <- remove_tails(data_smoothed,
+                                      which(chr_order == chr),
+                                      contig_tail)
     }
+    logging::loginfo(paste("::infer_cnv:Remove ends, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data_smoothed), collapse=","),
+                           " Total=", sum(data_smoothed),
+                           " Min=", min(data_smoothed),
+                           " Max=", max(data_smoothed),
+                           ".", sep=""))
+    #write.table(data_smoothed, file="05_remove_ends.txt")
 
     # Remove noise
-    data_smoothed <- infercnv::remove_noise(reference_obs,
+    data_smoothed <- remove_noise(reference_obs,
                                   data_smoothed,
                                   noise_threshold)
-    logging::loginfo(paste("::infer_cnv:Remove noise.", sep=""))
+    logging::loginfo(paste("::infer_cnv:Remove moise, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data_smoothed), collapse=","),
+                           " Total=", sum(data_smoothed),
+                           " Min=", min(data_smoothed),
+                           " Max=", max(data_smoothed),
+                           ".", sep=""))
+    #write.table(data_smoothed, file="06_remove_noise.txt")
 
     # Plot and write data
     logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                   pdf_path, sep=""))
     logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
                            paste(dim(data_smoothed), collapse=","), sep=""))
-    infercnv::plot_cnv(data_smoothed,
+    plot_cnv(data_smoothed,
                        paste(as.vector(as.matrix(chr_order))),
                        reference_obs,
                        pdf_path)
@@ -243,13 +303,15 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
     }
 
     # Define data for for row conditions, will be used to create a colorstack
-    row.conditions <- contigs
-    names(row.conditions) <- contigs
+    # row.conditions <- contigs
+    # names(row.conditions) <- contigs
 
     # Column seperation by contig and label axes with only one instance of name
-    contig_tbl <- table(contigs)
+    contig_tbl <- table(contigs)[unique_contigs]
     col_sep <- cumsum(contig_tbl)
     col_sep <- col_sep[-1 * length(col_sep)]
+    # These labels are axes labels, indicating contigs at the first column only
+    # and leaving the rest blank.
     contig_labels <- c()
     for(contig_name in names(contig_tbl)){
         contig_labels <- c(contig_labels,
@@ -272,6 +334,9 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
     plot_data <- t(plot_data)
 
     # Plot Observation Samples
+    # Remove observation row names, too many to plot
+    # Will try and keep the reference names
+    # They are more informative anyway
     obs_data <- plot_data
     if(!is.null(ref_idx)){
         obs_data <- plot_data[-1 * ref_idx,,drop=FALSE]
@@ -281,11 +346,12 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
                 row.names(obs_data) <- c("", row.names(obs_data)[1])
         }
     }
+    row.names(obs_data) <- rep("", nrow(obs_data))
 
     par(fig=c(0,1,0,1), new=FALSE)
     heatmap.2(obs_data,
         main="Copy Number Variation Inference",
-        ylab="Cell",
+        ylab="Observations (Cells)",
         xlab="Genomic Region",
         key=TRUE,
         labCol=contig_labels,
@@ -317,15 +383,20 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
         # I just duplicate the row and hid the second name so it
         # visually looks like it is just taking up the full realestate.
         plot_data <- plot_data[ref_idx,, drop=FALSE]
-        if(nrow(plot_data) == 1){
+        number_references <- nrow(plot_data)
+        reference_ylab <- NA
+        if(number_references == 1){
             plot_data <- rbind(plot_data, plot_data)
             row.names(plot_data) <- c("",row.names(plot_data)[1])
+        } else if (number_references > 20){
+            reference_ylab <- "References"
+            row.names(plot_data) <- rep("", number_references)
         }
         # Print controls
         par(fig=c(0,1,0,1), new=TRUE)
         heatmap.2(plot_data,
             main=NA,
-            ylab=NA,
+            ylab=reference_ylab,
             xlab=NA,
             key=FALSE,
             labCol=rep("", nrow(plot_data)),
@@ -360,9 +431,9 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
 #'    @return Returns a vector of row indicies to keep (are above the cutoff).
 above_cutoff <- function(data, cutoff){
 
-    logging::logdebug(paste("::above_cutoff:Start", sep=""))
-    average_gene <- log2(rowMeans( ( (2 ^ data) - 1), na.rm=TRUE) + 1)
-    logging::loginfo(paste("::infer_cnv:Averages.", sep=""))
+    logging::loginfo(paste("::above_cutoff:Start", sep=""))
+    average_gene <- rowMeans( ( (2 ^ data) - 1), na.rm=TRUE)
+    logging::loginfo(paste("::infer_cnv:Averages (counts).", sep=""))
     logging::logdebug(paste(average_gene, collapse=","))
     # Find averages above a certain threshold
     indicies <- which(average_gene > cutoff)
@@ -385,13 +456,19 @@ above_cutoff <- function(data, cutoff){
 #'            genomic_position file. NULL is returned if the genes in both
 #'            data parameters do not match.
 order_reduce <- function(data, genomic_position){
-    keep_genes <- which(row.names(genomic_position) %in%
-                        row.names(data))
-    if(length(keep_genes)){
-        return(data[keep_genes,])
-    } else {
-        return(NULL)
+
+    logging::loginfo(paste("::order_reduce:Start.", sep=""))
+    ret_results <- list(expr=NULL, order=NULL)
+    if(is.null(data) || is.null(genomic_position)){
+        return(ret_results)
     }
+    keep_genes <- row.names(data)[which(row.names(data)
+                                  %in% row.names(genomic_position))]
+    if(length(keep_genes)){
+        ret_results$expr <- data[keep_genes,]
+        ret_results$order <- genomic_position[keep_genes,]
+    }
+    return(ret_results)
 }
 
 #' Remove values that are too close to the average and are considered noise.
@@ -408,7 +485,7 @@ order_reduce <- function(data, genomic_position){
 #'    @return Denoised matrix
 remove_noise <- function(ref, smooth_matrix, threshold){
 
-    logging::logdebug(paste("::remove_noise:Start.", sep=""))
+    logging::loginfo(paste("::remove_noise:Start.", sep=""))
     if (length(ref) == ncol(smooth_matrix)){
         ref <- c()
     }
@@ -432,7 +509,7 @@ remove_noise <- function(ref, smooth_matrix, threshold){
 #'    @return Matrix with tails of chr set to 0.
 remove_tails <- function(smooth_matrix, chr, tail_length){
 
-    logging::logdebug(paste("::remove_tails:Start.", sep=""))
+    logging::loginfo(paste("::remove_tails:Start.", sep=""))
     if (tail_length < 1){
         return(smooth_matrix)
     }
@@ -448,7 +525,7 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 }
 
 #' Smooth a matrix by column using a simple moving average.
-#' Tail so of the averages usea window length that is truncated to
+#' Tails of the averages use a window length that is truncated to
 #' available data.
 #'
 #' Args:
@@ -460,19 +537,19 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 #'    @return Matrix with columns smoothed with a simple moving average.
 smooth_window <- function(data, window_length){
 
+    logging::loginfo(paste("::smooth_window:Start.", sep=""))
     if (window_length < 2){
         return(data)
     }
     if (window_length > nrow(data)){
         return(data)
     }
-    logging::logdebug(paste("::smooth_window:Start.", sep=""))
     data_sm <- data.frame(matrix(rep( NA, nrow(data) * ncol(data)),
                           nrow=nrow(data),
                           ncol=ncol(data)))
     data_sm <- apply(data,
                      2,
-                     infercnv::smooth_window_helper,
+                     smooth_window_helper,
                      window_length=window_length)
     tails <- (window_length - 1) / 2
     for (obs in 1:ncol(data)){
@@ -531,6 +608,16 @@ if (identical(environment(),globalenv()) &&
                         help=paste("A number >= 0 is expected. A cut off for",
                                    "the average expression of genes to be used",
                                    "for CNV inference. [Default %default]"))
+
+    pargs <- optparse::add_option(pargs, c("--transform"),
+                        type="logical",
+                        default=FALSE,
+                        action="store_true",
+                        dest="log_transform",
+                        metavar="LogTransform",
+                        help=paste("Matrix is assumed to be Log2+1 transformed.",
+                                   "If instead it is raw counts use this flag so that",
+                                   "the data will be transformed. [Default %default]"))
 
     #pargs <- optparse::add_option(pargs, c("--data_matrix"),
     #                    type="character",
@@ -623,16 +710,25 @@ if (identical(environment(),globalenv()) &&
                         help=paste("Window length for the smoothing.",
                                    "[Default %default]"))
 
+    pargs <- optparse::add_option(pargs, c("--tail"),
+                        type="integer",
+                        default=NA,
+                        action="store",
+                        dest="contig_tail",
+                        metavar="contig_tail",
+                        help=paste("Contig tail to be removed.",
+                                   "[Default %default]"))
+
     args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
     args <- args_parsed$options
     args["input_matrix"] <- args_parsed$args[1]
     args["gene_order"] <- args_parsed$args[2]
 
     # Check arguments
-    infercnv::check_arguments(args)
+    args <- check_arguments(args)
 
     # Set up logging file
-    optparse::basicConfig(level=args$log_level)
+    logging::basicConfig(level=args$log_level)
     if (!is.na(args$log_file)){
         optparse::addHandler(optparse::writeToFile,
                              file=args$log_file,
@@ -642,6 +738,7 @@ if (identical(environment(),globalenv()) &&
     # Manage inputs
     logging::loginfo(paste("::Reading data matrix.", sep=""))
     expression_data <- read.table(args$input_matrix)
+    #write.table(expression_data, file="0_data.txt")
     logging::loginfo(paste("Original matrix dimensions (r,c)=",
                   paste(dim(expression_data), collapse=",")))
 
@@ -654,6 +751,7 @@ if (identical(environment(),globalenv()) &&
     }
     logging::loginfo(paste("::Reading gene order.", sep=""))
     logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
+    #write.table(input_gene_order, file="0a_data.txt")
 
     # Default the reference samples to all
     input_reference_samples <- colnames(expression_data)
@@ -680,22 +778,26 @@ if (identical(environment(),globalenv()) &&
     }
 
     # Order and reduce the expression to the genomic file.
-    expression_data <- infercnv::order_reduce(data=expression_data,
+    order_ret <- order_reduce(data=expression_data,
                                    genomic_position=input_gene_order)
+    expression_data <- order_ret$expr
+    input_gene_order <- order_ret$order
+    #write.table(expression_data, file="0c_order_reduce.txt")
     if(is.null(expression_data)){
         error_message <- paste("None of the genes in the expression data",
                               "matched the genes in the reference genomic",
                               "position file. Analysis Stopped.")
         stop(error_message)
     }
-
     # Run CNV inference
-    infercnv::infer_cnv(data=expression_data,
+    infer_cnv(data=expression_data,
                         gene_order=input_gene_order,
                         cutoff=args$cutoff,
                         reference_obs=input_reference_samples,
+                        transform_data=args$log_transform,
                         window_length=args$window_length,
                         max_centered_threshold=args$max_centered_expression,
                         noise_threshold=args$magnitude_filter,
-                        pdf_path=args$pdf_file)
+                        pdf_path=args$pdf_file,
+                        contig_tail=args$contig_tail)
 }
