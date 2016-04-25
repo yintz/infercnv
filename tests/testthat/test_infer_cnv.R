@@ -101,37 +101,37 @@ above_answer_6 <- NULL
 
 test_that(paste("above_cutoff works with one observation,",
                 "cutoff too large to affect"),{
-    expect_equal(above_cutoff(data=matrix_one,
+    expect_equal(above_cutoff(data=log2(matrix_one+1),
                               cutoff=0),
                  above_answer_1)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold too large to affect"),{
-    expect_equal(above_cutoff(data=matrix_three,
+    expect_equal(above_cutoff(data=log2(matrix_three+1),
                               cutoff=0),
                  above_answer_2)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding two."),{
-    expect_equal(above_cutoff(data=matrix_one,
+    expect_equal(above_cutoff(data=log2(matrix_one+1),
                               cutoff=2),
                  above_answer_3)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding three."),{
-    expect_equal(above_cutoff(data=matrix_three,
-                              cutoff=12),
+    expect_equal(above_cutoff(data=log2(matrix_three+1),
+                              cutoff=8),
                  above_answer_4)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=matrix_one,
+    expect_equal(above_cutoff(data=log2(matrix_one+1),
                               cutoff=100),
                  above_answer_5)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=matrix_three,
+    expect_equal(above_cutoff(data=log2(matrix_three+1),
                               cutoff=100),
                  above_answer_6)
          })
@@ -267,3 +267,16 @@ test_that(paste("smooth_window works with one observation,",
                                window_length=100),
                  smooth_answer_5)
          })
+
+#contest("order_reduce")
+#order_reduce_pos_1 = 
+#order_reduce_exp_1=
+#test_that("order_reduce works with null data.",{
+#    expect_equal(order_reduce(NULL, order_reduce_pos_1), NULL)
+#})
+#
+#test_that("order_reduce works with null position.",{
+#    expect_equal(order_reduce(order_reduce_exp_1, NULL), NULL)
+#})
+
+
