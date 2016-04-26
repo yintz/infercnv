@@ -52,6 +52,73 @@ test_that("average_over_ref works with 1 observation, 1 reference",{
                  avref_answer_5)
           })
 
+context("Test split_references")
+
+split_matrix_one <- NULL
+split_matrix_two <- matrix(1:10, ncol=1)
+split_matrix_three <- matrix(1:10, ncol=1)
+split_matrix_four <- matrix(c(1:10,2:11,31:40,32:41,33:42,0:9), ncol=10, byrow=TRUE)
+split_matrix_five <- matrix(c(1:10,2:11,31:40,32:41,33:42,0:9), ncol=10, byrow=TRUE)
+
+split_obs_one <- NULL
+split_obs_two <- c(1)
+split_obs_three <- c(2)
+split_obs_four <- 1:3
+split_obs_five <- c(2,4,6)
+
+split_num_grp_one <- NULL
+split_num_grp_two <- 1
+split_num_grp_three <- 2
+split_num_grp_four <- 1
+split_num_grp_five <- 3
+
+split_answer_one <- list()
+split_answer_two <- list()
+split_answer_two[[1]] <- split_obs_two
+split_answer_three <- list()
+split_answer_three[[1]] <- split_obs_three
+split_answer_four <- list()
+split_answer_four[[1]] <- split_obs_four
+split_answer_five <- list()
+split_answer_five[[1]] <- c(2)
+split_answer_five[[2]] <- c(4)
+split_answer_five[[3]] <- c(6)
+
+test_that("split_references for null matrix.",{
+    expect_equal(split_references(average_data=split_matrix_one,
+                                  ref_obs=split_obs_one,
+                                  num_groups=split_num_grp_one),
+                 split_answer_one)
+        })
+
+test_that("split_references for one observation matrix, one group",{
+    expect_equal(split_references(average_data=split_matrix_two,
+                                  ref_obs=split_obs_two,
+                                  num_groups=split_num_grp_two),
+                split_answer_two)
+        })
+
+test_that("split_references for one observation matrix, two groups",{
+    expect_equal(split_references(average_data=split_matrix_three,
+                                  ref_obs=split_obs_three,
+                                  num_groups=split_num_grp_three),
+                split_answer_three)
+        })
+
+test_that("split_references for three observation matrix, one group",{
+    expect_equal(split_references(average_data=split_matrix_four,
+                                  ref_obs=split_obs_four,
+                                  num_groups=split_num_grp_four),
+                split_answer_four)
+        })
+
+test_that("split_references for three observation matrix, three groups",{
+    expect_equal(split_references(average_data=split_matrix_five,
+                                  ref_obs=split_obs_five,
+                                  num_groups=split_num_grp_five),
+                split_answer_five)
+        })
+
 context("Test center_with_threshold")
 
 center_answer_1 <- matrix(rep(0,5), ncol=1)

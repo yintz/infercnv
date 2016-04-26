@@ -1,20 +1,22 @@
 #!/usr/bin/env Rscript
 
 
-
 #' Remove the average of the genes of the reference observations from all 
 #' observations' expression.
 #'
 #' Args:
 #'    @param average_data: Matrix containing the data to remove average from
 #'                         (this includes the reference observations).
+#'                         Row = Genes, Col = Cells.
 #'    @param reference_observations: Indices of reference observations.
 #'                                   Only these are used in the average.
 #'
 #' Returns:
 #'    @return Expression with the average gene expression in the reference 
 #'            observations removed.
-average_over_ref <- function(average_data, ref_observations){
+average_over_ref <- function(average_data,
+                             ref_observations,
+                             obs_groups){
 
     logging::loginfo(paste("::average_over_ref:Start", sep=""))
     average_reference_obs <- average_data[, ref_observations]
@@ -25,10 +27,58 @@ average_over_ref <- function(average_data, ref_observations){
     return(sweep(average_data, MARGIN=1, average_reference_obs, FUN="-"))
 }
 
+#' Split up reference observations in to k groups and return indices
+#' for the different groups.
+#'
+#' Args:
+#'    @param average_data: Matrix containing data. Row = Genes, Col = Cells.
+#'    @param ref_obs: Indices of reference obervations.
+#'    @param num_groups: The number of groups to partition nodes in.
+#'
+#' Returns:
+#'    @return Returns a list of grouped reference observations given as
+#'            vectors of groups.
+split_references <- function(average_data,
+                             ref_obs,
+                             num_groups){
+    logging::loginfo(paste("::split_references:Start", sep=""))
+    ret_groups <- list()
+    if(is.null(average_data)){
+        return(ret_groups)
+    }
+    if(is.null(num_groups)){
+        num_groups <- 1
+    }
+    if(is.null(ref_obs)){
+        ref_obs <- 1:ncol(average_data)
+    }
+    if(num_groups > ncol(average_data)){
+        num_groups <- ncol(average_data)
+    }
+
+    # If only one group is needed, short-circuit and
+    # return all indices immediately
+    if((num_groups < 2)||
+       (length(ref_obs) < 2)){
+        ret_groups[[1]] <- ref_obs
+        ret_order <- ref_obs
+        return(ret_groups)
+    }
+
+    # Get reference observations only.
+    average_reference_obs <- t(average_data[, ref_obs])
+    hc <- hclust(dist(average_reference_obs))
+    split_groups <- cutree(hc, k=num_groups)
+    for(cut_group in unique(split_groups)){
+        ret_groups[[cut_group]] <- ref_obs[which(split_groups==cut_group)]
+    }
+    return(ret_groups)
+}
+
 #' Center data and threshold (both negative and postive values)
 #'
 #' Args:
-#'    @param center_data: Matrix to center
+#'    @param center_data: Matrix to center. Row = Genes, Col = Cells.
 #'    @param threshold: Values will be required to be with -/+1 * 
 #'                      threshold after centering.
 #' Returns:
@@ -93,8 +143,9 @@ check_arguments <- function(arguments){
     # Warn that an average of the samples is used in the absence of
     # normal / reference samples
     if (is.null(arguments$reference_observations)){
-        logging::logwarn(paste(":: --reference_observations: No reference samples were",
-                      " given, the average of the samples will be used.",
+        logging::logwarn(paste(":: --reference_observations: No reference ",
+                      "samples were given, the average of the samples ",
+                      "will be used.",
                       sep=""))
     }
 
@@ -139,9 +190,17 @@ check_arguments <- function(arguments){
 #' Returns:
 #'    @return No return.
 #' @export
-infer_cnv <- function(data, gene_order, cutoff, reference_obs, transform_data,
-                      window_length, max_centered_threshold,
-                      noise_threshold, pdf_path, contig_tail=(window_length - 1) / 2){
+infer_cnv <- function(data,
+                      gene_order,
+                      cutoff,
+                      reference_obs,
+                      transform_data,
+                      window_length,
+                      max_centered_threshold,
+                      noise_threshold,
+                      num_ref_groups,
+                      pdf_path,
+                      contig_tail=(window_length - 1) / 2){
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
     # Remove any gene without position information
@@ -213,9 +272,15 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs, transform_data,
     data <- NULL
     logging::loginfo(paste("::infer_cnv:Smoothed data.", sep=""))
 
+    # Split the reference data into groups if requested
+    groups_ref <- split_references(average_data=data_smoothed,
+                                   ref_obs=reference_obs,
+                                   num_groups=num_ref_groups)
+
     # Remove average reference
     data_smoothed <- average_over_ref(average_data=data_smoothed,
-                                            ref_observations=reference_obs)
+                                      ref_observations=reference_obs,
+                                      obs_groups=groups_ref)
     logging::loginfo(paste("::infer_cnv:Remove average, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
@@ -264,9 +329,9 @@ infer_cnv <- function(data, gene_order, cutoff, reference_obs, transform_data,
     logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
                            paste(dim(data_smoothed), collapse=","), sep=""))
     plot_cnv(data_smoothed,
-                       paste(as.vector(as.matrix(chr_order))),
-                       reference_obs,
-                       pdf_path)
+             paste(as.vector(as.matrix(chr_order))),
+             reference_obs,
+             pdf_path)
     logging::loginfo(paste("::infer_cnv:Writing final data to ",
                   paste(pdf_path, ".txt", sep=""), sep=""))
     write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
@@ -363,7 +428,8 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
         Colv=FALSE,
         cexRow=0.8,
         scale="none",
-        col="cm.colors",
+        #col="cm.colors",
+        col=colorRampPalette(c("purple","white","orange"))(n=1000),
         # Seperate by contigs
         colsep=col_sep,
         # Seperate by reference / not reference
@@ -406,7 +472,8 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
             Colv=FALSE,
             cexRow=0.8,
             scale="none",
-            col="cm.colors",
+            #col="cm.colors",
+            col=colorRampPalette(c("purple","white","orange"))(n=1000),
             # Seperate by contigs
             colsep=col_sep,
             # Seperate by reference / not reference
@@ -424,7 +491,7 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
 #'
 #' Args:
 #'    @param data: Data to measure the average row and evaluate
-#'                 against the cutoff.
+#'                 against the cutoff. Row = Genes, Col = Cells.
 #'    @param cutoff: Threshold to be above to be kept.
 #'
 #' Returns:
@@ -477,7 +544,7 @@ order_reduce <- function(data, genomic_position){
 #'    @param ref: Indices of the samples / observation that are reference.
 #'        These will not be removed or changed.
 #'    @param smooth_matrix: A matrix of values, smoothed, and with average 
-#'                          reference removed.
+#'                          reference removed. Row = Genes, Col = Cells.
 #'    @param threshold: The amount of difference a value must be from the
 #'                      reference before the value can be kept and not 
 #'                      removed as noise.
@@ -502,6 +569,7 @@ remove_noise <- function(ref, smooth_matrix, threshold){
 #'
 #' Args:
 #'    @param smooth_matrix: Smoothed values in genomic order.
+#'                          Row = Genes, Col = Cells.
 #'    @param chr: Indices of the chr in which the tails are to be removed.
 #'    @param tail_length: Length of the tail to remove on both ends of the
 #'                        chr indices.
@@ -529,7 +597,7 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 #' available data.
 #'
 #' Args:
-#'    @param data: Data matrix to smooth (columns=observations)
+#'    @param data: Data matrix to smooth. Row = Genes, Col = Cells.
 #'    @param window_length: Length of window to use for the moving average.
 #'        Should be a positive, odd integer.
 #'
@@ -577,7 +645,7 @@ smooth_window <- function(data, window_length){
 #'    @return Vector of values smoothed with a moving average.
 smooth_window_helper <- function(row_data, window_length){
 
-    logging::logdebug(paste("::smooth_window_helper:Start.", sep=""))
+    #logging::logdebug(paste("::smooth_window_helper:Start.", sep=""))
     return(filter(row_data, rep(1 / window_length, window_length), sides=2))
 }
 
@@ -615,10 +683,20 @@ if (identical(environment(),globalenv()) &&
                         action="store_true",
                         dest="log_transform",
                         metavar="LogTransform",
-                        help=paste("Matrix is assumed to be Log2+1 transformed.",
-                                   "If instead it is raw counts use this flag so that",
-                                   "the data will be transformed. [Default %default]"))
+                        help=paste("Matrix is assumed to be Log2+1 ",
+                                   "transformed. If instead it is raw counts ",
+                                   "use this flag so that the data will be ",
+                                   "transformed. [Default %default]"))
 
+    #pargs <- optparse::add_option(pargs, c("--delim"),
+    #                    type="character",
+    #                    default=" ",
+    #                    action="store",
+    #                    dest="delim",
+    #                    metavar="Expression_Delimiter",
+    #                    help=paste("Delimiter for expression matrix.",
+    #                               "[Default %default][REQUIRED]"))
+    #
     #pargs <- optparse::add_option(pargs, c("--data_matrix"),
     #                    type="character",
     #                    action="store",
@@ -680,6 +758,16 @@ if (identical(environment(),globalenv()) &&
                                    "outside of this range, it is truncated to",
                                    "be within this range [Default %default]."))
 
+    pargs <- optparse::add_option(pargs, c("--ref_groups"),
+                        type="integer",
+                        default=1,
+                        action="store",
+                        dest="num_groups",
+                        metavar="Number_of_reference_groups",
+                        help=paste("Number of groups in which to break ",
+                                   "the reference observations.",
+                                   "[Default %default]"))
+
     pargs <- optparse::add_option(pargs, c("--pdf"),
                         type="character",
                         action="store",
@@ -737,6 +825,7 @@ if (identical(environment(),globalenv()) &&
 
     # Manage inputs
     logging::loginfo(paste("::Reading data matrix.", sep=""))
+    # Row = Genes/Features, Col = Cells/Observations
     expression_data <- read.table(args$input_matrix)
     #write.table(expression_data, file="0_data.txt")
     logging::loginfo(paste("Original matrix dimensions (r,c)=",
@@ -798,6 +887,7 @@ if (identical(environment(),globalenv()) &&
                         window_length=args$window_length,
                         max_centered_threshold=args$max_centered_expression,
                         noise_threshold=args$magnitude_filter,
+                        num_ref_groups=args$num_groups,
                         pdf_path=args$pdf_file,
                         contig_tail=args$contig_tail)
 }
