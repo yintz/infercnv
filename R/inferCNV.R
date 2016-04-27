@@ -15,8 +15,7 @@
 #'    @return Expression with the average gene expression in the reference 
 #'            observations removed.
 average_over_ref <- function(average_data,
-                             ref_observations,
-                             obs_groups){
+                             ref_observations){
 
     logging::loginfo(paste("::average_over_ref:Start", sep=""))
     average_reference_obs <- average_data[, ref_observations]
@@ -24,7 +23,28 @@ average_over_ref <- function(average_data,
         average_reference_obs <- rowMeans(average_data[, ref_observations],
                                           na.rm=TRUE)
     }
-    return(sweep(average_data, MARGIN=1, average_reference_obs, FUN="-"))
+    return(list(data=sweep(average_data, MARGIN=1,
+                           average_reference_obs, FUN="-"),
+                averages=average_reference_obs))
+}
+
+get_adj_group_average <- function(data_adj,
+                                  averages,
+                                  ref_observations,
+                                  ref_groups){
+
+    logging::loginfo(paste("::get_adj_group_average:Start", sep=""))
+    average_reference_obs <- data_adj[, ref_observations]
+    ret_adj = list()
+    adj_max <- rep(0,length(averages))
+    adj_min <- rep(0,length(averages))
+    for (ref_group in ref_groups){
+        grp_average <- rowMeans(average_reference_obs[,ref_group], na.rm=TRUE)
+        grp_diff <- grp_average - averages
+        adj_max <- pmax(adj_max, grp_diff)
+        adj_min <- pmin(adj_min, grp_diff)
+    }
+    return(list(max_adj=adj_max, min_adj=adj_min))
 }
 
 #' Split up reference observations in to k groups and return indices
@@ -43,6 +63,7 @@ split_references <- function(average_data,
                              num_groups){
     logging::loginfo(paste("::split_references:Start", sep=""))
     ret_groups <- list()
+    split_groups <- NULL
     if(is.null(average_data)){
         return(ret_groups)
     }
@@ -52,25 +73,36 @@ split_references <- function(average_data,
     if(is.null(ref_obs)){
         ref_obs <- 1:ncol(average_data)
     }
-    if(num_groups > ncol(average_data)){
-        num_groups <- ncol(average_data)
-    }
 
-    # If only one group is needed, short-circuit and
-    # return all indices immediately
-    if((num_groups < 2)||
-       (length(ref_obs) < 2)){
-        ret_groups[[1]] <- ref_obs
-        ret_order <- ref_obs
-        return(ret_groups)
-    }
+    # Get grouping
+    if (length(num_groups) == 1){
+        num_groups <- unlist(num_groups)
+        if (num_groups > ncol(average_data)){
+            num_groups <- ncol(average_data)
+        }
 
-    # Get reference observations only.
-    average_reference_obs <- t(average_data[, ref_obs])
-    hc <- hclust(dist(average_reference_obs))
-    split_groups <- cutree(hc, k=num_groups)
-    for(cut_group in unique(split_groups)){
-        ret_groups[[cut_group]] <- ref_obs[which(split_groups==cut_group)]
+        # If only one group is needed, short-circuit and
+        # return all indices immediately
+        if((num_groups < 2)||
+           (length(ref_obs) < 2)){
+            ret_groups[[1]] <- ref_obs
+            ret_order <- ref_obs
+            return(ret_groups)
+        }
+
+        # Get HCLUST
+        # Get reference observations only.
+        average_reference_obs <- t(average_data[, ref_obs])
+        hc <- hclust(dist(average_reference_obs))
+
+        split_groups <- cutree(hc, k=num_groups)
+        split_groups <- split_groups[hc$order]
+        # Keep the sort of the hclust
+        for(cut_group in unique(split_groups)){
+            ret_groups[[cut_group]] <- hc$order[which(split_groups==cut_group)]
+        }
+    } else {
+        ret_groups <- num_groups
     }
     return(ret_groups)
 }
@@ -105,28 +137,12 @@ center_with_threshold <- function(center_data, threshold){
 check_arguments <- function(arguments){
 
     logging::loginfo(paste("::check_arguments:Start", sep=""))
-    # Require an input matrix
-    #     if (!("input_matrix" %in% names(arguments)) ||
-    #          (arguments$input_matrix == "")){
-    #        logging::logerror(paste(":: --data_matrix: Please enter a path ",
-    #                                "to the data matrix. This file should be ",
-    #                                "comma delimited (rows: genes by ",
-    #                                "columns: samples).",
-    #                                sep=""))
-    #    }
     # Require the name of a output pdf file
     if (!( "pdf_file" %in% names(arguments)) || (arguments$pdf_file == "")){
         logging::logerror(paste(":: --pdf: Please enter a file path to ",
                                 "save the heatmap.",
                                  sep=""))
     }
-    # Require a gene order file
-    #    if (arguments$gene_order != ""){
-    #        logging::logerror(paste(":: --gene_order: A file was given for ",
-    #                                "the gene order, genes will be reordered ",
-    #                                "according to this file.",
-    #                                sep=""))
-    #    }
     # Require the cut off to be above 0
     if (arguments$cutoff < 0){
         logging::logerror(paste(":: --cutoff: Please enter a value",
@@ -157,6 +173,48 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --tail: Please enter a value",
                                 "greater or equal to zero for the tail.",
                                 sep=""))
+    }
+
+    if (! is.na(as.integer(arguments$num_groups))){
+        arguments$num_groups <- list(as.integer(arguments$num_groups))
+    } else {
+        # Warn references must be given.
+        if (is.null(arguments$reference_observations)){
+            logging::logerror(paste(":: --ref_groups to use this function ",
+                                    "references must be given. "))
+        }
+
+        # TODO need to check and make sure all reference indices are given.
+        num_str <- unlist(strsplit(arguments$num_groups,","))
+        if (length(num_str) == 1){
+            logging::logerror(paste(":: --ref_groups. If explicitly giving ",
+                                    "indices, make sure to give atleast ",
+                                    "two groups", sep =""))
+            exit(10)
+        }
+        num_groups <- list()
+        for (num_token in num_str){
+            token_numbers <- unlist(strsplit(num_token, ":"))
+            number_count <- length(token_numbers)
+            if (number_count == 1){
+                singleton <- as.integer(number_count)
+                num_groups[[length(num_groups) + 1]] <- singleton
+            } else if (number_count == 2){
+                from <- as.integer(token_numbers[1])
+                to <- as.integer(token_numbers[2])
+                num_groups[[length(num_groups) + 1]] <- seq(from, to)
+            } else {
+                logging::logerror(paste(":: --ref_groups is expecting either ",
+                                        "one number or a comma delimited list ",
+                                        "of numbers or spans using ':'. ",
+                                        "Examples include: --ref_groups 3 or ",
+                                        " --ref_groups 1,3,5,6,3 or ",
+                                        " --ref_groups 1:5,6:20 or ",
+                                        " --ref_groups 1,2:5,6,7:10 .", sep=""))
+                exit(9)
+            }
+        }
+        arguments$num_groups <- num_groups
     }
     return(arguments)
 }
@@ -217,7 +275,7 @@ infer_cnv <- function(data,
                            " Max=", max(data),
                            ".", sep=""))
     logging::logdebug(paste("::infer_cnv:Removed indices:"))
-    logging::logdebug(paste(remove_by_position * -1, collapse=","))
+    #logging::logdebug(paste(remove_by_position * -1, collapse=","))
     #write.table(data, file="01_remove_pos.txt")
 
     # Make sure data is log transformed + 1
@@ -238,7 +296,7 @@ infer_cnv <- function(data,
                            " Max=", max(data),
                            ".", sep=""))
         logging::logdebug(paste("::infer_cnv:Keeping indices.", sep=""))
-        logging::logdebug(paste(keep_gene_indices, collapse=","))
+        #logging::logdebug(paste(keep_gene_indices, collapse=","))
     } else {
         logging::loginfo(paste("::infer_cnv:Reduce by cutoff.", sep=""))
         logging::logwarn(paste("::infer_cnv::No indicies left to keep.",
@@ -276,11 +334,14 @@ infer_cnv <- function(data,
     groups_ref <- split_references(average_data=data_smoothed,
                                    ref_obs=reference_obs,
                                    num_groups=num_ref_groups)
+    logging::loginfo(paste("::infer_cnv:split_reference. ",
+                           "found ",length(groups_ref)," reference groups.",
+                          sep=""))
 
     # Remove average reference
-    data_smoothed <- average_over_ref(average_data=data_smoothed,
-                                      ref_observations=reference_obs,
-                                      obs_groups=groups_ref)
+    ret_average <- average_over_ref(average_data=data_smoothed,
+                                      ref_observations=reference_obs)
+    data_smoothed <- ret_average$data
     logging::loginfo(paste("::infer_cnv:Remove average, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
@@ -289,6 +350,14 @@ infer_cnv <- function(data,
                            " Max=", max(data_smoothed),
                            ".", sep=""))
     #write.table(data_smoothed, file="05_remove_average.txt")
+
+    # Get adjustments for removing noise given multiple reference groups
+    # Which may have different patterns
+    average_adjustments <- get_adj_group_average(data_adj=data_smoothed,
+                                                 averages=ret_average$averages,
+                                                 ref_observations=reference_obs,
+                                                 ref_groups=groups_ref)
+    logging::loginfo(paste("::infer_cnv:get_adj_group_average. End"))
 
     # Remove Ends
     logging::logdebug(chr_order)
@@ -311,9 +380,11 @@ infer_cnv <- function(data,
     #write.table(data_smoothed, file="05_remove_ends.txt")
 
     # Remove noise
-    data_smoothed <- remove_noise(reference_obs,
-                                  data_smoothed,
-                                  noise_threshold)
+    data_smoothed <- remove_noise(ref=reference_obs,
+                                  smooth_matrix=data_smoothed,
+                                  threshold=noise_threshold,
+                                  max_adj=average_adjustments$max_adj,
+                                  min_adj=average_adjustments$min_adj)
     logging::loginfo(paste("::infer_cnv:Remove moise, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
@@ -328,10 +399,11 @@ infer_cnv <- function(data,
                   pdf_path, sep=""))
     logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
                            paste(dim(data_smoothed), collapse=","), sep=""))
-    plot_cnv(data_smoothed,
-             paste(as.vector(as.matrix(chr_order))),
-             reference_obs,
-             pdf_path)
+    plot_cnv(plot_data=data_smoothed,
+             contigs=paste(as.vector(as.matrix(chr_order))),
+             reference_idx=reference_obs,
+             ref_groups=groups_ref,
+             pdf_path=pdf_path)
     logging::loginfo(paste("::infer_cnv:Writing final data to ",
                   paste(pdf_path, ".txt", sep=""), sep=""))
     write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
@@ -346,12 +418,19 @@ infer_cnv <- function(data,
 #'
 #' Returns:
 #'    @return No return
-plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
+plot_cnv <- function(plot_data,
+                     contigs,
+                     reference_idx,
+                     ref_groups,
+                     pdf_path){
 
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::logdebug(paste("::plot_cnv:Current data dimensions (r,c)=",
-                   paste(dim(plot_data), collapse=","), sep=""))
-    logging::logdebug(paste(head(plot_data[1]), collapse=","))
+                            paste(dim(plot_data), collapse=","),
+                            " Total=", sum(plot_data),
+                            " Min=", min(plot_data),
+                            " Max=", max(plot_data),
+                            ".", sep=""))
 
     # Contigs
     unique_contigs <- unique(contigs)
@@ -367,10 +446,6 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
         }
     }
 
-    # Define data for for row conditions, will be used to create a colorstack
-    # row.conditions <- contigs
-    # names(row.conditions) <- contigs
-
     # Column seperation by contig and label axes with only one instance of name
     contig_tbl <- table(contigs)[unique_contigs]
     col_sep <- cumsum(contig_tbl)
@@ -378,7 +453,7 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
     # These labels are axes labels, indicating contigs at the first column only
     # and leaving the rest blank.
     contig_labels <- c()
-    for(contig_name in names(contig_tbl)){
+    for (contig_name in names(contig_tbl)){
         contig_labels <- c(contig_labels,
                            contig_name,
                            rep("", contig_tbl[contig_name] - 1))
@@ -396,21 +471,21 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
 
     # Plot heatmap
     par(mar=c(.5,.5,.5,.5))
-    plot_data <- t(plot_data)
 
     # Plot Observation Samples
-    # Remove observation row names, too many to plot
+    # Remove observation col names, too many to plot
     # Will try and keep the reference names
     # They are more informative anyway
     obs_data <- plot_data
-    if(!is.null(ref_idx)){
-        obs_data <- plot_data[-1 * ref_idx,,drop=FALSE]
+    if (!is.null(ref_idx)){
+        obs_data <- plot_data[,-1 * ref_idx,drop=FALSE]
         #TODO there will always be more obs, flip this with ref.
-        if(nrow(obs_data) == 1){
-                plot_data <- rbind(obs_data, obs_data)
-                row.names(obs_data) <- c("", row.names(obs_data)[1])
+        if (ncol(obs_data) == 1){
+                plot_data <- cbind(obs_data, obs_data)
+                names(obs_data) <- c("", names(obs_data)[1])
         }
     }
+    obs_data <- t(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
 
     par(fig=c(0,1,0,1), new=FALSE)
@@ -429,7 +504,7 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
         cexRow=0.8,
         scale="none",
         #col="cm.colors",
-        col=colorRampPalette(c("purple","white","orange"))(n=1000),
+        col=colorRampPalette(c("purple","white","orange"))(n=100),
         # Seperate by contigs
         colsep=col_sep,
         # Seperate by reference / not reference
@@ -445,16 +520,35 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
 
     # Plot Reference Samples
     if(!is.null(ref_idx)){
+        plot_data <- plot_data[,ref_idx, drop=FALSE]
+        number_references <- ncol(plot_data)
+        reference_ylab <- NA
+        ref_seps = c()
         # heatmap2 requires a 2 x 2 matrix, so with one reference
         # I just duplicate the row and hid the second name so it
         # visually looks like it is just taking up the full realestate.
-        plot_data <- plot_data[ref_idx,, drop=FALSE]
-        number_references <- nrow(plot_data)
-        reference_ylab <- NA
         if(number_references == 1){
-            plot_data <- rbind(plot_data, plot_data)
-            row.names(plot_data) <- c("",row.names(plot_data)[1])
-        } else if (number_references > 20){
+            plot_data <- cbind(plot_data, plot_data)
+            names(plot_data) <- c("",names(plot_data)[1])
+        }
+        # If there is more than one reference group, visually break
+        # up the groups with a row seperator. Also plot the rows in
+        # order so the current groups are show and seperated.
+        if(length(ref_groups) > 1){
+            i_cur_idx <- 0
+            order_idx <- c()
+            for(ref_grp in ref_groups){
+                i_cur_idx <- i_cur_idx + length(ref_grp)
+                ref_seps <- c(ref_seps, i_cur_idx)
+                order_idx <- c(order_idx, ref_grp)
+            }
+            ref_seps = ref_seps[1:(length(ref_seps) - 1)]
+            plot_data <- plot_data[,order_idx, drop=FALSE]
+        }
+        plot_data <- t(plot_data)
+        if (number_references > 20){
+            # The reference labs can become clutered
+            # Dynamically change labels given a certain number of labels.
             reference_ylab <- "References"
             row.names(plot_data) <- rep("", number_references)
         }
@@ -470,10 +564,12 @@ plot_cnv <- function(plot_data, contigs, reference_idx, pdf_path){
             trace="none",
             dendrogram="none",
             Colv=FALSE,
+            Rowv=FALSE,
             cexRow=0.8,
             scale="none",
+            rowsep=ref_seps,
             #col="cm.colors",
-            col=colorRampPalette(c("purple","white","orange"))(n=1000),
+            col=colorRampPalette(c("purple","white","orange"))(n=100),
             # Seperate by contigs
             colsep=col_sep,
             # Seperate by reference / not reference
@@ -501,7 +597,7 @@ above_cutoff <- function(data, cutoff){
     logging::loginfo(paste("::above_cutoff:Start", sep=""))
     average_gene <- rowMeans( ( (2 ^ data) - 1), na.rm=TRUE)
     logging::loginfo(paste("::infer_cnv:Averages (counts).", sep=""))
-    logging::logdebug(paste(average_gene, collapse=","))
+    #logging::logdebug(paste(average_gene, collapse=","))
     # Find averages above a certain threshold
     indicies <- which(average_gene > cutoff)
     if (length(indicies) > 0){
@@ -550,14 +646,31 @@ order_reduce <- function(data, genomic_position){
 #'                      removed as noise.
 #' Returns:
 #'    @return Denoised matrix
-remove_noise <- function(ref, smooth_matrix, threshold){
+remove_noise <- function(ref, smooth_matrix, threshold,
+                         max_adj, min_adj){
 
     logging::loginfo(paste("::remove_noise:Start.", sep=""))
-    if (length(ref) == ncol(smooth_matrix)){
+    if (is.null(max_adj)){
+        max_adj <- rep(0, nrows(smooth_matrix))
+    }
+    if (is.null(min_adj)){
+        min_adj <- rep(0, nrows(smooth_matrix))
+    }
+    if (length(ref) == nrow(smooth_matrix)){
         ref <- c()
     }
     denoised_matrix <- smooth_matrix
-    denoised_matrix[which(abs(denoised_matrix) < threshold)] <- 0
+    # Adjust the thresholds and turn into vectors
+    max_adj <- max_adj + threshold
+    max_adj <- matrix(max_adj, nrow=nrow(smooth_matrix),
+                      ncol=ncol(smooth_matrix), byrow=FALSE)
+    min_adj <- min_adj - threshold
+    min_adj <- matrix(min_adj, nrow=nrow(smooth_matrix),
+                      ncol=ncol(smooth_matrix), byrow=FALSE)
+    # Adjust for max value
+    denoised_matrix[max_adj > denoised_matrix & denoised_matrix > 0] <- 0
+    denoised_matrix[min_adj < denoised_matrix & denoised_matrix < 0] <- 0
+    #denoised_matrix[which(abs(denoised_matrix) < threshold)] <- 0
     if (length(ref) > 0){
         denoised_matrix[, ref] <- smooth_matrix[, ref]
     }
@@ -612,41 +725,55 @@ smooth_window <- function(data, window_length){
     if (window_length > nrow(data)){
         return(data)
     }
-    data_sm <- data.frame(matrix(rep( NA, nrow(data) * ncol(data)),
-                          nrow=nrow(data),
-                          ncol=ncol(data)))
+
+    tail_length <- (window_length - 1) / 2
+    num_genes <- nrow(data)
     data_sm <- apply(data,
                      2,
                      smooth_window_helper,
                      window_length=window_length)
-    tails <- (window_length - 1) / 2
-    for (obs in 1:ncol(data)){
-        for (tail_end in 1:tails){
-            bounds <- tail_end - 1
-            end_tail <- nrow(data_sm) - bounds
-            data_sm[tail_end, obs] <- mean(data[, obs][(tail_end - bounds):
-                                                       (tail_end + bounds)],
-                                                       na.rm=TRUE)
-            data_sm[end_tail, obs] <- mean(data[, obs][(end_tail - bounds):
-                                                       (end_tail + bounds)],
-                                                       na.rm=TRUE)
-        }
+
+    # Fix ends 
+    data_end <- apply(data,
+                      2,
+                      smooth_ends_helper,
+                      obs_tails=tail_length)
+    for (row_end in 1:tail_length){
+        end_bound <- (num_genes - row_end) + 1
+        data_sm[row_end,] <- data_end[row_end,]
+        data_sm[end_bound, ] <- data_end[end_bound, ]
     }
     return(data_sm)
+}
+
+smooth_ends_helper <- function(obs_data, obs_tails){
+    end_data <- rep(NA,length(obs_data))
+    obs_count <- length(obs_data)
+    for (tail_end in 1:obs_tails){
+        bounds <- tail_end - 1
+        end_tail <- obs_count - bounds
+        end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
+                                           (tail_end + bounds)],
+                                           na.rm=TRUE)
+        end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
+                                           (end_tail + bounds)],
+                                           na.rm=TRUE)
+    }
+    return(end_data)
 }
 
 #' Smooth vector of values over the given window length.
 #'
 #' Args:
-#'    @param row_data: Vector of data to smooth with a moving average.
+#'    @param obs_data: Vector of data to smooth with a moving average.
 #'    @param window_length: Length of the window for smoothing.
 #'        Must be and odd, positive, integer.
 #' Returns:
 #'    @return Vector of values smoothed with a moving average.
-smooth_window_helper <- function(row_data, window_length){
+smooth_window_helper <- function(obs_data, window_length){
 
     #logging::logdebug(paste("::smooth_window_helper:Start.", sep=""))
-    return(filter(row_data, rep(1 / window_length, window_length), sides=2))
+    return(filter(obs_data, rep(1 / window_length, window_length), sides=2))
 }
 
 
@@ -696,25 +823,6 @@ if (identical(environment(),globalenv()) &&
     #                    metavar="Expression_Delimiter",
     #                    help=paste("Delimiter for expression matrix.",
     #                               "[Default %default][REQUIRED]"))
-    #
-    #pargs <- optparse::add_option(pargs, c("--data_matrix"),
-    #                    type="character",
-    #                    action="store",
-    #                    dest="input_matrix",
-    #                    metavar="Input_data_matrix",
-    #                    help=paste("A file path is expected. Expression",
-    #                               "matrix (row:genes X column:samples),",
-    #                               "assumed to be log2(TPM+1)."))
-
-    #pargs <- optparse::add_option(pargs, c("--gene_order"),
-    #                    type="character",
-    #                    default="",
-    #                    action="store",
-    #                    dest="gene_order",
-    #                    metavar="Input_gene_order",
-    #                    help=paste("A file path is expected. Tab delimited",
-    #                               "file of chromosome, start, and stop for",
-    #                               "each gene in the data matrix."))
 
     pargs <- optparse::add_option(pargs, c("--log"),
                         type="character",
@@ -758,16 +866,6 @@ if (identical(environment(),globalenv()) &&
                                    "outside of this range, it is truncated to",
                                    "be within this range [Default %default]."))
 
-    pargs <- optparse::add_option(pargs, c("--ref_groups"),
-                        type="integer",
-                        default=1,
-                        action="store",
-                        dest="num_groups",
-                        metavar="Number_of_reference_groups",
-                        help=paste("Number of groups in which to break ",
-                                   "the reference observations.",
-                                   "[Default %default]"))
-
     pargs <- optparse::add_option(pargs, c("--pdf"),
                         type="character",
                         action="store",
@@ -787,6 +885,16 @@ if (identical(environment(),globalenv()) &&
                                    "columns ) that should be used as",
                                    "references if not given, the average of",
                                    "all samples will be the reference.",
+                                   "[Default %default]"))
+
+    pargs <- optparse::add_option(pargs, c("--ref_groups"),
+                        type="character",
+                        default=1,
+                        action="store",
+                        dest="num_groups",
+                        metavar="Number_of_reference_groups",
+                        help=paste("Number of groups in which to break ",
+                                   "the reference observations.",
                                    "[Default %default]"))
 
     pargs <- optparse::add_option(pargs, c("--window"),
