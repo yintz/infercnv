@@ -14,51 +14,88 @@ matrix_five <- matrix(1:25, ncol=5)
 
 context("Test average_over_ref")
 
+matrix_averef_five <- matrix(c(c(-100, -100, -100, -100, -100),
+                             c(-101, -100, -99, -98, -99),
+                             c(1, 1, 1, 1, 1),
+                             c(110, 103, 90, 80, 70),
+                             c(0, 0, 0, 0, 0),
+                             c(100, 102, 100, 102, 102),
+                             c(-1, -1, -1, -1, -1),
+                             c(105, 95, 80, 97, 80),
+                             c(100, 102, 100, 102, 102),
+                             c(0, 0, 0, 0, 0)),
+                             ncol=10, byrow=FALSE)
+
 avref_answer_1 <- matrix_one
 avref_answer_2 <- matrix(c(rep(0,5), rep(5,5)), ncol=2)
-avref_answer_3 <- matrix(c(rep(-5,5),
-                           rep(0,5),
+avref_answer_3 <- matrix(c(rep(0,10),
                            rep(5,5)), ncol=3)
-avref_answer_4 <- matrix(c(rep(-12.5,5),
-                           rep(-7.5,5),
-                           rep(-2.5,5),
+avref_answer_4 <- matrix(c(rep(0,5),
+                           rep(0,5),
+                           rep(0,5),
                            rep(2.5,5),
                            rep(7.5,5)), ncol=5)
 avref_answer_5 <- matrix_zeros
+matrix_averef_five_answer <- matrix(c(c(0, 0, -1, -2, -1),
+                             c(0, 0, 0, 0, 0),
+                             c(0, 0, 0, 0, 0),
+                             c(5, 3, 0, 0, 0),
+                             c(0, 0, 0, 0, 0),
+                             c(0, 2, 10, 9, 18),
+                             c(0, 0, 0, 0, 0),
+                             c(0, 0, 0, 4, 0),
+                             c(0, 2, 10, 9, 18),
+                             c(0, 0, 0, 0, 0)),
+                             ncol=10, byrow=FALSE)
+
 
 test_that("average_over_ref works with one observation, one reference",{
     expect_equal(average_over_ref(average_data=matrix_one,
-                                  ref_observations=c(1)),
+                                  ref_observations=c(1),
+                                  ref_groups=list(c(1))),
                  matrix(rep(0, nrow(matrix_one)),ncol=1))
           })
 test_that("average_over_ref works with two observations, one reference",{
     expect_equal(average_over_ref(average_data=matrix_two,
-                                  ref_observations=c(1)),
+                                  ref_observations=c(1),
+                                  ref_groups=list(c(1))),
                  avref_answer_2)
           })
 test_that("average_over_ref works with 3 observations, two reference",{
     expect_equal(average_over_ref(average_data=matrix_three,
-                                  ref_observations=c(1,3)),
+                                  ref_observations=c(1,3),
+                                  ref_groups=list(c(1,2))),
                  avref_answer_3)
           })
 test_that("average_over_ref works with 5 observations, two reference",{
     expect_equal(average_over_ref(average_data=matrix_five,
-                                  ref_observations=c(2,5)),
+                                  ref_observations=c(2,5),
+                                  ref_groups=list(c(1,2))),
                  avref_answer_4)
           })
 test_that("average_over_ref works with 1 observation, 1 reference",{
     expect_equal(average_over_ref(average_data=matrix_zeros,
-                                  ref_observations=c(1)),
+                                  ref_observations=c(1),
+                                  ref_groups=list(c(1))),
                  avref_answer_5)
           })
+test_that("average_over_ref works with 10 obs, 5 references, 3 groups",{
+    expect_equal(average_over_ref(average_data=matrix_averef_five,
+                                  ref_observations=c(2,4,6,8,10),
+                                  ref_groups=list(c(1),c(2,3,4),c(5))),
+                 matrix_averef_five_answer)
+          })
+
 
 context("Test split_references")
 
 split_matrix_one <- NULL
 split_matrix_two <- matrix(1:10, ncol=1)
 split_matrix_three <- matrix(1:10, ncol=1)
-split_matrix_four <- matrix(c(1:10,2:11,31:40,32:41,33:42,0:9), ncol=10, byrow=TRUE)
-split_matrix_five <- matrix(c(1:10,2:11,31:40,32:41,33:42,0:9), ncol=10, byrow=TRUE)
+split_matrix_four <- matrix(c(1:10,2:11,31:40,32:41,33:42,0:9),
+                            ncol=10, byrow=TRUE)
+split_matrix_five <- matrix(c(1:10,2:11,31:40,32:41,33:42,0:9),
+                            ncol=10, byrow=TRUE)
 
 split_obs_one <- NULL
 split_obs_two <- c(1)
@@ -80,9 +117,9 @@ split_answer_three[[1]] <- split_obs_three
 split_answer_four <- list()
 split_answer_four[[1]] <- split_obs_four
 split_answer_five <- list()
-split_answer_five[[1]] <- c(2)
-split_answer_five[[2]] <- c(4)
-split_answer_five[[3]] <- c(6)
+split_answer_five[[1]] <- c(1)
+split_answer_five[[2]] <- c(2)
+split_answer_five[[3]] <- c(3)
 
 test_that("split_references for null matrix.",{
     expect_equal(split_references(average_data=split_matrix_one,
@@ -119,6 +156,7 @@ test_that("split_references for three observation matrix, three groups",{
                 split_answer_five)
         })
 
+
 context("Test center_with_threshold")
 
 center_answer_1 <- matrix(rep(0,5), ncol=1)
@@ -152,10 +190,25 @@ test_that(paste("center_with_threshold works with one observation,",
                  center_answer_4)
          })
 
-# Add a test here to be the full test case on the demo data we are using.
-# infer_cnv <- function(data, gene_order, cutoff, reference_obs,
-#                       window_length, max_centered_threshold,
-#                       noise_threshold, pdf_path){
+
+context("Test center_smoothed")
+
+center_sm_1 <- matrix(1:10, ncol=1)
+center_sm_1_answer <- matrix(c(-4.5,-3.5,-2.5,-1.5,-0.5,0.5,1.5,2.5,3.5,4.5),
+                             ncol=1)
+center_sm_3 <- matrix(1:21, ncol=3)
+center_sm_3_answer <- matrix(rep(c(-3,-2,-1,0,1,2,3),3), ncol=3)
+
+test_that("center_smoothed works with 1 observations",{
+    expect_equal(center_smoothed(data_smoothed=center_sm_3),
+                 center_sm_3_answer)
+    })
+
+test_that("center_smoothed works with 3 observations",{
+    expect_equal(center_smoothed(data_smoothed=center_sm_3),
+                 center_sm_3_answer)
+    })
+
 
 context("Test above_cutoff")
 
@@ -168,40 +221,41 @@ above_answer_6 <- NULL
 
 test_that(paste("above_cutoff works with one observation,",
                 "cutoff too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_one+1),
+    expect_equal(above_cutoff(data=log2(matrix_one + 1),
                               cutoff=0),
                  above_answer_1)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_three+1),
+    expect_equal(above_cutoff(data=log2(matrix_three + 1),
                               cutoff=0),
                  above_answer_2)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding two."),{
-    expect_equal(above_cutoff(data=log2(matrix_one+1),
+    expect_equal(above_cutoff(data=log2(matrix_one + 1),
                               cutoff=2),
                  above_answer_3)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding three."),{
-    expect_equal(above_cutoff(data=log2(matrix_three+1),
+    expect_equal(above_cutoff(data=log2(matrix_three + 1),
                               cutoff=8),
                  above_answer_4)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_one+1),
+    expect_equal(above_cutoff(data=log2(matrix_one + 1),
                               cutoff=100),
                  above_answer_5)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_three+1),
+    expect_equal(above_cutoff(data=log2(matrix_three + 1),
                               cutoff=100),
                  above_answer_6)
          })
+
 
 context("Test remove_noise")
 
@@ -209,56 +263,50 @@ noise_answer_1 <- matrix_one
 noise_answer_2 <- matrix(c(0,0,0,4,5), ncol=1)
 noise_answer_3 <- matrix_zeros
 noise_answer_4 <- matrix_three
-noise_answer_5 <- matrix(c(1:5,rep(0,6),12:15), ncol=3)
-noise_answer_6 <- matrix(c(rep(0,10),11:15), ncol=3)
+noise_answer_5 <- matrix(c(rep(0,11),12:15), ncol=3)
+noise_answer_6 <- matrix(rep(0,15), ncol=3)
 
-test_that("remove_noise works with one observation, one ref, threshold 0",{
-    expect_equal(remove_noise(ref=1,
-                              smooth_matrix=matrix_one,
+test_that("remove_noise works with one observation, threshold 0",{
+    expect_equal(remove_noise(smooth_matrix=matrix_one,
                               threshold=0),
                   noise_answer_1)
          })
 test_that(paste("remove_noise works with one observation, one ref,",
                 "threshold removing some"),{
-    expect_equal(remove_noise(ref=1,
-                              smooth_matrix=matrix_one,
+    expect_equal(remove_noise(smooth_matrix=matrix_one,
                               threshold=4),
                   noise_answer_2)
          })
-test_that(paste("remove_noise works with one observation, one ref,",
+test_that(paste("remove_noise works with one observation,",
                 "threshold removing all"),{
-    expect_equal(remove_noise(ref=1,
-                              smooth_matrix=matrix_one,
+    expect_equal(remove_noise(smooth_matrix=matrix_one,
                               threshold=6),
                   noise_answer_3)
          })
-test_that("remove_noise works with three observation, one ref, threshold 0",{
-    expect_equal(remove_noise(ref=2,
-                              smooth_matrix=matrix_three,
+test_that("remove_noise works with three observation, threshold 0",{
+    expect_equal(remove_noise(smooth_matrix=matrix_three,
                               threshold=0),
                   noise_answer_4)
          })
-test_that("remove_noise works with three observation, one ref, threshold some",{
-    expect_equal(remove_noise(ref=1,
-                              smooth_matrix=matrix_three,
+test_that("remove_noise works with three observation, threshold some",{
+    expect_equal(remove_noise(smooth_matrix=matrix_three,
                               threshold=12),
                   noise_answer_5)
          })
-test_that("remove_noise works with three observation, one ref, threshold all",{
-    expect_equal(remove_noise(ref=3,
-                              smooth_matrix=matrix_three,
+test_that("remove_noise works with three observation, threshold all",{
+    expect_equal(remove_noise(smooth_matrix=matrix_three,
                               threshold=100),
                   noise_answer_6)
          })
 
+
 context("Test remove_tails")
 
 tail_answer_1 <- matrix_one
-tail_answer_2 <- matrix(c(rep(0,5),6:15,rep(0,5)), ncol=1)
-tail_answer_3 <- matrix(c(1,rep(0,5),7:12,rep(0,5),18:20), ncol=1)
-tail_answer_4 <- matrix(c(1:4,rep(0,5),10,rep(0,5),16:24,
-                              rep(0,5),30,rep(0,5),36:40),ncol=2)
-tail_answer_5 <- matrix_zeros
+tail_answer_2 <- -1 * c(1:5, 16:20)
+tail_answer_3 <- -1 * c(2:6, 13:17)
+tail_answer_4 <- -1 * c(5:9, 11:15)
+tail_answer_5 <- -1 * c(1, 5)
 
 test_that(paste("remove tails works with one contig,",
                 "one observation, no tail length"),{
@@ -292,6 +340,7 @@ test_that(paste("remove tails works with one contig, one observation,",
                               tail_length=100),
                  tail_answer_5)
          })
+
 
 context("smooth_window")
 
@@ -334,16 +383,3 @@ test_that(paste("smooth_window works with one observation,",
                                window_length=100),
                  smooth_answer_5)
          })
-
-#contest("order_reduce")
-#order_reduce_pos_1 = 
-#order_reduce_exp_1=
-#test_that("order_reduce works with null data.",{
-#    expect_equal(order_reduce(NULL, order_reduce_pos_1), NULL)
-#})
-#
-#test_that("order_reduce works with null position.",{
-#    expect_equal(order_reduce(order_reduce_exp_1, NULL), NULL)
-#})
-
-

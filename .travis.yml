@@ -16,7 +16,7 @@ r_packages:
 r_check_args: "--timings"
 
 after_sucess:
-  - Rscript -e 'library(covr); codecov()'
+  - Rscript -e 'library(covr); covr::codecov()'
 
 notifications:
   email:
