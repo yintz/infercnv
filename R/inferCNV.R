@@ -1,4 +1,4 @@
-#!/usr/bin/env Rscript
+#/usr/bin/env Rscript
 
 
 #' Remove the average of the genes of the reference observations from all 
@@ -330,7 +330,9 @@ check_arguments <- function(arguments){
 #'    @param pdf_path: The path to what to save the pdf as. The raw data is
 #'                     also written to this path but with the extension .txt .
 #'    @param plot_steps: If true turns on plotting intermediate steps.
-#'    @contig_tail: Length of the tail removed from the ends of contigs
+#'    @contig_tail: Length of the tail removed from the ends of contigs.
+#'    @color_safe: Logical indicator to use a color blind safe palette (TRUE) or
+#'                 the original publication color scheme.
 #'
 #' Returns:
 #'    @return No return.
@@ -346,7 +348,8 @@ infer_cnv <- function(data,
                       num_ref_groups,
                       pdf_path,
                       plot_steps=FALSE,
-                      contig_tail= (window_length - 1) / 2){
+                      contig_tail= (window_length - 1) / 2,
+                      color_safe=TRUE){
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
     plot_steps_path <- dirname(pdf_path)
@@ -582,6 +585,8 @@ plot_step <- function(data, plot_name){
 #'    @param reference_idx: Vector of reference indices.
 #'    @param reg_groups: Groups of vector indices (as indices in reference_idx)
 #'    @param pdf_path: Path to save pdf file.
+#'    @param color_saf_pal: Logical indication of using a color blindness safe
+#'                          palette.
 #'
 #' Returns:
 #'    @return No return
@@ -589,7 +594,8 @@ plot_cnv <- function(plot_data,
                      contigs,
                      reference_idx,
                      ref_groups,
-                     pdf_path){
+                     pdf_path,
+                     color_safe_pal=TRUE){
 
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
@@ -608,6 +614,10 @@ plot_cnv <- function(plot_data,
     # Color palette
     custom_pal <- infercnv::color.palette(c("purple", "white", "orange"),
                                           c(2, 2))(100)
+    if (!color_safe_pal){
+        custom_pal <- infercnv::color.palette(c("blue", "white", "red"),
+                                                c(2, 2))(100)
+    }
 
     # Row seperation based on reference
     ref_idx <- NULL
@@ -675,8 +685,6 @@ plot_cnv <- function(plot_data,
         Colv=FALSE,
         cexRow=0.8,
         scale="none",
-        #col="cm.colors",
-        #col=colorRampPalette(c("purple","white","orange"))(n=100),
         col=custom_pal,
         # Seperate by contigs
         colsep=col_sep,
@@ -741,8 +749,6 @@ plot_cnv <- function(plot_data,
             cexRow=0.8,
             scale="none",
             rowsep=ref_seps,
-            #col="cm.colors",
-            #col=colorRampPalette(c("purple","white","orange"))(n=100),
             col=custom_pal,
             # Seperate by contigs
             colsep=col_sep,
@@ -953,6 +959,18 @@ if (identical(environment(),globalenv()) &&
                                       "--pdf pdf_file",
                                       "data_matrix genomic_positions"))
 
+    pargs <- optparse::add_option(pargs, c("--color_safe"),
+                        type="logical",
+                        default=FALSE,
+                        action="store_true",
+                        dest="use_color_safe",
+                        metavar="Color_Safe",
+                        help=paste("To support the needs of those who see ",
+                                   "colors differently, use this option to",
+                                   "change the colors to a palette visibly ",
+                                   "distinct to all color blindness. ",
+                                   " [Default %default]"))
+
     pargs <- optparse::add_option(pargs, c("--cutoff"),
                         type="integer",
                         default=0,
@@ -1157,5 +1175,6 @@ if (identical(environment(),globalenv()) &&
                         num_ref_groups=args$num_groups,
                         pdf_path=args$pdf_file,
                         plot_steps=args$plot_steps,
-                        contig_tail=args$contig_tail)
+                        contig_tail=args$contig_taili,
+                        color_safe=args$use_color_safe)
 }
