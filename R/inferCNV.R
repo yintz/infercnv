@@ -168,6 +168,98 @@ split_references <- function(average_data,
     return(ret_groups)
 }
 
+#' Set outliers to some upper or lower bound. Then normalize values to
+#' approximately [-1, 1]. This is to prep the data for visualization.
+#'
+#' Args:
+#'    @param data: data to remove outliers. Outliers removed within columns.
+#'    @param lower_bound: Lower bound which identifies a measurement
+#'                        as an outlier. 
+#'    @param upper_bound: Upper bound which identifies a measurement
+#'                        as an outlier.
+remove_outliers_norm <- function(data,
+                                 out_method=NA,
+                                 lower_bound=NA,
+                                 upper_bound=NA,
+                                 plot_step=NA){
+    logging::loginfo(paste("::remove_outlier_norm:Start"))
+    if (is.na(lower_bound) || is.na(upper_bound)){
+        if(is.na(out_method)){
+            return(data)
+        }
+        if (out_method == "average_bound"){
+            lower_bound <- mean(apply(data, 2,
+                                      function(x) quantile(x)[[1]]))
+            upper_bound <- mean(apply(data, 2,
+                                      function(x) quantile(x)[[5]]))
+            # Plot bounds on data
+            if(!is.na(plot_step)){
+                pdf(plot_step, useDingbats=FALSE)
+                boxplot(data)
+                points(1:ncol(data), rep(lower_bound, ncol(data)),
+                       pch=19, col="orange")
+                points(1:ncol(data), rep(upper_bound, ncol(data)),
+                       pch=19, col="orange")
+                dev.off()
+            }
+            data[data < lower_bound] <- lower_bound
+            data[data > upper_bound] <- upper_bound
+            return(data)
+        } else if (out_method == "iqr"){
+            lower_bound <- apply(data, 2, function(x) quantile(x)[[2]])
+            upper_bound <- apply(data, 2, function(x) quantile(x)[[4]])
+            iqr <- upper_bound - lower_bound
+            lower_bound <- lower_bound - (iqr * 1.5)
+            upper_bound <- upper_bound + (iqr * 1.5)
+            # Plot bounds on data
+            if(!is.na(plot_step)){
+                pdf(plot_step, useDingbats=FALSE)
+                boxplot(data)
+                points(1:ncol(data), lower_bound,
+                       pch=19, col="orange")
+                points(1:ncol(data), upper_bound,
+                       pch=19, col="orange")
+            }
+            num_row <- nrow(data)
+            for(col_i in 1:ncol(data)){
+                data[,col_i] <- sapply(data[,col_i],
+                                        function(x) if (x < lower_bound[col_i]){
+                                                      return(lower_bound[col_i])
+                                                  }else{
+                                                      return(x)
+                                                  })
+                data[,col_i] <- sapply(data[,col_i],
+                                        function(x) if (x > upper_bound[col_i]){
+                                                      return(upper_bound[col_i])
+                                                  }else{
+                                                      return(x)
+                                                  })
+            }
+            boxplot(data)
+            dev.off()
+            return(data)
+        } else {
+            logging::logerror(paste("::remove_outlier_norm:Error, please",
+                                    "provide an approved method for outlier",
+                                    "removal for visualization."))
+            stop(991)
+        }
+    }
+    # Hard threshold given bounds
+    if(!is.na(plot_step)){
+        pdf(plot_step, useDingbats=FALSE)
+        boxplot(data)
+        points(1:ncol(data), rep(lower_bound, ncol(data)),
+               pch=19, col="orange")
+        points(1:ncol(data), rep(upper_bound, ncol(data)),
+               pch=19, col="orange")
+        dev.off()
+    }
+    data[data < lower_bound] <- lower_bound
+    data[data > upper_bound] <- upper_bound
+    return(data)
+}
+
 #' Center data after smoothing. Center with in cells using median.
 #'
 #' Args:
@@ -221,6 +313,7 @@ check_arguments <- function(arguments){
                                 "save the heatmap.",
                                  sep=""))
     }
+
     # Require the cut off to be above 0
     if (arguments$cutoff < 0){
         logging::logerror(paste(":: --cutoff: Please enter a value",
@@ -234,6 +327,14 @@ check_arguments <- function(arguments){
                                 "given here: ", C_LEVEL_CHOICES,
                                 collapse=",", sep=""))
     }
+
+    # Require the visualization outlier detection to be a correct choice.
+    if (!(arguments$bound_method_vis %in% C_VIS_OUTLIER_CHOICES)){
+        logging::logerror(paste(":: --vis_bound_method: Please use a method ",
+                                "given here: ", C_VIS_OUTLIER_CHOICES,
+                                collapse=",", sep=""))
+    }
+
     # Warn that an average of the samples is used in the absence of
     # normal / reference samples
     if (is.null(arguments$reference_observations)){
@@ -251,12 +352,14 @@ check_arguments <- function(arguments){
     if (is.na(arguments$contig_tail)){
         arguments$contig_tail <- (arguments$window_length - 1) / 2
     }
+
     if (arguments$contig_tail < 0){
         logging::logerror(paste(":: --tail: Please enter a value",
                                 "greater or equal to zero for the tail.",
                                 sep=""))
     }
-    if (! is.na(as.integer(arguments$num_groups))){
+
+    if (! is.na(suppressWarnings(as.integer(arguments$num_groups)))){
         arguments$num_groups <- list(as.integer(arguments$num_groups))
     } else {
         # Warn references must be given.
@@ -271,8 +374,9 @@ check_arguments <- function(arguments){
             logging::logerror(paste(":: --ref_groups. If explicitly giving ",
                                     "indices, make sure to give atleast ",
                                     "two groups", sep =""))
-            stop(10)
+            stop(990)
         }
+
         num_groups <- list()
         for (num_token in num_str){
             token_numbers <- unlist(strsplit(num_token, ":"))
@@ -292,7 +396,7 @@ check_arguments <- function(arguments){
                                         " --ref_groups 1,3,5,6,3 or ",
                                         " --ref_groups 1:5,6:20 or ",
                                         " --ref_groups 1,2:5,6,7:10 .", sep=""))
-                stop(9)
+                stop(999)
             }
         }
         arguments$num_groups <- num_groups
@@ -333,6 +437,8 @@ check_arguments <- function(arguments){
 #'    @contig_tail: Length of the tail removed from the ends of contigs.
 #'    @color_safe: Logical indicator to use a color blind safe palette (TRUE) or
 #'                 the original publication color scheme.
+#'    @lower_bound_vis: Lower bound to normalize data to for visualization.
+#'    @upper_bound_vis: Upper bound to normalize data to for visualization.
 #'
 #' Returns:
 #'    @return No return.
@@ -349,13 +455,16 @@ infer_cnv <- function(data,
                       pdf_path,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
-                      color_safe=TRUE){
+                      color_safe=TRUE,
+                      method_bound_vis=NA,
+                      lower_bound_vis=NA,
+                      upper_bound_vis=NA){
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
     plot_steps_path <- dirname(pdf_path)
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data,
+        infercnv::plot_step(data=data,
                             plot_name=file.path(plot_steps_path,
                                                 "00_reduced_data.pdf"))
     }
@@ -376,7 +485,7 @@ infer_cnv <- function(data,
     logging::logdebug(paste("::infer_cnv:Removed indices:"))
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data,
+        infercnv::plot_step(data=data,
                             plot_name=file.path(plot_steps_path,
                                                 "01_remove_by_pos_file.pdf"))
     }
@@ -386,14 +495,14 @@ infer_cnv <- function(data,
         data <- log2(data + 1)
         # Plot incremental steps.
         if (plot_steps){
-            plot_step(data=data,
+            infercnv::plot_step(data=data,
                                 plot_name=file.path(plot_steps_path,
                                                     "02_transformed.pdf"))
         }
     }
 
     # Reduce by cutoff
-    keep_gene_indices <- above_cutoff(data, cutoff)
+    keep_gene_indices <- infercnv::above_cutoff(data, cutoff)
     if (!is.null(keep_gene_indices)){
         data <- data[keep_gene_indices, , drop=FALSE]
         gene_order <- gene_order[keep_gene_indices, , drop=FALSE]
@@ -407,13 +516,13 @@ infer_cnv <- function(data,
         logging::logdebug(paste("::infer_cnv:Keeping indices.", sep=""))
     } else {
         logging::loginfo(paste("::infer_cnv:Reduce by cutoff.", sep=""))
-        logging::logwarn(paste("::infer_cnv::No indicies left to keep.",
+        logging::logwarn(paste("::No indicies left to keep.",
                                " Stoping."))
-        stop()
+        stop(998)
     }
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data,
+        infercnv::plot_step(data=data,
                             plot_name=file.path(plot_steps_path,
                                                 "03_reduced_by_cutoff.pdf"))
     }
@@ -426,13 +535,13 @@ infer_cnv <- function(data,
     gene_order <- NULL
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data,
+        infercnv::plot_step(data=data,
                             plot_name=file.path(plot_steps_path,
                                                 "04_order_by_chr.pdf"))
     }
 
     # Center data (automatically ignores zeros)
-    data <- infer_cnv::center_with_threshold(data, max_centered_threshold)
+    data <- infercnv::center_with_threshold(data, max_centered_threshold)
     logging::loginfo(paste("::infer_cnv:Outlier removal, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
@@ -442,42 +551,42 @@ infer_cnv <- function(data,
                            ".", sep=""))
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data,
+        infercnv::plot_step(data=data,
                             plot_name=file.path(plot_steps_path,
                                                 "05_center_with_threshold.pdf"))
     }
 
     # Smooth the data with gene windows
-    data_smoothed <- smooth_window(data, window_length)
+    data_smoothed <- infercnv::smooth_window(data, window_length)
     data <- NULL
     logging::loginfo(paste("::infer_cnv:Smoothed data.", sep=""))
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data_smoothed,
+        infercnv::plot_step(data=data_smoothed,
                             plot_name=file.path(plot_steps_path,
                                                 "06_smoothed.pdf"))
     }
 
     # Center cells/observations after smoothing. This helps reduce the
     # effect of complexity.
-    data_smoothed <- infer_cnv::center_smoothed(data_smoothed)
+    data_smoothed <- infercnv::center_smoothed(data_smoothed)
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data_smoothed,
+        infercnv::plot_step(data=data_smoothed,
                             plot_name=file.path(plot_steps_path,
                                                 "07_recentered.pdf"))
     }
 
     # Split the reference data into groups if requested
-    groups_ref <- infer_cnv::split_references(average_data=data_smoothed,
+    groups_ref <- infercnv::split_references(average_data=data_smoothed,
                                              ref_obs=reference_obs,
                                              num_groups=num_ref_groups)
     logging::loginfo(paste("::infer_cnv:split_reference. ",
                            "found ",length(groups_ref)," reference groups.",
-                          sep=""))
+                           sep=""))
 
     # Remove average reference
-    data_smoothed <- infer_cnv::average_over_ref(average_data=data_smoothed,
+    data_smoothed <- infercnv::average_over_ref(average_data=data_smoothed,
                                                 ref_observations=reference_obs,
                                                 ref_groups=groups_ref)
     logging::loginfo(paste("::infer_cnv:Remove average, ",
@@ -489,7 +598,7 @@ infer_cnv <- function(data,
                            ".", sep=""))
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data_smoothed,
+        infercnv::plot_step(data=data_smoothed,
                             plot_name=file.path(plot_steps_path,
                                                 "08_remove_average.pdf"))
     }
@@ -500,7 +609,7 @@ infer_cnv <- function(data,
     for (chr in unlist(unique(chr_order))){
         logging::loginfo(paste("::infer_cnv:Remove tail contig ",
                                chr, ".", sep=""))
-        remove_chr <- remove_tails(data_smoothed,
+        remove_chr <- infercnv::remove_tails(data_smoothed,
                                              which(chr_order == chr),
                                              contig_tail)
         remove_indices <- c(remove_indices, remove_chr)
@@ -513,7 +622,7 @@ infer_cnv <- function(data,
 
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data_smoothed,
+        infercnv::plot_step(data=data_smoothed,
                             plot_name=file.path(plot_steps_path,
                                                 "09_remove_ends.pdf"))
     }
@@ -525,8 +634,33 @@ infer_cnv <- function(data,
                            " Max=", max(data_smoothed),
                            ".", sep=""))
 
+    # Method 5 remove noise
+    remove_outlier_viz_pdf <- NA
+    if (plot_steps){
+        remove_outlier_viz_pdf <- file.path(plot_steps_path,
+                                            "10A_remove_outlier.pdf")
+    }
+    data_smoothed <- remove_outliers_norm(data=data_smoothed,
+                                          out_method=method_bound_vis,
+                                          lower_bound=lower_bound_vis,
+                                          upper_bound=upper_bound_vis,
+                                          plot_step=remove_outlier_viz_pdf)
+    # Plot incremental steps.
+    if (plot_steps){
+        infercnv::plot_step(data=data_smoothed,
+                            plot_name=file.path(plot_steps_path,
+                                                "10B_remove_outlier.pdf"))
+    }
+    logging::loginfo(paste("::infer_cnv:remove outliers, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data_smoothed), collapse=","),
+                           " Total=", sum(data_smoothed),
+                           " Min=", min(data_smoothed),
+                           " Max=", max(data_smoothed),
+                           ".", sep=""))
+
     # Remove noise
-    data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
+    data_smoothed <- infercnv::remove_noise(smooth_matrix=data_smoothed,
                                             threshold=noise_threshold)
     logging::loginfo(paste("::infer_cnv:Remove moise, ",
                            "new dimensions (r,c) = ",
@@ -537,24 +671,24 @@ infer_cnv <- function(data,
                            ".", sep=""))
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data_smoothed,
+        infercnv::plot_step(data=data_smoothed,
                             plot_name=file.path(plot_steps_path,
-                                                "10_denoise.pdf"))
+                                                "11_denoise.pdf"))
     }
 
     # Plot and write data
     logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
-                  pdf_path, sep=""))
+                           pdf_path, sep=""))
     logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
                            paste(dim(data_smoothed), collapse=","), sep=""))
-    plot_cnv(plot_data=data_smoothed,
+    infercnv::plot_cnv(plot_data=data_smoothed,
                        contigs=paste(as.vector(as.matrix(chr_order))),
                        reference_idx=reference_obs,
                        ref_groups=groups_ref,
                        pdf_path=pdf_path,
                        color_safe_pal=color_safe)
     logging::loginfo(paste("::infer_cnv:Writing final data to ",
-                  paste(pdf_path, ".txt", sep=""), sep=""))
+                           paste(pdf_path, ".txt", sep=""), sep=""))
     write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
 }
 
@@ -608,15 +742,16 @@ plot_cnv <- function(plot_data,
 
     # Contigs
     unique_contigs <- unique(contigs)
-    ct.colors <- colorRampPalette(RColorBrewer::brewer.pal(12,"Set3"))(length(unique_contigs))
+    n_contig <- length(unique_contigs)
+    ct.colors <- colorRampPalette(RColorBrewer::brewer.pal(12,"Set3"))(n_contig)
     names(ct.colors) <- unique_contigs
 
     # Color palette
-    custom_pal <- infer_cnv::color.palette(c("purple", "white", "orange"),
-                                          c(2, 2))(100)
+    custom_pal <- infercnv::color.palette(c("purple3", "white", "darkorange2"),
+                                          c(2, 2))(11)
     if (color_safe_pal==FALSE){
-        custom_pal <- infer_cnv::color.palette(c("blue", "white", "red"),
-                                                c(2, 2))(100)
+        custom_pal <- infercnv::color.palette(c("darkblue", "white", "darkred"),
+                                                c(2, 2))(11)
     }
 
     # Row seperation based on reference
@@ -890,13 +1025,13 @@ smooth_window <- function(data, window_length){
     num_genes <- nrow(data)
     data_sm <- apply(data,
                      2,
-                     smooth_window_helper,
+                     infercnv::smooth_window_helper,
                      window_length=window_length)
 
     # Fix ends
     data_end <- apply(data,
                       2,
-                      smooth_ends_helper,
+                      infercnv::smooth_ends_helper,
                       obs_tails=tail_length)
 
     for (row_end in 1:tail_length){
@@ -954,6 +1089,8 @@ if (identical(environment(),globalenv()) &&
 
     # Logging level choices
     C_LEVEL_CHOICES <- names(loglevels)
+    # Visualization outlier thresholding and bounding method choices
+    C_VIS_OUTLIER_CHOICES <- c("average_bound")
 
     # Command line arguments
     pargs <- optparse::OptionParser(usage=paste("%prog [options]",
@@ -1076,7 +1213,34 @@ if (identical(environment(),globalenv()) &&
                                    "intemediate steps. The plots will occur ",
                                    "in the same directory as the output pdf. ",
                                    "Please note this option increases the time",
-                                   " needed to run"))
+                                   " needed to run [Default %default]"))
+
+    pargs <- optparse::add_option(pargs, c("--vis_bound_method"),
+                        type="character",
+                        default=NA,
+                        action="store",
+                        dest="bound_method_vis",
+                        metavar="Outlier_Removal_Method_Vis",
+                        help=paste("Method to automatically detect and bound",
+                                   "outliers. Used for visualizing. If both",
+                                   "this argument and ",
+                                   "--vis_bound_threshold are given, this will",
+                                   "not be used. Valid choices are",
+                                   paste(C_VIS_OUTLIER_CHOICES,collapse=", "),
+                                   " [Default %default]"))
+
+    pargs <- optparse::add_option(pargs, c("--vis_bound_threshold"),
+                        type="character",
+                        default=NA,
+                        action="store",
+                        dest="bound_threshold_vis",
+                        metavar="Outlier_Removal_Threshold_Vis",
+                        help=paste("Used as upper and lower bounds for values",
+                                   "in the visualization. If a value is",
+                                   "outside this bound it will be replaced by",
+                                   "the closest bound. Should be given in",
+                                   "the form of 1,1 (upper bound, lower bound)",
+                                   "[Default %default]"))
 
     pargs <- optparse::add_option(pargs, c("--window"),
                         type="integer",
@@ -1102,7 +1266,22 @@ if (identical(environment(),globalenv()) &&
     args["gene_order"] <- args_parsed$args[2]
 
     # Check arguments
-    args <- infer_cnv::check_arguments(args)
+    args <- infercnv::check_arguments(args)
+
+    # Parse bounds
+    bounds_viz = c(NA,NA)
+    if (!is.na(args$bound_threshold_vis)){
+        bounds_viz <- as.numeric(unlist(strsplit(args$bound_threshold_vis, ",")))
+    }
+    if (length(bounds_viz) != 2){
+        error_message <- paste("Please use the correct format for the argument",
+                               "--vis_bound_threshold . Two numbers seperated",
+                               "by a comma is expected (lowerbound,upperbound)",
+                               ". As an example, to indicate that outliers are",
+                               "outside of -1 and 1 give the following.",
+                               "--vis_bound_threshold -1,1")
+        stop(error_message)
+    }
 
     # Set up logging file
     logging::basicConfig(level=args$log_level)
@@ -1132,12 +1311,24 @@ if (identical(environment(),globalenv()) &&
     # Default the reference samples to all
     input_reference_samples <- colnames(expression_data)
     if (!is.null(args$reference_observations)){
-        input_reference_samples <- unique(
-                                       unlist(
-                                           strsplit(
-                                               args$reference_observations,
-                                               ",",
-                                               fixed=FALSE)))
+        # This argument can be either a list of column labels
+        # which is a comma delimited list of column labels
+        # holding a comma delimited list of column labels
+        refs <- args$reference_observations
+        if (file.exists(args$reference_observations)){
+            refs <- scan(args$reference_observations,
+                         what="character",
+                         quiet=TRUE)
+            refs <- paste(refs, collapse=",")
+        }
+        # Split on comma
+        refs <- unique(unlist(strsplit(refs, ",", fixed=FALSE)))
+        # Remove multiple spaces to single spaces
+        refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
+        refs <- refs[refs!=""]
+        if (length(refs) > 0){
+            input_reference_samples = refs
+        }
     }
 
     # Make sure the given reference samples are in the matrix.
@@ -1154,7 +1345,7 @@ if (identical(environment(),globalenv()) &&
     }
 
     # Order and reduce the expression to the genomic file.
-    order_ret <- order_reduce(data=expression_data,
+    order_ret <- infercnv::order_reduce(data=expression_data,
                                         genomic_position=input_gene_order)
     expression_data <- order_ret$expr
     input_gene_order <- order_ret$order
@@ -1164,8 +1355,9 @@ if (identical(environment(),globalenv()) &&
                               "position file. Analysis Stopped.")
         stop(error_message)
     }
+
     # Run CNV inference
-    infer_cnv(data=expression_data,
+    infercnv::infer_cnv(data=expression_data,
                         gene_order=input_gene_order,
                         cutoff=args$cutoff,
                         reference_obs=input_reference_samples,
@@ -1177,5 +1369,8 @@ if (identical(environment(),globalenv()) &&
                         pdf_path=args$pdf_file,
                         plot_steps=args$plot_steps,
                         contig_tail=args$contig_tail,
-                        color_safe=args$use_color_safe)
+                        color_safe=args$use_color_safe,
+                        method_bound_vis=args$bound_method_vis,
+                        lower_bound_vis=bounds_viz[1],
+                        upper_bound_vis=bounds_viz[2])
 }
