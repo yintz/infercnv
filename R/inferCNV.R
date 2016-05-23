@@ -205,39 +205,6 @@ remove_outliers_norm <- function(data,
             data[data < lower_bound] <- lower_bound
             data[data > upper_bound] <- upper_bound
             return(data)
-        } else if (out_method == "iqr"){
-            lower_bound <- apply(data, 2, function(x) quantile(x)[[2]])
-            upper_bound <- apply(data, 2, function(x) quantile(x)[[4]])
-            iqr <- upper_bound - lower_bound
-            lower_bound <- lower_bound - (iqr * 1.5)
-            upper_bound <- upper_bound + (iqr * 1.5)
-            # Plot bounds on data
-            if(!is.na(plot_step)){
-                pdf(plot_step, useDingbats=FALSE)
-                boxplot(data)
-                points(1:ncol(data), lower_bound,
-                       pch=19, col="orange")
-                points(1:ncol(data), upper_bound,
-                       pch=19, col="orange")
-            }
-            num_row <- nrow(data)
-            for(col_i in 1:ncol(data)){
-                data[,col_i] <- sapply(data[,col_i],
-                                        function(x) if (x < lower_bound[col_i]){
-                                                      return(lower_bound[col_i])
-                                                  }else{
-                                                      return(x)
-                                                  })
-                data[,col_i] <- sapply(data[,col_i],
-                                        function(x) if (x > upper_bound[col_i]){
-                                                      return(upper_bound[col_i])
-                                                  }else{
-                                                      return(x)
-                                                  })
-            }
-            boxplot(data)
-            dev.off()
-            return(data)
         } else {
             logging::logerror(paste("::remove_outlier_norm:Error, please",
                                     "provide an approved method for outlier",
