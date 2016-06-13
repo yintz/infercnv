@@ -14,27 +14,22 @@ matrix_five <- matrix(1:25, ncol=5)
 
 context("Test average_over_ref")
 
-matrix_averef_five <- matrix(c(c(-100, -100, -100, -100, -100),
-                             c(-101, -100, -99, -98, -99),
-                             c(1, 1, 1, 1, 1),
-                             c(110, 103, 90, 80, 70),
-                             c(0, 0, 0, 0, 0),
-                             c(100, 102, 100, 102, 102),
-                             c(-1, -1, -1, -1, -1),
-                             c(105, 95, 80, 97, 80),
-                             c(100, 102, 100, 102, 102),
-                             c(0, 0, 0, 0, 0)),
-                             ncol=10, byrow=FALSE)
+matrix_averef_five <- matrix(c(c(-101, -100, -100, -100, -99),
+                               c(-101, -100, -99, -98, -99),
+                               c(1, 1, 2, 3, 0),
+                               c(110, 103, 90, 80, 70),
+                               c(0, 0, 0, 0, 0),
+                               c(100, 102, 100, 102, 102),
+                               c(0, -1, -4, -1, -1),
+                               c(105, 95, 80, 97, 80),
+                               c(100, 99, 100, 101, 100),
+                               c(0, 0, 0, 0, 0)),
+                               ncol=5, byrow=FALSE)
 
-avref_answer_1 <- matrix_one
-avref_answer_2 <- matrix(c(rep(0,5), rep(5,5)), ncol=2)
-avref_answer_3 <- matrix(c(rep(0,10),
-                           rep(5,5)), ncol=3)
-avref_answer_4 <- matrix(c(rep(0,5),
-                           rep(0,5),
-                           rep(0,5),
-                           rep(2.5,5),
-                           rep(7.5,5)), ncol=5)
+avref_answer_1 <- matrix(0:4, nocl=1)
+avref_answer_2 <- matrix(c(0:4,0:4), ncol=2)
+avref_answer_3 <- matrix(c(-1:3, -1:3, -1:3), ncol=3)
+avref_answer_4 <- matrix(rep(-3:1+.5,5),ncol=5)
 avref_answer_5 <- matrix_zeros
 matrix_averef_five_answer <- matrix(c(c(0, 0, -1, -2, -1),
                              c(0, 0, 0, 0, 0),
@@ -53,7 +48,7 @@ test_that("average_over_ref works with one observation, one reference",{
     expect_equal(average_over_ref(average_data=matrix_one,
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
-                 matrix(rep(0, nrow(matrix_one)),ncol=1))
+                 avref_answer_1)
           })
 test_that("average_over_ref works with two observations, one reference",{
     expect_equal(average_over_ref(average_data=matrix_two,

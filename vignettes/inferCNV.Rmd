@@ -10,9 +10,11 @@ git clone https://github.com/broadinstitute/inferCNV.git
 
 and then call the following function 
 
-./inferCNV/R/inferCNV.R --pdf output.pdf data_matrix genomic_positions
+./R/inferCNV.R --ref_groups "1:235,236:280" --cutoff 4.5 --noise_filter 0.3 --pdf example.pdf --ref example/example_refs.txt --vis_bound_threshold " -1,1" example/example_expression.txt example/example_genomic_positions.txt
 
-This will create a visualization of your expression data and a matrix on which the visualization is based.
+This will run the test example data and should produce the below figure given a successfull install.
+
+![Test Single-Cell CNV Data](example/example.jpg)
 
 
 ## Expectations
@@ -20,7 +22,7 @@ This will create a visualization of your expression data and a matrix on which t
 This tool works off of a matrix of single-cell RNA-Seq expression. Given fastq files, you will need to first align your sequences to your reference of choice. If your sequences do NOT contain special barcodes (like molecular tags or cell barcodes), a standard splice aligner may be appropriate. If special barcodes do exist, you will need to use an appropriate pipeline that is aware of your library construction. Currently, there is no recommendation for a tool to generate expression from your aligned bams; traditional population based RNA-Seq tools are the current option.
 
 ### Expression Matrix (Data matrix)
-- The input data matrix is expected to be raw counts, TPM, or FPKM. This is is to the descretion of the user. It is important that genes and samples are comparable between themselves. Note, the output of the data will be centered and thresholded.
+- The input data matrix is expected to be log(TPM+1). If your data is TPM data, use the --transform command line argument and the data will be transfored from TPMs to log(TPM+1).
 - The file should be tab delimited.
 - It is also expected that the matrix will be genes (rows) by cells (columns) and that the gene and cells are labeled.
 - Gene names in the expression matrix should match gene names in the genomic positions file.
@@ -37,46 +39,38 @@ This tool works off of a matrix of single-cell RNA-Seq expression. Given fastq f
 ## Citation
 Please use the following citation:
 
-**TODO citation**
-
+![Anoop P. Patel et al. Single-cell RNA-seq highlights intratumoral heterogeneity in primary glioblastoma. Science. 2014 Jun 20: 1396-1401](http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4123637/)
 
 ## Additional parameters
 To view documentation on parameters please use the following command.
 
-./inferCNV/R/inferCNV.R --help
+./R/inferCNV.R --help
 
 
 ## Walk-through
 ### Start
 Start with a data matrix and genomic position file as defined in the **Expectations** section. Some standard genomic position files are made available in the data/genomic_position_files. To make a new genomic_position_file please see the **Making Genomic Position Files** section.
 
-To look at properly formatted files, the provided data sets labeled "toy" are small enough to open and review with any program. In the walk-through please use the gbm data set; this recreates a figure in a published work (our citation).
+To look at properly formatted files, please look at the files made available in the examples directory. In the walk-through please use the example data set.
 
-### Run Script
-Assuming being in a terminal on a Mac or Linux/UNIX machine given starting in the first level of the package/repo use the following command.
-
-** Give better command for real data***
-./R/inferCNV.R --log log.txt --ref "V1" --pdf gmb.pdf data/gbm_data.txt data/genomic_position_files/hg19_positions.txt
+Please run the following command.
+./R/inferCNV.R --log example.log --ref_groups "1:235,236:280" --cutoff 4.5 --noise_filter 0.3 --pdf example.pdf --ref example/example_refs.txt --vis_bound_threshold " -1,1" example/example_expression.txt example/example_genomic_positions.txt
 
 ### Interpretation
-The resulting gmb.pdf file should look like the following.
+The resulting cnv.pdf file should look like the following.
 
-**TODO**
-```{r, fig.show='hold'}
-plot(1:10)
-```
+![Test Single-Cell CNV Data](example/example.jpg)
 
-The rows of the figure are cell observations. At the very top are reference observations; the matrix is seperated horizontally between reference and not-reference cells. Non-reference cells are positioned using hierarchical clustering using a **TODO** distance metric and average linkage. Reference cells are in the order given by the --ref parameter.
+The rows of the figure are cell observations. At the very top are reference observations; the matrix is seperated horizontally between reference and not-reference cells. Non-reference cells are positioned using hierarchical clustering using euclidean distance and average linkage. Reference cells are in the order given by the --ref parameter.
 
 The columns of the figure are genes seperated as contigs/chromosomes. Contigs are ordered as they first appear in the genomic_position file.
 
-To create the measurements input values are log2 + 1 transformed and filtered requiring a minimum average per gene. The remaining raw gene values are then centered and thresholded to reduce outliers. Cells are then ordered by contig and smoothing is performed using a moving average using the cell's centered expression along the genomic coordinates. Ends of the contigs are removed (set to 0; due to being unreliable). This smoothed gene expression is then averaged in the reference observations and removed from the non-reference cells (if no reference is given a global average is used). If a gene measurement is too close to the average, it is set to zero (and is considered noise or existing genomic structure).
+To create the measurements input values are log2((TPM/10)+1) transformed and filtered requiring a minimum average per gene. The remaining raw gene values are then centered and thresholded to reduce outliers. Cells are then ordered by contig and smoothing is performed using a moving average using the cell's centered expression along the genomic coordinates. Ends of the contigs are removed (set to 0; due to being unreliable). This smoothed gene expression is then averaged in the reference observations and removed from the non-reference cells (if no reference is given a global average is used). If a gene measurement is too close to the average, it is set to zero (and is considered noise or existing genomic structure).
 
-**TODO** are you subtracting the average reference from negative measurements? because you should not.
-
-In the resulting gbm.pdf file we can patterns of expression consistent with genomic order that are not in the reference (or global average). One can infer these increases and decreased in expression to be a result of copy number variation. ***TODO***
+In the resulting cnv.pdf file we can patterns of expression consistent with genomic order that are not in the reference. One can infer these increases and decreased in expression to be a result of copy number variation.
 
 ## Making Genomic Position Files
-Genomic Position Files are a tab delimited file containing gene name, contig, start, and stop site. This file helps order the RNA-Seq expression by genomic location to visualize if patterns are associated with genomic regions. Genomic position files for several standard references have been generated and can be found at data.broadinstitute.org/Trinity/CTAT/cnv . If you do not see the reference and annotation you need but have a GTF file, a script is provided to generate a genomic position file from the GTF file. An example of using the script given an input example.gtf to generate a genomic positioncalled example_gen_pos.txt is as follows:
+Genomic Position Files are a tab delimited file containing gene name, contig, start, and stop site. This file helps order the RNA-Seq expression by genomic location to visualize if patterns are associated with genomic regions. Genomic position files for several standard references have been generated and can be found at data.broadinstitute.org/Trinity/CTAT/cnv . If you do not see the reference and annotation you need but have a GTF file, a script is provided to generate a genomic position file from the GTF file. An example of using the script given an input example.gtf to generate a genomic position called example_gen_pos.txt is as follows:
 
-./inferCNV/src/gtf_to_position_file.py example.gtf example_gen_pos.txt
+(This command should work in both Python 2.X and #.X environments).
+python ./src/gtf_to_position_file.py example/example.gtf example_gen_pos.txt

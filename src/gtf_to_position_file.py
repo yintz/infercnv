@@ -32,7 +32,7 @@ def convert_to_positional_file(input_gtf, output_positional):
     """
 
     if not input_gtf or not os.path.exists(input_gtf):
-        print "gtf_to_position_file.py:: Could not find input file : "+input_gtf
+        print("gtf_to_position_file.py:: Could not find input file : " + input_gtf)
 
     # Holds lines to output after parsing.
     output_line = []
