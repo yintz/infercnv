@@ -79,9 +79,9 @@ To create the measurements input values are convertered to log2((TPM/10)+1) tran
 In the resulting example.pdf file we can patterns of expression consistent with genomic order that are not in the reference. One can infer these increases and decreased in expression to be a result of copy number variation. In this example we see deletions of Chr1p and Chr19q which are characteristic of oligodendroglioma. 
 
 ## Making Genomic Position Files
-Genomic Position Files are a tab delimited file containing gene name, contig, start, and stop site. This file helps order the RNA-Seq expression by genomic location to visualize if patterns are associated with genomic regions. Genomic position files for several standard references have been generated and can be found at data.broadinstitute.org/Trinity/CTAT/cnv . If you do not see the reference and annotation you need but have a GTF file, a script is provided to generate a genomic position file from the GTF file. An example of using the script given an input example.gtf to generate a genomic position called example_gen_pos.txt is as follows:
+Genomic Position Files are a tab delimited file containing gene name, contig, start, and stop site. This file helps order the RNA-Seq expression by genomic location to visualize if patterns are associated with genomic regions. Genomic position files for several standard references have been generated and can be found at data.broadinstitute.org/Trinity/CTAT/cnv . If you do not see the reference and annotation you need but have a GTF file, a script is provided to generate a genomic position file from the GTF file. An example of using the script given an input your_reference.gtf to generate a genomic position called your_gen_pos.txt is as follows:
 
 (This command should work in both Python 2.X and 3.X environments).
 ```
-python ./src/gtf_to_position_file.py example/example.gtf example_gen_pos.txt
+python ./src/gtf_to_position_file.py your_reference.gtf your_gen_pos.txt
 ```
