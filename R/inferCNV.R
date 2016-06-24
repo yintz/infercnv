@@ -19,13 +19,15 @@
 average_over_ref <- function(average_data,
                              ref_observations,
                              ref_groups){
-    average_data = t(average_data)
+    # r = genes, c = cells
     logging::loginfo(paste("::average_over_ref:Start", sep=""))
+    # Max and min mean gene expression within reference groups.
     average_max <- NULL
     average_min <- NULL
-    average_reference_obs <- average_data[ref_observations,, drop=FALSE]
+    average_reference_obs <- average_data[,ref_observations, drop=FALSE]
+    # Reference gene within reference groups
     for (ref_group in ref_groups){
-        grp_average <- colMeans(average_reference_obs[ref_group,,
+        grp_average <- rowMeans(average_reference_obs[,ref_group,
                                                       drop=FALSE],
                                 na.rm=TRUE)
         if(is.null(average_max)){
@@ -37,23 +39,22 @@ average_over_ref <- function(average_data,
         average_max <- pmax(average_max, grp_average)
         average_min <- pmin(average_min, grp_average)
     }
-
     # Remove the Max and min averages of the reference groups from the
-    # Observations. Done within columns.
-    for(col_i in 1:ncol(average_data)){
-        current_col <- average_data[,col_i]
-        i_max <- which(current_col>average_max[col_i])
-        i_min <- which(current_col<average_min[col_i])
+    # For each gene.
+    for(gene_i in 1:nrow(average_data)){
+        current_col <- average_data[gene_i,]
+        i_max <- which(current_col>average_max[gene_i])
+        i_min <- which(current_col<average_min[gene_i])
         row_init <- rep(0, length(current_col))
         if(length(i_max) > 0){
-            row_init[i_max] <- current_col[i_max] - average_max[col_i]
+            row_init[i_max] <- current_col[i_max] - average_max[gene_i]
         }
         if(length(i_min) > 0){
-            row_init[i_min] <- current_col[i_min] - average_min[col_i]
+            row_init[i_min] <- current_col[i_min] - average_min[gene_i]
         }
-        average_data[,col_i] <- row_init
+        average_data[gene_i,] <- row_init
     }
-    return(t(average_data))
+    return(average_data)
 }
 
 #' Helper function allowing greater control over the steps in a color palette.
@@ -433,6 +434,8 @@ infer_cnv <- function(data,
     }
 
     # Remove any gene without position information
+    # Genes may be sorted correctly by not have position information
+    # Here they are removed.
     remove_by_position <- -1 * which(gene_order[2] + gene_order[3] == 0)
     if (length(remove_by_position)){
         gene_order <- gene_order[remove_by_position, , drop=FALSE]
@@ -490,9 +493,10 @@ infer_cnv <- function(data,
                                                 "03_reduced_by_cutoff.pdf"))
     }
 
-    # Order data by genomic region
+    # Order genes by genomic region
     data <- data[with(gene_order, order(chr,start,stop)), , drop=FALSE]
-    # Order gene order the same way
+    # This is the contig order, will be used in visualization.
+    # Get the contig order in the same order as the genes.
     chr_order <- gene_order[with(gene_order,
                                  order(chr,start,stop)), , drop=FALSE][1]
     gene_order <- NULL
@@ -598,7 +602,29 @@ infer_cnv <- function(data,
                            " Max=", max(data_smoothed),
                            ".", sep=""))
 
-    # Method 5 remove noise
+    # Remove noise
+    data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
+                                            threshold=noise_threshold)
+    logging::loginfo(paste("::infer_cnv:Remove moise, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data_smoothed), collapse=","),
+                           " Total=", sum(data_smoothed),
+                           " Min=", min(data_smoothed),
+                           " Max=", max(data_smoothed),
+                           ".", sep=""))
+    # Plot incremental steps.
+    if (plot_steps){
+        plot_step(data=data_smoothed,
+                            plot_name=file.path(plot_steps_path,
+                                                "11_denoise.pdf"))
+    }
+
+    # Output before viz outlier
+    write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
+    logging::loginfo(paste("::infer_cnv:Writing final data to ",
+                           paste(pdf_path, ".txt", sep=""), sep=""))
+
+    # Remove outliers for viz
     remove_outlier_viz_pdf <- NA
     if (plot_steps){
         remove_outlier_viz_pdf <- file.path(plot_steps_path,
@@ -623,23 +649,6 @@ infer_cnv <- function(data,
                            " Max=", max(data_smoothed),
                            ".", sep=""))
 
-    # Remove noise
-    data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
-                                            threshold=noise_threshold)
-    logging::loginfo(paste("::infer_cnv:Remove moise, ",
-                           "new dimensions (r,c) = ",
-                           paste(dim(data_smoothed), collapse=","),
-                           " Total=", sum(data_smoothed),
-                           " Min=", min(data_smoothed),
-                           " Max=", max(data_smoothed),
-                           ".", sep=""))
-    # Plot incremental steps.
-    if (plot_steps){
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
-                                                "11_denoise.pdf"))
-    }
-
     # Plot and write data
     logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            pdf_path, sep=""))
@@ -651,9 +660,6 @@ infer_cnv <- function(data,
                        ref_groups=groups_ref,
                        pdf_path=pdf_path,
                        color_safe_pal=color_safe)
-    logging::loginfo(paste("::infer_cnv:Writing final data to ",
-                           paste(pdf_path, ".txt", sep=""), sep=""))
-    write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
 }
 
 #' Log intermediate step with a plot and text file of the steps.
@@ -694,7 +700,8 @@ plot_cnv <- function(plot_data,
                      reference_idx,
                      ref_groups,
                      pdf_path,
-                     color_safe_pal=TRUE){
+                     color_safe_pal=TRUE,
+                     plot_high_res=TRUE){
 
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
@@ -744,11 +751,24 @@ plot_cnv <- function(plot_data,
     heatmap_widths <- c(1,6)
 
     # Rows observations, Columns CHR
-    pdf(pdf_path,
-        useDingbats=FALSE,
-        width=10,
-        height=7.5,
-        paper="USr")
+    # Plot either high or low resolution
+    if(plot_high_res){
+        pdf(pdf_path,
+            useDingbats=FALSE,
+            width=10,
+            height=7.5,
+            paper="USr")
+    } else {
+        # Make sure the extension is png
+        # If not, replace.
+        path_tokens <- strsplit(pdf_path, "\\.")[[1]]
+        num_tokens <- length(path_tokens)
+        if(num_tokens > 1 ){
+            path_tokens <- path_tokens[-1*num_tokens]
+        }
+        pdf_path <- paste(c(path_tokens,"png"),collapse=".")
+        png(pdf_path, 1500, 1000)
+    }
 
     # Plot heatmap
     par(mar=c(.5,.5,.5,.5))
@@ -1265,7 +1285,7 @@ if (identical(environment(),globalenv()) &&
                   paste(dim(expression_data), collapse=",")))
 
     # Default the gene order to the given order
-    # If given a file read and sort and order.
+    # If given a file read the user defined order.
     input_gene_order <- seq(1, nrow(expression_data), 1)
     if (args$gene_order != ""){
         input_gene_order <- read.table(args$gene_order, row.names=1)
