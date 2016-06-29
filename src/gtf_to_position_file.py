@@ -32,7 +32,8 @@ def convert_to_positional_file(input_gtf, output_positional):
     """
 
     if not input_gtf or not os.path.exists(input_gtf):
-        print("gtf_to_position_file.py:: Could not find input file : " + input_gtf)
+        print("".join(["gtf_to_position_file.py:: ",
+                       "Could not find input file : " + input_gtf]))
 
     # Holds lines to output after parsing.
     output_line = []
@@ -40,24 +41,40 @@ def convert_to_positional_file(input_gtf, output_positional):
     previous_chr = None
     gene_positions = []
 
+    # Metrics for the file
+    i_comments = 0
+    i_duplicate_entries = 0
+    i_entries = 0
+    i_accepted_entries = 0
+    i_written_lines = 0
+
     with open(input_gtf, "r") as gtf_file:
         for gtf_line in gtf_file:
             if gtf_line[0] == "#":
-                pass
+                i_comments += 1
+                continue
+            i_entries += 1
             line_tokens = gtf_line.split("\t")
-            gene_name = line_tokens[8].split(";")[0].split(" ")[1].strip('"').split("|")[0]
+            gene_name = line_tokens[8].split(";")[0]
+            gene_name = gene_name.split(" ")[1]
+            gene_name = gene_name.strip('"')
+            gene_name = gene_name.split("|")[0]
             if not gene_name == previous_gene:
                 if len(gene_positions) > 1:
+                    i_accepted_entries += 1
                     gene_positions.sort()
                     output_line.append("\t".join([previous_gene,
                                                   previous_chr,
                                                   str(gene_positions[0]),
                                                   str(gene_positions[-1])]))
                 gene_positions = []
+            else:
+                i_duplicate_entries += 1
             gene_positions += [int(line_tokens[3]), int(line_tokens[4])]
             previous_gene = gene_name
             previous_chr = line_tokens[0]
         if previous_gene and previous_chr and len(gene_positions) > 1:
+            i_accepted_entries += 1
             gene_positions.sort()
             output_line.append("\t".join([previous_gene,
                                           previous_chr,
@@ -65,8 +82,15 @@ def convert_to_positional_file(input_gtf, output_positional):
                                           str(gene_positions[-1])]))
 
     with open(output_positional, "w") as positional_file:
+        i_written_lines += len(output_line)
         positional_file.write("\n".join(output_line))
 
+    # Print metrics
+    print("Number of lines read: " + str(i_entries))
+    print("Number of comments: " + str(i_comments))
+    print("Number of entries: " + str(i_accepted_entries))
+    print("Number of duplicate entries: " + str(i_duplicate_entries))
+    print("Number of entries written: " + str(i_written_lines))
 
 if __name__ == "__main__":
 
