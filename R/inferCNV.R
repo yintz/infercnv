@@ -42,9 +42,9 @@ average_over_ref <- function(average_data,
     # Remove the Max and min averages of the reference groups from the
     # For each gene.
     for(gene_i in 1:nrow(average_data)){
-        current_col <- average_data[gene_i,]
-        i_max <- which(current_col>average_max[gene_i])
-        i_min <- which(current_col<average_min[gene_i])
+        current_col <- average_data[gene_i, ]
+        i_max <- which(current_col > average_max[gene_i])
+        i_min <- which(current_col < average_min[gene_i])
         row_init <- rep(0, length(current_col))
         if(length(i_max) > 0){
             row_init[i_max] <- current_col[i_max] - average_max[gene_i]
@@ -52,7 +52,7 @@ average_over_ref <- function(average_data,
         if(length(i_min) > 0){
             row_init[i_min] <- current_col[i_min] - average_min[gene_i]
         }
-        average_data[gene_i,] <- row_init
+        average_data[gene_i, ] <- row_init
     }
     return(average_data)
 }
@@ -458,7 +458,7 @@ infer_cnv <- function(data,
 
     # Make sure data is log transformed + 1
     if (transform_data){
-        data <- log2(data/10 + 1)
+        data <- log2(data / 10 + 1)
     }
     # Plot incremental steps.
     if (plot_steps){
@@ -690,7 +690,7 @@ plot_step <- function(data, plot_name){
 #'    @param reference_idx: Vector of reference indices.
 #'    @param reg_groups: Groups of vector indices (as indices in reference_idx)
 #'    @param pdf_path: Path to save pdf file.
-#'    @param color_saf_pal: Logical indication of using a color blindness safe
+#'    @param color_safe_pal: Logical indication of using a color blindness safe
 #'                          palette.
 #'
 #' Returns:
@@ -720,7 +720,7 @@ plot_cnv <- function(plot_data,
     # Color palette
     custom_pal <- color.palette(c("purple3", "white", "darkorange2"),
                                           c(2, 2))(11)
-    if (color_safe_pal==FALSE){
+    if (color_safe_pal == FALSE){
         custom_pal <- color.palette(c("darkblue", "white", "darkred"),
                                                 c(2, 2))(11)
     }
@@ -763,8 +763,8 @@ plot_cnv <- function(plot_data,
         # If not, replace.
         path_tokens <- strsplit(pdf_path, "\\.")[[1]]
         num_tokens <- length(path_tokens)
-        if(num_tokens > 1 ){
-            path_tokens <- path_tokens[-1*num_tokens]
+        if (num_tokens > 1){
+            path_tokens <- path_tokens[-1 * num_tokens]
         }
         pdf_path <- paste(c(path_tokens,"png"),collapse=".")
         png(pdf_path, 1500, 1000)
@@ -970,7 +970,7 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
     logging::loginfo(paste("::remove_tails:Start.", sep=""))
 
     chr_length <- length(chr)
- 
+
     if (tail_length < 1){
         return(smooth_matrix)
     }
@@ -1255,9 +1255,9 @@ if (identical(environment(),globalenv()) &&
     args <- check_arguments(args)
 
     # Parse bounds
-    bounds_viz = c(NA,NA)
+    bounds_viz <- c(NA,NA)
     if (!is.na(args$bound_threshold_vis)){
-        bounds_viz <- as.numeric(unlist(strsplit(args$bound_threshold_vis, ",")))
+        bounds_viz <- as.numeric(unlist(strsplit(args$bound_threshold_vis,",")))
     }
     if (length(bounds_viz) != 2){
         error_message <- paste("Please use the correct format for the argument",
@@ -1311,9 +1311,9 @@ if (identical(environment(),globalenv()) &&
         refs <- unique(unlist(strsplit(refs, ",", fixed=FALSE)))
         # Remove multiple spaces to single spaces
         refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
-        refs <- refs[refs!=""]
+        refs <- refs[refs != ""]
         if (length(refs) > 0){
-            input_reference_samples = refs
+            input_reference_samples <- refs
         }
     }
 
