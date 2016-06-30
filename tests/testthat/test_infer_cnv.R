@@ -26,56 +26,51 @@ matrix_averef_five <- matrix(c(c(-101, -100, -100, -100, -99),
                                c(0, 0, 0, 0, 0)),
                                ncol=5, byrow=FALSE)
 
-avref_answer_1 <- matrix(0:4, nocl=1)
+avref_answer_1 <- matrix(0:4, ncol=1)
 avref_answer_2 <- matrix(c(0:4,0:4), ncol=2)
 avref_answer_3 <- matrix(c(-1:3, -1:3, -1:3), ncol=3)
-avref_answer_4 <- matrix(rep(-3:1+.5,5),ncol=5)
+avref_answer_4 <- matrix(rep(-3:1 + .5, 5),ncol=5)
 avref_answer_5 <- matrix_zeros
-matrix_averef_five_answer <- matrix(c(c(0, 0, -1, -2, -1),
-                             c(0, 0, 0, 0, 0),
-                             c(0, 0, 0, 0, 0),
-                             c(5, 3, 0, 0, 0),
-                             c(0, 0, 0, 0, 0),
-                             c(0, 2, 10, 9, 18),
-                             c(0, 0, 0, 0, 0),
-                             c(0, 0, 0, 4, 0),
-                             c(0, 2, 10, 9, 18),
-                             c(0, 0, 0, 0, 0)),
-                             ncol=10, byrow=FALSE)
-
+matrix_averef_five_answer <- matrix(c(c(-1,0,0,0,0,-1,0,0,1,0),
+                                      c(0,0,0,0,-1,40,33,20,10,0),
+                                      c(0,0,0,0,0,0,0,0,0,0),
+                                      c(0,0,-3,0,0,25,15,0,17,0),
+                                      c(1,0,1,2,1,0,0,0,0,0)),
+                                    ncol=10,
+                                    byrow=TRUE)
 
 test_that("average_over_ref works with one observation, one reference",{
-    expect_equal(average_over_ref(average_data=matrix_one,
+    expect_equal(average_over_ref(average_data=t(matrix_one),
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
-                 avref_answer_1)
+                 t(avref_answer_1))
           })
 test_that("average_over_ref works with two observations, one reference",{
-    expect_equal(average_over_ref(average_data=matrix_two,
+    expect_equal(average_over_ref(average_data=t(matrix_two),
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
-                 avref_answer_2)
+                 t(avref_answer_2))
           })
 test_that("average_over_ref works with 3 observations, two reference",{
-    expect_equal(average_over_ref(average_data=matrix_three,
+    expect_equal(average_over_ref(average_data=t(matrix_three),
                                   ref_observations=c(1,3),
                                   ref_groups=list(c(1,2))),
-                 avref_answer_3)
+                 t(avref_answer_3))
           })
 test_that("average_over_ref works with 5 observations, two reference",{
-    expect_equal(average_over_ref(average_data=matrix_five,
+    expect_equal(average_over_ref(average_data=t(matrix_five),
                                   ref_observations=c(2,5),
                                   ref_groups=list(c(1,2))),
-                 avref_answer_4)
+                 t(avref_answer_4))
           })
 test_that("average_over_ref works with 1 observation, 1 reference",{
-    expect_equal(average_over_ref(average_data=matrix_zeros,
+    expect_equal(average_over_ref(average_data=t(matrix_zeros),
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
-                 avref_answer_5)
+                 t(avref_answer_5))
           })
 test_that("average_over_ref works with 10 obs, 5 references, 3 groups",{
-    expect_equal(average_over_ref(average_data=matrix_averef_five,
+    expect_equal(average_over_ref(average_data=t(matrix_averef_five),
                                   ref_observations=c(2,4,6,8,10),
                                   ref_groups=list(c(1),c(2,3,4),c(5))),
                  matrix_averef_five_answer)
@@ -209,44 +204,44 @@ context("Test above_cutoff")
 
 above_answer_1 <- 1:5
 above_answer_2 <- 1:5
-above_answer_3 <- 3:5
-above_answer_4 <- 4:5
+above_answer_3 <- 4:5
+above_answer_4 <- c(5)
 above_answer_5 <- NULL
 above_answer_6 <- NULL
 
 test_that(paste("above_cutoff works with one observation,",
                 "cutoff too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_one + 1),
+    expect_equal(above_cutoff(data=log2(matrix_one/10 + 1),
                               cutoff=0),
                  above_answer_1)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_three + 1),
+    expect_equal(above_cutoff(data=log2(matrix_three/10 + 1),
                               cutoff=0),
                  above_answer_2)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding two."),{
-    expect_equal(above_cutoff(data=log2(matrix_one + 1),
+    expect_equal(above_cutoff(data=log2(matrix_one/10 + 1),
                               cutoff=2),
                  above_answer_3)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding three."),{
-    expect_equal(above_cutoff(data=log2(matrix_three + 1),
-                              cutoff=8),
+    expect_equal(above_cutoff(data=log2(matrix_three/10 + 1),
+                              cutoff=3.4),
                  above_answer_4)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_one + 1),
+    expect_equal(above_cutoff(data=log2(matrix_one/10 + 1),
                               cutoff=100),
                  above_answer_5)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_three + 1),
+    expect_equal(above_cutoff(data=log2(matrix_three/10 + 1),
                               cutoff=100),
                  above_answer_6)
          })
