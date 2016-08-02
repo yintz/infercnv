@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+CHR = "chr"
+START = "start"
+STOP = "stop"
 
 #' Remove the average of the genes of the reference observations from all 
 #' observations' expression. Normalization by column.
@@ -97,6 +100,84 @@ color.palette <- function(steps,
     return(pal)
 }
 
+#'
+#'
+#'
+#create_column_plot <- function(data, col_pal, col_height=5){
+#    print("dims")
+#    print(dim(data))
+#    # Get means and adjust them to a positive range of integers
+#    # For the color palette.
+#    col_means <- colMeans(data)
+#    max_cnv <- max(max(col_means), abs(min(col_means)))
+#    relative_values <- round(col_means / max_cnv * 100)
+#    min_rel <- min(relative_values)
+#    if(min_rel < 0){
+#        relative_values <- relative_values + abs(min_rel)
+#    }
+#
+#    # Make a color palette
+#    col_color_pal <- col_pal(max(relative_values)+1)
+#    cnv_colors <- col_color_pal[relative_values]
+#    cnv_colors[col_means == 0] <- "white"
+#
+#    # Make a number of columns to simulate a bar graph given the
+#    # magnitude of the number.
+#    col_columns <- list()
+#    col_increment <- max(abs(col_means))/col_height
+#    print("max(abs(col_means))")
+#    print(max(abs(col_means)))
+#    for(height in 1:col_height){
+#        cur_col_increment <- col_increment * ( height - 1 )
+#        print("cur_col_increment")
+#        print(cur_col_increment)
+#        cnv_colors[col_means > 0 & col_means < cur_col_increment] <- "white"
+#        cnv_colors[col_means < 0 & col_means > (-1 * cur_col_increment)] <- "white"
+#        col_columns[[height]] <- cnv_colors
+#    }
+#    ret_col_info <- as.matrix(as.data.frame(col_columns, stringsAsFactors=FALSE))
+#    colnames(ret_col_info) <- rep(".", ncol(ret_col_info))
+#    print(ret_col_info)
+#    return(ret_col_info)
+#}
+
+#' Create a sepList forthe heatmap.3 plotting function given integer vectors
+#' of rows and columns where speration should take place.
+#' The expected input to thebheatmap function is a list of 2 lists.
+#' The first list are column based rectangles, and the second row.
+#' To define a rectagle the index of the row or column where the line of the rectagle
+#' should be placed is done with a vector of integers, left, bottom, right and top line.
+#' Ie. list(list(c(1,0,3,10), c(5, 0, 10,10)), list(c(1,2,3,4)))
+create_sep_list <- function(row_count, col_count,
+                            col_seps=NULL,
+                            row_seps=NULL){
+    sepList <- list()
+    # Heatmap.3 wants a list of boxes for seperating columns
+    # Column data
+    if(!is.null(col_seps) && !is.na(col_seps) && (length(col_seps)>0)){
+        colList <- list()
+        for(sep in 1:length(col_seps)){
+            colList[[sep]] <- c(col_seps[sep],0,col_seps[sep],row_count)
+        }
+        sepList[[1]] <- colList
+    } else {
+        sepList[[1]] <- list()
+        sepList[[1]][[1]] <- c(0,0,0,0)
+    }
+
+    # Row data
+    if(!is.null(row_seps) && !is.na(row_seps) && (length(row_seps)>0)){
+        rowList <- list()
+        for(sep in 1:length(row_seps)){
+            rowList[[sep]] <- c(row_seps[sep],0,row_seps[sep],col_count)
+        }
+        sepList[[2]] <- rowList
+    } else {
+        sepList[[2]] <- list()
+        sepList[[2]][[1]] <- c(0,0,0,0)
+    }
+    return(sepList)
+}
 
 #' Split up reference observations in to k groups and return indices
 #' for the different groups.
@@ -141,7 +222,7 @@ split_references <- function(average_data,
         # return all indices immediately
         # If only one group is asked for or only one reference is
         # available to give.
-        if ( (num_groups < 2) ||
+        if ((num_groups < 2) ||
            (length(ref_obs) < 2)){
             ret_groups[[1]] <- ref_obs
             return(ret_groups)
@@ -368,6 +449,14 @@ check_arguments <- function(arguments){
     return(arguments)
 }
 
+#' Returns the color palette for contigs.
+#'
+#' Returns:
+#'    @return Color Palette
+get_group_color_palette <- function(){
+    return(colorRampPalette(RColorBrewer::brewer.pal(12,"Set3")))
+}
+
 #' Infer CNV changes given a matrix of RNASeq counts.
 #' Output a pdf and matrix of final values.
 #'
@@ -416,6 +505,7 @@ infer_cnv <- function(data,
                       max_centered_threshold,
                       noise_threshold,
                       num_ref_groups,
+                      num_obs_groups,
                       pdf_path,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
@@ -582,12 +672,10 @@ infer_cnv <- function(data,
                                              contig_tail)
         remove_indices <- c(remove_indices, remove_chr)
     }
-
     if (length(remove_indices) > 0){
         chr_order <- chr_order[remove_indices,]
         data_smoothed <- data_smoothed[remove_indices, , drop=FALSE]
     }
-
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
@@ -656,6 +744,7 @@ infer_cnv <- function(data,
                            paste(dim(data_smoothed), collapse=","), sep=""))
     plot_cnv(plot_data=data_smoothed,
                        contigs=paste(as.vector(as.matrix(chr_order))),
+                       k_obs_groups=num_obs_groups,
                        reference_idx=reference_obs,
                        ref_groups=groups_ref,
                        pdf_path=pdf_path,
@@ -700,8 +789,8 @@ plot_cnv <- function(plot_data,
                      reference_idx,
                      ref_groups,
                      pdf_path,
-                     color_safe_pal=TRUE,
-                     plot_high_res=TRUE){
+                     k_obs_groups=1,
+                     color_safe_pal=TRUE){
 
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
@@ -710,19 +799,22 @@ plot_cnv <- function(plot_data,
                             " Min=", min(plot_data),
                             " Max=", max(plot_data),
                             ".", sep=""))
+    logging::loginfo(paste("::plot_cnv:Depending on the size of the matrix",
+                           " this may take a moment.",
+                           sep=""))
 
     # Contigs
     unique_contigs <- unique(contigs)
     n_contig <- length(unique_contigs)
-    ct.colors <- colorRampPalette(RColorBrewer::brewer.pal(12,"Set3"))(n_contig)
+    ct.colors <- get_group_color_palette()(n_contig)
     names(ct.colors) <- unique_contigs
 
-    # Color palette
+    # Select color palette
     custom_pal <- color.palette(c("purple3", "white", "darkorange2"),
-                                          c(2, 2))(11)
+                                c(2, 2))
     if (color_safe_pal == FALSE){
         custom_pal <- color.palette(c("darkblue", "white", "darkred"),
-                                                c(2, 2))(11)
+                                    c(2, 2))
     }
 
     # Row seperation based on reference
@@ -752,31 +844,20 @@ plot_cnv <- function(plot_data,
 
     # Rows observations, Columns CHR
     # Plot either high or low resolution
-    if(plot_high_res){
-        pdf(pdf_path,
-            useDingbats=FALSE,
-            width=10,
-            height=7.5,
-            paper="USr")
-    } else {
-        # Make sure the extension is png
-        # If not, replace.
-        path_tokens <- strsplit(pdf_path, "\\.")[[1]]
-        num_tokens <- length(path_tokens)
-        if (num_tokens > 1){
-            path_tokens <- path_tokens[-1 * num_tokens]
-        }
-        pdf_path <- paste(c(path_tokens,"png"),collapse=".")
-        png(pdf_path, 1500, 1000)
-    }
+    pdf(pdf_path,
+        useDingbats=FALSE,
+        width=10,
+        height=7.5,
+        paper="USr")
 
     # Plot heatmap
     par(mar=c(.5,.5,.5,.5))
 
-    # Plot Observation Samples
-    # Remove observation col names, too many to plot
-    # Will try and keep the reference names
-    # They are more informative anyway
+    # Plot observations
+    ## Make Observation Samples
+    ## Remove observation col names, too many to plot
+    ## Will try and keep the reference names
+    ## They are more informative anyway
     obs_data <- plot_data
     if (!is.null(ref_idx)){
         obs_data <- plot_data[, -1 * ref_idx, drop=FALSE]
@@ -786,100 +867,264 @@ plot_cnv <- function(plot_data,
                 names(obs_data) <- c("", names(obs_data)[1])
         }
     }
-    obs_data <- t(obs_data)
-    row.names(obs_data) <- rep("", nrow(obs_data))
 
-    par(fig=c(0,1,0,1), new=FALSE)
-    heatmap.2(obs_data,
-        main="Copy Number Variation Inference",
-        ylab="Observations (Cells)",
-        xlab="Genomic Region",
-        key=TRUE,
-        labCol=contig_labels,
-        notecol="black",
-        density.info="histogram",
-        denscol="blue",
-        trace="none",
-        dendrogram="row",
-        Colv=FALSE,
-        cexRow=0.8,
-        scale="none",
-        col=custom_pal,
-        # Seperate by contigs
-        colsep=col_sep,
-        # Seperate by reference / not reference
-        sepcolor="black",
-        sepwidth=c(0.01,0.01),
-        # Color by contigs
-        ColSideColors=ct.colors[contigs],
-        # Position heatmap elements
-        lmat=rbind(c(5,4),c(0,1),c(3,2)),
-        lhei=c(1.9,0.1,4),
-        lwid=heatmap_widths)
+    ## Plot observational samples
+    plot_cnv_observations(obs_data=t(obs_data),
+                          file_base_name=pdf_path,
+                          heatmap_widths=heatmap_widths,
+                          contig_colors=ct.colors[contigs],
+                          contig_label=contig_labels,
+                          col_pal=custom_pal,
+                          contig_seps=col_sep,
+                          num_obs_groups=k_obs_groups)
     obs_data <- NULL
 
+
     # Plot Reference Samples
-    if(!is.null(ref_idx)){
-        plot_data <- plot_data[, ref_idx, drop=FALSE]
-        number_references <- ncol(plot_data)
-        reference_ylab <- NA
-        ref_seps <- c()
-        # heatmap2 requires a 2 x 2 matrix, so with one reference
-        # I just duplicate the row and hid the second name so it
-        # visually looks like it is just taking up the full realestate.
-        if(number_references == 1){
-            plot_data <- cbind(plot_data, plot_data)
-            names(plot_data) <- c("",names(plot_data)[1])
-        }
-        # If there is more than one reference group, visually break
-        # up the groups with a row seperator. Also plot the rows in
-        # order so the current groups are show and seperated.
-        if(length(ref_groups) > 1){
-            i_cur_idx <- 0
-            order_idx <- c()
-            for (ref_grp in ref_groups){
-                i_cur_idx <- i_cur_idx + length(ref_grp)
-                ref_seps <- c(ref_seps, i_cur_idx)
-                order_idx <- c(order_idx, ref_grp)
-            }
-            ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
-            plot_data <- plot_data[, order_idx, drop=FALSE]
-        }
-        plot_data <- t(plot_data)
-        if (number_references > 20){
-            # The reference labs can become clutered
-            # Dynamically change labels given a certain number of labels.
-            reference_ylab <- "References"
-            row.names(plot_data) <- rep("", number_references)
-        }
-        # Print controls
-        par(fig=c(0,1,0,1), new=TRUE)
-        heatmap.2(plot_data,
-            main=NA,
-            ylab=reference_ylab,
-            xlab=NA,
-            key=FALSE,
-            labCol=rep("", nrow(plot_data)),
-            notecol="black",
-            trace="none",
-            dendrogram="none",
-            Colv=FALSE,
-            Rowv=FALSE,
-            cexRow=0.8,
-            scale="none",
-            rowsep=ref_seps,
-            col=custom_pal,
-            # Seperate by contigs
-            colsep=col_sep,
-            # Seperate by reference / not reference
-            sepcolor="black",
-            sepwidth=c(0.01,0.01),
-            # Color by contigs
-            lmat=rbind(c(2,1),c(4,5),c(3,0)),
-            lhei=c(.25,.8,1.6),
-            lwid=heatmap_widths)
-    }
+    #if(!is.null(ref_idx)){
+    #    plot_cnv_references(ref_data=plot_data[, ref_idx, drop=FALSE],
+    #                        ref_groups=ref_groups,
+    #                        col_pal=custom_pal,
+    #                        contig_seps=col_sep,
+    #                        file_base_name=pdf_path,
+    #                        heatmap_widths=heatmap_widths)
+    #}
     dev.off()
+}
+
+#' Plot the observational samples
+#'
+#' Args:
+#'    @param obs_data: Data to plot as observations. Rows = Cells, Col = Genes
+#'    @param col_pal: The color palette to use.
+#'    @param contig_colors: The colors for the contig bar.
+#'    @param contig_labels: The labels for the contigs.
+#'    @param contig_seps: Indices for line seperators of contigs.
+#'    @param file_base_name: Base of the file to used to make output file names.
+#'    @param heatmap_widths: Width of heatmap column
+#'
+#' Returns:
+#'    @return Void
+plot_cnv_observations <- function(obs_data,
+                                  col_pal,
+                                  contig_colors,
+                                  contig_labels,
+                                  contig_seps,
+                                  num_obs_groups,
+                                  file_base_name,
+                                  heatmap_widths){
+
+    logging::loginfo("plot_cnv_observation:Start")
+    logging::loginfo(paste("Observation data size: Cells=",
+                           nrow(obs_data),
+                           "Genes=",
+                           ncol(obs_data),
+                           sep=" "))
+    observation_file_base <- paste(file_base_name, "_observations.txt", sep="")
+
+    # Output dendrogram representation as Newick
+    # Need to precompute the dendrogram so we can manipulate
+    # it before the heatmap plot
+    obs_hcl <- hclust(sparseEuclid(obs_data),"average")
+    obs_dendrogram <- as.dendrogram(obs_hcl)
+    write.tree(as.phylo(obs_hcl),
+               file=paste(file_base_name, "_observations_dendrogram.txt", sep=""))
+
+    # Output HCL group membership.
+    # Record locations of seperations
+    obs_seps <- c(0)
+    ordered_names <- rev(row.names(obs_data)[obs_hcl$order])
+    split_groups <- cutree(obs_hcl, k=num_obs_groups)
+    row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
+    for (cut_group in unique(split_groups)){
+        group_memb = names(split_groups)[which(split_groups == cut_group)]
+        # Write group to file
+        memb_file <- file(paste(file_base_name,cut_group,"members.txt",sep="_"))
+        writeLines(group_memb, memb_file)
+        close(memb_file)
+        # Record seperation
+        ordered_memb <- which(ordered_names %in% group_memb)
+        obs_seps <- c(obs_seps, max(ordered_memb),max(ordered_memb))
+    }
+    obs_hcl <- NULL
+    obs_seps <- unique(obs_seps)
+    obs_seps <- sort(obs_seps)
+    
+    # Generate the Sep list for heatmap.3
+    contigSepList <- create_sep_list(row_count=nrow(obs_data),
+                                     col_count=ncol(obs_data),
+                                     col_seps=contig_seps)
+
+    # Remove row/col labels, too cluttered
+    # and print.
+    orig_row_names <- row.names(obs_data)
+    row.names(obs_data) <- rep("", nrow(obs_data))
+    #par(fig=c(0,1,0,1), new=FALSE)
+    data_observations <- GMD::heatmap.3(obs_data,
+                                        Rowv=obs_dendrogram,
+                                        Colv=FALSE,
+                                        cluster.by.col=FALSE,
+                                        main="Copy Number Variation Inference",
+                                        ylab="Observations (Cells)",
+                                        margin.for.labRow=10,
+                                        margin.for.labCol=2,
+                                        xlab="Genomic Region",
+                                        key=TRUE,
+                                        labCol=contig_labels,
+                                        notecol="black",
+                                        density.info="histogram",
+                                        denscol="blue",
+                                        trace="none",
+                                        dendrogram="row",
+                                        cexRow=0.8,
+                                        scale="none",
+                                        color.FUN=col_pal,
+                                        # Seperate by contigs
+                                        sepList=contigSepList,
+                                        sep.color="black",
+                                        sep.lty=1,
+                                        sep.lwd=1,
+                                        # Color rows by user defined cut
+                                        RowIndividualColors=row_groupings,
+                                        # Color by contigs
+                                        ColIndividualColors=contig_colors,
+                                        # Legend
+                                        key.title="Distribution of Expression",
+                                        key.xlab="Modified Expression",
+                                        key.ylab="Count")
+
+    # Write data to file.
+    logging::loginfo(paste("plot_cnv_references:Writing observation data to",
+                           observation_file_base,
+                           sep=" "))
+    row.names(obs_data) <- orig_row_names
+    write.table(obs_data[data_observations$rowInd,data_observations$colInd],
+                file=observation_file_base)
+}
+
+#' Plot the reference samples
+#'
+#' Args:
+#'    @param ref_data: Data to plot as references. Rows = Cells, Col = Genes
+#'    @param ref_groups: Groups of references to plot together.
+#'    @param col_pal: The color palette to use.
+#'    @param contig_seps: Indices for line seperators of contigs
+#'    @param file_base_name: Base of the file to used to make output file names.
+#'    @param heatmap_widths: Width of heatmap column
+#'
+#' Returns:
+#'    @return Void
+plot_cnv_references <- function(ref_data,
+                                ref_groups,
+                                col_pal,
+                                contig_seps,
+                                file_base_name,
+                                heatmap_widths){
+
+    logging::loginfo("plot_cnv_references:Start")
+    logging::loginfo(paste("Reference data size: Cells=",
+                           ncol(ref_data),
+                           "Genes=",
+                           nrow(ref_data),
+                           sep=" "))
+    number_references <- ncol(ref_data)
+    reference_ylab <- NA
+    reference_data_file <- paste(file_base_name, "_references.txt", sep="")
+
+    ref_seps <- c()
+    # Handle only one reference
+    # heatmap2 requires a 2 x 2 matrix, so with one reference
+    # I just duplicate the row and hid the second name so it
+    # visually looks like it is just taking up the full realestate.
+    if(number_references == 1){
+        ref_data <- cbind(ref_data, ref_data)
+        names(ref_data) <- c("",names(ref_data)[1])
+    }
+
+    # Handle reference groups
+    # If there is more than one reference group, visually break
+    # up the groups with a row seperator. Also plot the rows in
+    # order so the current groups are show and seperated.
+    if(length(ref_groups) > 1){
+        i_cur_idx <- 0
+        order_idx <- c()
+        for (ref_grp in ref_groups){
+            i_cur_idx <- i_cur_idx + length(ref_grp)
+            ref_seps <- c(ref_seps, i_cur_idx)
+            order_idx <- c(order_idx, ref_grp)
+        }
+        ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
+        ref_data <- ref_data[, order_idx, drop=FALSE]
+    }
+    logging::loginfo(paste("plot_cnv_references:Number reference groups=",
+                           length(ref_groups)),
+                           sep=" ")
+    ref_data <- t(ref_data)
+    if (number_references > 20){
+        # The reference labs can become clutered
+        # Dynamically change labels given a certain number of labels.
+        reference_ylab <- "References"
+        row.names(ref_data) <- rep("", number_references)
+    }
+    # Print controls
+    par(fig=c(0,1,0,1), new=TRUE)
+    data_references <-GMD::heatmap.3(ref_data,
+                                     main=NA,
+                                     ylab=reference_ylab,
+                   xlab=NA,
+                   key=FALSE,
+                   labCol=rep("", nrow(ref_data)),
+                   notecol="black",
+                   trace="none",
+                   dendrogram="none",
+                   Colv=FALSE,
+                   Rowv=FALSE,
+                   cexRow=0.8,
+                   scale="none")
+    #               rowsep=ref_seps,
+    #               col=col_pal,
+    #               # Seperate by contigs
+    #               colsep=contig_seps,
+    #               # Seperate by reference / not reference
+    #               sepcolor="black",
+    #               sepwidth=c(0.01,0.01),
+    #               # Color by contigs
+    #               lmat=rbind(c(2,1),c(4,5),c(3,0)),
+    #               lhei=c(.25,.8,1.6),
+    #               lwid=heatmap_widths)
+
+    #par(fig=c(0,1,0,1), new=TRUE)
+    #data_references <- gplots::heatmap.2(ref_data,
+    #                             main=NA,
+    #                             ylab=reference_ylab,
+    #                             xlab=NA,
+    #                             key=FALSE,
+    #                             labCol=rep("", nrow(ref_data)),
+    #                             notecol="black",
+    #                             trace="none",
+    #                             dendrogram="none",
+    #                             Colv=FALSE,
+    #                             Rowv=FALSE,
+    #                             cexRow=0.8,
+    #                             scale="none",
+    #                             rowsep=ref_seps,
+    #                             col=col_pal,
+    #                             # Seperate by contigs
+    #                             colsep=contig_seps,
+    #                             # Seperate by reference / not reference
+    #                             sepcolor="black",
+    #                             sepwidth=c(0.01,0.01),
+    #                             # Color by contigs
+    #                             lmat=rbind(c(2,1),c(4,5),c(3,0)),
+    #                             lhei=c(.25,.8,1.6),
+    #                             lwid=heatmap_widths)
+
+    # Write data to file
+    logging::loginfo(paste("plot_cnv_references:Writing reference data to",
+                           reference_data_file,
+                           sep=" "))
+    write.table(ref_data[data_references$rowInd,data_references$colInd],
+                file=reference_data_file)
 }
 
 #' Return the indices of the rows that average above the cut off
@@ -920,11 +1165,17 @@ order_reduce <- function(data, genomic_position){
 
     logging::loginfo(paste("::order_reduce:Start.", sep=""))
     ret_results <- list(expr=NULL, order=NULL)
-    if(is.null(data) || is.null(genomic_position)){
+    if (is.null(data) || is.null(genomic_position)){
         return(ret_results)
     }
+    # Reduce to genes in pos file
     keep_genes <- row.names(data)[which(row.names(data)
                                   %in% row.names(genomic_position))]
+
+    # Set the chr to factor so the order can be arbitrarily set and sorted.
+    chr_levels <- unique(genomic_position[[CHR]])
+    genomic_position[[CHR]] <- factor(genomic_position[[CHR]],
+                                   levels=chr_levels)
     if(length(keep_genes)){
         ret_results$expr <- data[keep_genes, , drop=FALSE]
         ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
@@ -964,15 +1215,13 @@ remove_noise <- function(smooth_matrix, threshold){
 #'    @param tail_length: Length of the tail to remove on both ends of the
 #'                        chr indices.
 #' Returns:
-#'    @return Matrix with tails of chr set to 0.
+#'    @return Indices to remove.
 remove_tails <- function(smooth_matrix, chr, tail_length){
 
     logging::loginfo(paste("::remove_tails:Start.", sep=""))
-
     chr_length <- length(chr)
-
-    if (tail_length < 1){
-        return(smooth_matrix)
+    if ((tail_length < 3) || (chr_length < 3)){
+        return(c())
     }
     if (chr_length < (tail_length * 2)){
          tail_length <- floor(chr_length / 3)
@@ -1011,7 +1260,6 @@ smooth_window <- function(data, window_length){
                      2,
                      smooth_window_helper,
                      window_length=window_length)
-
     # Fix ends
     data_end <- apply(data,
                       2,
@@ -1023,6 +1271,10 @@ smooth_window <- function(data, window_length){
         data_sm[row_end, ] <- data_end[row_end, ]
         data_sm[end_bound, ] <- data_end[end_bound, ]
     }
+
+    # Set back row and column names
+    row.names(data_sm) <- row.names(data)
+    colnames(data_sm) <- colnames(data)
     return(data_sm)
 }
 
@@ -1063,8 +1315,33 @@ smooth_window_helper <- function(obs_data, window_length){
 }
 
 
+#' Measure an euclidean distance weighted by complexity.
+#' It is assumed rows are clustered
+#' Returns
+#'    @return Distance object of Euclidean distance weighted by complexity.
+sparseEuclid <- function(data){
+    feature_count <- nrow(data)
+    obs_complex <- apply(data, MARGIN=2, FUN=function(x) return(sum(x!=0)))
+    per_complex <- obs_complex / feature_count
+    out_matrix <- matrix(rep(NA,feature_count^2),ncol=feature_count)
+    names(out_matrix) <- row.names(data)
+    row.names(out_matrix) <- row.names(data)
+    for( fi_one in 1:feature_count ){
+        for( fi_two in fi_one:feature_count ){
+            f1 <- data[fi_one,]
+            f2 <- data[fi_two,]
+            d <- sqrt(sum(per_complex * (f1 - f2)^2))
+            out_matrix[fi_one, fi_two] <- d
+            out_matrix[fi_two, fi_one] <- d
+        }
+    }
+    return(as.dist(out_matrix))
+}
+
 # Load libraries
+library(ape)
 library("RColorBrewer", character.only=TRUE)
+library(GMD)
 library(gplots)
 library(optparse)
 library(logging)
@@ -1157,6 +1434,16 @@ if (identical(environment(),globalenv()) &&
                                    "exist after centering data. If a value is",
                                    "outside of this range, it is truncated to",
                                    "be within this range [Default %default]."))
+
+    pargs <- optparse::add_option(pargs, c("--obs_groups"),
+                        type="character",
+                        default=1,
+                        action="store",
+                        dest="num_obs_groups",
+                        metavar="Number_of_observation_groups",
+                        help=paste("Number of groups in which to break ",
+                                   "the observations.",
+                                   "[Default %default]"))
 
     pargs <- optparse::add_option(pargs, c("--pdf"),
                         type="character",
@@ -1277,6 +1564,14 @@ if (identical(environment(),globalenv()) &&
                              level=args$log_level)
     }
 
+    # Log the input parameters
+    logging::loginfo(paste("::Input arguments. Start.")) 
+    for (arg_name in names(args)){
+        logging::loginfo(paste(":Iput_Argument:",arg_name,"=",args[[arg_name]],
+                               sep="")) 
+    }
+    logging::loginfo(paste("::Input arguments. End.")) 
+
     # Manage inputs
     logging::loginfo(paste("::Reading data matrix.", sep=""))
     # Row = Genes/Features, Col = Cells/Observations
@@ -1289,7 +1584,7 @@ if (identical(environment(),globalenv()) &&
     input_gene_order <- seq(1, nrow(expression_data), 1)
     if (args$gene_order != ""){
         input_gene_order <- read.table(args$gene_order, row.names=1)
-        names(input_gene_order) <- c("chr", "start", "stop")
+        names(input_gene_order) <- c(CHR, START, STOP)
     }
     logging::loginfo(paste("::Reading gene order.", sep=""))
     logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
@@ -1352,6 +1647,7 @@ if (identical(environment(),globalenv()) &&
                         max_centered_threshold=args$max_centered_expression,
                         noise_threshold=args$magnitude_filter,
                         num_ref_groups=args$num_groups,
+                        num_obs_groups=args$num_obs,
                         pdf_path=args$pdf_file,
                         plot_steps=args$plot_steps,
                         contig_tail=args$contig_tail,
