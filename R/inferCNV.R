@@ -166,10 +166,13 @@ create_sep_list <- function(row_count, col_count,
     }
 
     # Row data
+    # This is measured from bottom to top
+    # So you have to adjust the values of the data
+    row_seps <- row_count-row_seps
     if(!is.null(row_seps) && !is.na(row_seps) && (length(row_seps)>0)){
         rowList <- list()
         for(sep in 1:length(row_seps)){
-            rowList[[sep]] <- c(row_seps[sep],0,row_seps[sep],col_count)
+            rowList[[sep]] <- c(0,row_seps[sep],col_count,row_seps[sep])
         }
         sepList[[2]] <- rowList
     } else {
@@ -881,14 +884,14 @@ plot_cnv <- function(plot_data,
 
 
     # Plot Reference Samples
-    #if(!is.null(ref_idx)){
-    #    plot_cnv_references(ref_data=plot_data[, ref_idx, drop=FALSE],
-    #                        ref_groups=ref_groups,
-    #                        col_pal=custom_pal,
-    #                        contig_seps=col_sep,
-    #                        file_base_name=pdf_path,
-    #                        heatmap_widths=heatmap_widths)
-    #}
+    if(!is.null(ref_idx)){
+        plot_cnv_references(ref_data=plot_data[, ref_idx, drop=FALSE],
+                            ref_groups=ref_groups,
+                            col_pal=custom_pal,
+                            contig_seps=col_sep,
+                            file_base_name=pdf_path,
+                            heatmap_widths=heatmap_widths)
+    }
     dev.off()
 }
 
@@ -1044,18 +1047,27 @@ plot_cnv_references <- function(ref_data,
     # Handle reference groups
     # If there is more than one reference group, visually break
     # up the groups with a row seperator. Also plot the rows in
-    # order so the current groups are show and seperated.
+    # order so the current groups are shown and seperated.
+    row_col_colors <- rep(1,ncol(ref_data))
     if(length(ref_groups) > 1){
         i_cur_idx <- 0
         order_idx <- c()
+        grouping <- 0
         for (ref_grp in ref_groups){
             i_cur_idx <- i_cur_idx + length(ref_grp)
             ref_seps <- c(ref_seps, i_cur_idx)
             order_idx <- c(order_idx, ref_grp)
+            # Make row color columns
+            grouping <- grouping + 1
+            row_col_colors[ref_grp] <- grouping
         }
         ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
         ref_data <- ref_data[, order_idx, drop=FALSE]
+        # Order the row color columns to the row groups
+        row_col_colors <- row_col_colors[order_idx]
     }
+    # Make row color column colors from groupings
+    row_col_colors <- get_group_color_palette()(max(unique(row_col_colors)))[row_col_colors]
     logging::loginfo(paste("plot_cnv_references:Number reference groups=",
                            length(ref_groups)),
                            sep=" ")
@@ -1066,58 +1078,36 @@ plot_cnv_references <- function(ref_data,
         reference_ylab <- "References"
         row.names(ref_data) <- rep("", number_references)
     }
-    # Print controls
-    par(fig=c(0,1,0,1), new=TRUE)
-    data_references <-GMD::heatmap.3(ref_data,
-                                     main=NA,
-                                     ylab=reference_ylab,
-                   xlab=NA,
-                   key=FALSE,
-                   labCol=rep("", nrow(ref_data)),
-                   notecol="black",
-                   trace="none",
-                   dendrogram="none",
-                   Colv=FALSE,
-                   Rowv=FALSE,
-                   cexRow=0.8,
-                   scale="none")
-    #               rowsep=ref_seps,
-    #               col=col_pal,
-    #               # Seperate by contigs
-    #               colsep=contig_seps,
-    #               # Seperate by reference / not reference
-    #               sepcolor="black",
-    #               sepwidth=c(0.01,0.01),
-    #               # Color by contigs
-    #               lmat=rbind(c(2,1),c(4,5),c(3,0)),
-    #               lhei=c(.25,.8,1.6),
-    #               lwid=heatmap_widths)
 
+    # Generate the Sep list for heatmap.3
+    contigSepList <- create_sep_list(row_count=nrow(ref_data),
+                                     col_count=ncol(ref_data),
+                                     col_seps=contig_seps,
+                                     row_seps=ref_seps)
+    # Print controls
     #par(fig=c(0,1,0,1), new=TRUE)
-    #data_references <- gplots::heatmap.2(ref_data,
-    #                             main=NA,
-    #                             ylab=reference_ylab,
-    #                             xlab=NA,
-    #                             key=FALSE,
-    #                             labCol=rep("", nrow(ref_data)),
-    #                             notecol="black",
-    #                             trace="none",
-    #                             dendrogram="none",
-    #                             Colv=FALSE,
-    #                             Rowv=FALSE,
-    #                             cexRow=0.8,
-    #                             scale="none",
-    #                             rowsep=ref_seps,
-    #                             col=col_pal,
-    #                             # Seperate by contigs
-    #                             colsep=contig_seps,
-    #                             # Seperate by reference / not reference
-    #                             sepcolor="black",
-    #                             sepwidth=c(0.01,0.01),
-    #                             # Color by contigs
-    #                             lmat=rbind(c(2,1),c(4,5),c(3,0)),
-    #                             lhei=c(.25,.8,1.6),
-    #                             lwid=heatmap_widths)
+    data_references <- GMD::heatmap.3(ref_data,
+                                        main=NA,
+                                        ylab=reference_ylab,
+                                        xlab=NA,
+                                        key=FALSE,
+                                        labCol=rep("", nrow(ref_data)),
+                                        notecol="black",
+                                        trace="none",
+                                        dendrogram="none",
+                                        Colv=FALSE,
+                                        Rowv=FALSE,
+                                        cexRow=0.8,
+                                        scale="none",
+                                        color.FUN=col_pal,
+                                        sepList=contigSepList,
+                                        # Seperate by contigs
+                                        sep.color=c("black","black"),
+                                        sep.lty=1,
+                                        sep.lwd=1,
+                                        margin.for.labRow=10,
+                                        # Color rows by reference groups
+                                        RowIndividualColors=row_col_colors)
 
     # Write data to file
     logging::loginfo(paste("plot_cnv_references:Writing reference data to",
@@ -1567,7 +1557,7 @@ if (identical(environment(),globalenv()) &&
     # Log the input parameters
     logging::loginfo(paste("::Input arguments. Start.")) 
     for (arg_name in names(args)){
-        logging::loginfo(paste(":Iput_Argument:",arg_name,"=",args[[arg_name]],
+        logging::loginfo(paste(":Input_Argument:",arg_name,"=",args[[arg_name]],
                                sep="")) 
     }
     logging::loginfo(paste("::Input arguments. End.")) 
