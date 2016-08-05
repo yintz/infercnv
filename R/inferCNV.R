@@ -853,8 +853,6 @@ plot_cnv <- function(plot_data,
         height=7.5,
         paper="USr")
 
-    # Plot heatmap
-    par(mar=c(.5,.5,.5,.5))
 
     # Plot observations
     ## Make Observation Samples
@@ -872,6 +870,34 @@ plot_cnv <- function(plot_data,
     }
 
     ## Plot observational samples
+    force_lmat <- c(0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                    6, 8, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                    0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    force_lmat <- matrix(force_lmat,ncol=13,byrow=TRUE)
+    force_lhei <- c(1.125, 2.215, .15,
+                    .5, .5, .5,
+                    .5, .5, .5,
+                    .5, .5, .5,
+                    0.0075, 0.0075, 0.0075)
+    # Max 21.59
+    force_lwid <- c(1.50, 0.20, 0.02, 
+                    0.75, 0.75, 0.75,
+                    0.75, 0.75, 0.75,
+                    0.75, 0.75, 0.75,
+                    0.75, 0.75, 0.75)
+
     plot_cnv_observations(obs_data=t(obs_data),
                           file_base_name=pdf_path,
                           heatmap_widths=heatmap_widths,
@@ -879,18 +905,54 @@ plot_cnv <- function(plot_data,
                           contig_label=contig_labels,
                           col_pal=custom_pal,
                           contig_seps=col_sep,
-                          num_obs_groups=k_obs_groups)
+                          num_obs_groups=k_obs_groups,
+                          layout_lmat=force_lmat,
+                          layout_lhei=force_lhei,
+                          layout_lwid=force_lwid)
     obs_data <- NULL
 
 
     # Plot Reference Samples
+    ## Plot observational samples
+    force_lmat <- c(5, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    force_lmat <- matrix(force_lmat,ncol=13,byrow=TRUE)
+
+    force_lhei <- c(1.125, 0.015, 0.015,
+                    0.75, .75, .75,
+                    .75, .75, .75,
+                    .75, .75, .75,
+                    0.0075, 0.0075, 0.0075)
+
+    force_lwid <- c(1.50, 0.20, 0.02, 
+                    0.75, 0.75, 0.75,
+                    0.75, 0.75, 0.75,
+                    0.75, 0.75, 0.75,
+                    0.75, 0.75, 0.75)
     if(!is.null(ref_idx)){
         plot_cnv_references(ref_data=plot_data[, ref_idx, drop=FALSE],
                             ref_groups=ref_groups,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=pdf_path,
-                            heatmap_widths=heatmap_widths)
+                            heatmap_widths=heatmap_widths,
+                            layout_lmat=force_lmat,
+                            layout_lhei=force_lhei,
+                            layout_lwid=force_lwid,
+                            layout_add=TRUE)
     }
     dev.off()
 }
@@ -915,7 +977,10 @@ plot_cnv_observations <- function(obs_data,
                                   contig_seps,
                                   num_obs_groups,
                                   file_base_name,
-                                  heatmap_widths){
+                                  heatmap_widths,
+                                  layout_lmat,
+                                  layout_lhei,
+                                  layout_lwid){
 
     logging::loginfo("plot_cnv_observation:Start")
     logging::loginfo(paste("Observation data size: Cells=",
@@ -962,8 +1027,7 @@ plot_cnv_observations <- function(obs_data,
     # and print.
     orig_row_names <- row.names(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
-    #par(fig=c(0,1,0,1), new=FALSE)
-    data_observations <- GMD::heatmap.3(obs_data,
+    data_observations <- heatmap.cnv(obs_data,
                                         Rowv=obs_dendrogram,
                                         Colv=FALSE,
                                         cluster.by.col=FALSE,
@@ -994,7 +1058,11 @@ plot_cnv_observations <- function(obs_data,
                                         # Legend
                                         key.title="Distribution of Expression",
                                         key.xlab="Modified Expression",
-                                        key.ylab="Count")
+                                        key.ylab="Count",
+                                        # Layout
+                                        force_lmat=layout_lmat,
+                                        force_lwid=layout_lwid,
+                                        force_lhei=layout_lhei)
 
     # Write data to file.
     logging::loginfo(paste("plot_cnv_references:Writing observation data to",
@@ -1022,7 +1090,11 @@ plot_cnv_references <- function(ref_data,
                                 col_pal,
                                 contig_seps,
                                 file_base_name,
-                                heatmap_widths){
+                                heatmap_widths,
+                                layout_lmat,
+                                layout_lwid,
+                                layout_lhei,
+                                layout_add){
 
     logging::loginfo("plot_cnv_references:Start")
     logging::loginfo(paste("Reference data size: Cells=",
@@ -1085,8 +1157,7 @@ plot_cnv_references <- function(ref_data,
                                      col_seps=contig_seps,
                                      row_seps=ref_seps)
     # Print controls
-    #par(fig=c(0,1,0,1), new=TRUE)
-    data_references <- GMD::heatmap.3(ref_data,
+    data_references <- heatmap.cnv(ref_data,
                                         main=NA,
                                         ylab=reference_ylab,
                                         xlab=NA,
@@ -1107,7 +1178,12 @@ plot_cnv_references <- function(ref_data,
                                         sep.lwd=1,
                                         margin.for.labRow=10,
                                         # Color rows by reference groups
-                                        RowIndividualColors=row_col_colors)
+                                        #RowIndividualColors=row_col_colors,
+                                        # Layout
+                                        force_lmat=layout_lmat,
+                                        force_lwid=layout_lwid,
+                                        force_lhei=layout_lhei,
+                                        force_add=layout_add)
 
     # Write data to file
     logging::loginfo(paste("plot_cnv_references:Writing reference data to",
@@ -1335,6 +1411,7 @@ library(GMD)
 library(gplots)
 library(optparse)
 library(logging)
+source("/Users/ttickle/Documents/safe/dev/infercnv/R/heatmap3.R")
 
 # If called as source from commandline
 if (identical(environment(),globalenv()) &&
