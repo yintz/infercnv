@@ -839,10 +839,12 @@ plot_cnv <- function(plot_data,
     # These labels are axes labels, indicating contigs at the first column only
     # and leaving the rest blank.
     contig_labels <- c()
+    contig_names <-c()
     for (contig_name in names(contig_tbl)){
         contig_labels <- c(contig_labels,
                            contig_name,
                            rep("", contig_tbl[contig_name] - 1))
+        contig_names <- c(contig_names,rep(contig_name,contig_tbl[contig_name]))
     }
 
     # Heatmap elements widths
@@ -878,6 +880,7 @@ plot_cnv <- function(plot_data,
                           heatmap_widths=heatmap_widths,
                           contig_colors=ct.colors[contigs],
                           contig_label=contig_labels,
+                          contig_names=contig_names,
                           col_pal=custom_pal,
                           contig_seps=col_sep,
                           num_obs_groups=k_obs_groups,
@@ -915,6 +918,7 @@ plot_cnv_observations <- function(obs_data,
                                   col_pal,
                                   contig_colors,
                                   contig_labels,
+                                  contig_names,
                                   contig_seps,
                                   num_obs_groups,
                                   file_base_name,
@@ -935,8 +939,26 @@ plot_cnv_observations <- function(obs_data,
     # Need to precompute the dendrogram so we can manipulate
     # it before the heatmap plot
     ## Optionally cluster by a specific contig
-    hcl_desc = "General"
-    obs_hcl <- hclust(sparseEuclid(obs_data),"average")
+    hcl_desc <- "General"
+    hcl_contig <- NULL
+    hcl_group_indices <- 1:ncol(obs_data)
+    if(!is.null(hcl_contig)){
+        hcl_contig_indices <- which(contig_names == hcl_contig)
+        if(length(hcl_group_indices)>0){
+            hcl_group_indices <- hcl_contig_indices
+            hcl_desc <- hcl_contig
+        } else {
+           logging::logwarning(paste("plot_cnv_observations: Not able to cluster by",
+                                     hcl_contig,
+                                     "Clustering by all genomic locations.",
+                                     "To cluster by local genomic location next time",
+                                     "select from:",
+                                     unique(contig_names),
+                                     collapse=",",
+                                     sep=" ")) 
+        }
+    }
+    obs_hcl <- hclust(sparseEuclid(obs_data[,hcl_group_indices]),"average")
     obs_dendrogram <- as.dendrogram(obs_hcl)
     write.tree(as.phylo(obs_hcl),
                file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
