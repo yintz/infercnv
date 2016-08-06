@@ -518,7 +518,10 @@ infer_cnv <- function(data,
                       upper_bound_vis=NA){
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
-    plot_steps_path <- dirname(pdf_path)
+    plot_steps_path <- strsplit(pdf_path, "\\.")[[1]][1]
+    if(!file.exists(plot_steps_path)){
+        dir.create(plot_steps_path)
+    }
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
@@ -711,7 +714,7 @@ infer_cnv <- function(data,
     }
 
     # Output before viz outlier
-    write.table(data_smoothed, file=paste(pdf_path, ".txt", sep=""))
+    write.table(data_smoothed, file=paste(plot_steps_path, "expression_pre_vis_transform.txt", sep=.Platform$file.sep))
     logging::loginfo(paste("::infer_cnv:Writing final data to ",
                            paste(pdf_path, ".txt", sep=""), sep=""))
 
@@ -750,7 +753,7 @@ infer_cnv <- function(data,
                        k_obs_groups=num_obs_groups,
                        reference_idx=reference_obs,
                        ref_groups=groups_ref,
-                       pdf_path=pdf_path,
+                       pdf_path=plot_steps_path,
                        color_safe_pal=color_safe)
 }
 
@@ -846,8 +849,7 @@ plot_cnv <- function(plot_data,
     heatmap_widths <- c(1,6)
 
     # Rows observations, Columns CHR
-    # Plot either high or low resolution
-    pdf(pdf_path,
+    pdf(paste(pdf_path,"pdf",sep="."),
         useDingbats=FALSE,
         width=10,
         height=7.5,
@@ -869,35 +871,8 @@ plot_cnv <- function(plot_data,
         }
     }
 
-    ## Plot observational samples
-    force_lmat <- c(0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-                    6, 8, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                    0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    force_lmat <- matrix(force_lmat,ncol=13,byrow=TRUE)
-    force_lhei <- c(1.125, 2.215, .15,
-                    .5, .5, .5,
-                    .5, .5, .5,
-                    .5, .5, .5,
-                    0.0075, 0.0075, 0.0075)
-    # Max 21.59
-    force_lwid <- c(1.50, 0.20, 0.02, 
-                    0.75, 0.75, 0.75,
-                    0.75, 0.75, 0.75,
-                    0.75, 0.75, 0.75,
-                    0.75, 0.75, 0.75)
-
+    # Create file base for plotting output
+    force_layout <- plot_observations_layout()
     plot_cnv_observations(obs_data=t(obs_data),
                           file_base_name=pdf_path,
                           heatmap_widths=heatmap_widths,
@@ -906,42 +881,11 @@ plot_cnv <- function(plot_data,
                           col_pal=custom_pal,
                           contig_seps=col_sep,
                           num_obs_groups=k_obs_groups,
-                          layout_lmat=force_lmat,
-                          layout_lhei=force_lhei,
-                          layout_lwid=force_lwid)
+                          layout_lmat=force_layout[["lmat"]],
+                          layout_lhei=force_layout[["lhei"]],
+                          layout_lwid=force_layout[["lwid"]])
     obs_data <- NULL
 
-
-    # Plot Reference Samples
-    ## Plot observational samples
-    force_lmat <- c(5, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    3, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    force_lmat <- matrix(force_lmat,ncol=13,byrow=TRUE)
-
-    force_lhei <- c(1.125, 0.015, 0.015,
-                    0.75, .75, .75,
-                    .75, .75, .75,
-                    .75, .75, .75,
-                    0.0075, 0.0075, 0.0075)
-
-    force_lwid <- c(1.50, 0.20, 0.02, 
-                    0.75, 0.75, 0.75,
-                    0.75, 0.75, 0.75,
-                    0.75, 0.75, 0.75,
-                    0.75, 0.75, 0.75)
     if(!is.null(ref_idx)){
         plot_cnv_references(ref_data=plot_data[, ref_idx, drop=FALSE],
                             ref_groups=ref_groups,
@@ -949,9 +893,6 @@ plot_cnv <- function(plot_data,
                             contig_seps=col_sep,
                             file_base_name=pdf_path,
                             heatmap_widths=heatmap_widths,
-                            layout_lmat=force_lmat,
-                            layout_lhei=force_lhei,
-                            layout_lwid=force_lwid,
                             layout_add=TRUE)
     }
     dev.off()
@@ -978,9 +919,9 @@ plot_cnv_observations <- function(obs_data,
                                   num_obs_groups,
                                   file_base_name,
                                   heatmap_widths,
-                                  layout_lmat,
-                                  layout_lhei,
-                                  layout_lwid){
+                                  layout_lmat=NULL,
+                                  layout_lhei=NULL,
+                                  layout_lwid=NULL){
 
     logging::loginfo("plot_cnv_observation:Start")
     logging::loginfo(paste("Observation data size: Cells=",
@@ -988,15 +929,17 @@ plot_cnv_observations <- function(obs_data,
                            "Genes=",
                            ncol(obs_data),
                            sep=" "))
-    observation_file_base <- paste(file_base_name, "_observations.txt", sep="")
+    observation_file_base <- paste(file_base_name, "observations.txt", sep=.Platform$file.sep)
 
     # Output dendrogram representation as Newick
     # Need to precompute the dendrogram so we can manipulate
     # it before the heatmap plot
+    ## Optionally cluster by a specific contig
+    hcl_desc = "General"
     obs_hcl <- hclust(sparseEuclid(obs_data),"average")
     obs_dendrogram <- as.dendrogram(obs_hcl)
     write.tree(as.phylo(obs_hcl),
-               file=paste(file_base_name, "_observations_dendrogram.txt", sep=""))
+               file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
 
     # Output HCL group membership.
     # Record locations of seperations
@@ -1007,7 +950,9 @@ plot_cnv_observations <- function(obs_data,
     for (cut_group in unique(split_groups)){
         group_memb = names(split_groups)[which(split_groups == cut_group)]
         # Write group to file
-        memb_file <- file(paste(file_base_name,cut_group,"members.txt",sep="_"))
+        memb_file <- file(paste(file_base_name,
+                                paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
+                                sep=.Platform$file.sep))
         writeLines(group_memb, memb_file)
         close(memb_file)
         # Record seperation
@@ -1073,6 +1018,45 @@ plot_cnv_observations <- function(obs_data,
                 file=observation_file_base)
 }
 
+#' Create the layout for the plot
+#' This is a modification of the original
+#' layout from the GMD heatmap.3 function
+#'
+#' Returns:
+#'    @return: list with slots "lmat" (layout matrix),
+#'                             "lhei" (height, numerix vector),
+#'                             and "lwid" (widths, numeric vector)
+plot_observations_layout <- function()
+{
+    ## Plot observational samples
+    obs_lmat <- c(0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+                  6, 8, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                  0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    obs_lmat <- matrix(obs_lmat,ncol=13,byrow=TRUE)
+
+    obs_lhei <- c(1.125, 2.215, .15,
+                   .5, .5, .5,
+                   .5, .5, .5,
+                   .5, .5, .5,
+                  0.0075, 0.0075, 0.0075)
+
+    return(list(lmat=obs_lmat,
+           lhei=obs_lhei,
+           lwid=NULL))
+}
+
 #' Plot the reference samples
 #'
 #' Args:
@@ -1091,10 +1075,10 @@ plot_cnv_references <- function(ref_data,
                                 contig_seps,
                                 file_base_name,
                                 heatmap_widths,
-                                layout_lmat,
-                                layout_lwid,
-                                layout_lhei,
-                                layout_add){
+                                layout_lmat=NULL,
+                                layout_lwid=NULL,
+                                layout_lhei=NULL,
+                                layout_add=FALSE){
 
     logging::loginfo("plot_cnv_references:Start")
     logging::loginfo(paste("Reference data size: Cells=",
@@ -1104,7 +1088,7 @@ plot_cnv_references <- function(ref_data,
                            sep=" "))
     number_references <- ncol(ref_data)
     reference_ylab <- NA
-    reference_data_file <- paste(file_base_name, "_references.txt", sep="")
+    reference_data_file <- paste(file_base_name, "references.txt", sep=.Platform$file.sep)
 
     ref_seps <- c()
     # Handle only one reference
@@ -1120,7 +1104,6 @@ plot_cnv_references <- function(ref_data,
     # If there is more than one reference group, visually break
     # up the groups with a row seperator. Also plot the rows in
     # order so the current groups are shown and seperated.
-    row_col_colors <- rep(1,ncol(ref_data))
     if(length(ref_groups) > 1){
         i_cur_idx <- 0
         order_idx <- c()
@@ -1129,17 +1112,11 @@ plot_cnv_references <- function(ref_data,
             i_cur_idx <- i_cur_idx + length(ref_grp)
             ref_seps <- c(ref_seps, i_cur_idx)
             order_idx <- c(order_idx, ref_grp)
-            # Make row color columns
-            grouping <- grouping + 1
-            row_col_colors[ref_grp] <- grouping
         }
         ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
         ref_data <- ref_data[, order_idx, drop=FALSE]
-        # Order the row color columns to the row groups
-        row_col_colors <- row_col_colors[order_idx]
     }
     # Make row color column colors from groupings
-    row_col_colors <- get_group_color_palette()(max(unique(row_col_colors)))[row_col_colors]
     logging::loginfo(paste("plot_cnv_references:Number reference groups=",
                            length(ref_groups)),
                            sep=" ")
@@ -1178,7 +1155,6 @@ plot_cnv_references <- function(ref_data,
                                         sep.lwd=1,
                                         margin.for.labRow=10,
                                         # Color rows by reference groups
-                                        #RowIndividualColors=row_col_colors,
                                         # Layout
                                         force_lmat=layout_lmat,
                                         force_lwid=layout_lwid,
