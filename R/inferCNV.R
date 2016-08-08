@@ -513,6 +513,7 @@ infer_cnv <- function(data,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
                       color_safe=TRUE,
+                      cluster_reference=NULL,
                       method_bound_vis=NA,
                       lower_bound_vis=NA,
                       upper_bound_vis=NA){
@@ -752,6 +753,7 @@ infer_cnv <- function(data,
                        contigs=paste(as.vector(as.matrix(chr_order))),
                        k_obs_groups=num_obs_groups,
                        reference_idx=reference_obs,
+                       ref_contig=cluster_reference,
                        ref_groups=groups_ref,
                        pdf_path=plot_steps_path,
                        color_safe_pal=color_safe)
@@ -793,6 +795,7 @@ plot_step <- function(data, plot_name){
 plot_cnv <- function(plot_data,
                      contigs,
                      reference_idx,
+                     ref_contig,
                      ref_groups,
                      pdf_path,
                      k_obs_groups=1,
@@ -878,6 +881,7 @@ plot_cnv <- function(plot_data,
     plot_cnv_observations(obs_data=t(obs_data),
                           file_base_name=pdf_path,
                           heatmap_widths=heatmap_widths,
+                          cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
                           contig_label=contig_labels,
                           contig_names=contig_names,
@@ -923,6 +927,7 @@ plot_cnv_observations <- function(obs_data,
                                   num_obs_groups,
                                   file_base_name,
                                   heatmap_widths,
+                                  cluster_contig=NULL,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
                                   layout_lwid=NULL){
@@ -940,16 +945,16 @@ plot_cnv_observations <- function(obs_data,
     # it before the heatmap plot
     ## Optionally cluster by a specific contig
     hcl_desc <- "General"
-    hcl_contig <- NULL
     hcl_group_indices <- 1:ncol(obs_data)
-    if(!is.null(hcl_contig)){
-        hcl_contig_indices <- which(contig_names == hcl_contig)
+    if(!is.null(cluster_contig)){
+        hcl_contig_indices <- which(contig_names == cluster_contig)
         if(length(hcl_group_indices)>0){
             hcl_group_indices <- hcl_contig_indices
-            hcl_desc <- hcl_contig
+            hcl_desc <- cluster_contig
+            logging::loginfo(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
         } else {
            logging::logwarning(paste("plot_cnv_observations: Not able to cluster by",
-                                     hcl_contig,
+                                     cluster_contig,
                                      "Clustering by all genomic locations.",
                                      "To cluster by local genomic location next time",
                                      "select from:",
@@ -1541,6 +1546,21 @@ if (identical(environment(),globalenv()) &&
                                    "the reference observations.",
                                    "[Default %default]"))
 
+    pargs <- optparse::add_option(pargs,c("--obs_cluster_contig"),
+                        type="character",
+                        default=NULL,
+                        action="store",
+                        dest="clustering_contig",
+                        metavar="Clustering_Contig",
+                        help=paste("When clustering observation samples, ",
+                                   "all genomic locations are used unless ",
+                                   "this option is given. The expected value ",
+                                   "is one of the contigs (Chr) in the genomic ",
+                                   "positions file (case senstive). All genomic ",
+                                   "positions will be plotted but only the given ",
+                                   "contig will be used in clustering / group ",
+                                   "creation."))
+
     pargs <- optparse::add_option(pargs, c("--steps"),
                         type="logical",
                         default=FALSE,
@@ -1712,6 +1732,7 @@ if (identical(environment(),globalenv()) &&
                         max_centered_threshold=args$max_centered_expression,
                         noise_threshold=args$magnitude_filter,
                         num_ref_groups=args$num_groups,
+                        cluster_reference=args$clustering_contig,
                         num_obs_groups=args$num_obs,
                         pdf_path=args$pdf_file,
                         plot_steps=args$plot_steps,
