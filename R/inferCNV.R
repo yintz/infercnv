@@ -4,6 +4,7 @@ CHR = "chr"
 START = "start"
 STOP = "stop"
 
+# Tested
 #' Remove the average of the genes of the reference observations from all 
 #' observations' expression. Normalization by column.
 #'
@@ -60,6 +61,7 @@ average_over_ref <- function(average_data,
     return(average_data)
 }
 
+# Not testing
 #' Helper function allowing greater control over the steps in a color palette.
 #' Source:http://menugget.blogspot.com/2011/11/define-color-steps-for-
 #'               colorramppalette.html#more
@@ -101,10 +103,10 @@ color.palette <- function(steps,
     return(pal)
 }
 
-
+#' Tested
 #' Create a sepList forthe heatmap.3 plotting function given integer vectors
 #' of rows and columns where speration should take place.
-#' The expected input to thebheatmap function is a list of 2 lists.
+#' The expected input to the heatmap function is a list of 2 lists.
 #' The first list are column based rectangles, and the second row.
 #' To define a rectagle the index of the row or column where the line of the rectagle
 #' should be placed is done with a vector of integers, left, bottom, right and top line.
@@ -120,12 +122,15 @@ color.palette <- function(steps,
 #'    @return: List of lists of vectors
 create_sep_list <- function(row_count,
                             col_count,
-                            col_seps=NULL,
-                            row_seps=NULL){
+                            row_seps=NULL,
+                            col_seps=NULL){
     sepList <- list()
     # Heatmap.3 wants a list of boxes for seperating columns
     # Column data
-    if(!is.null(col_seps) && !is.na(col_seps) && (length(col_seps)>0)){
+    if(!is.null(col_seps) &&
+       !is.na(col_seps) &&
+       (length(col_seps)>0) &&
+       col_count > 0){
         colList <- list()
         for(sep in 1:length(col_seps)){
             colList[[sep]] <- c(col_seps[sep],0,col_seps[sep],row_count)
@@ -140,7 +145,10 @@ create_sep_list <- function(row_count,
     # This is measured from bottom to top
     # So you have to adjust the values of the data
     row_seps <- row_count-row_seps
-    if(!is.null(row_seps) && !is.na(row_seps) && (length(row_seps)>0)){
+    if(!is.null(row_seps) &&
+       !is.na(row_seps) &&
+       (length(row_seps)>0) &&
+       row_count > 0){
         rowList <- list()
         for(sep in 1:length(row_seps)){
             rowList[[sep]] <- c(0,row_seps[sep],col_count,row_seps[sep])
@@ -153,6 +161,7 @@ create_sep_list <- function(row_count,
     return(sepList)
 }
 
+# Tested
 #' Split up reference observations in to k groups and return indices
 #' for the different groups.
 #'
@@ -220,11 +229,13 @@ split_references <- function(average_data,
     return(ret_groups)
 }
 
+# Tested
 #' Set outliers to some upper or lower bound. Then normalize values to
 #' approximately [-1, 1]. This is to prep the data for visualization.
 #'
 #' Args:
 #'    @param data: data to remove outliers. Outliers removed within columns.
+#'    @param out_method: Method to remove outliers [(average_bound, NA (hard threshold))]
 #'    @param lower_bound: Lower bound which identifies a measurement
 #'                        as an outlier. 
 #'    @param upper_bound: Upper bound which identifies a measurement
@@ -239,8 +250,12 @@ remove_outliers_norm <- function(data,
                                  upper_bound=NA,
                                  plot_step=NA){
     logging::loginfo(paste("::remove_outlier_norm:Start"))
+    if(is.na(data) || is.null(data) || nrow(data) < 1 || ncol(data) < 1){
+        return(data)
+    }
     if (is.na(lower_bound) || is.na(upper_bound)){
         if(is.na(out_method)){
+            logging::loginfo("::remove_outlier_norm:WARNING outlier removal was not performed.")
             return(data)
         }
         if (out_method == "average_bound"){
@@ -268,6 +283,7 @@ remove_outliers_norm <- function(data,
             stop(991)
         }
     }
+
     # Hard threshold given bounds
     if(!is.na(plot_step)){
         pdf(plot_step, useDingbats=FALSE)
@@ -283,6 +299,7 @@ remove_outliers_norm <- function(data,
     return(data)
 }
 
+# Tested
 #' Center data after smoothing. Center with in cells using median.
 #'
 #' Args:
@@ -300,6 +317,7 @@ center_smoothed <- function(data_smoothed){
     return(t(apply(data_smoothed, 1, "-", row_median)))
 }
 
+# Tested
 #' Center data and threshold (both negative and postive values)
 #'
 #' Args:
@@ -320,6 +338,7 @@ center_with_threshold <- function(center_data, threshold){
     return(center_data)
 }
 
+# Not testing
 #' Check arguments and make sure the user input meet certain 
 #' additional requirements.
 #'
@@ -428,6 +447,7 @@ check_arguments <- function(arguments){
     return(arguments)
 }
 
+# Not testing
 #' Returns the color palette for contigs.
 #'
 #' Returns:
@@ -436,6 +456,7 @@ get_group_color_palette <- function(){
     return(colorRampPalette(RColorBrewer::brewer.pal(12,"Set3")))
 }
 
+# Functional Tests? TODO
 #' Infer CNV changes given a matrix of RNASeq counts.
 #' Output a pdf and matrix of final values.
 #'
@@ -510,28 +531,28 @@ infer_cnv <- function(data,
                                                 "00_reduced_data.pdf"))
     }
 
-    # Remove any gene without position information
-    # Genes may be sorted correctly by not have position information
-    # Here they are removed.
-    remove_by_position <- -1 * which(gene_order[2] + gene_order[3] == 0)
-    if (length(remove_by_position)){
-        gene_order <- gene_order[remove_by_position, , drop=FALSE]
-        data <- data[remove_by_position, , drop=FALSE]
-    }
-    logging::loginfo(paste("::infer_cnv:Reduction from positional ",
-                           "data, new dimensions (r,c) = ",
-                           paste(dim(data), collapse=","),
-                           " Total=", sum(data),
-                           " Min=", min(data),
-                           " Max=", max(data),
-                           ".", sep=""))
-    logging::logdebug(paste("::infer_cnv:Removed indices:"))
-    # Plot incremental steps.
-    if (plot_steps){
-        plot_step(data=data,
-                            plot_name=file.path(plot_steps_path,
-                                                "01_remove_by_pos_file.pdf"))
-    }
+#    # Remove any gene without position information
+#    # Genes may be sorted correctly by not have position information
+#    # Here they are removed.
+#    remove_by_position <- -1 * which(gene_order[2] + gene_order[3] == 0)
+#    if (length(remove_by_position)){
+#        gene_order <- gene_order[remove_by_position, , drop=FALSE]
+#        data <- data[remove_by_position, , drop=FALSE]
+#    }
+#    logging::loginfo(paste("::infer_cnv:Reduction from positional ",
+#                           "data, new dimensions (r,c) = ",
+#                           paste(dim(data), collapse=","),
+#                           " Total=", sum(data),
+#                           " Min=", min(data),
+#                           " Max=", max(data),
+#                           ".", sep=""))
+#    logging::logdebug(paste("::infer_cnv:Removed indices:"))
+#    # Plot incremental steps.
+#    if (plot_steps){
+#        plot_step(data=data,
+#                            plot_name=file.path(plot_steps_path,
+#                                                "01_remove_by_pos_file.pdf"))
+#    }
 
     # Make sure data is log transformed + 1
     if (transform_data){
@@ -570,19 +591,21 @@ infer_cnv <- function(data,
                                                 "03_reduced_by_cutoff.pdf"))
     }
 
-    # Order genes by genomic region
-    data <- data[with(gene_order, order(chr,start,stop)), , drop=FALSE]
-    # This is the contig order, will be used in visualization.
-    # Get the contig order in the same order as the genes.
-    chr_order <- gene_order[with(gene_order,
-                                 order(chr,start,stop)), , drop=FALSE][1]
+    # Reduce contig info
+    chr_order <- gene_order[1]
     gene_order <- NULL
-    # Plot incremental steps.
-    if (plot_steps){
-        plot_step(data=data,
-                            plot_name=file.path(plot_steps_path,
-                                                "04_order_by_chr.pdf"))
-    }
+#    data <- data[with(gene_order, order(chr,start,stop)), , drop=FALSE]
+#    # This is the contig order, will be used in visualization.
+#    # Get the contig order in the same order as the genes.
+#    chr_order <- gene_order[with(gene_order,
+#                                 order(chr,start,stop)), , drop=FALSE][1]
+#    gene_order <- NULL
+#    # Plot incremental steps.
+#    if (plot_steps){
+#        plot_step(data=data,
+#                            plot_name=file.path(plot_steps_path,
+#                                                "04_order_by_chr.pdf"))
+#    }
 
     # Center data (automatically ignores zeros)
     data <- center_with_threshold(data, max_centered_threshold)
@@ -739,6 +762,7 @@ infer_cnv <- function(data,
                        color_safe_pal=color_safe)
 }
 
+# Not testing
 #' Log intermediate step with a plot and text file of the steps.
 #'
 #' Args:
@@ -758,6 +782,7 @@ plot_step <- function(data, plot_name){
     write.table(data, file=text_file)
 }
 
+# Not Testing
 #' Plot the matrix as a heatmap.
 #' Clustering is on observation only, gene position is preserved.
 #'
@@ -832,9 +857,6 @@ plot_cnv <- function(plot_data,
         contig_names <- c(contig_names,rep(contig_name,contig_tbl[contig_name]))
     }
 
-    # Heatmap elements widths
-    heatmap_widths <- c(1,6)
-
     # Rows observations, Columns CHR
     pdf(paste(pdf_path,"pdf",sep="."),
         useDingbats=FALSE,
@@ -862,7 +884,6 @@ plot_cnv <- function(plot_data,
     force_layout <- plot_observations_layout()
     plot_cnv_observations(obs_data=t(obs_data),
                           file_base_name=pdf_path,
-                          heatmap_widths=heatmap_widths,
                           cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
                           contig_label=contig_labels,
@@ -881,12 +902,12 @@ plot_cnv <- function(plot_data,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=pdf_path,
-                            heatmap_widths=heatmap_widths,
                             layout_add=TRUE)
     }
     dev.off()
 }
 
+# TODO Tested, test make files so turned off but can turn on and should pass.
 #' Plot the observational samples
 #'
 #' Args:
@@ -898,7 +919,6 @@ plot_cnv <- function(plot_data,
 #'    @param contig_seps: Indices for line seperators of contigs.
 #'    @param num_obs_groups: Number of groups of observations to create
 #'    @param file_base_name: Base of the file to used to make output file names.
-#'    @param heatmap_widths: Width of heatmap column
 #'    @param cluster_contig: A value directs cluster to only genes on this contig
 #'    @param layout_lmat: lmat values to use in layout
 #'    @param layout_lhei: lhei values to use in layout
@@ -914,8 +934,8 @@ plot_cnv_observations <- function(obs_data,
                                   contig_seps,
                                   num_obs_groups,
                                   file_base_name,
-                                  heatmap_widths,
                                   cluster_contig=NULL,
+                                  testing=FALSE,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
                                   layout_lwid=NULL){
@@ -952,7 +972,7 @@ plot_cnv_observations <- function(obs_data,
         }
     }
     # HCL with a inversely weighted euclidean distance.
-    obs_hcl <- hclust(sparseEuclid(obs_data[,hcl_group_indices]),"average")
+    obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]),"average")
     obs_dendrogram <- as.dendrogram(obs_hcl)
     write.tree(as.phylo(obs_hcl),
                file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
@@ -962,26 +982,6 @@ plot_cnv_observations <- function(obs_data,
     obs_seps <- c(0)
     ordered_names <- rev(row.names(obs_data)[obs_hcl$order])
     split_groups <- cutree(obs_hcl, k=num_obs_groups)
-
-    # HCL seems to give groups that are often singletons
-    # will force less singletons by using kmeans.
-    # Still want to use the sparse euclidean distance
-    # so I a doing that with MDS and then doing kmeans
-    # on the cordinates that come from the MDS.
-    #library(MASS)
-    #obs_mds <- cmdscale(sparseEuclid(obs_data[,hcl_group_indices]), k=2)
-    #print("num_obs_groups")
-    #print(num_obs_groups)
-    #split_groups <- kmeans(cbind(obs_mds[,1],obs_mds[,2]),
-    #                       centers=num_obs_groups,
-    #                       nstart=100)$cluster
-    #kmeans_info <- list()
-    #kmeans_info$merge <-
-    #kmeans_info$height <- rep(1,)
-    #kmeans_info$order <- 1:
-    #kmeans_info$labels <- names(split_groups)
-    #class(kmeans_info)
-    #obs_dendrogram <- as.dendrogram(kmeans_info)
 
     # Make colors based on groupings
     row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
@@ -1038,6 +1038,7 @@ plot_cnv_observations <- function(obs_data,
                                         cexRow=0.8,
                                         scale="none",
                                         color.FUN=col_pal,
+                                        if.plot=!testing,
                                         # Seperate by contigs
                                         sepList=contigSepList,
                                         sep.color="black",
@@ -1065,6 +1066,7 @@ plot_cnv_observations <- function(obs_data,
                 file=observation_file_base)
 }
 
+# Not Testing
 #' Create the layout for the plot
 #' This is a modification of the original
 #' layout from the GMD heatmap.3 function
@@ -1104,6 +1106,7 @@ plot_observations_layout <- function()
            lwid=NULL))
 }
 
+# TODO Tested, test make files so turned off but can turn on and should pass.
 #' Plot the reference samples
 #'
 #' Args:
@@ -1112,7 +1115,6 @@ plot_observations_layout <- function()
 #'    @param col_pal: The color palette to use.
 #'    @param contig_seps: Indices for line seperators of contigs
 #'    @param file_base_name: Base of the file to used to make output file names.
-#'    @param heatmap_widths: Width of heatmap column
 #'    @param layout_lmat: lmat values to use in the layout
 #'    @param layout_lwid: lwid values to use in the layout
 #'    @param layout_lhei: lhei values to use in the layout
@@ -1125,11 +1127,11 @@ plot_cnv_references <- function(ref_data,
                                 col_pal,
                                 contig_seps,
                                 file_base_name,
-                                heatmap_widths,
                                 layout_lmat=NULL,
                                 layout_lwid=NULL,
                                 layout_lhei=NULL,
-                                layout_add=FALSE){
+                                layout_add=FALSE,
+                                testing=FALSE){
 
     logging::loginfo("plot_cnv_references:Start")
     logging::loginfo(paste("Reference data size: Cells=",
@@ -1171,8 +1173,9 @@ plot_cnv_references <- function(ref_data,
     logging::loginfo(paste("plot_cnv_references:Number reference groups=",
                            length(ref_groups)),
                            sep=" ")
-    ref_data <- t(ref_data)
 
+    # Transpose data.
+    ref_data <- t(ref_data)
     # Remove labels if too many.
     ref_orig_names <- row.names(ref_data)
     if (number_references > 20){
@@ -1185,45 +1188,47 @@ plot_cnv_references <- function(ref_data,
     # Generate the Sep list for heatmap.3
     contigSepList <- create_sep_list(row_count=nrow(ref_data),
                                      col_count=ncol(ref_data),
-                                     col_seps=contig_seps,
-                                     row_seps=ref_seps)
+                                     row_seps=ref_seps,
+                                     col_seps=contig_seps)
     # Print controls
     logging::loginfo("plot_cnv_references:Plotting heatmap.")
     data_references <- heatmap.cnv(ref_data,
-                                        main=NA,
-                                        ylab=reference_ylab,
-                                        xlab=NA,
-                                        key=FALSE,
-                                        labCol=rep("", nrow(ref_data)),
-                                        notecol="black",
-                                        trace="none",
-                                        dendrogram="none",
-                                        Colv=FALSE,
-                                        Rowv=FALSE,
-                                        cexRow=0.8,
-                                        scale="none",
-                                        color.FUN=col_pal,
-                                        sepList=contigSepList,
-                                        # Seperate by contigs
-                                        sep.color=c("black","black"),
-                                        sep.lty=1,
-                                        sep.lwd=1,
-                                        margin.for.labRow=10,
-                                        # Layout
-                                        force_lmat=layout_lmat,
-                                        force_lwid=layout_lwid,
-                                        force_lhei=layout_lhei,
-                                        force_add=layout_add)
+                                   main=NA,
+                                   ylab=reference_ylab,
+                                   xlab=NA,
+                                   key=FALSE,
+                                   labCol=rep("", nrow(ref_data)),
+                                   notecol="black",
+                                   trace="none",
+                                   dendrogram="none",
+                                   Colv=FALSE,
+                                   Rowv=FALSE,
+                                   cexRow=0.8,
+                                   scale="none",
+                                   color.FUN=col_pal,
+                                   sepList=contigSepList,
+                                   # Seperate by contigs
+                                   sep.color=c("black","black"),
+                                   sep.lty=1,
+                                   sep.lwd=1,
+                                   margin.for.labRow=10,
+                                   if.plot=!testing,
+                                   # Layout
+                                   force_lmat=layout_lmat,
+                                   force_lwid=layout_lwid,
+                                   force_lhei=layout_lhei,
+                                   force_add=layout_add)
 
     # Write data to file
     row.names(ref_data) <- ref_orig_names
     logging::loginfo(paste("plot_cnv_references:Writing reference data to",
                            reference_data_file,
                            sep=" "))
-    write.table(ref_data[data_references$rowInd,data_references$colInd],
+    write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
                 file=reference_data_file)
 }
 
+# Tested
 #' Return the indices of the rows that average above the cut off
 #'
 #' Args:
@@ -1247,6 +1252,7 @@ above_cutoff <- function(data, cutoff){
     }
 }
 
+# Tested
 #' Order the data and subset the data to data in the genomic position file.
 #'
 #' Args:
@@ -1259,27 +1265,62 @@ above_cutoff <- function(data, cutoff){
 #'            genomic_position file. NULL is returned if the genes in both
 #'            data parameters do not match.
 order_reduce <- function(data, genomic_position){
-
     logging::loginfo(paste("::order_reduce:Start.", sep=""))
-    ret_results <- list(expr=NULL, order=NULL)
+    ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)
     if (is.null(data) || is.null(genomic_position)){
         return(ret_results)
     }
+
+    # Drop pos_gen entries that are position 0
+    remove_by_position <- -1 * which(genomic_position[2] + genomic_position[3] == 0)
+    if (length(remove_by_position)){
+        genomic_position <- genomic_position[remove_by_position, , drop=FALSE]
+    }
+
     # Reduce to genes in pos file
     keep_genes <- row.names(data)[which(row.names(data)
                                   %in% row.names(genomic_position))]
+
+    # Keep genes found in position file
+    if(length(keep_genes)){
+        ret_results$expr <- data[keep_genes, , drop=FALSE]
+        ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
+    } else {
+        logging::loginfo(paste("::infer_cnv:order_reduce:The position file ",
+                               "and the expression file row (gene) names do not match."))
+        return(list(expr=NULL, order=NULL, chr_order=NULL))
+    }
 
     # Set the chr to factor so the order can be arbitrarily set and sorted.
     chr_levels <- unique(genomic_position[[CHR]])
     genomic_position[[CHR]] <- factor(genomic_position[[CHR]],
                                    levels=chr_levels)
-    if(length(keep_genes)){
-        ret_results$expr <- data[keep_genes, , drop=FALSE]
-        ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
-    }
+
+    # Sort genomic position file and expression file to genomic position file
+    # Order genes by genomic region
+    order_names <- row.names(ret_results$order)[with(ret_results$order, order(chr,start,stop))]
+    ret_results$expr <- ret_results$expr[order_names, , drop=FALSE]
+
+    # This is the contig order, will be used in visualization.
+    # Get the contig order in the same order as the genes.
+    ret_results$order <- ret_results$order[order_names, , drop=FALSE]
+    ret_results$chr_order <- ret_results$order[1]
+
+    # Remove any gene without position information
+    # Genes may be sorted correctly by not have position information
+    # Here they are removed.
+    logging::loginfo(paste("::infer_cnv:order_reduce:Reduction from positional ",
+                           "data, new dimensions (r,c) = ",
+                           paste(dim(data), collapse=","),
+                           " Total=", sum(data),
+                           " Min=", min(data),
+                           " Max=", max(data),
+                           ".", sep=""))
+    logging::logdebug(paste("::infer_cnv:order_reduce end."))
     return(ret_results)
 }
 
+# Tested
 #' Remove values that are too close to the average and are considered noise.
 #'
 #' Args:
@@ -1299,7 +1340,7 @@ remove_noise <- function(smooth_matrix, threshold){
     return(smooth_matrix)
 }
 
-
+# Tested
 #' Remove the tails of values of a specific chromosome.
 #' The smooth_matrix values are expected to be in genomic order.
 #' If the tail is too large and no contig will be left 1/3 of the
@@ -1330,6 +1371,7 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
     return(remove_indices)
 }
 
+# Tested
 #' Smooth a matrix by column using a simple moving average.
 #' Tails of the averages use a window length that is truncated to
 #' available data.
@@ -1375,6 +1417,7 @@ smooth_window <- function(data, window_length){
     return(data_sm)
 }
 
+# Tested (in parent function)
 #' Helper function for smoothing the ends of a moving average.
 #'
 #' Args:
@@ -1399,6 +1442,7 @@ smooth_ends_helper <- function(obs_data, obs_tails){
     return(end_data)
 }
 
+# Tested (in parent function)
 #' Smooth vector of values over the given window length.
 #'
 #' Args:
@@ -1413,6 +1457,7 @@ smooth_window_helper <- function(obs_data, window_length){
     return(filter(obs_data, rep(1 / window_length, window_length), sides=2))
 }
 
+# TODO Works but pulled out until we go over it.
 #' Measure an euclidean distance weighted by complexity.
 #' It is assumed rows are to be clustered
 #'
@@ -1420,33 +1465,1497 @@ smooth_window_helper <- function(obs_data, window_length){
 #'    @param data: Data to generate a distance matrix on the matrix rows.
 #' Returns
 #'    @return: Distance object of Euclidean distance weighted by complexity.
-sparseEuclid <- function(data){
-    feature_count <- nrow(data)
-    obs_complex <- apply(data, MARGIN=2, FUN=function(x) return(sum(x!=0)))
-    per_complex <- obs_complex / feature_count
-    out_matrix <- matrix(rep(NA,feature_count^2),ncol=feature_count)
-    names(out_matrix) <- row.names(data)
-    row.names(out_matrix) <- row.names(data)
-    for( fi_one in 1:feature_count ){
-        for( fi_two in fi_one:feature_count ){
-            f1 <- data[fi_one,]
-            f2 <- data[fi_two,]
-            d <- sqrt(sum(per_complex * (f1 - f2)^2))
-            out_matrix[fi_one, fi_two] <- d
-            out_matrix[fi_two, fi_one] <- d
-        }
-    }
-    return(as.dist(out_matrix))
+#sparse_euclid <- function(data){
+#    feature_count <- nrow(data)
+#    obs_complex <- apply(data, MARGIN=2, FUN=function(x) return(sum(x!=0)))
+#    per_complex <- obs_complex / feature_count
+#    out_matrix <- matrix(rep(NA,feature_count^2),ncol=feature_count)
+#    names(out_matrix) <- row.names(data)
+#    row.names(out_matrix) <- row.names(data)
+#    for( fi_one in 1:feature_count ){
+#        for( fi_two in fi_one:feature_count ){
+#            f1 <- data[fi_one,]
+#            f2 <- data[fi_two,]
+#            d <- sqrt(sum(per_complex * (f1 - f2)^2))
+#            out_matrix[fi_one, fi_two] <- d
+#            out_matrix[fi_two, fi_one] <- d
+#        }
+#    }
+#    return(as.dist(out_matrix))
+#}
+
+#########################################
+# Plotting from GMD
+###################
+### Not Testing
+###
+# This package relies on heatmap.3 from the library GMD
+# This code is a modified version of heatmap.3, some changes
+# were required for our plotting.
+# The heatmap.cnv function should be considered a modification
+# of th GMD library function heatmap.3, all credit goes to
+# their authors.
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's authors.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' A copy of gtools::invalid
+##' 
+##' see \code{invalid} in package:gtools for details
+##' @title Test if a value is missing, empty, or contains only NA or NULL values
+##' @param x value to be tested
+.invalid <- 
+  function(x) 
+{
+  if (missing(x) || is.null(x) || length(x) == 0) 
+    return(TRUE)
+  if (is.list(x)) 
+    return(all(sapply(x, .invalid)))
+  else if (is.vector(x)) 
+    return(all(is.na(x)))
+  else return(FALSE)
 }
+
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's authors.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' Call a function with arguments
+##'
+##' Call a function with arguments
+##' @title Call a function with arguments
+##' @param FUN function or function name 
+##' @param ... unnameed function arguments
+##' @param MoreArgs named (or unnameed) function arguments
+.call.FUN <-
+  function(FUN,...,MoreArgs)
+{
+  FUN <- match.fun(FUN)
+  tmp.MoreArgs <- list(...)
+  if (!.invalid(MoreArgs)){
+    if (length(MoreArgs)>=1){
+      for (i in 1:length(MoreArgs)) tmp.MoreArgs[[names(MoreArgs)[i]]] <- MoreArgs[[i]]
+    }
+  }
+  ret <- do.call(FUN, tmp.MoreArgs)
+  if ("call" %in% names(ret)){
+    ret$call <- match.call()
+  }
+  if ("call" %in% names(attributes(ret))){
+    attr(ret,"call") <- match.call()
+  }
+  return(ret)
+}
+
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's authors.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' Scale values to make them follow Standard Normal Distribution
+##'
+##' Scale values to make them follow Standard Normal Distribution
+##' @title Scale values to make them follow Standard Normal Distribution
+##' @param x numeric
+##' @param scale character, indicating the type to scale.
+##' @param na.rm logical
+##' @return an object with the same dimention of `x'.
+.scale.data <-
+  function(x,scale,na.rm=TRUE)
+{
+  if(scale=="row"){
+    x <- sweep(x,1,rowMeans(x,na.rm=na.rm),FUN="-")
+    sx <- apply(x,1,sd,na.rm=na.rm)
+    x <- sweep(x,1,sx,FUN="/")
+  } else if(scale=="column"){
+    x <- sweep(x,2,colMeans(x,na.rm=na.rm),FUN="-")
+    sx <- apply(x,2,sd,na.rm=na.rm)
+    x <- sweep(x,2,sx,,FUN="/")
+  }
+  x
+}
+
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's author's.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' Scale values to a new range: c(low, high)
+##' @title Scale values to a new range.
+##' @param x numeric
+##' @param low numeric, lower bound of target values
+##' @param high numeric, higher bound of target values
+##' @return an object with the same dimention of `x'.
+.scale.x <-
+  function(x,low=0,high=1,na.rm=TRUE)
+{
+  if(identical(max(x,na.rm=na.rm),min(x,na.rm=na.rm))) NA
+  a <- 1/(max(x)-min(x))
+  b <- -min(x)/(max(x)-min(x))
+  a*x+b
+}
+
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's author's.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' Plot text
+##'
+##' Plot text
+##' @title Plot text
+##' @param x character, text to plot
+##' @param cex
+##' @param forecolor color of foreground
+##' @param bg color of background
+##' @param bordercolor color of border
+##' @param axes as in \code{graphics:::plot}
+##' @param ... additional arguments for \code{graphics:::text}
+.plot.text <- function(x,xlim=c(0,1),ylim=c(0,1),cex=1,forecolor=par("fg"),bg=par("bg"),bordercolor=NA,axes=FALSE,...){
+  if (.invalid(x)){
+    x <- NULL
+  }
+  if (is.null(x)){
+    x <- ""
+  } else if (is.na(x)){
+    x <- 'NA'
+  }
+
+  plot(xlim,ylim,type="n",ylab="",xlab="",xaxt="n",yaxt="n",axes=axes)
+  rect(xleft=0, ybottom=0, xright=1, ytop=1, col=bg, border=bordercolor)
+  text(0.5,0.5,x,cex=cex,...)
+}
+
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's author's.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' This was originally heatmap.3.
+heatmap.cnv <-
+  function(x,
+
+           ## whether a dissimilarity matrix
+           diss=inherits(x,"dist"),
+
+           ## dendrogram control
+           Rowv=TRUE,
+           Colv=TRUE,
+           dendrogram=c("both","row","column","none"),
+
+           ## dist object
+           dist.row,
+           dist.col,
+           dist.FUN=gdist,
+           dist.FUN.MoreArgs=list(method="euclidean"),
+
+           ## hclust object
+           hclust.row,
+           hclust.col,
+           hclust.FUN=hclust,
+           hclust.FUN.MoreArgs=list(method="ward"),
+
+           ## data scaling
+           scale=c("none","row","column"),
+           na.rm=TRUE,
+
+           ## clustering control
+           cluster.by.row=FALSE,
+           cluster.by.col=FALSE,
+           kr=NA,
+           kc=NA,
+           row.clusters=NA,
+           col.clusters=NA,
+
+           ## image plot
+           revR=FALSE,
+           revC=FALSE,
+           add.expr,
+
+           ## mapping data to colors
+           breaks,
+           ## centering colors to a value
+           x.center,
+           ## colors
+           color.FUN=gplots::bluered,
+           ##
+           ## block sepration
+           sepList=list(NULL,NULL),
+           sep.color=c("gray45","gray45"),
+           sep.lty=1,
+           sep.lwd=2,
+
+           ## cell labeling
+           cellnote,
+           cex.note=1.0,
+           notecol="cyan",
+           na.color=par("bg"),
+
+           ## level trace
+           trace=c("none","column","row","both"),
+           tracecol="cyan",
+           hline,
+           vline,
+           linecol=tracecol,
+
+           ## Row/Column Labeling
+           labRow=TRUE, ## shown by default
+           labCol=TRUE, ## shown by default
+           srtRow=NULL,
+           srtCol=NULL,
+           sideRow=4,
+           sideCol=1,
+           ##
+           margin.for.labRow,
+           margin.for.labCol,
+           ColIndividualColors,
+           RowIndividualColors,
+           cexRow,
+           cexCol,
+           labRow.by.group=FALSE,
+           labCol.by.group=FALSE,
+
+
+           ## plot color key + density info
+           key=TRUE,
+           key.title="Color Key",
+           key.xlab="Value",
+           key.ylab="Count",
+
+           keysize=1.5,
+           mapsize=9,
+           mapratio=4/3,
+           sidesize=3,
+           cex.key.main=0.75,
+           cex.key.xlab=0.75,
+           cex.key.ylab=0.75,
+           density.info=c("histogram","density","none"),
+           denscol=tracecol,
+           densadj=0.25,
+
+           ## plot titles/labels
+           main="Heatmap",
+           sub="",
+           xlab="",
+           ylab="",
+           cex.main=2,
+           cex.sub=1.5,
+           font.main=2,
+           font.sub=3,
+           adj.main=0.5,
+           mgp.main=c(1.5,0.5,0),
+           mar.main=3,
+           mar.sub=3,
+           ## plot ##
+           if.plot=TRUE,
+
+           ## plot of partition (left/top of heatmap)
+           plot.row.partition=FALSE,
+           plot.col.partition=FALSE,
+           cex.partition=1.25,
+           color.partition.box="gray45",
+           color.partition.border="#FFFFFF",
+
+           ## plot of summary (right/bottom of heatmap)
+           plot.row.individuals=FALSE,
+           plot.col.individuals=FALSE,
+           plot.row.clusters=FALSE,
+           plot.col.clusters=FALSE,
+           plot.row.clustering=FALSE,
+           plot.col.clustering=FALSE,
+
+           ##
+           plot.row.individuals.list=FALSE,
+           plot.col.individuals.list=FALSE,
+           plot.row.clusters.list=FALSE,
+           plot.col.clusters.list=FALSE,
+           plot.row.clustering.list=FALSE,
+           plot.col.clustering.list=FALSE,
+
+           ## for plot of clusters - row
+           row.data=FALSE,
+           ## for plot of clusters - col
+           col.data=FALSE,
+
+           ##
+           if.plot.info=FALSE,
+           text.box,
+           cex.text=1.0,
+
+           ## Force in layout info
+           force_lmat=NULL,
+           force_lwid=NULL,
+           force_lhei=NULL,
+           force_add=FALSE,
+
+           ## extras
+           ...
+           )
+{
+  ## check input - take1 ##
+  if (is.data.frame(x)){
+    x <- as.matrix(x)
+  }
+  x.ori <- x
+
+  if(!inherits(x,"dist") & !is.matrix(x)){
+    stop("`x' should either be a matrix, a data.frame or a `dist' object.")
+  }
+
+  if (! sideRow %in% c(2,4)){
+    stop('sideRow must be either 2 or 4.')
+  }
+
+  if (! sideCol %in% c(1,3)){
+    stop('sideCol must be either 1 or 3.')
+  }
+
+  ## store input
+  Rowv.ori <- Rowv
+  Colv.ori <- Colv
+
+  ## check
+  dendrogram <- match.arg(dendrogram)
+  if ( (dendrogram %in% c("both","row")) & !inherits(Rowv,"dendrogram") ){
+    warning("Discrepancy: row dendrogram is asked;  Rowv is set to `TRUE'.")
+    Rowv <- TRUE
+  }
+
+  if ( (dendrogram %in% c("both","col")) & !inherits(Colv,"dendrogram") ){
+    warning("Discrepancy: col dendrogram is asked;  Colv is set to `TRUE'.")
+    Colv <- TRUE
+  }
+
+  if (identical(Rowv, FALSE) | missing(Rowv)){
+    if(!identical(cluster.by.row,FALSE)){
+      warning("Discrepancy: No row dendrogram is asked; cluster.by.row is set to `FALSE'.")
+      cluster.by.row <- FALSE
+    }
+  } else {
+    if(!identical(cluster.by.row,TRUE)){
+      warning("Discrepancy: row dendrogram is asked; cluster.by.row is set to `TRUE'.")
+      cluster.by.row <- TRUE
+    }
+  }
+
+  if (identical(Colv, FALSE) | .invalid(Colv)){
+    if(!identical(cluster.by.col,FALSE)){
+      warning("Discrepancy: No col dendrogram is asked; cluster.by.col is set to `FALSE'.")
+      cluster.by.col <- FALSE
+    }
+  } else {
+    if(!identical(cluster.by.col,TRUE)){
+      warning("Discrepancy: col dendrogram is asked; cluster.by.col is set to `TRUE'.")
+      cluster.by.col <- TRUE
+    }
+  }
+
+  if (!.invalid(kr)){
+    if (is.numeric(kr)){
+      if(!plot.row.partition){
+        warning("Discrepancy: kr is set, therefore plot.row.partition is set to `TRUE'.")
+        plot.row.partition <- TRUE
+      }
+    }
+  }
+
+  if (!.invalid(kc)){
+    if (is.numeric(kc)){
+      if(!plot.col.partition){
+        warning("Discrepancy: kc is set, therefore plot.col.partition is set to `TRUE'.")
+        plot.col.partition <- TRUE
+      }
+    }
+  }
+
+  ## generate dist.obj - row/col ##
+  if (inherits(x,"dist")){
+    dist.row <- dist.col <- x ## dist.obj
+    x <- as.matrix(x)
+    mat.row <- mat.col <- x ## mat.obj
+    symm <- TRUE
+  } else if (is.matrix(x)){
+    symm <- isSymmetric(x)
+    if (diss){
+      if (!symm){
+        stop("Dissimilary matrix should be symmetric. Please set `diss' to FALSE if `x' is not dissimilary matrix.")
+      } else {
+        flush.console()
+      }
+      mat.row <- mat.col <- x
+      dist.row <- dist.col <- as.dist(x)
+    } else{
+      if (cluster.by.row) {
+        if (.invalid(dist.row)){
+          dist.row <- .call.FUN(dist.FUN,x,MoreArgs=dist.FUN.MoreArgs)
+        }
+        mat.row <- as.matrix(dist.row)
+      } else {
+        dist.row <- NULL
+        mat.row <- NULL
+      }
+      if (cluster.by.col) {
+        if (.invalid(dist.col)){
+          dist.col <- .call.FUN(dist.FUN,t(x),MoreArgs=dist.FUN.MoreArgs)
+        }
+        mat.col <- as.matrix(dist.col)
+      } else {
+        dist.col <- NULL
+        mat.col <- NULL
+      }
+    }
+  }
+  ## check input - take2: di ##
+  di <- dim(x)
+
+  if(length(di)!=2 || !is.numeric(x)){
+    stop("`x' should only contain `numeric' values and can be converted to a 2-D matrix.")
+  }
+
+  ## parse param ##
+  scale <- if(symm && .invalid(scale)) "none" else match.arg(scale) ## no scale on symmetric matrix
+  trace <- match.arg(trace)
+  density.info <- match.arg(density.info)
+  dist.FUN <- match.fun(dist.FUN)
+  hclust.FUN <- match.fun(hclust.FUN)
+  color.FUN <- match.fun(color.FUN)
+
+  ## NG if both breaks and scale are specified ##
+  if(!.invalid(breaks) & (scale!="none")){
+    warning("Using scale=\"row\" or scale=\"column\" when breaks are",
+            "specified can produce unpredictable results.",
+            "Please consider using only one or the other.")
+  }
+
+  ## nr and nc ##
+  nr <- di[1]
+  nc <- di[2]
+
+  ## check input - take3: nr,nc ##
+  if(nr <=1 || nc <=1)
+    stop("`x' must have at least 2 rows and 2 columns")
+
+  ## font size of row/col labels ##
+  cexRow0 <- 0.2+1/log10(nr)
+  cexCol0 <- 0.2+1/log10(nc)
+
+  if (.invalid(cexRow)) {
+    cexRow <- cexRow0
+  } else {
+    message('heatmap.3 | From GMD 0.3.3, please use relative values for cexRow.')
+    cexRow <- cexRow0*cexRow
+  }
+  if (.invalid(cexCol)) {
+    cexCol <- cexCol0
+  } else {
+    message('heatmap.3 | From GMD 0.3.3, please use relative values for cexCol.')
+    cexCol <- cexCol0*cexCol
+  }
+
+  ## cellnote ##
+  ## ##if(.invalid(cellnote)) cellnote <- matrix("",ncol=ncol(x),nrow=nrow(x))
+
+  ## ------------------------------------------------------------------------
+  ## parse dendrogram ##
+  ## ------------------------------------------------------------------------
+
+  if (missing(Rowv)) Rowv <- FALSE
+  if (.invalid(Colv)) Colv <- if(symm) Rowv else FALSE
+  if (Colv=="Rowv") {
+    if ((!isTRUE(Rowv) | !symm) ){
+      Colv <- FALSE
+      warning("`Colv' is specified to use \"Rowv\", but either `Rowv' is invalid or `x' is not symmetric; Colv is suppressed.")
+    } else{
+      Colv <- Rowv
+    }
+  }
+  ## ------------------------------------------------------------------------
+  ## generate hclust.obj - row/col
+  ## ------------------------------------------------------------------------
+  flush.console()
+
+  if ( (!inherits(Rowv,"dendrogram") & !identical(Rowv,FALSE)) | (cluster.by.row & .invalid(row.clusters))){
+    if (.invalid(hclust.row)){
+      hclust.row <- .call.FUN(hclust.FUN,dist.row,MoreArgs=hclust.FUN.MoreArgs)
+    } else {
+      if (length(hclust.row$order) != nr){
+        stop("`hclust.row' should have equal size as the rows.")
+      }
+    }
+  } else{
+    hclust.row <- NULL
+  }
+
+  if(symm){
+    hclust.col <- hclust.row
+  }
+
+  if ( !inherits(Colv,"dendrogram") & !identical(Colv,FALSE) | (cluster.by.col & .invalid(col.clusters))){
+    if (.invalid(hclust.col)){
+      hclust.col <- .call.FUN(hclust.FUN,dist.col,MoreArgs=hclust.FUN.MoreArgs)
+    } else {
+      if (length(hclust.col$order) != nc){
+        stop("`hclust.col' should have equal size as the cols.")
+      }
+    }
+  } else {
+    hclust.col <- NULL
+  }
+  ## ------------------------------------------------------------------------
+  ## generate hclust.obj - row/col
+  ## ------------------------------------------------------------------------
+  ddr <- ddc <- NULL
+  ## get the dendrograms and reordering row/column indices - row ##
+  if(inherits(Rowv,"dendrogram")){
+    if (attr(Rowv,"members") != nr){
+      stop("`Rowv' should contain equal size of members as the rows.")
+    }
+    ddr <- Rowv ## use Rowv 'as-is',when it is dendrogram
+    rowInd <- order.dendrogram(ddr)
+  } else if (is.integer(Rowv)){ ## compute dendrogram and do reordering based on given vector
+    ddr <- as.dendrogram(hclust.row)
+    ddr <-  reorder(ddr,Rowv)
+    rowInd <- order.dendrogram(ddr)
+    if(nr != length(rowInd)){
+      stop("`rowInd' is of wrong length.")
+    }
+  } else if (isTRUE(Rowv)){ ## if TRUE,compute dendrogram and do reordering based on rowMeans
+
+    Rowv <- rowMeans(x,na.rm=TRUE)
+    ddr <- as.dendrogram(hclust.row)
+    ddr <- reorder(ddr,Rowv)
+    rowInd <- order.dendrogram(ddr)
+    if(nr !=length(rowInd)){
+      stop("`rowInd' is of wrong length.")
+    }
+  } else{
+    rowInd <- nr:1 ## from bottom.
+  }
+  ## get the dendrograms and reordering row/column indices - col ##
+  if(inherits(Colv,"dendrogram")){
+    if (attr(Colv,"members") != nc){
+      stop("`Colv' should contain equal size of members as the cols.")
+    }
+    ddc <- Colv ## use Colv 'as-is',when it is dendrogram
+    colInd <- order.dendrogram(ddc)
+  } else if(identical(Colv,"Rowv")) {
+    if(exists("ddr")){
+      ddc <- ddr
+      colInd <- order.dendrogram(ddc)
+    } else{
+      colInd <- rowInd
+    }
+  } else if(is.integer(Colv)){## compute dendrogram and do reordering based on given vector
+    ddc <- as.dendrogram(hclust.col)
+    ddc <- reorder(ddc,Colv)
+    colInd <- order.dendrogram(ddc)
+    if(nc != length(colInd))
+      stop("`colInd' is of wrong length.")
+  } else if (isTRUE(Colv)){## if TRUE,compute dendrogram and do reordering based on rowMeans
+    Colv <- colMeans(x,na.rm=TRUE)
+    ddc <- as.dendrogram(hclust.col)
+    ddc <- reorder(ddc,Colv)
+    colInd <- order.dendrogram(ddc)
+    if(nc !=length(colInd))
+      stop("`colInd' is of wrong length.")
+  } else{
+    colInd <- 1:nc ## from left
+  }
+  ## ------------------------------------------------------------------------
+  ## check consistency
+  ## ------------------------------------------------------------------------
+
+  ## Xmisc::logme(dendrogram)
+  ## Xmisc::logme(Colv)
+  ## Xmisc::logme(Rowv)
+
+  ## dendrogram - check consistency: Rowv ##
+  if ( is.null(ddr) & (dendrogram %in% c("both","row"))){
+    warning("Discrepancy: Rowv is invalid or FALSE, while dendrogram is `",
+            dendrogram,"'. Omitting row dendogram.")
+    if (is.logical(Colv) & (Colv.ori) & dendrogram=="both")
+      dendrogram <- "column"
+    else
+      dendrogram <- "none"
+  }
+
+  ## dendrogram - check consistency: Colv ##
+  if ( is.null(ddc) & (dendrogram %in% c("both","column"))){
+    warning("Discrepancy: Colv is invalid or FALSE, while dendrogram is `",
+            dendrogram,"'. Omitting column dendogram.")
+    if (is.logical(Rowv) & (identical(Rowv.ori,TRUE) | is.numeric(Rowv.ori) | inherits(Rowv.ori,"dendrogram")) & dendrogram=="both")
+      dendrogram <- "row"
+    else
+      dendrogram <- "none"
+  }
+
+  ## check consistency
+  if (is.null(ddr)){
+    if(isTRUE(cluster.by.row) | isTRUE(plot.row.partition) | isTRUE(plot.row.clusters) | isTRUE(plot.row.clustering) ){
+      warning("Using invalid `Rowv' while allowing",
+              "`cluster.by.row' or `plot.row.partition' or `plot.row.clusters' or `plot.row.clustering'",
+              "can produce unpredictable results; Forced to be disabled.")
+    }
+  }
+  if (is.null(ddc)){
+    if(isTRUE(cluster.by.col) | isTRUE(plot.col.partition) | isTRUE(plot.col.clusters) | isTRUE(plot.col.clustering) ){
+      warning("Using invalid `Colv' while allowing",
+              "`cluster.by.col' or `plot.col.partition' or `plot.col.clusters' or `plot.col.clustering'",
+              "can produce unpredictable results; Forced to be disabled.")
+    }
+  }
+
+  if (is.null(ddr)) cluster.by.row <- plot.row.partition <- plot.row.clusters <- plot.row.clustering <- FALSE
+  if (is.null(ddc)) cluster.by.col <- plot.col.partition <- plot.col.clusters <- plot.col.clustering <- FALSE
+  ## ------------------------------------------------------------------------
+  ## Reordering
+  ## ------------------------------------------------------------------------
+  flush.console()
+  ## reorder x and cellnote ##
+  x <- x[rowInd,colInd]
+
+  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd]
+
+  ## reorder labels - row ##
+  if(identical(labRow,TRUE)){ ## Note: x is already reorderred
+    labRow <- if (is.null(rownames(x))) (1:nr)[rowInd] else rownames(x)
+  } else if(identical(labRow,FALSE) | .invalid(labRow)){
+    labRow <- rep("",nrow(x))
+  } else if(is.character(labRow)){
+    labRow <- labRow[rowInd]
+  }
+
+  ## reorder cellnote/labels - col ##
+  if (identical(labCol,TRUE)){
+    labCol <- if(is.null(colnames(x))) (1:nc)[colInd] else colnames(x)
+  } else if(identical(labCol,FALSE) | .invalid(labCol)){
+    labCol <- rep("",ncol(x))
+  } else if(is.character(labCol)){
+    labCol <- labCol[colInd]
+  }
+
+  ## ------------------------------------------------------------------------
+  ## scale
+  ## center to 0 and scale to 1 in row or col but not both! ##
+  ## ------------------------------------------------------------------------
+  flush.console()
+  x <- .scale.data(x,scale,na.rm)
+  ## ------------------------------------------------------------------------
+  ## labels for observations/clusters/
+  ## ------------------------------------------------------------------------
+  ## margin for labels
+
+  margin.for.labRow0 <- max(nchar(labRow))*0.75+0.2
+  margin.for.labCol0 <- max(nchar(labCol))*0.75+0.2
+
+  if (.invalid(margin.for.labRow)){
+    margin.for.labRow <- margin.for.labRow0
+  } else {
+    message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labRow.')
+    margin.for.labRow <- margin.for.labRow0*margin.for.labRow
+  }
+
+  if (.invalid(margin.for.labCol)){
+    margin.for.labCol <- margin.for.labCol0
+  } else {
+    message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labCol.')
+    margin.for.labCol <- margin.for.labCol0*margin.for.labCol
+  }
+
+  ## group unique labels - row ## ##??check
+  if (!.invalid(labRow.by.group) & !identical(labRow.by.group,FALSE)){
+    group.value <- unique(labRow)
+    group.index <- sapply(group.value,function(x,y) min(which(y==x)),y=labRow)
+    labRow <- rep("",length(labRow))
+    labRow[group.index] <- group.value
+  }
+
+  ## group unique labels - col ## ##??check
+  if (!.invalid(labCol.by.group) & !identical(labCol.by.group,FALSE)){
+    group.value <- unique(labCol)
+    group.index <- sapply(group.value,function(x,y) min(which(y==x)),y=labCol)
+    labCol <- rep("",length(labCol))
+    labCol[group.index] <- group.value
+  }
+  ## ------------------------------------------------------------------------
+  ## color breaks
+  ## ------------------------------------------------------------------------
+  flush.console()
+
+  ## set breaks for binning x into colors ##
+  if(.invalid(breaks)){
+    breaks <- 16
+  }
+
+  ## get x.range according to the value of x.center ##
+  if (!.invalid(x.center)){ ## enhanced
+    if (is.numeric(x.center)){
+      x.range.old <- range(x,na.rm=TRUE)
+      dist.to.x.center <- max(abs(x.range.old-x.center))
+      x.range <- c(x.center-dist.to.x.center,x.center+dist.to.x.center)
+    } else {
+      stop("`x.center' should be numeric.")
+    }
+  } else{
+    x.range <- range(x,na.rm=TRUE)
+  }
+
+
+  ## set breaks for centering colors to the value of x.center ##
+  if(length(breaks)==1){
+    breaks <-
+      seq(min(min(x,na.rm=TRUE),x.range[1]),
+          max(max(x,na.rm=TRUE),x.range[2]),
+          length.out=breaks)
+  }
+
+  ## count of breaks and colors ##
+  nbr <- length(breaks)
+  ncolor <- length(breaks)-1
+
+  ## generate colors ##
+  colors <- color.FUN(ncolor)
+  ## set up breaks and force values outside the range into the endmost bins ##
+  min.breaks <- min(breaks)
+  max.breaks <- max(breaks)
+  x[] <- ifelse(x<min.breaks,min.breaks,x)
+  x[] <- ifelse(x>max.breaks,max.breaks,x)
+  ## ------------------------------------------------------------------------
+  ## check if it is sufficient to draw side plots ##
+  ## ------------------------------------------------------------------------
+  if (cluster.by.row){
+    if (!.invalid(row.clusters)) {## suppress kr
+      if(!is.numeric(row.clusters) | length(row.clusters)!=nr | !(.is.grouped(row.clusters))){
+        warning("`row.clusters' is not a grouped numeric vector of length nrow(x); cluster.by.row is set to FALSE.")
+        cluster.by.row <- FALSE
+      } else{
+        row.clusters <- row.clusters[rowInd]
+        kr <- length(unique(row.clusters))
+      }
+    } else {
+      if (.invalid(kr)) kr <- 2
+      if (is.numeric(kr) & length(kr)==1){
+        row.clusters <- cutree(hclust.row,k=kr)
+        row.clusters <- row.clusters[rowInd]
+      } else {
+        warning("`kr' should be numeric of length one; cluster.by.row is set to FALSE.")
+        cluster.by.row <- FALSE
+      }
+    }
+  }
+
+  if (cluster.by.col){
+    if (!.invalid(col.clusters)) {## suppress kc
+      if(!is.numeric(col.clusters) | length(col.clusters)!=nc | !(.is.grouped(col.clusters))){
+        warning("`col.clusters' is not a grouped numeric vector of length ncol(x); cluster.by.col is set to FALSE.")
+        cluster.by.col <- FALSE
+      } else{
+        col.clusters <- col.clusters[colInd]
+        kc <- length(unique(col.clusters))
+        if(revC){ ## x columns reversed
+          col.clusters <- rev(col.clusters)
+        }
+
+      }
+    } else {
+      if (.invalid(kc)) kc <- 2
+      if (is.numeric(kc) & length(kc)==1){
+        col.clusters <- cutree(hclust.col,k=kc)
+        col.clusters <- col.clusters[colInd]
+        if(revC){ ## x columns reversed
+          col.clusters <- rev(col.clusters)
+        }
+
+      } else {
+        warning("`kc' should be numeric of length one; cluster.by.col is set to FALSE.")
+        cluster.by.col <- FALSE
+      }
+    }
+  }
+  ## ------------------------------------------------------------------------
+  ## Plotting
+  ## ------------------------------------------------------------------------
+  if (if.plot){
+
+    ir <- length(plot.row.individuals.list)
+    ic <- length(plot.col.individuals.list)
+    cr <- length(plot.row.clustering.list)
+    cc <- length(plot.col.clustering.list)
+
+    flush.console()
+    if(mapratio<=1){
+      sr <- 12
+      sc <- sr*mapratio
+    } else {
+      sc <- 12
+      sr <- sc/mapratio
+    }
+
+    ## calculate the plot layout ##
+    ## 1) for heatmap
+    lmat <- matrix(1,nrow=sr,ncol=sc)
+    lwid <- c(rep(mapsize/sc,sc))
+    lhei <- c(rep(mapsize/mapratio/sr,sr))
+
+    ## 2) row.clusters
+    if (plot.row.partition | plot.row.clusters){
+      lmat <- cbind(max(lmat,na.rm=TRUE)+1,lmat)
+      lwid <- c(0.3,lwid)
+    } else {
+      lmat <- cbind(NA,lmat)
+      lwid <- c(0.02,lwid)
+
+    }
+    ## 3) col.clusters
+    if (plot.col.partition | plot.col.clusters){
+      lmat <- rbind(c(NA,rep(max(lmat,na.rm=TRUE)+1,sc)),lmat)
+      lhei <- c(0.3/mapratio,lhei)
+    } else {
+      lmat <- rbind(NA,lmat)
+      lhei <- c(0.02/mapratio,lhei)
+    }
+
+    if(!.invalid(RowIndividualColors)) { ## 4) add middle column to layout for vertical sidebar ##??check
+      if(!is.character(RowIndividualColors) || length(RowIndividualColors) !=nr)
+        stop("'RowIndividualColors' must be a character vector of length nrow(x)")
+      lmat <- cbind(c(rep(NA,nrow(lmat)-sr),rep(max(lmat,na.rm=TRUE)+1,sr)),lmat)
+      lwid <- c(0.2,lwid)
+    } else {
+      lmat <- cbind(NA,lmat)
+      lwid <- c(0.02,lwid)
+    }
+
+    if(!.invalid(ColIndividualColors)) { ## 5) add middle row to layout for horizontal sidebar ##??check
+      if(!is.character(ColIndividualColors) || length(ColIndividualColors) !=nc){
+        stop("'ColIndividualColors' must be a character vector of length ncol(x)")
+      }
+      lmat <- rbind(c(rep(NA,ncol(lmat)-sc),rep(max(lmat,na.rm=TRUE)+1,sc)),lmat)
+      lhei <- c(0.2/mapratio,lhei)
+    } else {
+      lmat <- rbind(NA,lmat)
+      lhei <- c(0.02/mapratio,lhei)
+    }
+    ## 6) for row-dend
+    lmat <- cbind(c(rep(NA,nrow(lmat)-sr),
+                    rep(max(lmat,na.rm=TRUE)+1,sr)),
+                  lmat
+                  )
+    lwid <- c(keysize,lwid)
+
+    ## 7) for col-dend, 8) for kay
+    lmat <- rbind(c(
+                    max(lmat,na.rm=TRUE)+2,
+                    rep(NA,ncol(lmat)-sc-1),
+                    rep(max(lmat,na.rm=TRUE)+1,sc)
+                    ),
+                  lmat
+                  )
+    lhei <- c(keysize/mapratio,lhei)
+    ## text.box##
+    ## numbered 999 ##
+    ## 9) for RowPlot (from bottom)
+    if(.invalid(text.box)){
+      text.box <- "made by\nFunction: heatmap.3\nPackage: GMD\nin R"
+    }
+    if(plot.row.individuals) { ## enhanced: add right column to layout for plots
+      lmat <- cbind(lmat,
+                    c(rep((1+max(lmat,na.rm=TRUE)),nrow(lmat)-sr),# text
+                      rep((ir:1)+max(lmat,na.rm=TRUE)+(1),each=floor(sr/ir)),rep(NA,sr%%ir)
+                      )
+                    )
+      lwid <- c(lwid,sidesize)
+    } else {
+      lmat <- cbind(lmat,c(rep(NA,nrow(lmat))))
+      lwid <- c(lwid,0.01)
+    }
+
+    ## 10) for ColPlot from right
+    if(plot.col.individuals) { ## enhanced: add bottom row to layout for plots
+      lmat <- rbind(lmat,
+                    c(rep((1+max(lmat,na.rm=TRUE)),ncol(lmat)-sc-1),# text
+                      rep((1:ic)+max(lmat,na.rm=TRUE)+(1),each=floor(sc/ic)),rep(NA,sc%%ic),
+                      ##NA # change to numeric if text.box
+                      999
+                      )
+                    )
+      lhei <- c(lhei,sidesize/mapratio)
+    } else {
+      lmat <- rbind(lmat,c(rep(NA,ncol(lmat))))
+      lhei <- c(lhei,0.01/mapratio)
+    }
+    ## 11) for RowPlot (from bottom)
+    if(plot.row.clusters) { ## enhanced: add right column to layout for plots
+      lmat <- cbind(lmat,
+                    c(rep((1+max(lmat[lmat!=999],na.rm=TRUE)),nrow(lmat)-sr-1), # text
+                      rep((kr:1)+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sr/kr)),rep(NA,sr%%kr),
+                      ##NA
+                      999
+                      )
+                    )
+      lwid <- c(lwid,sidesize)
+    } else {
+      lmat <- cbind(lmat,c(rep(NA,nrow(lmat))))
+      lwid <- c(lwid,0.01)
+    }
+
+    ## 12) for ColPlot from right
+    if(plot.col.clusters) { ## enhanced: add bottom row to layout for plots
+      lmat <- rbind(lmat,
+                    c(rep((1+max(lmat[lmat!=999],na.rm=TRUE)),ncol(lmat)-sc-2),# text
+                      rep((1:kc)+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sc/kc)),rep(NA,sc%%kc),
+                      ##NA,NA # change to numeric if text.box
+                      999,999
+                      )
+                    )
+      lhei <- c(lhei,sidesize/mapratio)
+    } else {
+      lmat <- rbind(lmat,c(rep(NA,ncol(lmat))))
+      lhei <- c(lhei,0.01/mapratio)
+    }
+
+    ## 13) for RowPlot (from bottom)
+    if(plot.row.clustering) { ## enhanced: add right column to layout for plots
+      lmat <- cbind(lmat,
+                    c(rep((1+max(lmat[lmat!=999],na.rm=TRUE)),nrow(lmat)-sr-2), # text
+                      rep(c((cr:1)+max(lmat[lmat!=999],na.rm=TRUE)+(1)),each=floor(sr/cr)),rep(NA,sr%%cr),
+                      ##NA,NA
+                      999,999
+                      )
+                    )
+      lwid <- c(lwid,sidesize)
+    } else {
+      lmat <- cbind(lmat,c(rep(NA,nrow(lmat))))
+      lwid <- c(lwid,0.01)
+    }
+
+
+    ## 14) for ColPlot from right
+    if(plot.col.clustering) { ## enhanced: add bottom row to layout for plots
+      lmat <- rbind(lmat,
+                    c(rep((1+max(lmat[lmat!=999],na.rm=TRUE)),ncol(lmat)-sc-3),# text
+                      rep((1:cc)+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sc/cc)),rep(NA,sc%%cc),
+                      ##NA,NA,NA # change to numeric if text.box
+                      999,999,999
+                      )
+                    )
+      lhei <- c(lhei,sidesize/mapratio)
+    } else {
+      lmat <- rbind(lmat,c(rep(NA,ncol(lmat))))
+      lhei <- c(lhei,0.01/mapratio)
+    }
+
+    lmat[is.na(lmat)] <- 0
+    if (any(lmat==999)) flag.text <- TRUE else flag.text <- FALSE
+    lmat[lmat==999] <- max(lmat[lmat!=999])+1
+
+    ## Graphics `output' ##
+    ## layout
+    if(!is.null(force_lmat)){
+        lmat <- force_lmat
+    }
+    if(!is.null(force_lwid)){
+        lwid <- force_lwid
+    }
+    if(!is.null(force_lhei)){
+        lhei <- force_lhei
+    }
+    if(!force_add){
+        layout(lmat,widths=lwid,heights=lhei,respect=FALSE)
+    }
+
+    ## reverse columns
+    if(revC){ ## x columns reversed
+      iy <- nr:1
+      ddc <- rev(ddc)
+      x <- x[iy,]
+      if (!.invalid(cellnote)) cellnote <- cellnote[iy,]
+    } else {
+      iy <- 1:nr
+    }
+
+    ## reverse rows
+    if(revR){ ## x columns reversed
+      ix <- nc:1
+      ddr <- rev(ddr)
+      x <- x[,ix]
+      if (!.invalid(cellnote)) cellnote <- cellnote[,ix]
+    } else {
+      ix <- 1:nc
+    }
+
+    ## 1) draw the main carpet/heatmap
+    margins <- c(margin.for.labCol,0,0,margin.for.labRow)
+    mgp <- c(3,1,0)
+    par(mar=margins,mgp=mgp);outer=FALSE
+
+    x.save <- x
+    if(!symm || scale !="none"){ ##??
+      x <- t(x)
+      if (!.invalid(cellnote)) cellnote <- t(cellnote)
+    }
+    image(1:nc,1:nr,
+          x,
+          xlim=0.5+c(0,nc),ylim=0.5+c(0,nr),
+          axes=FALSE,xlab="",ylab="",col=colors,breaks=breaks,
+          ...)
+
+    ## plot/color NAs
+    if(!.invalid(na.color) & any(is.na(x))){
+      mmat <- ifelse(is.na(x),1,NA)
+      image(1:nc,1:nr,mmat,axes=FALSE,xlab="",ylab="",
+            col=na.color,add=TRUE)
+    }
+
+    ##
+    ## labCol (?)
+    if ((dendrogram %in% c("both","col")) & sideCol==3) {
+      warning("Discrepancy: col dendrogram is asked; srtCol is set to 1.")
+      sideCol <- 1
+    }
+    if (!length(srtCol)) {
+      axis(sideCol,1:nc,labels=labCol,las=2,line=-0.5,tick=0,cex.axis=cexCol,outer=outer)
+    } else {
+      if (sideCol==1){
+        if (sideCol==1) .sideCol <- par("usr")[3]-0.5*srtCol/90 else .sideCol <- par("usr")[4]+0.5*srtCol/90
+        text(1:nc,.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
+      }
+    }
+
+    if(!.invalid(xlab)) mtext(xlab,side=1,line=margins[1]-1.25)
+
+    ## labRow (?)
+    if ((dendrogram %in% c("both","row")) & sideRow==2) {
+      warning("Discrepancy: row dendrogram is asked; sideRow is set to 4.")
+      sideRow <- 4
+    }
+    if (!length(srtRow)) {
+      axis(sideRow,iy,labels=labRow,las=2,line=-0.5,tick=0,cex.axis=cexRow,outer=outer)
+    } else {
+      if (sideRow==4){
+        if (sideRow==4) .sideRow <- par("usr")[2]+0.5*srtRow/90 else .sideRow <- par("usr")[1]-0.5*srtRow/90
+        text(.sideRow,iy,labels=labRow,srt=srtRow,pos=1,xpd=TRUE,cex=cexRow)
+      }
+    }
+
+    if(!.invalid(ylab)) mtext(ylab,side=4,line=margins[4]-1.25)
+
+    if (!.invalid(add.expr))
+      eval(substitute(add.expr))
+    ## Enhanced: add 'sep.color' colored spaces to visually separate sections
+    if (plot.row.partition | plot.row.clusters){ ##??
+      plot.row.partitionList <- get.sep(clusters=row.clusters,type="row")
+    } else {
+      plot.row.partitionList <- NULL
+    }
+    if (plot.col.partition | plot.col.clusters){ ##??
+      plot.col.partitionList <- get.sep(clusters=col.clusters,type="column")
+    } else {
+      plot.col.partitionList <- NULL
+    }
+
+    row.sepList <- sepList[[1]]
+    if (!.invalid(row.sepList)){
+      for (i in 1:length(row.sepList)){
+        i.sep <- row.sepList[[i]]
+        rect(
+             xleft=i.sep[1]+0.5,
+             ybottom=i.sep[2]+0.5,
+             xright=i.sep[3]+0.5,
+             ytop=i.sep[4]+0.5,
+             lty=sep.lty,
+             lwd=sep.lwd,
+             col=FALSE,
+             border=sep.color[1]
+             )
+      }
+    }
+    col.sepList <- sepList[[2]]
+    if (!.invalid(col.sepList)){
+      for (i in 1:length(col.sepList)){
+        i.sep <- col.sepList[[i]]
+        rect(
+             xleft=i.sep[1]+0.5,
+             ybottom=i.sep[2]+0.5,
+             xright=i.sep[3]+0.5,
+             ytop=i.sep[4]+0.5,
+             lty=sep.lty,
+             lwd=sep.lwd,
+             col=FALSE,
+             border=sep.color[2]
+             )
+      }
+    }
+    ## show traces
+    min.scale <- min(breaks)
+    max.scale <- max(breaks)
+
+    x.scaled  <- .scale.x(t(x),min.scale,max.scale)
+
+    if(.invalid(hline)) hline=median(breaks)
+    if(.invalid(vline)) vline=median(breaks)
+
+    if(trace %in% c("both","column")){
+      for( i in colInd ){
+        if(!.invalid(vline)){
+          vline.vals <- .scale.x(vline,min.scale,max.scale)
+          abline(v=i-0.5+vline.vals,col=linecol,lty=2)
+        }
+        xv <- rep(i,nrow(x.scaled))+x.scaled[,i]-0.5
+        xv <- c(xv[1],xv)
+        yv <- 1:length(xv)-0.5
+        lines(x=xv,y=yv,lwd=1,col=tracecol,type="s")
+      }
+    }
+
+    if(trace %in% c("both","row")){
+      for( i in rowInd ){
+        if(!.invalid(hline)){
+          hline.vals <- .scale.x(hline,min.scale,max.scale)
+          abline(h=i+hline,col=linecol,lty=2)
+        }
+        yv <- rep(i,ncol(x.scaled))+x.scaled[i,]-0.5
+        yv <- rev(c(yv[1],yv))
+        xv <- length(yv):1-0.5
+        lines(x=xv,y=yv,lwd=1,col=tracecol,type="s")
+      }
+    }
+    ## cellnote
+    if(!.invalid(cellnote)){
+      text(x=c(row(cellnote)),
+           y=c(col(cellnote)),
+           labels=c(cellnote),
+           col=notecol,
+           cex=cex.note)
+    }
+
+    ## 2) plot.row.partition
+    if(plot.row.partition |plot.row.clusters) { ##row.clusters
+      par(mar=c(margins[1],0.5,0,0.1))
+
+      row.clusters.unique <- unique(row.clusters)
+      row.clusters.unique <- row.clusters.unique[!is.na(row.clusters.unique)]
+
+      image(rbind(1:nr),
+            xlim=0.5+c(0,1),ylim=0.5+c(0,nr),
+            col=par("bg"),
+            axes=FALSE,add=force_add)
+      if (!.invalid(plot.row.partitionList)){
+        for (i in 1:length(plot.row.partitionList)){
+          i.sep <- plot.row.partitionList[[i]]
+          rect(
+               xleft=0+0.5,
+               ybottom=i.sep[2]+0.5,
+               xright=1+0.5,
+               ytop=i.sep[4]+0.5,
+               lty=sep.lty,
+               lwd=sep.lwd,
+               col=color.partition.box,
+               border=color.partition.border
+               )
+          g <- row.clusters.unique[i]
+          s <- g
+          text(x=1,y=(i.sep[2]+0.5+i.sep[4]+0.5)/2,labels=s,col=color.partition.border,
+               cex=cex.partition,
+               srt=90
+               )
+        }
+      }
+
+    }
+    ## 3) plot.col.partition
+    if(plot.col.partition | plot.col.clusters) {
+      par(mar=c(0.1,0,0,margins[4]))
+      col.clusters.unique <- unique(col.clusters)
+      col.clusters.unique <- col.clusters.unique[!is.na(col.clusters.unique)]
+
+      image(cbind(1:nc),
+            xlim=0.5+c(0,nc),ylim=0.5+c(0,1),
+            col=par("bg"),
+            axes=FALSE,add=force_add)
+
+      if (!.invalid(plot.col.partitionList)){
+        for (i in 1:length(plot.col.partitionList)){
+          i.sep <- plot.col.partitionList[[i]]
+          rect(
+               xleft=i.sep[1]+0.5,
+               ybottom=0+0.5,
+               xright=i.sep[3]+0.5,
+               ytop=1+0.5,
+               lty=sep.lty,
+               lwd=sep.lwd,
+               col=color.partition.box,
+               border=color.partition.border
+               )
+          g <- col.clusters.unique[i]
+          s <- g
+          text(x=(i.sep[1]+0.5+i.sep[3]+0.5)/2,y=1,labels=s,col=color.partition.border,
+               cex=cex.partition,
+               srt=0
+               )
+        }
+      }
+
+    }
+    ## 4) draw the side color bars - for row
+    if(!.invalid(RowIndividualColors)) {
+      par(mar=c(margins[1],0,0,0.5))
+      image(rbind(1:nr),col=RowIndividualColors[rowInd],axes=FALSE,add=force_add)
+    }
+
+    ## 5) draw the side color bars - for col
+    if(!.invalid(ColIndividualColors)) {
+      par(mar=c(0.5,0,0,margins[4]))
+      image(cbind(1:nc),col=ColIndividualColors[colInd],axes=FALSE,add=force_add)
+    }
+
+    ## 6) row-dend
+    par(mar=c(margins[1],0,0,0))
+    if(dendrogram %in% c("both","row")){
+      plot(ddr,horiz=TRUE,axes=FALSE,yaxs="i",leaflab="none")
+    }else{
+      .plot.text(ylim=range(iy))
+      if (sideRow==2){
+        .sideRow <- par("usr")[2]-0.5*srtCol/90
+        text(.sideRow,iy,labels=labRow,srt=srtRow,pos=1,xpd=TRUE,cex=cexRow)
+      }
+    }
+    ## 7) col-dend and title
+    mar3 <- (if(!is.null(main)) mar.main else 0) +
+      (if(!is.null(sub)) mar.sub else 0)
+    par(mar=c(0,0,mar3,margins[4]))
+
+    if(dendrogram %in% c("both","column")){
+      plot(ddc,axes=FALSE,xaxs="i",leaflab="none")
+    } else{
+      .plot.text(xlim=range(1:nc))
+      if (sideCol==3){
+        .sideCol <- par("usr")[3]+0.5*srtCol/90
+        text(1:nc,.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
+      }
+    }
+
+    ## title
+    if (is.null(sub)) main.line <- 1 else main.line <- 3
+    if(!is.null(main)) title(main,cex.main=cex.main,adj=adj.main,mgp=mgp.main,font.main=font.main,line=main.line)
+    if(!is.null(sub)) title(sub,cex.main=cex.sub,adj=adj.main,mgp=mgp.main,font.main=font.sub,line=0)
+    ##if(!is.null(main)) title(main,cex.main=1.5*op[["cex.main"]])
+    ## 8) plot the color-key
+    if(key){
+      cex.key <- 0.75
+      op.ori <- par()
+
+      par(mar=c(2,1.5,0.75,1)*keysize,cex=cex.key,mgp=c(0.75,0,0),tcl=-0.05)
+      z <- seq(x.range[1],x.range[2],length=length(colors))
+
+      image(z=matrix(z,ncol=1),
+            col=colors,
+            breaks=breaks,
+            xaxt="n",
+            yaxt="n",
+            xlab=key.xlab,
+            ylab="",
+            main="",add=force_add
+            )
+      par(usr=c(0,1,0,1))
+      lv <- pretty(breaks)
+      xv <- .scale.x(as.numeric(lv),x.range[1],x.range[2])
+      axis(1,at=xv,labels=lv,cex.axis=cex.key*1)
+      if(density.info=="density"){
+        ## Experimental : also plot density of data
+        dens <- density(x,adjust=densadj,na.rm=TRUE)
+        omit <- dens$x < min(breaks) | dens$x > max(breaks)
+        dens$x <- dens$x[-omit]
+        dens$y <- dens$y[-omit]
+        dens$x <- .scale.x(dens$x,x.range[1],x.range[2])
+        lines(dens$x,dens$y / max(dens$y) * 0.95,col=denscol,lwd=1)
+        axis(2,at=pretty(dens$y)/max(dens$y) * 0.95,pretty(dens$y),cex.axis=cex.key*1)
+        ##title("Color Key and Density",cex.lab=cex.key*0.25)
+        title(key.title,cex.main=cex.key,font.main=1)
+        mtext(side=2,"Density",line=0.75,cex=cex.key)
+      } else if(density.info=="histogram"){
+        h <- hist(x,plot=FALSE,breaks=breaks)
+        hx <- .scale.x(breaks,x.range[1],x.range[2])
+        hy <- c(h$counts,h$counts[length(h$counts)])
+        lines(hx,hy/max(hy)*0.95,lwd=1,type="s",col=denscol)
+        axis(2,at=pretty(hy)/max(hy)*0.95,pretty(hy),cex.axis=cex.key*1)
+        ##title("Color Key and Histogram",cex.main=cex.key*0.25)
+        title(key.title,cex.main=cex.key,font.main=1)
+        mtext(side=2,key.ylab,line=0.75,cex=cex.key)
+      } else{
+        title(key.title,cex.main=cex.key,font.main=1)
+      }
+    } else{
+      if(!force_add){
+      .plot.text()
+      }
+    }
+    ## 9)
+    if(plot.row.individuals) {
+      .plot.text("Row\nIndividuals",cex=cex.text,bg="white")
+      for (i in 1:ir) {
+        ##.plot.text()
+        tmp <- plot.row.individuals.list[[i]]
+        for(j in 1:length(tmp)){
+          eval(tmp[[j]])
+        }
+      }
+    }
+
+    ## 10)
+    if(plot.col.individuals) {
+      .plot.text("Column\nIndividuals",cex=cex.text,bg="white",srt=90)
+      for (i in 1:ic) {
+        ##.plot.text()
+        tmp <- plot.col.individuals.list[[i]]
+        for(j in 1:length(tmp)){
+          eval(tmp[[j]])
+        }
+      }
+    }
+
+    ## 11) for RowPlot from bottom
+    if (plot.row.clusters){
+      .plot.text("Row\nClusters",cex=cex.text,bg="white")
+
+      tmp <- plot.row.clusters.list[[1]]
+      row.data <- row.data[rowInd]
+      for (i in unique(row.clusters)){
+        i.x <- row.data[row.clusters==i]
+        for(j in 1:length(tmp)){
+          eval(tmp[[j]])
+        }
+        i.main <- sprintf("Row group %s (n=%s)",i,length(i.x))
+        title(i.main,cex.main=1,font.main=1)
+      }
+    }
+    ## 12) for ColPlot from left
+    if (plot.col.clusters){
+      .plot.text("Col\nClusters",cex=cex.text,bg="white",srt=90)
+
+      tmp <- plot.col.clusters.list[[1]]
+      col.data <- if(revC) col.data[rev(colInd)] else col.data[colInd]
+      for (i in unique(col.clusters)){
+        i.x <- col.data[col.clusters==i]
+        for(j in 1:length(tmp)){
+          eval(tmp[[j]])
+        }
+        i.main <- sprintf("Col group %s (n=%s)",i,length(i.x))
+        title(i.main,cex.main=1,font.main=1)
+      }
+    }
+
+    ## 13)
+    if(plot.row.clustering) {
+      .plot.text("Row\nClustering",cex=cex.text,bg="white")
+
+      for (i in 1:cr) {
+        ##.plot.text()
+        tmp <- plot.row.clustering.list[[i]]
+        for(j in 1:length(tmp)){
+          eval(tmp[[j]])
+        }
+      }
+    }
+    ## 14)
+    if(plot.col.clustering) {
+      .plot.text("Column\nClustering",cex=cex.text,bg="white",srt=90)
+
+      for (i in 1:cc) {
+        ##.plot.text()
+        tmp <- plot.col.clustering.list[[i]]
+        for(j in 1:length(tmp)){
+          eval(tmp[[j]])
+        }
+      }
+    }
+
+    ## 15) text
+    if (!.invalid(text.box) & if.plot.info){
+      .plot.text(text.box,cex=cex.text,bg="gray75")
+    } else{
+      if (flag.text){
+        .plot.text()
+      }
+    }
+
+  } else {
+    x.save <- x
+  }
+
+  ret <-
+    list(x.ori=x.ori,
+         x=x.save,
+         rowInd=rowInd,colInd=colInd,
+         row.clusters=row.clusters,col.clusters=col.clusters,
+         dist.row=dist.row,dist.col=dist.col,
+         hclust.row=hclust.row,hclust.col=hclust.col,
+         kr=kr,kc=kc
+         )
+  class(ret) <- c("hclustering",class(ret))
+  invisible(ret)
+}
+
+##' Please note this code is from the library GMD
+##' All credit for this code goes to GMD's authors.
+##' I do not recommend using this version of the code, which
+##' has been poorly modified for our use but recommend using
+##' the official version from the package GMD
+##' https://cran.r-project.org/web/packages/GMD/index.html
+##' Get row or column lines of separation for \code{heatmap.3} according to clusters
+##' @title Get row or column lines of separation for heatmap.3
+##' @param clusters a numerical vector, indicating the cluster labels of observations.
+##' @param type string, one of the following: \code{c("row","column","both")}
+get.sep <-
+  function(clusters,type=c("row","column","both"))
+{
+  ##   if(!is.numeric(clusters) | !(.is.grouped(clusters))){
+  ## stop("`clusters' should be a grouped numeric vector.")
+  ##   }
+  tmp.whichna <- which(is.na(clusters))
+  tmp.which <- which(!duplicated(clusters))
+
+  tmp.sep <- data.frame(start=tmp.which,end=c(tmp.which[-1],length(clusters)+1)-1)
+  tmp.sep2 <- tmp.sep[tmp.sep$start<=tmp.sep$end,]
+
+  ## lines of separation
+  sepList <- list()
+  if (type=="row"){
+    xmax <- length(clusters)
+    for(i.s in 1:nrow(tmp.sep2)){
+      sepList[[i.s]] <- c(0,tmp.sep2[i.s,1]-1,xmax,tmp.sep2[i.s,2])
+    }
+  } else if (type=="column"){
+    ymax <- length(clusters)
+    for(i.s in 1:nrow(tmp.sep2)){
+      sepList[[i.s]] <- c(tmp.sep2[i.s,1]-1,0,tmp.sep2[i.s,2],ymax)
+    }
+  } else if (type=="both"){
+    for(i.s in 1:nrow(tmp.sep2)){
+      sepList[[i.s]] <- c(tmp.sep2[i.s,1]-1,tmp.sep2[i.s,1]-1,tmp.sep2[i.s,2],tmp.sep2[i.s,2])
+    }
+  }
+  sepList
+}
+
+################
+# End GMD plotting code
+##########################################
+
 
 # Load libraries
 library(ape)
 library("RColorBrewer", character.only=TRUE)
 library(GMD)
-library(gplots)
 library(optparse)
 library(logging)
-source("./R/heatmap3.R")
 
 # If called as source from commandline
 if (identical(environment(),globalenv()) &&
@@ -1696,8 +3205,7 @@ if (identical(environment(),globalenv()) &&
     logging::loginfo(paste("Original matrix dimensions (r,c)=",
                   paste(dim(expression_data), collapse=",")))
 
-    # Default the gene order to the given order
-    # If given a file read the user defined order.
+    # Read in the gen_pos file
     input_gene_order <- seq(1, nrow(expression_data), 1)
     if (args$gene_order != ""){
         input_gene_order <- read.table(args$gene_order, row.names=1)

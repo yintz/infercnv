@@ -292,7 +292,7 @@ test_that("remove_noise works with three observation, threshold all",{
 
 context("Test remove_tails")
 
-tail_answer_1 <- matrix_one
+tail_answer_1 <- c()
 tail_answer_2 <- -1 * c(1:5, 16:20)
 tail_answer_3 <- -1 * c(2:6, 13:17)
 tail_answer_4 <- -1 * c(5:9, 11:15)
@@ -373,3 +373,234 @@ test_that(paste("smooth_window works with one observation,",
                                window_length=100),
                  smooth_answer_5)
          })
+
+context("create_sep_list")
+create_sep_list_answer_1 <- list()
+create_sep_list_answer_1[[1]] <- list()
+create_sep_list_answer_1[[1]][[1]] <- c(0,0,0,0)
+create_sep_list_answer_1[[2]] <- list()
+create_sep_list_answer_1[[2]][[1]] <- c(0,0,0,0)
+
+create_sep_list_answer_2 <- list()
+# Column
+create_sep_list_answer_2[[1]] <- list()
+create_sep_list_answer_2[[1]][[1]] <- c(2,0,2,5)
+create_sep_list_answer_2[[1]][[2]] <- c(8,0,8,5)
+# Row
+create_sep_list_answer_2[[2]] <- list()
+create_sep_list_answer_2[[2]][[1]] <- c(0,4,9,4)
+create_sep_list_answer_2[[2]][[2]] <- c(0,2,9,2)
+ 
+test_that("create_sep_list works with 0 row and column and no seps",{
+    expect_equal(create_sep_list(0, 0),
+                 create_sep_list_answer_1)
+})
+test_that("create_sep_list works with 0 row and column and seps",{
+    expect_equal(create_sep_list(0, 0, 1:5, 3:6),
+                 create_sep_list_answer_1)
+})
+test_that("create_sep_list works with 10 row, 0 column and no seps",{
+    expect_equal(create_sep_list(10, 0),
+                 create_sep_list_answer_1)
+})
+test_that("create_sep_list works with 0 row, 10 column and seps",{
+    expect_equal(create_sep_list(0, 10),
+                 create_sep_list_answer_1)
+})
+test_that("create_sep_list works with 5 row, 9 column and seps",{
+    expect_equal(create_sep_list(row_count=5,
+                                 col_count=9,
+                                 row_seps=c(1,3),
+                                 col_seps=c(2,8)),
+                 create_sep_list_answer_2)
+})
+ 
+context("remove_outliers_norm")
+remove_outlier_norm_in_1 <- matrix(1:20, ncol=4)
+remove_outlier_norm_out_1 <- matrix(c(rep(5,5),6:14,rep(15,6)), ncol=4)
+remove_outlier_norm_in_2 <- matrix(c(1:15,
+                                     c(-5,-4,3:13,21,26),
+                                     1:15,
+                                     1:15), ncol=4)
+remove_outlier_norm_out_2 <- matrix(c(1:15,
+                                    c(-.5,-.5,3:13,17.75,17.75),
+                                    1:15,
+                                    1:15), ncol=4)
+test_that("remove_outliers_norm for bad data",{
+    expect_equal(remove_outliers_norm( NA ),
+                  NA)
+})
+test_that("remove_outliers_norm for no change",{
+    expect_equal(remove_outliers_norm( remove_outlier_norm_in_1 ),
+                 remove_outlier_norm_in_1)
+})
+test_that("remove_outliers_norm for hard threshold outside of values",{
+    expect_equal(remove_outliers_norm(remove_outlier_norm_in_1,
+                                      lower_bound=-1,
+                                      upper_bound=30),
+                 remove_outlier_norm_in_1)
+})
+test_that("remove_outliers_norm for hard threshold within values",{
+    expect_equal(remove_outliers_norm(remove_outlier_norm_in_1,
+                                      lower_bound=5,
+                                      upper_bound=15),
+                 remove_outlier_norm_out_1)
+
+})
+test_that("remove_outliers_norm for average bound",{
+    expect_equal(remove_outliers_norm(remove_outlier_norm_in_2,
+                                      out_method="average_bound"),
+                 remove_outlier_norm_out_2)
+})
+
+context("plot_cnv_observations")
+obs_data <- matrix(1:20, ncol=4)
+row.names(obs_data) <- paste("gene",1:5, sep="_")
+colnames(obs_data) <- paste("Sample",1:4,sep="_")
+obs_file_base_name <- "."
+obs_contig_colors <- c("red","red","cyan","yellow","yellow")
+names(obs_contig_colors) <- c(1,1,2,3,3)
+obs_contig_label <- c("1","","2","3","") 
+obs_contig_name <- c("1","1","2","2","3")
+obs_col_pal <- rainbow
+obs_contig_seps <- c(2,3)
+obs_groups <- 2
+names(obs_contig_seps) <- c(4,6)
+obs_plot=FALSE
+obs_answer_1 <-obs_data[c("gene_1","gene_2","gene_5","gene_3","gene_4"),]
+obs_answer_3 <-obs_data[c("gene_1","gene_2"),]
+obs_answer_4 <-obs_data[c("gene_3","gene_4","gene_5"),]
+test_plot_cnv_file <- function(obs_data,
+                              obs_col_pal,
+                              obs_contig_seps,
+                              obs_file_base_name,
+                              obs_file){
+                                  plot_cnv_observations(obs_data=obs_data,
+                                                        file_base_name=obs_file_base_name,
+                                                        contig_colors=obs_contig_colors,
+                                                        contig_label=obs_contig_label,
+                                                        contig_names=obs_contig_name,
+                                                        col_pal=obs_col_pal,
+                                                        contig_seps=obs_contig_seps,
+                                                        num_obs_groups=obs_groups,
+                                                        testing=!obs_plot);
+                                  return(as.matrix(read.table(file.path(obs_file_base_name,obs_file),
+                                                   row.names=1)))}
+
+# TODO, turn on. The is creates a file, turned off normally as a result.
+#test_that("plot_cnv_observations test for accurate output of observation file.",{
+#    expect_equal(test_plot_cnv_file(obs_data=obs_data,
+#                                   obs_col_pal=obs_col_pal,
+#                                   obs_contig_seps=obs_contig_seps,
+#                                   obs_file_base_name=obs_file_base_name,
+#                                   obs_file="observations.txt"),
+#                 obs_answer_1)
+#})
+
+# TODO, turn on. The is creates a file, turned off normally as a result.
+#test_that("plot_cnv_observations test for accurate output of obs group 1 file.",{
+#    expect_equal(test_plot_cnv_file(obs_data=obs_data,
+#                                       obs_col_pal=obs_col_pal,
+#                                       obs_contig_seps=obs_contig_seps,
+#                                       obs_file_base_name=obs_file_base_name,
+#                                       obs_file="General_HCL_1_members.txt"),
+#                 obs_answer_3)
+#})
+
+# TODO, turn on. The is creates a file, turned off normally as a result.
+#test_that("plot_cnv_observations test for accurate output of obs group 2 file.",{
+#    expect_equal(test_plot_cnv_file(obs_data=obs_data,
+#                                       obs_col_pal=obs_col_pal,
+#                                       obs_contig_seps=obs_contig_seps,
+#                                       obs_file_base_name=obs_file_base_name,
+#                                       obs_file="General_HCL_2_members.txt"),
+#                 obs_answer_4)
+#})
+
+context("plot_cnv_references")
+references_ref_data <- matrix(1:20, ncol=4)
+row.names(references_ref_data) <- paste("gene",1:5, sep="_")
+colnames(references_ref_data) <- paste("Sample",1:4,sep="_")
+references_ref_groups <- list()
+references_ref_groups[[1]] <- c(3)
+references_ref_groups[[1]] <- c(1,2,4)
+references_col_pal <- rainbow
+references_contig_seps <- c(2,3)
+names(references_contig_seps) <- c(4,6)
+references_file_base_name <- "."
+ref_plot=FALSE
+test_plot_cnv_references <- function(references_ref_data,
+                                     references_ref_groups,
+                                     references_col_pal,
+                                     references_contig_seps,
+                                     references_file_base_name){
+                                         plot_cnv_references(ref_data=references_ref_data,
+                                             ref_groups=references_ref_groups,
+                                             col_pal=references_col_pal,
+                                             contig_seps=references_contig_seps,
+                                             file_base_name=references_file_base_name,
+                                             testing=!ref_plot);
+                                         return(as.matrix(read.table(file.path(references_file_base_name,"references.txt"),
+                                                           row.names=1)))}
+
+# TODO, turn on. The is creates a file, turned off normally as a result.
+#test_that("plot_cnv_references test for accurate output reference file.",{
+#    expect_equal(test_plot_cnv_references(references_ref_data=references_ref_data,
+#                          references_ref_groups=references_ref_groups,
+#                          references_col_pal=references_col_pal,
+#                          references_contig_seps=references_contig_seps,
+#                          references_file_base_name=references_file_base_name),
+#                 references_ref_data[,ncol(references_ref_data):1])
+#})
+
+context("order_reduce")
+order_reduce_data_1 <- matrix(rep(1:10,2), ncol=2)
+colnames(order_reduce_data_1) <- c("Sample_1","Sample_2")
+row.names(order_reduce_data_1) <- paste("gene",1:10,sep="_") 
+order_reduce_exp_1 <- matrix(rep(c(10,5,8,3,4,9,1,7,6,2),2), ncol=2)
+row.names(order_reduce_exp_1) <- paste("gene",c(10,5,8,3,4,9,1,7,6,2),sep="_")
+colnames(order_reduce_exp_1) <- c("Sample_1","Sample_2")
+order_reduce_pos_1 <- data.frame(chr=c(1,1,2,2,3,3,4,4,5,5),
+                                 start=c(1,5,1,5,1,5,1,5,1,5),
+                                 stop=c(4,9,4,9,4,9,4,9,4,9))
+row.names(order_reduce_pos_1) <- paste("gene",c(10,5,8,3,4,9,1,7,6,2),sep="_")
+order_reduce_chr_1 <- data.frame(chr=c(1,1,2,2,3,3,4,4,5,5))
+row.names(order_reduce_chr_1) <- paste("gene",c(10,5,8,3,4,9,1,7,6,2),sep="_")
+
+order_reduce_pos_2 <- data.frame(chr=c(1,1,2,3,4,4),
+                                 start=c(1,5,5,5,1,5),
+                                 stop=c(4,9,9,9,4,9))
+row.names(order_reduce_pos_2) <- paste("gene",c(10,5,3,9,1,7),sep="_")
+order_reduce_exp_2 <- matrix(rep(c(10,5,3,9,1,7),2), ncol=2)
+row.names(order_reduce_exp_2) <- paste("gene",c(10,5,3,9,1,7),sep="_")
+colnames(order_reduce_exp_2) <- c("Sample_1","Sample_2")
+order_reduce_chr_2 <- data.frame(chr=c(1,1,2,3,4,4))
+row.names(order_reduce_chr_2) <- paste("gene",c(10,5,3,9,1,7),sep="_")
+
+order_reduce_pos_3 <- data.frame(chr=c(1,1,2,3,4,4),
+                                 start=c(1,5,5,5,1,5),
+                                 stop=c(4,9,9,9,4,9))
+row.names(order_reduce_pos_3) <- paste("GENE",c(10,5,3,9,1,7),sep="_")
+
+test_that("order_reduce for NULL input.",{
+    expect_equal(order_reduce(NULL,NULL),
+                 list(expr=NULL,order=NULL,chr_order=NULL))
+})
+test_that("order_reduce for happy path",{
+    expect_equal(order_reduce(order_reduce_data_1, order_reduce_pos_1),
+                 list(expr=order_reduce_exp_1,
+                      order=order_reduce_pos_1,
+                      chr_order=order_reduce_chr_1))
+})
+test_that("order_reduce for happy path but dropping genes",{
+    expect_equal(order_reduce(order_reduce_data_1, order_reduce_pos_2),
+                 list(expr=order_reduce_exp_2,
+                      order=order_reduce_pos_2,
+                      chr_order=order_reduce_chr_2))
+})
+test_that("order_reduce for no matching gene names",{
+    expect_equal(order_reduce(order_reduce_data_1, order_reduce_pos_3),
+                 list(expr=NULL,
+                      order=NULL,
+                      chr_order=NULL))
+})
