@@ -3083,8 +3083,9 @@ if (identical(environment(),globalenv()) &&
                         action="store",
                         dest="num_groups",
                         metavar="Number_of_reference_groups",
-                        help=paste("Number of groups in which to break ",
-                                   "the reference observations.",
+                        help=paste("Indicies of groups in which to group",
+                                   "the reference samples; or a number",
+                                   "of groups to make automatically",
                                    "[Default %default]"))
 
     pargs <- optparse::add_option(pargs,c("--obs_cluster_contig"),
