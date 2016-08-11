@@ -9,3 +9,7 @@ For a quick start, explainations on files, usage, and a tutorial please visit th
 Please use the following citation:
 
 [Anoop P. Patel et al. Single-cell RNA-seq highlights intratumoral heterogeneity in primary glioblastoma. Science. 2014 Jun 20: 1396-1401](http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4123637/)
+
+This methodology was also used in:
+
+[Tirosh I et al.Dissecting the multicellular ecosystem of metastatic melanoma by single-cell RNA-seq. Science. 2016 Apr 8;352(6282):189-96](http://www.ncbi.nlm.nih.gov/pubmed/27124452)
