@@ -3215,6 +3215,9 @@ if (identical(environment(),globalenv()) &&
         # Remove multiple spaces to single spaces
         refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
         refs <- refs[refs != ""]
+        # Normalize names with make.names so they are treated
+        # as the matrix column names
+        refs <- make.names(refs)
         if (length(refs) > 0){
             input_reference_samples <- refs
         }
