@@ -518,7 +518,23 @@ infer_cnv <- function(data,
                       upper_bound_vis=NA){
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
-    plot_steps_path <- strsplit(pdf_path, "\\.")[[1]][1]
+    # Establish an output dir and file base
+    plot_steps_path <- unlist(strsplit(pdf_path, "\\."))
+    path_tokens_count=length(plot_steps_path)
+    if(path_tokens_count > 1){
+        if(tolower(plot_steps_path[path_tokens_count])=="pdf"){
+            plot_steps_path=plot_steps_path[1:(path_tokens_count-1)]
+        }
+        if(path_tokens_count == 2){
+            plot_steps_path=plot_steps_path[1]
+        } else if(path_tokens_count > 2){
+            plot_steps_path=paste(plot_steps_path[seq(1,path_tokens_count-1)],collapse=".")
+        }
+    }
+    if((length(plot_steps_path) < 1) || plot_steps_path == ""){
+        plot_steps_path = "pdf"
+    }
+
     if(!file.exists(plot_steps_path)){
         dir.create(plot_steps_path)
     }
