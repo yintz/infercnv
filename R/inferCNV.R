@@ -1293,7 +1293,7 @@ order_reduce <- function(data, genomic_position){
 
     # Set the chr to factor so the order can be arbitrarily set and sorted.
     chr_levels <- unique(genomic_position[[CHR]])
-    genomic_position[[CHR]] <- factor(genomic_position[[CHR]],
+    ret_results$order[[CHR]] <- factor(ret_results$order[[CHR]],
                                    levels=chr_levels)
 
     # Sort genomic position file and expression file to genomic position file
