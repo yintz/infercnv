@@ -509,6 +509,9 @@ infer_cnv <- function(data,
                       num_ref_groups,
                       num_obs_groups,
                       pdf_path,
+                      main,
+                      obs_lab,
+                      ref_lab,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
                       color_safe=TRUE,
@@ -738,7 +741,10 @@ infer_cnv <- function(data,
                        ref_contig=cluster_reference,
                        ref_groups=groups_ref,
                        pdf_path=plot_steps_path,
-                       color_safe_pal=color_safe)
+                       color_safe_pal=color_safe,
+                       title=main,
+                       obs_title=obs_lab,
+                       ref_title=ref_lab)
 }
 
 # Not testing
@@ -784,6 +790,9 @@ plot_cnv <- function(plot_data,
                      ref_contig,
                      ref_groups,
                      pdf_path,
+                     title,
+                     obs_title,
+                     ref_title,
                      k_obs_groups=1,
                      color_safe_pal=TRUE){
 
@@ -870,6 +879,8 @@ plot_cnv <- function(plot_data,
                           col_pal=custom_pal,
                           contig_seps=col_sep,
                           num_obs_groups=k_obs_groups,
+                          cnv_title=title,
+                          cnv_obs_title=obs_title,
                           layout_lmat=force_layout[["lmat"]],
                           layout_lhei=force_layout[["lhei"]],
                           layout_lwid=force_layout[["lwid"]])
@@ -881,6 +892,7 @@ plot_cnv <- function(plot_data,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=pdf_path,
+                            cnv_ref_title=ref_title,
                             layout_add=TRUE)
     }
     dev.off()
@@ -913,6 +925,8 @@ plot_cnv_observations <- function(obs_data,
                                   contig_seps,
                                   num_obs_groups,
                                   file_base_name,
+                                  cnv_title,
+                                  cnv_obs_title,
                                   cluster_contig=NULL,
                                   testing=FALSE,
                                   layout_lmat=NULL,
@@ -1002,8 +1016,8 @@ plot_cnv_observations <- function(obs_data,
                                         Rowv=obs_dendrogram,
                                         Colv=FALSE,
                                         cluster.by.col=FALSE,
-                                        main="Copy Number Variation Inference",
-                                        ylab="Observations (Cells)",
+                                        main=cnv_title,
+                                        ylab=cnv_obs_title,
                                         margin.for.labRow=10,
                                         margin.for.labCol=2,
                                         xlab="Genomic Region",
@@ -1107,6 +1121,7 @@ plot_cnv_references <- function(ref_data,
                                 col_pal,
                                 contig_seps,
                                 file_base_name,
+                                cnv_ref_title,
                                 layout_lmat=NULL,
                                 layout_lwid=NULL,
                                 layout_lhei=NULL,
@@ -1161,7 +1176,7 @@ plot_cnv_references <- function(ref_data,
     if (number_references > 20){
         # The reference labs can become clustered
         # Dynamically change labels given a certain number of labels.
-        reference_ylab <- "References"
+        reference_ylab <- cnv_ref_title
         row.names(ref_data) <- rep("", number_references)
     }
 
@@ -3142,6 +3157,33 @@ if (identical(environment(),globalenv()) &&
                         help=paste("Contig tail to be removed.",
                                    "[Default %default]"))
 
+    pargs <- optparse::add_option(pargs, c("--title"),
+                        type="character",
+                        default="Copy Number Variation Inference",
+                        action="store",
+                        dest="fig_main",
+                        metavar="Figure_Title",
+                        help=paste("Title of the figure.",
+                                   "[Default %default]"))
+
+    pargs <- optparse::add_option(pargs, c("--title_obs"),
+                        type="character",
+                        default="Observations (Cells)",
+                        action="store",
+                        dest="obs_main",
+                        metavar="Observations_Title",
+                        help=paste("Title of the observations matrix Y-axis.",
+                                   "[Default %default]"))
+
+    pargs <- optparse::add_option(pargs, c("--title_ref"),
+                        type="character",
+                        default="References (Cells)",
+                        action="store",
+                        dest="ref_main",
+                        metavar="References_Title",
+                        help=paste("Title of the references matrix Y-axis (if used).",
+                                   "[Default %default]"))
+
     args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
     args <- args_parsed$options
     args["input_matrix"] <- args_parsed$args[1]
@@ -3266,5 +3308,8 @@ if (identical(environment(),globalenv()) &&
                         color_safe=args$use_color_safe,
                         method_bound_vis=args$bound_method_vis,
                         lower_bound_vis=bounds_viz[1],
-                        upper_bound_vis=bounds_viz[2])
+                        upper_bound_vis=bounds_viz[2],
+                        main=args$fig_main,
+                        obs_lab=args$obs_main,
+                        ref_lab=args$ref_main)
 }
