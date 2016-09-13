@@ -85,7 +85,6 @@ color.palette <- function(steps,
     fill.steps <- cumsum(rep(1, length(steps)) + c(0, between))
     RGB <- matrix(NA, nrow=3, ncol=fill.steps[length(fill.steps)])
     RGB[, fill.steps] <- col2rgb(steps)
-
     for(i in which(between > 0)){
         col.start <- RGB[, fill.steps[i]]
         col.end <- RGB[, fill.steps[i + 1]]
@@ -97,7 +96,6 @@ color.palette <- function(steps,
             RGB[j, (fill.steps[i] + 1):(fill.steps[i + 1] - 1)] <- vals
         }
     }
-
     new.steps <- rgb(RGB[1, ], RGB[2, ], RGB[3, ], maxColorValue=255)
     pal <- colorRampPalette(new.steps, ...)
     return(pal)
@@ -531,29 +529,6 @@ infer_cnv <- function(data,
                                                 "00_reduced_data.pdf"))
     }
 
-#    # Remove any gene without position information
-#    # Genes may be sorted correctly by not have position information
-#    # Here they are removed.
-#    remove_by_position <- -1 * which(gene_order[2] + gene_order[3] == 0)
-#    if (length(remove_by_position)){
-#        gene_order <- gene_order[remove_by_position, , drop=FALSE]
-#        data <- data[remove_by_position, , drop=FALSE]
-#    }
-#    logging::loginfo(paste("::infer_cnv:Reduction from positional ",
-#                           "data, new dimensions (r,c) = ",
-#                           paste(dim(data), collapse=","),
-#                           " Total=", sum(data),
-#                           " Min=", min(data),
-#                           " Max=", max(data),
-#                           ".", sep=""))
-#    logging::logdebug(paste("::infer_cnv:Removed indices:"))
-#    # Plot incremental steps.
-#    if (plot_steps){
-#        plot_step(data=data,
-#                            plot_name=file.path(plot_steps_path,
-#                                                "01_remove_by_pos_file.pdf"))
-#    }
-
     # Make sure data is log transformed + 1
     if (transform_data){
         data <- log2(data / 10 + 1)
@@ -594,18 +569,6 @@ infer_cnv <- function(data,
     # Reduce contig info
     chr_order <- gene_order[1]
     gene_order <- NULL
-#    data <- data[with(gene_order, order(chr,start,stop)), , drop=FALSE]
-#    # This is the contig order, will be used in visualization.
-#    # Get the contig order in the same order as the genes.
-#    chr_order <- gene_order[with(gene_order,
-#                                 order(chr,start,stop)), , drop=FALSE][1]
-#    gene_order <- NULL
-#    # Plot incremental steps.
-#    if (plot_steps){
-#        plot_step(data=data,
-#                            plot_name=file.path(plot_steps_path,
-#                                                "04_order_by_chr.pdf"))
-#    }
 
     # Center data (automatically ignores zeros)
     data <- center_with_threshold(data, max_centered_threshold)
@@ -1037,6 +1000,7 @@ plot_cnv_observations <- function(obs_data,
                                         dendrogram="row",
                                         cexRow=0.8,
                                         scale="none",
+                                        x.center=0,
                                         color.FUN=col_pal,
                                         if.plot=!testing,
                                         # Seperate by contigs
@@ -1190,6 +1154,7 @@ plot_cnv_references <- function(ref_data,
                                      col_count=ncol(ref_data),
                                      row_seps=ref_seps,
                                      col_seps=contig_seps)
+
     # Print controls
     logging::loginfo("plot_cnv_references:Plotting heatmap.")
     data_references <- heatmap.cnv(ref_data,
@@ -1205,6 +1170,7 @@ plot_cnv_references <- function(ref_data,
                                    Rowv=FALSE,
                                    cexRow=0.8,
                                    scale="none",
+                                   x.center=0,
                                    color.FUN=col_pal,
                                    sepList=contigSepList,
                                    # Seperate by contigs
