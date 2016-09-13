@@ -560,21 +560,21 @@ row.names(order_reduce_data_1) <- paste("gene",1:10,sep="_")
 order_reduce_exp_1 <- matrix(rep(c(10,5,8,3,4,9,1,7,6,2),2), ncol=2)
 row.names(order_reduce_exp_1) <- paste("gene",c(10,5,8,3,4,9,1,7,6,2),sep="_")
 colnames(order_reduce_exp_1) <- c("Sample_1","Sample_2")
-order_reduce_pos_1 <- data.frame(chr=c(1,1,2,2,3,3,4,4,5,5),
+order_reduce_pos_1 <- data.frame(chr=factor(c(1,1,2,2,3,3,4,4,5,5),levels=1:5),
                                  start=c(1,5,1,5,1,5,1,5,1,5),
                                  stop=c(4,9,4,9,4,9,4,9,4,9))
 row.names(order_reduce_pos_1) <- paste("gene",c(10,5,8,3,4,9,1,7,6,2),sep="_")
-order_reduce_chr_1 <- data.frame(chr=c(1,1,2,2,3,3,4,4,5,5))
+order_reduce_chr_1 <- data.frame(chr=factor(c(1,1,2,2,3,3,4,4,5,5),levels=1:5))
 row.names(order_reduce_chr_1) <- paste("gene",c(10,5,8,3,4,9,1,7,6,2),sep="_")
 
-order_reduce_pos_2 <- data.frame(chr=c(1,1,2,3,4,4),
+order_reduce_pos_2 <- data.frame(chr=factor(c(1,1,2,3,4,4),levels=1:4),
                                  start=c(1,5,5,5,1,5),
                                  stop=c(4,9,9,9,4,9))
 row.names(order_reduce_pos_2) <- paste("gene",c(10,5,3,9,1,7),sep="_")
 order_reduce_exp_2 <- matrix(rep(c(10,5,3,9,1,7),2), ncol=2)
 row.names(order_reduce_exp_2) <- paste("gene",c(10,5,3,9,1,7),sep="_")
 colnames(order_reduce_exp_2) <- c("Sample_1","Sample_2")
-order_reduce_chr_2 <- data.frame(chr=c(1,1,2,3,4,4))
+order_reduce_chr_2 <- data.frame(chr=factor(c(1,1,2,3,4,4),levels=1:4))
 row.names(order_reduce_chr_2) <- paste("gene",c(10,5,3,9,1,7),sep="_")
 
 order_reduce_pos_3 <- data.frame(chr=c(1,1,2,3,4,4),
