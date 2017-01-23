@@ -17,7 +17,7 @@ ENV SRC /usr/local/src
 ##############
 ## Helper tools
 RUN apt-get update && \
-    apt-get install -y git libxml2-dev r-cran-xml libcurl4-openssl-dev
+    apt-get install -y git libxml2-dev r-cran-xml libcurl4-openssl-dev wget
 
 # Install dependencies for r-base source build
 RUN apt-get build-dep -y r-base
