@@ -4,7 +4,6 @@ CHR = "chr"
 START = "start"
 STOP = "stop"
 
-# Tested
 #' Remove the average of the genes of the reference observations from all 
 #' observations' expression. Normalization by column.
 #'
@@ -12,7 +11,7 @@ STOP = "stop"
 #'    @param average_data: Matrix containing the data to remove average from
 #'                         (this includes the reference observations).
 #'                         Row = Genes, Col = Cells.
-#'    @param reference_observations: Indices of reference observations.
+#'    @param ref_observations: Indices of reference observations.
 #'                                   Only these are used in the average.
 #'    @param ref_groups: A list of vectors of indices refering to the
 #'                       different groups of the reference indices.
@@ -61,7 +60,7 @@ average_over_ref <- function(average_data,
     return(average_data)
 }
 
-# Not testing
+# Not testing, parameters ok.
 #' Helper function allowing greater control over the steps in a color palette.
 #' Source:http://menugget.blogspot.com/2011/11/define-color-steps-for-
 #'               colorramppalette.html#more
@@ -101,7 +100,6 @@ color.palette <- function(steps,
     return(pal)
 }
 
-#' Tested
 #' Create a sepList forthe heatmap.3 plotting function given integer vectors
 #' of rows and columns where speration should take place.
 #' The expected input to the heatmap function is a list of 2 lists.
@@ -113,8 +111,8 @@ color.palette <- function(steps,
 #' Args:
 #'    @param row_count: Total number of rows
 #'    @param col_count: Total number of columns
-#'    @param col_seps: Vector of integer indices for column breaks
 #'    @param row_seps: Vector of integers indices for row breaks
+#'    @param col_seps: Vector of integer indices for column breaks
 #'
 #' Returns
 #'    @return: List of lists of vectors
@@ -159,7 +157,6 @@ create_sep_list <- function(row_count,
     return(sepList)
 }
 
-# Tested
 #' Split up reference observations in to k groups and return indices
 #' for the different groups.
 #'
@@ -227,7 +224,6 @@ split_references <- function(average_data,
     return(ret_groups)
 }
 
-# Tested
 #' Set outliers to some upper or lower bound. Then normalize values to
 #' approximately [-1, 1]. This is to prep the data for visualization.
 #'
@@ -297,7 +293,6 @@ remove_outliers_norm <- function(data,
     return(data)
 }
 
-# Tested
 #' Center data after smoothing. Center with in cells using median.
 #'
 #' Args:
@@ -315,7 +310,6 @@ center_smoothed <- function(data_smoothed){
     return(t(apply(data_smoothed, 1, "-", row_median)))
 }
 
-# Tested
 #' Center data and threshold (both negative and postive values)
 #'
 #' Args:
@@ -336,116 +330,6 @@ center_with_threshold <- function(center_data, threshold){
     return(center_data)
 }
 
-# Not testing
-#' Check arguments and make sure the user input meet certain 
-#' additional requirements.
-#'
-#' Args:
-#'    @param arguments: Parsed arguments from user.
-#'
-#' Returns:
-#'    @return: Updated arguments
-check_arguments <- function(arguments){
-
-    logging::loginfo(paste("::check_arguments:Start", sep=""))
-    # Require the name of a output pdf file
-    if (!( "pdf_file" %in% names(arguments)) || (arguments$pdf_file == "")){
-        logging::logerror(paste(":: --pdf: Please enter a file path to ",
-                                "save the heatmap.",
-                                 sep=""))
-    }
-
-    # Require the cut off to be above 0
-    if (arguments$cutoff < 0){
-        logging::logerror(paste(":: --cutoff: Please enter a value",
-                                "greater or equal to zero for the cut off.",
-                                sep=""))
-    }
-
-    # Require the logging level to be one handled by logging
-    if (!(arguments$log_level %in% C_LEVEL_CHOICES)){
-        logging::logerror(paste(":: --log_level: Please use a logging level ",
-                                "given here: ", C_LEVEL_CHOICES,
-                                collapse=",", sep=""))
-    }
-
-    # Require the visualization outlier detection to be a correct choice.
-    if (!(arguments$bound_method_vis %in% C_VIS_OUTLIER_CHOICES)){
-        logging::logerror(paste(":: --vis_bound_method: Please use a method ",
-                                "given here: ", C_VIS_OUTLIER_CHOICES,
-                                collapse=",", sep=""))
-    }
-
-    # Warn that an average of the samples is used in the absence of
-    # normal / reference samples
-    if (is.null(arguments$reference_observations)){
-        logging::logwarn(paste(":: --reference_observations: No reference ",
-                      "samples were given, the average of the samples ",
-                      "will be used.",
-                      sep=""))
-    }
-
-    # Make sure the threshold is centered.
-    arguments$max_centered_expression <- abs(arguments$max_centered_expression)
-    arguments$magnitude_filter <- abs(arguments$magnitude_filter)
-
-    # Require the contig tail to be above 0
-    if (is.na(arguments$contig_tail)){
-        arguments$contig_tail <- (arguments$window_length - 1) / 2
-    }
-
-    if (arguments$contig_tail < 0){
-        logging::logerror(paste(":: --tail: Please enter a value",
-                                "greater or equal to zero for the tail.",
-                                sep=""))
-    }
-
-    if (! is.na(suppressWarnings(as.integer(arguments$num_groups)))){
-        arguments$num_groups <- list(as.integer(arguments$num_groups))
-    } else {
-        # Warn references must be given.
-        if (is.null(arguments$reference_observations)){
-            logging::logerror(paste(":: --ref_groups to use this function ",
-                                    "references must be given. "))
-        }
-
-        # TODO need to check and make sure all reference indices are given.
-        num_str <- unlist(strsplit(arguments$num_groups,","))
-        if (length(num_str) == 1){
-            logging::logerror(paste(":: --ref_groups. If explicitly giving ",
-                                    "indices, make sure to give atleast ",
-                                    "two groups", sep =""))
-            stop(990)
-        }
-
-        num_groups <- list()
-        for (num_token in num_str){
-            token_numbers <- unlist(strsplit(num_token, ":"))
-            number_count <- length(token_numbers)
-            if (number_count == 1){
-                singleton <- as.integer(number_count)
-                num_groups[[length(num_groups) + 1]] <- singleton
-            } else if (number_count == 2){
-                from <- as.integer(token_numbers[1])
-                to <- as.integer(token_numbers[2])
-                num_groups[[length(num_groups) + 1]] <- seq(from, to)
-            } else {
-                logging::logerror(paste(":: --ref_groups is expecting either ",
-                                        "one number or a comma delimited list ",
-                                        "of numbers or spans using ':'. ",
-                                        "Examples include: --ref_groups 3 or ",
-                                        " --ref_groups 1,3,5,6,3 or ",
-                                        " --ref_groups 1:5,6:20 or ",
-                                        " --ref_groups 1,2:5,6,7:10 .", sep=""))
-                stop(999)
-            }
-        }
-        arguments$num_groups <- num_groups
-    }
-    return(arguments)
-}
-
-# Not testing
 #' Returns the color palette for contigs.
 #'
 #' Returns:
@@ -454,7 +338,8 @@ get_group_color_palette <- function(){
     return(colorRampPalette(RColorBrewer::brewer.pal(12,"Set3")))
 }
 
-# Functional Tests? TODO
+
+# params ok
 #' Infer CNV changes given a matrix of RNASeq counts.
 #' Output a pdf and matrix of final values.
 #'
@@ -487,8 +372,6 @@ get_group_color_palette <- function(){
 #'                     also written to this path but with the extension .txt .
 #'    @param plot_steps: If true turns on plotting intermediate steps.
 #'    @param contig_tail: Length of the tail removed from the ends of contigs.
-#'    @param color_safe: Logical indicator to use a color blind safe palette (TRUE) or
-#'                 the original publication color scheme.
 #'    @param cluster_reference: If given, clustering of observation will only be
 #'                              relative to genes on this contig.
 #'    @param method_bound: Method to use for bounding values in the visualization.
@@ -508,45 +391,23 @@ infer_cnv <- function(data,
                       noise_threshold,
                       num_ref_groups,
                       num_obs_groups,
-                      pdf_path,
-                      main,
-                      obs_lab,
-                      ref_lab,
-                      contig_name_size=1,
+                      out_path,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
-                      color_safe=TRUE,
                       cluster_reference=NULL,
                       method_bound_vis=NA,
                       lower_bound_vis=NA,
                       upper_bound_vis=NA){
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
-    # Establish an output dir and file base
-    plot_steps_path <- unlist(strsplit(pdf_path, "\\."))
-    path_tokens_count=length(plot_steps_path)
-    if(path_tokens_count > 1){
-        if(tolower(plot_steps_path[path_tokens_count])=="pdf"){
-            plot_steps_path=plot_steps_path[1:(path_tokens_count-1)]
-        }
-        if(path_tokens_count == 2){
-            plot_steps_path=plot_steps_path[1]
-        } else if(path_tokens_count > 2){
-            plot_steps_path=paste(plot_steps_path[seq(1,path_tokens_count-1)],collapse=".")
-        }
-    }
-    if((length(plot_steps_path) < 1) || plot_steps_path == ""){
-        plot_steps_path = "pdf"
-    }
+    # Return list of matrices
+    ret_list <- list()
 
-    if(!file.exists(plot_steps_path)){
-        dir.create(plot_steps_path)
-    }
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
-                            plot_name=file.path(plot_steps_path,
-                                                "00_reduced_data.pdf"))
+                  plot_name=file.path(out_path,
+                                      "00_reduced_data.pdf"))
     }
 
     # Make sure data is log transformed + 1
@@ -556,8 +417,8 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
-                            plot_name=file.path(plot_steps_path,
-                                                "02_transformed.pdf"))
+                  plot_name=file.path(out_path,
+                                      "02_transformed.pdf"))
     }
 
     # Reduce by cutoff
@@ -582,7 +443,7 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "03_reduced_by_cutoff.pdf"))
     }
 
@@ -602,7 +463,7 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "05_center_with_threshold.pdf"))
     }
 
@@ -613,7 +474,7 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "06_smoothed.pdf"))
     }
 
@@ -623,7 +484,7 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "07_recentered.pdf"))
     }
 
@@ -650,7 +511,7 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "08_remove_average.pdf"))
     }
 
@@ -672,7 +533,7 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "09_remove_ends.pdf"))
     }
     logging::loginfo(paste("::infer_cnv:Remove ends, ",
@@ -696,60 +557,47 @@ infer_cnv <- function(data,
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
+                            plot_name=file.path(out_path,
                                                 "11_denoise.pdf"))
     }
 
     # Output before viz outlier
-    write.table(data_smoothed, file=paste(plot_steps_path, "expression_pre_vis_transform.txt", sep=.Platform$file.sep))
-    logging::loginfo(paste("::infer_cnv:Writing final data to ",
-                           paste(pdf_path, ".txt", sep=""), sep=""))
+    ret_list[["PREVIZ"]] = data_smoothed
 
     # Remove outliers for viz
     remove_outlier_viz_pdf <- NA
     if (plot_steps){
-        remove_outlier_viz_pdf <- file.path(plot_steps_path,
+        remove_outlier_viz_pdf <- file.path(out_path,
                                             "10A_remove_outlier.pdf")
     }
-    data_smoothed <- remove_outliers_norm(data=data_smoothed,
+    ret_list[["VIZ"]] <- remove_outliers_norm(data=data_smoothed,
                                           out_method=method_bound_vis,
                                           lower_bound=lower_bound_vis,
                                           upper_bound=upper_bound_vis,
                                           plot_step=remove_outlier_viz_pdf)
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(plot_steps_path,
-                                                "10B_remove_outlier.pdf"))
+        plot_step(data=ret_list[["VIZ"]],
+                  plot_name=file.path(out_path,
+                                      "10B_remove_outlier.pdf"))
     }
     logging::loginfo(paste("::infer_cnv:remove outliers, ",
                            "new dimensions (r,c) = ",
-                           paste(dim(data_smoothed), collapse=","),
-                           " Total=", sum(data_smoothed),
-                           " Min=", min(data_smoothed),
-                           " Max=", max(data_smoothed),
+                           paste(dim(ret_list[["VIZ"]]), collapse=","),
+                           " Total=", sum(ret_list[["VIZ"]]),
+                           " Min=", min(ret_list[["VIZ"]]),
+                           " Max=", max(ret_list[["VIZ"]]),
                            ".", sep=""))
 
-    # Plot and write data
-    logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
-                           pdf_path, sep=""))
-    logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
-                           paste(dim(data_smoothed), collapse=","), sep=""))
-    plot_cnv(plot_data=data_smoothed,
-                       contigs=paste(as.vector(as.matrix(chr_order))),
-                       k_obs_groups=num_obs_groups,
-                       reference_idx=reference_obs,
-                       ref_contig=cluster_reference,
-                       contig_cex=contig_name_size,
-                       ref_groups=groups_ref,
-                       pdf_path=plot_steps_path,
-                       color_safe_pal=color_safe,
-                       title=main,
-                       obs_title=obs_lab,
-                       ref_title=ref_lab)
+    ret_list[["CONTIGS"]] = paste(as.vector(as.matrix(chr_order)))
+    ret_list[["N_OBS_GROUPS"]] = num_obs_groups
+    ret_list[["REF_OBS_IDX"]] = reference_obs
+    ret_list[["CLUST_REF"]] = cluster_reference
+    ret_list[["REF_GROUPS"]] = groups_ref
+    return(ret_list)
 }
 
-# Not testing
+# Not testing, params ok
 #' Log intermediate step with a plot and text file of the steps.
 #'
 #' Args:
@@ -769,7 +617,7 @@ plot_step <- function(data, plot_name){
     write.table(data, file=text_file)
 }
 
-# Not Testing
+# Not Testing, params ok.
 #' Plot the matrix as a heatmap.
 #' Clustering is on observation only, gene position is preserved.
 #'
@@ -779,7 +627,11 @@ plot_step <- function(data, plot_name){
 #'    @param reference_idx: Vector of reference indices.
 #'    @param ref_contig: If given, will focus cluster on only genes in this contig
 #'    @param reg_groups: Groups of vector indices (as indices in reference_idx)
-#'    @param pdf_path: Path to save pdf file.
+#'    @param out_dir: Directory in which to save pdf and other output.
+#'    @param title: Plot title.
+#'    @param obs_title: Title for the observations matrix.
+#'    @param ref_title: Title for the reference matrix.
+#'    @param contig_cex: Contig text size.
 #'    @param k_obs_groups: Number of groups to break observation into
 #'    @param color_safe_pal: Logical indication of using a color blindness safe
 #'                          palette.
@@ -791,7 +643,7 @@ plot_cnv <- function(plot_data,
                      reference_idx,
                      ref_contig,
                      ref_groups,
-                     pdf_path,
+                     out_dir,
                      title,
                      obs_title,
                      ref_title,
@@ -849,7 +701,7 @@ plot_cnv <- function(plot_data,
     }
 
     # Rows observations, Columns CHR
-    pdf(paste(pdf_path,"pdf",sep="."),
+    pdf(paste(out_dir,"infercnv.pdf",sep="."),
         useDingbats=FALSE,
         width=10,
         height=7.5,
@@ -863,7 +715,6 @@ plot_cnv <- function(plot_data,
     obs_data <- plot_data
     if (!is.null(ref_idx)){
         obs_data <- plot_data[, -1 * ref_idx, drop=FALSE]
-        #TODO there will always be more obs, flip this with ref.
         if (ncol(obs_data) == 1){
                 plot_data <- cbind(obs_data, obs_data)
                 names(obs_data) <- c("", names(obs_data)[1])
@@ -873,7 +724,7 @@ plot_cnv <- function(plot_data,
     # Create file base for plotting output
     force_layout <- plot_observations_layout()
     plot_cnv_observations(obs_data=t(obs_data),
-                          file_base_name=pdf_path,
+                          file_base_name=out_dir,
                           cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
                           contig_label=contig_labels,
@@ -894,7 +745,7 @@ plot_cnv <- function(plot_data,
                             ref_groups=ref_groups,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
-                            file_base_name=pdf_path,
+                            file_base_name=out_dir,
                             cnv_ref_title=ref_title,
                             layout_add=TRUE)
     }
@@ -913,6 +764,9 @@ plot_cnv <- function(plot_data,
 #'    @param contig_seps: Indices for line seperators of contigs.
 #'    @param num_obs_groups: Number of groups of observations to create
 #'    @param file_base_name: Base of the file to used to make output file names.
+#'    @param cnv_title: Title of the plot.
+#'    @param cnv_obs_title: Title for the observation matrix.
+#'    @param contig_lab_size: Text size for contigs.
 #'    @param cluster_contig: A value directs cluster to only genes on this contig
 #'    @param layout_lmat: lmat values to use in layout
 #'    @param layout_lhei: lhei values to use in layout
@@ -1065,7 +919,7 @@ plot_cnv_observations <- function(obs_data,
                 file=observation_file_base)
 }
 
-# Not Testing
+# Not Testing, params ok.
 #' Create the layout for the plot
 #' This is a modification of the original
 #' layout from the GMD heatmap.3 function
@@ -1112,12 +966,14 @@ plot_observations_layout <- function()
 #'    @param ref_data: Data to plot as references. Rows = Cells, Col = Genes
 #'    @param ref_groups: Groups of references to plot together.
 #'    @param col_pal: The color palette to use.
-#'    @param contig_seps: Indices for line seperators of contigs
+#'    @param contig_seps: Indices for line seperators of contigs.
 #'    @param file_base_name: Base of the file to used to make output file names.
-#'    @param layout_lmat: lmat values to use in the layout
-#'    @param layout_lwid: lwid values to use in the layout
-#'    @param layout_lhei: lhei values to use in the layout
+#'    @param cnv_ref_title: Title for reference matrix.
+#'    @param layout_lmat: lmat values to use in the layout.
+#'    @param layout_lwid: lwid values to use in the layout.
+#'    @param layout_lhei: lhei values to use in the layout.
 #'    @param layout_add: Indicates the ref image shoudl be added to the previous plot.
+#'    @param testing: Turns off plotting when true.
 #'
 #' Returns:
 #'    @return: Void
@@ -1230,7 +1086,6 @@ plot_cnv_references <- function(ref_data,
                 file=reference_data_file)
 }
 
-# Tested
 #' Return the indices of the rows that average above the cut off
 #'
 #' Args:
@@ -1254,7 +1109,6 @@ above_cutoff <- function(data, cutoff){
     }
 }
 
-# Tested
 #' Order the data and subset the data to data in the genomic position file.
 #'
 #' Args:
@@ -1322,7 +1176,6 @@ order_reduce <- function(data, genomic_position){
     return(ret_results)
 }
 
-# Tested
 #' Remove values that are too close to the average and are considered noise.
 #'
 #' Args:
@@ -1342,7 +1195,6 @@ remove_noise <- function(smooth_matrix, threshold){
     return(smooth_matrix)
 }
 
-# Tested
 #' Remove the tails of values of a specific chromosome.
 #' The smooth_matrix values are expected to be in genomic order.
 #' If the tail is too large and no contig will be left 1/3 of the
@@ -1373,7 +1225,6 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
     return(remove_indices)
 }
 
-# Tested
 #' Smooth a matrix by column using a simple moving average.
 #' Tails of the averages use a window length that is truncated to
 #' available data.
@@ -1419,7 +1270,6 @@ smooth_window <- function(data, window_length){
     return(data_sm)
 }
 
-# Tested (in parent function)
 #' Helper function for smoothing the ends of a moving average.
 #'
 #' Args:
@@ -1444,7 +1294,6 @@ smooth_ends_helper <- function(obs_data, obs_tails){
     return(end_data)
 }
 
-# Tested (in parent function)
 #' Smooth vector of values over the given window length.
 #'
 #' Args:
@@ -1459,37 +1308,10 @@ smooth_window_helper <- function(obs_data, window_length){
     return(filter(obs_data, rep(1 / window_length, window_length), sides=2))
 }
 
-# TODO Works but pulled out until we go over it.
-#' Measure an euclidean distance weighted by complexity.
-#' It is assumed rows are to be clustered
-#'
-#' Args:
-#'    @param data: Data to generate a distance matrix on the matrix rows.
-#' Returns
-#'    @return: Distance object of Euclidean distance weighted by complexity.
-#sparse_euclid <- function(data){
-#    feature_count <- nrow(data)
-#    obs_complex <- apply(data, MARGIN=2, FUN=function(x) return(sum(x!=0)))
-#    per_complex <- obs_complex / feature_count
-#    out_matrix <- matrix(rep(NA,feature_count^2),ncol=feature_count)
-#    names(out_matrix) <- row.names(data)
-#    row.names(out_matrix) <- row.names(data)
-#    for( fi_one in 1:feature_count ){
-#        for( fi_two in fi_one:feature_count ){
-#            f1 <- data[fi_one,]
-#            f2 <- data[fi_two,]
-#            d <- sqrt(sum(per_complex * (f1 - f2)^2))
-#            out_matrix[fi_one, fi_two] <- d
-#            out_matrix[fi_two, fi_one] <- d
-#        }
-#    }
-#    return(as.dist(out_matrix))
-#}
 
 #########################################
 # Plotting from GMD
 ###################
-### Not Testing
 ###
 # This package relies on heatmap.3 from the library GMD
 # This code is a modified version of heatmap.3, some changes
@@ -2945,387 +2767,4 @@ get.sep <-
     }
   }
   sepList
-}
-
-################
-# End GMD plotting code
-##########################################
-
-
-# Load libraries
-library(ape)
-library("RColorBrewer", character.only=TRUE)
-library(GMD)
-library(optparse)
-library(logging)
-
-# If called as source from commandline
-if (identical(environment(),globalenv()) &&
-    !length(grep("^source\\(", sys.calls()))){
-
-    # Logging level choices
-    C_LEVEL_CHOICES <- names(loglevels)
-    # Visualization outlier thresholding and bounding method choices
-    C_VIS_OUTLIER_CHOICES <- c("average_bound")
-
-    # Command line arguments
-    pargs <- optparse::OptionParser(usage=paste("%prog [options]",
-                                      "--pdf pdf_file",
-                                      "data_matrix genomic_positions"))
-
-    pargs <- optparse::add_option(pargs, c("--color_safe"),
-                        type="logical",
-                        default=FALSE,
-                        action="store_true",
-                        dest="use_color_safe",
-                        metavar="Color_Safe",
-                        help=paste("To support the needs of those who see ",
-                                   "colors differently, use this option to",
-                                   "change the colors to a palette visibly ",
-                                   "distinct to all color blindness. ",
-                                   " [Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--contig_lab_size"),
-                        type="integer",
-                        action="store",
-                        default=1,
-                        dest="contig_label_size",
-                        metavar="Contig_Label_Size",
-                        help=paste("Used to increase or decrease the text labels",
-                                   "for the X axis (contig names).",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--cutoff"),
-                        type="integer",
-                        default=0,
-                        action="store",
-                        dest="cutoff",
-                        metavar="Cutoff",
-                        help=paste("A number >= 0 is expected. A cut off for",
-                                   "the average expression of genes to be used",
-                                   "for CNV inference. [Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--transform"),
-                        type="logical",
-                        default=FALSE,
-                        action="store_true",
-                        dest="log_transform",
-                        metavar="LogTransform",
-                        help=paste("Matrix is assumed to be Log2(TPM+1) ",
-                                   "transformed. If instead it is raw TPMs ",
-                                   "use this flag so that the data will be ",
-                                   "transformed. [Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--log"),
-                        type="character",
-                        action="store",
-                        default=NA,
-                        dest="log_file",
-                        metavar="Log",
-                        help=paste("File for logging. If not given,",
-                                   "logging will occur to console.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--log_level"),
-                        type="character",
-                        action="store",
-                        default="INFO",
-                        dest="log_level",
-                        metavar="LogLevel",
-                        help=paste("Logging level. Valid choices are",
-                                   paste(C_LEVEL_CHOICES,collapse=", "),
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--noise_filter"),
-                        type="numeric",
-                        default=0,
-                        action="store",
-                        dest="magnitude_filter",
-                        metavar="Magnitude_Filter",
-                        help=paste("A value must be atleast this much more or",
-                                   "less than the reference to be plotted",
-                                   "[Default %default]."))
-
-    pargs <- optparse::add_option(pargs, c("--max_centered_expression"),
-                        type="integer",
-                        default=3,
-                        action="store",
-                        dest="max_centered_expression",
-                        metavar="Max_centered_expression",
-                        help=paste("This value and -1 * this value are used",
-                                   "as the maximum value expression that can",
-                                   "exist after centering data. If a value is",
-                                   "outside of this range, it is truncated to",
-                                   "be within this range [Default %default]."))
-
-    pargs <- optparse::add_option(pargs, c("--obs_groups"),
-                        type="character",
-                        default=1,
-                        action="store",
-                        dest="num_obs_groups",
-                        metavar="Number_of_observation_groups",
-                        help=paste("Number of groups in which to break ",
-                                   "the observations.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--pdf"),
-                        type="character",
-                        action="store",
-                        dest="pdf_file",
-                        metavar="Output_PDF_Visualization",
-                        help=paste("Output PDF for visualizing the analysis.",
-                                   "[Default %default][REQUIRED]"))
-
-    pargs <- optparse::add_option(pargs, c("--ref"),
-                        type="character",
-                        default=NULL,
-                        action="store",
-                        dest="reference_observations",
-                        metavar="Input_reference_observations",
-                        help=paste("Tab delimited characters are expected.",
-                                   "Names of the subset of samples ( data's",
-                                   "columns ) that should be used as",
-                                   "references if not given, the average of",
-                                   "all samples will be the reference.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--ref_groups"),
-                        type="character",
-                        default=1,
-                        action="store",
-                        dest="num_groups",
-                        metavar="Number_of_reference_groups",
-                        help=paste("Indicies of groups in which to group",
-                                   "the reference samples; or a number",
-                                   "of groups to make automatically",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs,c("--obs_cluster_contig"),
-                        type="character",
-                        default=NULL,
-                        action="store",
-                        dest="clustering_contig",
-                        metavar="Clustering_Contig",
-                        help=paste("When clustering observation samples, ",
-                                   "all genomic locations are used unless ",
-                                   "this option is given. The expected value ",
-                                   "is one of the contigs (Chr) in the genomic ",
-                                   "positions file (case senstive). All genomic ",
-                                   "positions will be plotted but only the given ",
-                                   "contig will be used in clustering / group ",
-                                   "creation."))
-
-    pargs <- optparse::add_option(pargs, c("--steps"),
-                        type="logical",
-                        default=FALSE,
-                        action="store_true",
-                        dest="plot_steps",
-                        metavar="plot_steps",
-                        help=paste("Using this argument turns on plotting ",
-                                   "intemediate steps. The plots will occur ",
-                                   "in the same directory as the output pdf. ",
-                                   "Please note this option increases the time",
-                                   " needed to run [Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--vis_bound_method"),
-                        type="character",
-                        default=NA,
-                        action="store",
-                        dest="bound_method_vis",
-                        metavar="Outlier_Removal_Method_Vis",
-                        help=paste("Method to automatically detect and bound",
-                                   "outliers. Used for visualizing. If both",
-                                   "this argument and ",
-                                   "--vis_bound_threshold are given, this will",
-                                   "not be used. Valid choices are",
-                                   paste(C_VIS_OUTLIER_CHOICES, collapse=", "),
-                                   " [Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--vis_bound_threshold"),
-                        type="character",
-                        default=NA,
-                        action="store",
-                        dest="bound_threshold_vis",
-                        metavar="Outlier_Removal_Threshold_Vis",
-                        help=paste("Used as upper and lower bounds for values",
-                                   "in the visualization. If a value is",
-                                   "outside this bound it will be replaced by",
-                                   "the closest bound. Should be given in",
-                                   "the form of 1,1 (upper bound, lower bound)",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--window"),
-                        type="integer",
-                        default=101,
-                        action="store",
-                        dest="window_length",
-                        metavar="Window_Lengh",
-                        help=paste("Window length for the smoothing.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--tail"),
-                        type="integer",
-                        default=NA,
-                        action="store",
-                        dest="contig_tail",
-                        metavar="contig_tail",
-                        help=paste("Contig tail to be removed.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--title"),
-                        type="character",
-                        default="Copy Number Variation Inference",
-                        action="store",
-                        dest="fig_main",
-                        metavar="Figure_Title",
-                        help=paste("Title of the figure.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--title_obs"),
-                        type="character",
-                        default="Observations (Cells)",
-                        action="store",
-                        dest="obs_main",
-                        metavar="Observations_Title",
-                        help=paste("Title of the observations matrix Y-axis.",
-                                   "[Default %default]"))
-
-    pargs <- optparse::add_option(pargs, c("--title_ref"),
-                        type="character",
-                        default="References (Cells)",
-                        action="store",
-                        dest="ref_main",
-                        metavar="References_Title",
-                        help=paste("Title of the references matrix Y-axis (if used).",
-                                   "[Default %default]"))
-
-    args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
-    args <- args_parsed$options
-    args["input_matrix"] <- args_parsed$args[1]
-    args["gene_order"] <- args_parsed$args[2]
-
-    # Check arguments
-    args <- check_arguments(args)
-
-    # Parse bounds
-    bounds_viz <- c(NA,NA)
-    if (!is.na(args$bound_threshold_vis)){
-        bounds_viz <- as.numeric(unlist(strsplit(args$bound_threshold_vis,",")))
-    }
-    if (length(bounds_viz) != 2){
-        error_message <- paste("Please use the correct format for the argument",
-                               "--vis_bound_threshold . Two numbers seperated",
-                               "by a comma is expected (lowerbound,upperbound)",
-                               ". As an example, to indicate that outliers are",
-                               "outside of -1 and 1 give the following.",
-                               "--vis_bound_threshold -1,1")
-        stop(error_message)
-    }
-
-    # Set up logging file
-    logging::basicConfig(level=args$log_level)
-    if (!is.na(args$log_file)){
-        logging::addHandler(logging::writeToFile,
-                             file=args$log_file,
-                             level=args$log_level)
-    }
-
-    # Log the input parameters
-    logging::loginfo(paste("::Input arguments. Start.")) 
-    for (arg_name in names(args)){
-        logging::loginfo(paste(":Input_Argument:",arg_name,"=",args[[arg_name]],
-                               sep="")) 
-    }
-    logging::loginfo(paste("::Input arguments. End.")) 
-
-    # Manage inputs
-    logging::loginfo(paste("::Reading data matrix.", sep=""))
-    # Row = Genes/Features, Col = Cells/Observations
-    expression_data <- read.table(args$input_matrix)
-    logging::loginfo(paste("Original matrix dimensions (r,c)=",
-                  paste(dim(expression_data), collapse=",")))
-
-    # Read in the gen_pos file
-    input_gene_order <- seq(1, nrow(expression_data), 1)
-    if (args$gene_order != ""){
-        input_gene_order <- read.table(args$gene_order, row.names=1)
-        names(input_gene_order) <- c(CHR, START, STOP)
-    }
-    logging::loginfo(paste("::Reading gene order.", sep=""))
-    logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
-
-    # Default the reference samples to all
-    input_reference_samples <- colnames(expression_data)
-    if (!is.null(args$reference_observations)){
-        # This argument can be either a list of column labels
-        # which is a comma delimited list of column labels
-        # holding a comma delimited list of column labels
-        refs <- args$reference_observations
-        if (file.exists(args$reference_observations)){
-            refs <- scan(args$reference_observations,
-                         what="character",
-                         quiet=TRUE)
-            refs <- paste(refs, collapse=",")
-        }
-        # Split on comma
-        refs <- unique(unlist(strsplit(refs, ",", fixed=FALSE)))
-        # Remove multiple spaces to single spaces
-        refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
-        refs <- refs[refs != ""]
-        # Normalize names with make.names so they are treated
-        # as the matrix column names
-        refs <- make.names(refs)
-        if (length(refs) > 0){
-            input_reference_samples <- refs
-        }
-    }
-
-    # Make sure the given reference samples are in the matrix.
-    if (length(input_reference_samples) !=
-        length(intersect(input_reference_samples, colnames(expression_data)))){
-        missing_reference_sample <- setdiff(input_reference_samples,
-                                            colnames(expression_data))
-        error_message <- paste("Please make sure that all the reference sample",
-                              "names match a sample in your data matrix.",
-                              "Attention to: ",
-                              paste(missing_reference_sample, collapse=","))
-        logging::logerror(error_message)
-        stop(error_message)
-    }
-
-    # Order and reduce the expression to the genomic file.
-    order_ret <- order_reduce(data=expression_data,
-                                        genomic_position=input_gene_order)
-    expression_data <- order_ret$expr
-    input_gene_order <- order_ret$order
-    if(is.null(expression_data)){
-        error_message <- paste("None of the genes in the expression data",
-                              "matched the genes in the reference genomic",
-                              "position file. Analysis Stopped.")
-        stop(error_message)
-    }
-
-    # Run CNV inference
-    infer_cnv(data=expression_data,
-                        gene_order=input_gene_order,
-                        cutoff=args$cutoff,
-                        reference_obs=input_reference_samples,
-                        transform_data=args$log_transform,
-                        window_length=args$window_length,
-                        max_centered_threshold=args$max_centered_expression,
-                        noise_threshold=args$magnitude_filter,
-                        num_ref_groups=args$num_groups,
-                        cluster_reference=args$clustering_contig,
-                        num_obs_groups=args$num_obs,
-                        pdf_path=args$pdf_file,
-                        plot_steps=args$plot_steps,
-                        contig_tail=args$contig_tail,
-                        contig_name_size=args$contig_label_size,
-                        color_safe=args$use_color_safe,
-                        method_bound_vis=args$bound_method_vis,
-                        lower_bound_vis=bounds_viz[1],
-                        upper_bound_vis=bounds_viz[2],
-                        main=args$fig_main,
-                        obs_lab=args$obs_main,
-                        ref_lab=args$ref_main)
 }
