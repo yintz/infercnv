@@ -1,6 +1,6 @@
 language: r
 
-r: 3.2.1
+r: 3.2
 warnings_are_errors: false
 sudo: false
 cache: packages
