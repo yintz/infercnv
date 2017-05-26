@@ -1,6 +1,6 @@
 language: r
 
-r: bioc-release
+r: 3.2.1
 warnings_are_errors: false
 sudo: false
 cache: packages
