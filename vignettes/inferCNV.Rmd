@@ -5,6 +5,9 @@ Authors: Timothy Tickle, Itay Tirosh, Brian Haas
 
 For a quick start, explainations on files, usage, and a tutorial please visit the wiki at [https://github.com/broadinstitute/inferCNV/wiki](https://github.com/broadinstitute/inferCNV/wiki)
 
+## TrinityCTAT
+This tool is a part of the TrinityCTAT toolkit focused on leveraging the use of RNA-Seq to better understand cancer transcriptomes. To find out more please visit [TrinityCTAT](https://github.com/NCIP/Trinity_CTAT/wiki)
+
 ## Citation
 Please use the following citation:
 
