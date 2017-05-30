@@ -6,16 +6,17 @@
 \usage{
 order_reduce(data, genomic_position)
 }
-\description{
-Args:
-   @param data: Data (expression) matrix where the row names should be in
-                the row names of the genomic_position file.
-   @param genomic_position: Data frame read in from the genomic position file
+\arguments{
+\item{data:}{Data (expression) matrix where the row names should be in
+the row names of the genomic_position file.}
+
+\item{genomic_position:}{Data frame read in from the genomic position file}
 }
-\details{
-Returns:
-   @return: Returns a matrix of expression in the order of the
+\value{
+Returns a matrix of expression in the order of the
            genomic_position file. NULL is returned if the genes in both
            data parameters do not match.
 }
-
+\description{
+Args:
+}

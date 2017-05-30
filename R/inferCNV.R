@@ -4,21 +4,21 @@ CHR = "chr"
 START = "start"
 STOP = "stop"
 
-#' Remove the average of the genes of the reference observations from all 
-#' observations' expression. Normalization by column.
-#'
-#' Args:
-#'    @param average_data: Matrix containing the data to remove average from
-#'                         (this includes the reference observations).
-#'                         Row = Genes, Col = Cells.
-#'    @param ref_observations: Indices of reference observations.
-#'                                   Only these are used in the average.
-#'    @param ref_groups: A list of vectors of indices refering to the
-#'                       different groups of the reference indices.
-#'
-#' Returns:
-#'    @return: Expression with the average gene expression in the reference 
-#'            observations removed.
+# Remove the average of the genes of the reference observations from all 
+# observations' expression. Normalization by column.
+#
+# Args:
+# average_data: Matrix containing the data to remove average
+#               from (this includes the reference observations).
+#               Row = Genes, Col = Cells.
+# ref_observations: Indices of reference observations.
+#                   Only these are used in the average.
+# ref_groups: A list of vectors of indices refering to the
+#             different groups of the reference indices.
+#
+# Returns:
+# Expression with the average gene expression in the reference 
+#          observations removed.
 average_over_ref <- function(average_data,
                              ref_observations,
                              ref_groups){
@@ -61,16 +61,16 @@ average_over_ref <- function(average_data,
 }
 
 # Not testing, parameters ok.
-#' Helper function allowing greater control over the steps in a color palette.
-#' Source:http://menugget.blogspot.com/2011/11/define-color-steps-for-
-#'               colorramppalette.html#more
-#'
-#' Args:
-#'    @param steps: Vector of colors to change use in the palette
-#'    @param between: Steps where gradients change
-#'
-#' Returns:
-#'    @return: Color palette
+# Helper function allowing greater control over the steps in a color palette.
+# Source:http://menugget.blogspot.com/2011/11/define-color-steps-for-
+#               colorramppalette.html#more
+
+# Args:
+# steps: Vector of colors to change use in the palette
+# between: Steps where gradients change
+#
+# Returns:
+# Color palette
 color.palette <- function(steps,
                           between=NULL, ...){
 
@@ -100,22 +100,22 @@ color.palette <- function(steps,
     return(pal)
 }
 
-#' Create a sepList forthe heatmap.3 plotting function given integer vectors
-#' of rows and columns where speration should take place.
-#' The expected input to the heatmap function is a list of 2 lists.
-#' The first list are column based rectangles, and the second row.
-#' To define a rectagle the index of the row or column where the line of the rectagle
-#' should be placed is done with a vector of integers, left, bottom, right and top line.
-#' Ie. list(list(c(1,0,3,10), c(5, 0, 10,10)), list(c(1,2,3,4)))
-#'
-#' Args:
-#'    @param row_count: Total number of rows
-#'    @param col_count: Total number of columns
-#'    @param row_seps: Vector of integers indices for row breaks
-#'    @param col_seps: Vector of integer indices for column breaks
-#'
-#' Returns
-#'    @return: List of lists of vectors
+# Create a sepList forthe heatmap.3 plotting function given integer vectors
+# of rows and columns where speration should take place.
+# The expected input to the heatmap function is a list of 2 lists.
+# The first list are column based rectangles, and the second row.
+# To define a rectagle the index of the row or column where the line of the rectagle
+# should be placed is done with a vector of integers, left, bottom, right and top line.
+# Ie. list(list(c(1,0,3,10), c(5, 0, 10,10)), list(c(1,2,3,4)))
+#
+# Args:
+# row_count: Total number of rows
+# col_count: Total number of columns
+# row_seps: Vector of integers indices for row breaks
+# col_seps: Vector of integer indices for column breaks
+#
+# Returns
+# List of lists of vectors
 create_sep_list <- function(row_count,
                             col_count,
                             row_seps=NULL,
@@ -157,20 +157,20 @@ create_sep_list <- function(row_count,
     return(sepList)
 }
 
-#' Split up reference observations in to k groups and return indices
-#' for the different groups.
-#'
-#' Args:
-#'    @param average_data: Matrix containing data. Row = Genes, Col = Cells.
-#'    @param ref_obs: Indices of reference obervations.
-#'    @param num_groups: The number of groups to partition nodes in or a list
-#'                       of already partitioned indices.
-#'
-#' Returns:
-#'    @return: Returns a list of grouped reference observations given as
-#'             vectors of groups. These are indices relative to the reference
-#'             observations only, so a return 1 indicates the first reference
-#'             row, not the first row.
+# Split up reference observations in to k groups and return indices
+# for the different groups.
+#
+# Args:
+# average_data: Matrix containing data. Row = Genes, Col = Cells.
+# ref_obs: Indices of reference obervations.
+# num_groups: The number of groups to partition nodes in or a list
+#                       of already partitioned indices.
+#
+# Returns:
+# Returns a list of grouped reference observations given as
+#             vectors of groups. These are indices relative to the reference
+#             observations only, so a return 1 indicates the first reference
+#             row, not the first row.
 split_references <- function(average_data,
                              ref_obs,
                              num_groups){
@@ -224,20 +224,20 @@ split_references <- function(average_data,
     return(ret_groups)
 }
 
-#' Set outliers to some upper or lower bound. Then normalize values to
-#' approximately [-1, 1]. This is to prep the data for visualization.
-#'
-#' Args:
-#'    @param data: data to remove outliers. Outliers removed within columns.
-#'    @param out_method: Method to remove outliers [(average_bound, NA (hard threshold))]
-#'    @param lower_bound: Lower bound which identifies a measurement
-#'                        as an outlier. 
-#'    @param upper_bound: Upper bound which identifies a measurement
-#'                        as an outlier.
-#'    @param plot_step: True will plot this analysis step.
-#'
-#' Returns:
-#'    @return: Return data matrix with outliers removed
+# Set outliers to some upper or lower bound. Then normalize values to
+# approximately [-1, 1]. This is to prep the data for visualization.
+#
+# Args:
+# data: data to remove outliers. Outliers removed within columns.
+# out_method: Method to remove outliers [(average_bound, NA (hard threshold))]
+# lower_bound: Lower bound which identifies a measurement
+#                        as an outlier. 
+# upper_bound: Upper bound which identifies a measurement
+#                        as an outlier.
+# plot_step: True will plot this analysis step.
+#
+# Returns:
+# Return data matrix with outliers removed
 remove_outliers_norm <- function(data,
                                  out_method=NA,
                                  lower_bound=NA,
@@ -293,15 +293,15 @@ remove_outliers_norm <- function(data,
     return(data)
 }
 
-#' Center data after smoothing. Center with in cells using median.
-#'
-#' Args:
-#'    @param data_smoothed: Matrix to center.
-#'                          Row = Genes, Col = cells.
-#'
-#' Returns:
-#'    @return: Matrix that is median centered.
-#'             Row = Genes, Col = cells.
+# Center data after smoothing. Center with in cells using median.
+#
+# Args:
+# data_smoothed: Matrix to center.
+#                          Row = Genes, Col = cells.
+#
+# Returns:
+# Matrix that is median centered.
+#             Row = Genes, Col = cells.
 center_smoothed <- function(data_smoothed){
 
     logging::loginfo(paste("::center_smoothed:Start"))
@@ -310,14 +310,14 @@ center_smoothed <- function(data_smoothed){
     return(t(apply(data_smoothed, 1, "-", row_median)))
 }
 
-#' Center data and threshold (both negative and postive values)
-#'
-#' Args:
-#'    @param center_data: Matrix to center. Row = Genes, Col = Cells.
-#'    @param threshold: Values will be required to be with -/+1 * 
-#'                      threshold after centering.
-#' Returns:
-#'    @return: Centered and thresholded matrix
+# Center data and threshold (both negative and postive values)
+#
+# Args:
+# center_data: Matrix to center. Row = Genes, Col = Cells.
+# threshold: Values will be required to be with -/+1 * 
+#                      threshold after centering.
+# Returns:
+# Centered and thresholded matrix
 center_with_threshold <- function(center_data, threshold){
 
     logging::loginfo(paste("::center_with_threshold:Start", sep=""))
@@ -330,56 +330,55 @@ center_with_threshold <- function(center_data, threshold){
     return(center_data)
 }
 
-#' Returns the color palette for contigs.
-#'
-#' Returns:
-#'    @return: Color Palette
+# Returns the color palette for contigs.
+#
+# Returns:
+# Color Palette
 get_group_color_palette <- function(){
     return(colorRampPalette(RColorBrewer::brewer.pal(12,"Set3")))
 }
 
 
-# params ok
-#' Infer CNV changes given a matrix of RNASeq counts.
-#' Output a pdf and matrix of final values.
+#' @title Infer CNV changes given a matrix of RNASeq counts. Output a pdf and matrix of final values.
 #'
-#' Args:
-#'    @param data: Expression matrix (genes X samples),
+#' @param data: Expression matrix (genes X samples),
 #'                 assumed to be log2(TPM+1) .
-#'    @param gene_order: Ordering of the genes (data's rows) 
+#' @param gene_order: Ordering of the genes (data's rows) 
 #'                       according to their genomic location
 #'                       To include all genes use 0.
-#'    @param cutoff: Cut-off for the average expression of genes to be 
+#' @param cutoff: Cut-off for the average expression of genes to be 
 #'                   used for CNV inference.
-#'    @param reference_obs: Column names of the subset of samples (data's columns)
+#' @param reference_obs: Column names of the subset of samples (data's columns)
 #'                          that should be used as references.
 #'                          If not given, the average of all samples will 
 #'                          be the reference.
-#'    @param transform_data: Indicator to log2 + 1 transform
-#'    @param window_length: Length of the window for the moving average
+#' @param transform_data: Indicator to log2 + 1 transform
+#' @param window_length: Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer.
-#'    @param max_centered_threshold: The maximum value a a value can have after
+#' @param max_centered_threshold: The maximum value a a value can have after
 #'                                   centering. Also sets a lower bound of
 #'                                   -1 * this value.
-#'    @param noise_threshold: The minimum difference a value can be from the 
+#' @param noise_threshold: The minimum difference a value can be from the 
 #'                            average reference in order for it not to be
 #'                            removed as noise.
-#'    @param num_ref_groups: The number of reference groups of a list of
+#' @param num_ref_groups: The number of reference groups of a list of
 #'                           indicies for each group of reference indices in
 #'                           relation to reference_obs.
-#'    @param num_obs_groups: Number of groups to break the observations into.
-#'    @param pdf_path: The path to what to save the pdf as. The raw data is
+#' @param out_path: The path to what to save the pdf as. The raw data is
 #'                     also written to this path but with the extension .txt .
-#'    @param plot_steps: If true turns on plotting intermediate steps.
-#'    @param contig_tail: Length of the tail removed from the ends of contigs.
-#'    @param cluster_reference: If given, clustering of observation will only be
-#'                              relative to genes on this contig.
-#'    @param method_bound: Method to use for bounding values in the visualization.
-#'    @param lower_bound_vis: Lower bound to normalize data to for visualization.
-#'    @param upper_bound_vis: Upper bound to normalize data to for visualization.
+#' @param plot_steps: If true turns on plotting intermediate steps.
+#' @param contig_tail: Length of the tail removed from the ends of contigs.
+#' @param method_bound: Method to use for bounding values in the visualization.
+#' @param lower_bound_vis: Lower bound to normalize data to for visualization.
+#' @param upper_bound_vis: Upper bound to normalize data to for visualization.
 #'
-#' Returns:
-#'    @return: No return.
+#' @return
+#' Returns a list including:
+#'     CNV matrix before visualization.
+#'     CNV matrix after outlier removal for visualization.
+#'     Contig order
+#'     Column names of the subset of samples that should be used as references.
+#'     Names of samples in reference groups. 
 #' @export
 infer_cnv <- function(data,
                       gene_order,
@@ -390,11 +389,9 @@ infer_cnv <- function(data,
                       max_centered_threshold,
                       noise_threshold,
                       num_ref_groups,
-                      num_obs_groups,
                       out_path,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
-                      cluster_reference=NULL,
                       method_bound_vis=NA,
                       lower_bound_vis=NA,
                       upper_bound_vis=NA){
@@ -590,22 +587,20 @@ infer_cnv <- function(data,
                            ".", sep=""))
 
     ret_list[["CONTIGS"]] = paste(as.vector(as.matrix(chr_order)))
-    ret_list[["N_OBS_GROUPS"]] = num_obs_groups
     ret_list[["REF_OBS_IDX"]] = reference_obs
-    ret_list[["CLUST_REF"]] = cluster_reference
     ret_list[["REF_GROUPS"]] = groups_ref
     return(ret_list)
 }
 
 # Not testing, params ok
-#' Log intermediate step with a plot and text file of the steps.
-#'
-#' Args:
-#'    @param data: The data frame to plot.
-#'    @param plot_name: The absolute path to the pdf to be plotted.
-#'
-#' Returns:
-#'    @return: No return
+# Log intermediate step with a plot and text file of the steps.
+#
+# Args:
+# data: The data frame to plot.
+# plot_name: The absolute path to the pdf to be plotted.
+#
+# Returns:
+# No return
 plot_step <- function(data, plot_name){
     text_file <- unlist(strsplit(plot_name, "\\."))
     text_file <- paste(c(text_file[1:length(text_file)], "txt"),
@@ -617,27 +612,25 @@ plot_step <- function(data, plot_name){
     write.table(data, file=text_file)
 }
 
-# Not Testing, params ok.
-#' Plot the matrix as a heatmap.
-#' Clustering is on observation only, gene position is preserved.
+#' @title Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.
 #'
-#' Args:
-#'    @param plot_data: Data matrix to plot (columns are observations).
-#'    @param contigs: The contigs the data is group in in order of rows.
-#'    @param reference_idx: Vector of reference indices.
-#'    @param ref_contig: If given, will focus cluster on only genes in this contig
-#'    @param reg_groups: Groups of vector indices (as indices in reference_idx)
-#'    @param out_dir: Directory in which to save pdf and other output.
-#'    @param title: Plot title.
-#'    @param obs_title: Title for the observations matrix.
-#'    @param ref_title: Title for the reference matrix.
-#'    @param contig_cex: Contig text size.
-#'    @param k_obs_groups: Number of groups to break observation into
-#'    @param color_safe_pal: Logical indication of using a color blindness safe
+#' @param plot_data: Data matrix to plot (columns are observations).
+#' @param contigs: The contigs the data is group in in order of rows.
+#' @param reference_idx: Vector of reference indices.
+#' @param ref_contig: If given, will focus cluster on only genes in this contig
+#' @param reg_groups: Groups of vector indices (as indices in reference_idx)
+#' @param out_dir: Directory in which to save pdf and other output.
+#' @param title: Plot title.
+#' @param obs_title: Title for the observations matrix.
+#' @param ref_title: Title for the reference matrix.
+#' @param contig_cex: Contig text size.
+#' @param k_obs_groups: Number of groups to break observation into
+#' @param color_safe_pal: Logical indication of using a color blindness safe
 #'                          palette.
 #'
-#' Returns:
-#'    @return: No return
+#' @return
+#' No return, void.
+#' @export
 plot_cnv <- function(plot_data,
                      contigs,
                      reference_idx,
@@ -753,27 +746,27 @@ plot_cnv <- function(plot_data,
 }
 
 # TODO Tested, test make files so turned off but can turn on and should pass.
-#' Plot the observational samples
-#'
-#' Args:
-#'    @param obs_data: Data to plot as observations. Rows = Cells, Col = Genes
-#'    @param col_pal: The color palette to use.
-#'    @param contig_colors: The colors for the contig bar.
-#'    @param contig_labels: The labels for the contigs.
-#'    @param contig_names: Names of the contigs
-#'    @param contig_seps: Indices for line seperators of contigs.
-#'    @param num_obs_groups: Number of groups of observations to create
-#'    @param file_base_name: Base of the file to used to make output file names.
-#'    @param cnv_title: Title of the plot.
-#'    @param cnv_obs_title: Title for the observation matrix.
-#'    @param contig_lab_size: Text size for contigs.
-#'    @param cluster_contig: A value directs cluster to only genes on this contig
-#'    @param layout_lmat: lmat values to use in layout
-#'    @param layout_lhei: lhei values to use in layout
-#'    @param layout_lwid: lwid values to use in layout
-#'
-#' Returns:
-#'    @return: Void
+# Plot the observational samples
+#
+# Args:
+# obs_data: Data to plot as observations. Rows = Cells, Col = Genes
+# col_pal: The color palette to use.
+# contig_colors: The colors for the contig bar.
+# contig_labels: The labels for the contigs.
+# contig_names: Names of the contigs
+# contig_seps: Indices for line seperators of contigs.
+# num_obs_groups: Number of groups of observations to create
+# file_base_name: Base of the file to used to make output file names.
+# cnv_title: Title of the plot.
+# cnv_obs_title: Title for the observation matrix.
+# contig_lab_size: Text size for contigs.
+# cluster_contig: A value directs cluster to only genes on this contig
+# layout_lmat: lmat values to use in layout
+# layout_lhei: lhei values to use in layout
+# layout_lwid: lwid values to use in layout
+#
+# Returns:
+# Void
 plot_cnv_observations <- function(obs_data,
                                   col_pal,
                                   contig_colors,
@@ -920,14 +913,14 @@ plot_cnv_observations <- function(obs_data,
 }
 
 # Not Testing, params ok.
-#' Create the layout for the plot
-#' This is a modification of the original
-#' layout from the GMD heatmap.3 function
-#'
-#' Returns:
-#'    @return: list with slots "lmat" (layout matrix),
-#'                             "lhei" (height, numerix vector),
-#'                             and "lwid" (widths, numeric vector)
+# Create the layout for the plot
+# This is a modification of the original
+# layout from the GMD heatmap.3 function
+#
+# Returns:
+# list with slots "lmat" (layout matrix),
+#                             "lhei" (height, numerix vector),
+#                             and "lwid" (widths, numeric vector)
 plot_observations_layout <- function()
 {
     ## Plot observational samples
@@ -960,23 +953,23 @@ plot_observations_layout <- function()
 }
 
 # TODO Tested, test make files so turned off but can turn on and should pass.
-#' Plot the reference samples
-#'
-#' Args:
-#'    @param ref_data: Data to plot as references. Rows = Cells, Col = Genes
-#'    @param ref_groups: Groups of references to plot together.
-#'    @param col_pal: The color palette to use.
-#'    @param contig_seps: Indices for line seperators of contigs.
-#'    @param file_base_name: Base of the file to used to make output file names.
-#'    @param cnv_ref_title: Title for reference matrix.
-#'    @param layout_lmat: lmat values to use in the layout.
-#'    @param layout_lwid: lwid values to use in the layout.
-#'    @param layout_lhei: lhei values to use in the layout.
-#'    @param layout_add: Indicates the ref image shoudl be added to the previous plot.
-#'    @param testing: Turns off plotting when true.
-#'
-#' Returns:
-#'    @return: Void
+# Plot the reference samples
+#
+# Args:
+# ref_data: Data to plot as references. Rows = Cells, Col = Genes
+# ref_groups: Groups of references to plot together.
+# col_pal: The color palette to use.
+# contig_seps: Indices for line seperators of contigs.
+# file_base_name: Base of the file to used to make output file names.
+# cnv_ref_title: Title for reference matrix.
+# layout_lmat: lmat values to use in the layout.
+# layout_lwid: lwid values to use in the layout.
+# layout_lhei: lhei values to use in the layout.
+# layout_add: Indicates the ref image shoudl be added to the previous plot.
+# testing: Turns off plotting when true.
+#
+# Returns:
+# Void
 plot_cnv_references <- function(ref_data,
                                 ref_groups,
                                 col_pal,
@@ -1086,15 +1079,15 @@ plot_cnv_references <- function(ref_data,
                 file=reference_data_file)
 }
 
-#' Return the indices of the rows that average above the cut off
-#'
-#' Args:
-#'    @param data: Data to measure the average row and evaluate
-#'                 against the cutoff. Row = Genes, Col = Cells.
-#'    @param cutoff: Threshold to be above to be kept.
-#'
-#' Returns:
-#'    @return: Returns a vector of row indicies to keep (are above the cutoff).
+# Return the indices of the rows that average above the cut off
+#
+# Args:
+# data: Data to measure the average row and evaluate
+#                 against the cutoff. Row = Genes, Col = Cells.
+# cutoff: Threshold to be above to be kept.
+#
+# Returns:
+# Returns a vector of row indicies to keep (are above the cutoff).
 above_cutoff <- function(data, cutoff){
 
     logging::loginfo(paste("::above_cutoff:Start", sep=""))
@@ -1112,14 +1105,14 @@ above_cutoff <- function(data, cutoff){
 #' Order the data and subset the data to data in the genomic position file.
 #'
 #' Args:
-#'    @param data: Data (expression) matrix where the row names should be in
+#' @param data: Data (expression) matrix where the row names should be in
 #'                 the row names of the genomic_position file.
-#'    @param genomic_position: Data frame read in from the genomic position file
+#' @param genomic_position: Data frame read in from the genomic position file
 #'
-#' Returns:
-#'    @return: Returns a matrix of expression in the order of the
+#' @return Returns a matrix of expression in the order of the
 #'            genomic_position file. NULL is returned if the genes in both
 #'            data parameters do not match.
+#' @export
 order_reduce <- function(data, genomic_position){
     logging::loginfo(paste("::order_reduce:Start.", sep=""))
     ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)
@@ -1176,16 +1169,16 @@ order_reduce <- function(data, genomic_position){
     return(ret_results)
 }
 
-#' Remove values that are too close to the average and are considered noise.
-#'
-#' Args:
-#'    @param smooth_matrix: A matrix of values, smoothed, and with average 
-#'                          reference removed. Row = Genes, Col = Cells.
-#'    @param threshold: The amount of difference a value must be from the
-#'                      reference before the value can be kept and not 
-#'                      removed as noise.
-#' Returns:
-#'    @return: Denoised matrix
+# Remove values that are too close to the average and are considered noise.
+#
+# Args:
+# smooth_matrix: A matrix of values, smoothed, and with average 
+#                          reference removed. Row = Genes, Col = Cells.
+# threshold: The amount of difference a value must be from the
+#                      reference before the value can be kept and not 
+#                      removed as noise.
+# Returns:
+# Denoised matrix
 remove_noise <- function(smooth_matrix, threshold){
 
     logging::loginfo(paste("::remove_noise:Start.", sep=""))
@@ -1195,19 +1188,19 @@ remove_noise <- function(smooth_matrix, threshold){
     return(smooth_matrix)
 }
 
-#' Remove the tails of values of a specific chromosome.
-#' The smooth_matrix values are expected to be in genomic order.
-#' If the tail is too large and no contig will be left 1/3 of the
-#' contig is left.
-#'
-#' Args:
-#'    @param smooth_matrix: Smoothed values in genomic order.
-#'                          Row = Genes, Col = Cells.
-#'    @param chr: Indices of the chr in which the tails are to be removed.
-#'    @param tail_length: Length of the tail to remove on both ends of the
-#'                        chr indices.
-#' Returns:
-#'    @return: Indices to remove.
+# Remove the tails of values of a specific chromosome.
+# The smooth_matrix values are expected to be in genomic order.
+# If the tail is too large and no contig will be left 1/3 of the
+# contig is left.
+#
+# Args:
+# smooth_matrix: Smoothed values in genomic order.
+#                          Row = Genes, Col = Cells.
+# chr: Indices of the chr in which the tails are to be removed.
+# tail_length: Length of the tail to remove on both ends of the
+#                        chr indices.
+# Returns:
+# Indices to remove.
 remove_tails <- function(smooth_matrix, chr, tail_length){
 
     logging::loginfo(paste("::remove_tails:Start.", sep=""))
@@ -1225,17 +1218,17 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
     return(remove_indices)
 }
 
-#' Smooth a matrix by column using a simple moving average.
-#' Tails of the averages use a window length that is truncated to
-#' available data.
-#'
-#' Args:
-#'    @param data: Data matrix to smooth. Row = Genes, Col = Cells.
-#'    @param window_length: Length of window to use for the moving average.
-#'        Should be a positive, odd integer.
-#'
-#' Returns:
-#'    @return: Matrix with columns smoothed with a simple moving average.
+# Smooth a matrix by column using a simple moving average.
+# Tails of the averages use a window length that is truncated to
+# available data.
+#
+# Args:
+# data: Data matrix to smooth. Row = Genes, Col = Cells.
+# window_length: Length of window to use for the moving average.
+#        Should be a positive, odd integer.
+#
+# Returns:
+# Matrix with columns smoothed with a simple moving average.
 smooth_window <- function(data, window_length){
 
     logging::loginfo(paste("::smooth_window:Start.", sep=""))
@@ -1270,14 +1263,14 @@ smooth_window <- function(data, window_length){
     return(data_sm)
 }
 
-#' Helper function for smoothing the ends of a moving average.
-#'
-#' Args:
-#'    @param obs_data: Data to smooth
-#'    @param obs_tails: Length of the tail to smooth.
-#'
-#' Returns:
-#'    @return: Data smoothed.
+# Helper function for smoothing the ends of a moving average.
+#
+# Args:
+# obs_data: Data to smooth
+# obs_tails: Length of the tail to smooth.
+#
+# Returns:
+# Data smoothed.
 smooth_ends_helper <- function(obs_data, obs_tails){
     end_data <- rep(NA,length(obs_data))
     obs_count <- length(obs_data)
@@ -1294,15 +1287,15 @@ smooth_ends_helper <- function(obs_data, obs_tails){
     return(end_data)
 }
 
-#' Smooth vector of values over the given window length.
-#'
-#' Args:
-#'    @param obs_data: Vector of data to smooth with a moving average.
-#'    @param window_length: Length of the window for smoothing.
-#'        Must be and odd, positive, integer.
-#'
-#' Returns:
-#'    @return: Vector of values smoothed with a moving average.
+# Smooth vector of values over the given window length.
+#
+# Args:
+# obs_data: Vector of data to smooth with a moving average.
+# window_length: Length of the window for smoothing.
+#        Must be and odd, positive, integer.
+#
+# Returns:
+# Vector of values smoothed with a moving average.
 smooth_window_helper <- function(obs_data, window_length){
 
     return(filter(obs_data, rep(1 / window_length, window_length), sides=2))
@@ -1319,17 +1312,17 @@ smooth_window_helper <- function(obs_data, window_length){
 # The heatmap.cnv function should be considered a modification
 # of th GMD library function heatmap.3, all credit goes to
 # their authors.
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's authors.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' A copy of gtools::invalid
-##' 
-##' see \code{invalid} in package:gtools for details
-##' @title Test if a value is missing, empty, or contains only NA or NULL values
-##' @param x value to be tested
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's authors.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## A copy of gtools::invalid
+## 
+## see \code{invalid} in package:gtools for details
+## Test if a value is missing, empty, or contains only NA or NULL values
+## param: x value to be tested
 .invalid <- 
   function(x) 
 {
@@ -1342,19 +1335,18 @@ smooth_window_helper <- function(obs_data, window_length){
   else return(FALSE)
 }
 
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's authors.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' Call a function with arguments
-##'
-##' Call a function with arguments
-##' @title Call a function with arguments
-##' @param FUN function or function name 
-##' @param ... unnameed function arguments
-##' @param MoreArgs named (or unnameed) function arguments
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's authors.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## Call a function with arguments
+##
+## Call a function with arguments
+## FUN function or function name 
+## ... unnameed function arguments
+## MoreArgs named (or unnameed) function arguments
 .call.FUN <-
   function(FUN,...,MoreArgs)
 {
@@ -1375,20 +1367,19 @@ smooth_window_helper <- function(obs_data, window_length){
   return(ret)
 }
 
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's authors.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' Scale values to make them follow Standard Normal Distribution
-##'
-##' Scale values to make them follow Standard Normal Distribution
-##' @title Scale values to make them follow Standard Normal Distribution
-##' @param x numeric
-##' @param scale character, indicating the type to scale.
-##' @param na.rm logical
-##' @return an object with the same dimention of `x'.
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's authors.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## Scale values to make them follow Standard Normal Distribution
+##
+## Scale values to make them follow Standard Normal Distribution
+## param x numeric
+## param scale character, indicating the type to scale.
+## param na.rm logical
+## return an object with the same dimention of `x'.
 .scale.data <-
   function(x,scale,na.rm=TRUE)
 {
@@ -1404,18 +1395,17 @@ smooth_window_helper <- function(obs_data, window_length){
   x
 }
 
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's author's.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' Scale values to a new range: c(low, high)
-##' @title Scale values to a new range.
-##' @param x numeric
-##' @param low numeric, lower bound of target values
-##' @param high numeric, higher bound of target values
-##' @return an object with the same dimention of `x'.
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's author's.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## Scale values to a new range: c(low, high)
+## x numeric
+## low numeric, lower bound of target values
+## high numeric, higher bound of target values
+## return an object with the same dimention of `x'.
 .scale.x <-
   function(x,low=0,high=1,na.rm=TRUE)
 {
@@ -1425,23 +1415,22 @@ smooth_window_helper <- function(obs_data, window_length){
   a*x+b
 }
 
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's author's.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' Plot text
-##'
-##' Plot text
-##' @title Plot text
-##' @param x character, text to plot
-##' @param cex
-##' @param forecolor color of foreground
-##' @param bg color of background
-##' @param bordercolor color of border
-##' @param axes as in \code{graphics:::plot}
-##' @param ... additional arguments for \code{graphics:::text}
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's author's.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## Plot text
+##
+## Plot text
+## x character, text to plot
+## cex
+## forecolor color of foreground
+## bg color of background
+## bordercolor color of border
+## axes as in \code{graphics:::plot}
+## ... additional arguments for \code{graphics:::text}
 .plot.text <- function(x,xlim=c(0,1),ylim=c(0,1),cex=1,forecolor=par("fg"),bg=par("bg"),bordercolor=NA,axes=FALSE,...){
   if (.invalid(x)){
     x <- NULL
@@ -1457,13 +1446,13 @@ smooth_window_helper <- function(obs_data, window_length){
   text(0.5,0.5,x,cex=cex,...)
 }
 
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's author's.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' This was originally heatmap.3.
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's author's.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## This was originally heatmap.3.
 heatmap.cnv <-
   function(x,
 
@@ -2727,16 +2716,15 @@ heatmap.cnv <-
   invisible(ret)
 }
 
-##' Please note this code is from the library GMD
-##' All credit for this code goes to GMD's authors.
-##' I do not recommend using this version of the code, which
-##' has been poorly modified for our use but recommend using
-##' the official version from the package GMD
-##' https://cran.r-project.org/web/packages/GMD/index.html
-##' Get row or column lines of separation for \code{heatmap.3} according to clusters
-##' @title Get row or column lines of separation for heatmap.3
-##' @param clusters a numerical vector, indicating the cluster labels of observations.
-##' @param type string, one of the following: \code{c("row","column","both")}
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's authors.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+## Get row or column lines of separation for \code{heatmap.3} according to clusters
+## param clusters a numerical vector, indicating the cluster labels of observations.
+## param type string, one of the following: \code{c("row","column","both")}
 get.sep <-
   function(clusters,type=c("row","column","both"))
 {

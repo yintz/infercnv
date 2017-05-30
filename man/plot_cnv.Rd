@@ -2,31 +2,38 @@
 % Please edit documentation in R/inferCNV.R
 \name{plot_cnv}
 \alias{plot_cnv}
-\title{Plot the matrix as a heatmap.
-Clustering is on observation only, gene position is preserved.}
+\title{Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.}
 \usage{
 plot_cnv(plot_data, contigs, reference_idx, ref_contig, ref_groups, out_dir,
   title, obs_title, ref_title, contig_cex = 1, k_obs_groups = 1,
   color_safe_pal = TRUE)
 }
-\description{
-Args:
-   @param plot_data: Data matrix to plot (columns are observations).
-   @param contigs: The contigs the data is group in in order of rows.
-   @param reference_idx: Vector of reference indices.
-   @param ref_contig: If given, will focus cluster on only genes in this contig
-   @param reg_groups: Groups of vector indices (as indices in reference_idx)
-   @param out_dir: Directory in which to save pdf and other output.
-   @param title: Plot title.
-   @param obs_title: Title for the observations matrix.
-   @param ref_title: Title for the reference matrix.
-   @param contig_cex: Contig text size.
-   @param k_obs_groups: Number of groups to break observation into
-   @param color_safe_pal: Logical indication of using a color blindness safe
-                         palette.
-}
-\details{
-Returns:
-   @return: No return
-}
+\arguments{
+\item{plot_data:}{Data matrix to plot (columns are observations).}
 
+\item{contigs:}{The contigs the data is group in in order of rows.}
+
+\item{reference_idx:}{Vector of reference indices.}
+
+\item{ref_contig:}{If given, will focus cluster on only genes in this contig}
+
+\item{reg_groups:}{Groups of vector indices (as indices in reference_idx)}
+
+\item{out_dir:}{Directory in which to save pdf and other output.}
+
+\item{title:}{Plot title.}
+
+\item{obs_title:}{Title for the observations matrix.}
+
+\item{ref_title:}{Title for the reference matrix.}
+
+\item{contig_cex:}{Contig text size.}
+
+\item{k_obs_groups:}{Number of groups to break observation into}
+
+\item{color_safe_pal:}{Logical indication of using a color blindness safe
+palette.}
+}
+\value{
+No return, void.
+}

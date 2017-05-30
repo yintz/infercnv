@@ -7,14 +7,16 @@ library("RColorBrewer", character.only=TRUE)
 library(GMD)
 library(optparse)
 library(logging)
-#library(infercnv)
-source("R/inferCNV.R")
+library(infercnv)
 
 # Logging level choices
 C_LEVEL_CHOICES <- names(loglevels)
 # Visualization outlier thresholding and bounding method choices
 C_VIS_OUTLIER_CHOICES <- c("average_bound")
 
+CHR = "chr"
+START = "start"
+STOP = "stop"
 
 #' Check arguments and make sure the user input meet certain 
 #' additional requirements.
@@ -456,7 +458,7 @@ if (length(input_reference_samples) !=
 }
 
 # Order and reduce the expression to the genomic file.
-order_ret <- order_reduce(data=expression_data,
+order_ret <- infercnv::order_reduce(data=expression_data,
                                     genomic_position=input_gene_order)
 expression_data <- order_ret$expr
 input_gene_order <- order_ret$order
@@ -468,28 +470,26 @@ if(is.null(expression_data)){
 }
 
 # Run CNV inference
-ret_list = infer_cnv(data=expression_data,
-                    gene_order=input_gene_order,
-                    cutoff=args$cutoff,
-                    reference_obs=input_reference_samples,
-                    transform_data=args$log_transform,
-                    window_length=args$window_length,
-                    max_centered_threshold=args$max_centered_expression,
-                    noise_threshold=args$magnitude_filter,
-                    num_ref_groups=args$num_groups,
-                    cluster_reference=args$clustering_contig,
-                    num_obs_groups=args$num_obs,
-                    out_path=args$output_dir,
-                    plot_steps=args$plot_steps,
-                    contig_tail=args$contig_tail,
-                    method_bound_vis=args$bound_method_vis,
-                    lower_bound_vis=bounds_viz[1],
-                    upper_bound_vis=bounds_viz[2])
+ret_list = infercnv::infer_cnv(data=expression_data,
+                               gene_order=input_gene_order,
+                               cutoff=args$cutoff,
+                               reference_obs=input_reference_samples,
+                               transform_data=args$log_transform,
+                               window_length=args$window_length,
+                               max_centered_threshold=args$max_centered_expression,
+                               noise_threshold=args$magnitude_filter,
+                               num_ref_groups=args$num_groups,
+                               out_path=args$output_dir,
+                               plot_steps=args$plot_steps,
+                               contig_tail=args$contig_tail,
+                               method_bound_vis=args$bound_method_vis,
+                               lower_bound_vis=bounds_viz[1],
+                               upper_bound_vis=bounds_viz[2])
 
 # Log output
 logging::loginfo(paste("::infer_cnv:Writing final data to ",
                        file.path(args$output_dir,
-                       "expression_pre_vis_transform.txt"), sep=""))
+                       "expression_pre_vis_transform.txt"), sep="_"))
 # Output data before viz outlier
 write.table(ret_list["PREVIZ"],
             file=file.path(args$output_dir,
@@ -497,17 +497,17 @@ write.table(ret_list["PREVIZ"],
 # Output data after viz outlier
 write.table(ret_list["VIZ"],
             file=paste(args$output_dir,
-                       "expression_post_viz_transform.txt"))
+                       "expression_post_viz_transform.txt",sep="_"))
 logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
                        paste(dim(ret_list[["VIZ"]]), collapse=","), sep=""))
 
 logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
-plot_cnv(plot_data=ret_list[["VIZ"]],
+infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
                    contigs=ret_list[["CONTIGS"]],
-                   k_obs_groups=ret_list[["N_OBS_GROUPS"]],
+                   k_obs_groups=args$num_obs,
                    reference_idx=ret_list[["REF_OBS_IDX"]],
-                   ref_contig=ret_list[["CLUST_REF"]],
+                   ref_contig=args$clustering_contig,
                    contig_cex=args$contig_label_size,
                    ref_groups=ret_list[["REF_GROUPS"]],
                    out_dir=args$output_dir,
