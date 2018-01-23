@@ -10,7 +10,7 @@ Authors@R: c(
     person("Brian", "Haas", email = "bhaas@broadinstitute.org", role = "aut"))
 Description: Using single-cell RNA-Seq expression to visualize CNV in cells.
 Depends:
-    R(== 3.2.1)
+    R(>= 3.2.1)
 License: BSD-3 clause
 LazyData: TRUE
 Suggests:

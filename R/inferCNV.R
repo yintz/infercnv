@@ -1966,8 +1966,8 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   ## margin for labels
 
-  margin.for.labRow0 <- max(nchar(labRow))*0.75+0.2
-  margin.for.labCol0 <- max(nchar(labCol))*0.75+0.2
+  margin.for.labRow0 <- max(nchar(labRow, keepNA = FALSE))*0.75+0.2
+  margin.for.labCol0 <- max(nchar(labCol, keepNA = FALSE))*0.75+0.2  ## Change compared to GMD to work with R 3.3+ that changed the default value of keepNA to "NA"
 
   if (.invalid(margin.for.labRow)){
     margin.for.labRow <- margin.for.labRow0
