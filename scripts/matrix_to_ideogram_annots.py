@@ -12,6 +12,31 @@ __email__ = 'eweitz@bbroadinstitute.org'
 __status__ = 'Development'
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+import json
+
+class MatrixToIdeogramAnnots:
+
+    def __init__(self, infercnv_output, cluster_meta, output_path):
+
+        self.infercnv_output = infercnv_output
+        self.cluster_meta = cluster_meta
+        self.output_path = output_path
+
+        self.write_annots()
+
+    def write_annots(self):
+
+        output_path = self.output_path
+
+        ideogram_annots = self.get_annots()
+
+        ideogram_annots_json = json.dumps(ideogram_annots)
+
+        with open(output_path) as f:
+            f.write(ideogram_annots_json)
+
+    def get_annots(self):
+        return None
 
 
 def get_cluster_meta(names, paths):
@@ -26,11 +51,8 @@ def get_cluster_meta(names, paths):
     return cluster_meta
 
 
-def write_ideogram_annots(infercnv_output, cluster_meta):
-    return
-
-
 if __name__ == '__main__':
+
     # Parse command-line arguments
     ap = ArgumentParser(description=__doc__,  # Use text from file summary up top
                         formatter_class=RawDescriptionHelpFormatter)
@@ -42,13 +64,16 @@ if __name__ == '__main__':
     ap.add_argument('cluster_paths',
                     help='List of cluster paths or URLs',
                     nargs='+')
+    ap.add_argument('output_path',
+                    help='Path or URL to write output to')
 
     args = ap.parse_args()
 
     infercnv_output = args.infercnv_output
     cluster_names = args.cluster_names
     cluster_paths = args.cluster_paths
+    output_path = args.output_path
 
     cluster_meta = get_cluster_meta(cluster_names, cluster_paths)
 
-    write_ideogram_annots(infercnv_output, cluster_meta)
+    MatrixToIdeogramAnnots(infercnv_output, cluster_meta, output_path)
