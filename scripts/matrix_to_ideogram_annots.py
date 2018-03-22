@@ -184,7 +184,7 @@ def get_clusters(names, paths):
 
     clusters = {}
 
-    for i, name in enumerate(names)
+    for i, name in enumerate(names):
         clusters[name] = paths[i]
 
     return clusters
@@ -207,7 +207,7 @@ if __name__ == '__main__':
                     help='List of cluster paths or URLs',
                     nargs='+')
     ap.add_argument('output_path',
-                    help='Path or URL to write output to')
+                    help='Path for write output')
 
     args = ap.parse_args()
 
