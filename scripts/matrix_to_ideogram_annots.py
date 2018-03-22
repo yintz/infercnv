@@ -18,36 +18,69 @@ from statistics import mean
 
 class MatrixToIdeogramAnnots:
 
-    def __init__(self, infercnv_output, gen_pos_path, clusters,
+    def __init__(self, infercnv_output, gen_pos_file, clusters,
                  output_path):
         """Class and parameter docs in module summary and argument parser"""
 
         self.infercnv_output = infercnv_output
         self.clusters = clusters
         self.output_path = output_path
-        self.genomic_position_file_path = gen_pos_path
+        self.genomic_position_file_path = gen_pos_file
 
         self.genes = self.get_genes()
 
         self.write_annots()
 
-    def write_annots(self):
+    def write_ideogram_annots(self):
         """Write Ideogram.js annotations JSON file"""
 
-        ideogram_annots = self.get_annots()
+        ideogram_annots = self.get_ideogram_annots()
 
         ideogram_annots_json = json.dumps(ideogram_annots)
 
         with open(self.output_path) as f:
             f.write(ideogram_annots_json)
 
-    def get_annots(self):
+    def get_ideogram_annots(self):
         """Get Ideogram.js annotations"""
 
         annots = []
 
+        genes = self.genes
 
-        return annots
+        expression_means = self.compute_gene_expression_means()
+
+        keys = ['name', 'start', 'length', 'id', 'type']
+        keys += self.clusters.keys()  # cluster names
+
+        annots_by_chr = {}
+
+        for expression_mean in expression_means[1:]:
+            gene_id = expression_mean[0]
+            gene = genes[gene_id]
+
+            chr = gene['chr']
+            start = int(gene['start'])
+            stop = int(gene['stop'])
+            length = stop - start
+
+            if chr not in annots_by_chr:
+                annots_by_chr[chr] = []
+
+            annot = [gene_id, start, length, gene_id]
+            annot += expression_means[1:]
+
+            annots_by_chr[chr].append(annot)
+
+        annots_list = []
+
+        for chr in annots_by_chr:
+            annots = annots_by_chr[chr]
+            annots_list.append({'chr': chr, 'annots': annots})
+
+        ideogram_annots = {'keys': keys, 'annots': annots_list}
+
+        return ideogram_annots
 
     def get_genes(self):
         """Convert inferCNV genomic position file into useful 'genes' dict"""
@@ -151,7 +184,7 @@ def get_clusters(names, paths):
 
     clusters = {}
 
-    for i, name in names:
+    for i, name in enumerate(names)
         clusters[name] = paths[i]
 
     return clusters
@@ -164,7 +197,7 @@ if __name__ == '__main__':
                         formatter_class=RawDescriptionHelpFormatter)
     ap.add_argument('infercnv_output',
                     help='Path to pre_vis_transform.txt output from inferCNV')
-    ap.add_argument('gen_pos_path',
+    ap.add_argument('gen_pos_file',
                     help='Path to gen_pos.txt genomic positions file from inferCNV ',
                     nargs='+')
     ap.add_argument('cluster_names',
@@ -179,11 +212,11 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     infercnv_output = args.infercnv_output
-    gen_pos_path = args.gen_pos_path
+    gen_pos_file = args.gen_pos_file
     cluster_names = args.cluster_names
     cluster_paths = args.cluster_paths
     output_path = args.output_path
 
     clusters = get_clusters(cluster_names, cluster_paths)
 
-    MatrixToIdeogramAnnots(infercnv_output, gen_pos_path, clusters, output_path)
+    MatrixToIdeogramAnnots(infercnv_output, gen_pos_file, clusters, output_path)
