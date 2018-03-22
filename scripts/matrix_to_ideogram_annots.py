@@ -13,18 +13,19 @@ __status__ = 'Development'
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import json
+from statistics import mean
 
 
 class MatrixToIdeogramAnnots:
 
-    def __init__(self, infercnv_output, cluster_meta, output_path,
-                 genomic_position_file_path):
+    def __init__(self, infercnv_output, gen_pos_path, clusters,
+                 output_path):
         """Class and parameter docs in module summary and argument parser"""
 
         self.infercnv_output = infercnv_output
-        self.cluster_meta = cluster_meta
+        self.clusters = clusters
         self.output_path = output_path
-        self.genomic_position_file_path = genomic_position_file_path
+        self.genomic_position_file_path = gen_pos_path
 
         self.genes = self.get_genes()
 
@@ -89,38 +90,71 @@ class MatrixToIdeogramAnnots:
 
         return em_dict
 
+    def set_cells_by_cluster(self, cells):
+
+        clusters = self.clusters
+
+        cluster_names = clusters.keys()
+        for name in clusters:
+            clusters[name]['cells'] = []
+
+        for i, cell in enumerate(cells):
+            # TODO: Wire in data from paths for self.clusters for real data,
+            # this is currently mock data.
+            if i % 3 == 0:
+                clusters[cluster_names[0]]['cells'].append(cell)
+            else:
+                clusters[cluster_names[1]]['cells'].append(cell)
+
+        self.clusters = clusters
+
     def compute_gene_expression_means(self):
         """Compute mean expression for each gene across all and each cluster"""
 
         scores_lists = []
 
-        cluster_names = cluster_meta.keys()
+        cluster_names = self.clusters.keys()
 
         keys = ['name', 'all'] + cluster_names
         scores_lists.append(keys)
 
         em_matrix = self.get_expression_matrix_dict()
 
+        cells = em_matrix['cells']
+        self.set_cells_by_cluster(cells)
+        clusters = self.clusters_meta
+
         gene_expression_lists = em_matrix['genes'].keys()
 
-        for gene in gene_expression_lists:
+        for i, gene in enumerate(gene_expression_lists):
+            scores_list = []
             gene_exp_list = gene_expression_lists[gene]
+            mean_expression_all = mean(gene_exp_list)
+            scores_list.append(gene, mean_expression_all)
 
-        expression = 0.0
+            for cluster in clusters:
+                expressions = cluster['genes'][gene]
+                mean_expression_cluster = mean(expressions)
+                scores_list.append(mean_expression_cluster)
+
+            if i % 100 == 0 and i != 0:
+                print('Processed ' + str(i) + ' of ' + str(len(gene_expression_lists)))
+
+            scores_lists.append(scores_list)
 
         return scores_lists
 
 
-def get_cluster_meta(names, paths):
+def get_clusters(names, paths):
     if len(names) != len(paths):
         raise ValueError('Number of cluster names must equal length of cluster paths')
 
-    cluster_meta = {}
+    clusters = {}
 
     for i, name in names:
-        cluster_meta[name] = paths[i]
+        clusters[name] = paths[i]
 
-    return cluster_meta
+    return clusters
 
 
 if __name__ == '__main__':
@@ -130,6 +164,9 @@ if __name__ == '__main__':
                         formatter_class=RawDescriptionHelpFormatter)
     ap.add_argument('infercnv_output',
                     help='Path to pre_vis_transform.txt output from inferCNV')
+    ap.add_argument('gen_pos_path',
+                    help='Path to gen_pos.txt genomic positions file from inferCNV ',
+                    nargs='+')
     ap.add_argument('cluster_names',
                     help='List of cluster names',
                     nargs='+')  # List must have one or more items
@@ -142,10 +179,11 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     infercnv_output = args.infercnv_output
+    gen_pos_path = args.gen_pos_path
     cluster_names = args.cluster_names
     cluster_paths = args.cluster_paths
     output_path = args.output_path
 
-    cluster_meta = get_cluster_meta(cluster_names, cluster_paths)
+    clusters = get_clusters(cluster_names, cluster_paths)
 
-    MatrixToIdeogramAnnots(infercnv_output, cluster_meta, output_path)
+    MatrixToIdeogramAnnots(infercnv_output, gen_pos_path, clusters, output_path)
