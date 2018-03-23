@@ -115,7 +115,13 @@ class MatrixToIdeogramAnnots:
         with open(self.infercnv_output) as f:
             lines = f.readlines()
 
-        em_dict['cells'] = lines[0].strip().split(',')
+        cells_dict = {}
+
+        cells_list = lines[0].strip().split(',')
+        for i, cell in enumerate(cells_list):
+            cells_dict[cell] = i
+
+        em_dict['cells'] = cells_dict
         genes = {}
 
         for line in lines[1:]:
@@ -176,15 +182,15 @@ class MatrixToIdeogramAnnots:
                 cluster = clusters[name]
                 cluster_expressions = []
                 for cluster_cell in cluster['cells']:
-                    index_of_cell_in_matrix = cells.index(cluster_cell) - 1
+                    index_of_cell_in_matrix = cells[cluster_cell] - 1
                     gene_exp_in_cell = gene_exp_list[index_of_cell_in_matrix]
                     cluster_expressions.append(gene_exp_in_cell)
 
                 mean_cluster_expression = round(mean(cluster_expressions), 3)
                 scores_list.append(mean_cluster_expression)
 
-            # if i % 10 == 0 and i != 0:
-            print('Processed ' + str(i) + ' of ' + str(len(gene_expression_lists)))
+            if i % 100 == 0 and i != 0:
+                print('Processed ' + str(i) + ' of ' + str(len(gene_expression_lists)))
 
             scores_lists.append(scores_list)
 
