@@ -108,6 +108,7 @@ class MatrixToIdeogramAnnots:
 
     def get_expression_matrix_dict(self):
         """Parse inferCNV output, return dict of cell expressions by gene"""
+        print(self.get_expression_matrix_dict.__doc__)
 
         em_dict = {}
 
@@ -133,12 +134,7 @@ class MatrixToIdeogramAnnots:
 
         cluster_names = list(clusters.keys())
         for name in clusters:
-            print('clusters[name]')
-            print(clusters[name])
             clusters[name]['cells'] = []
-
-        print('clusters')
-        print(clusters)
 
         for i, cell in enumerate(cells):
             # TODO: Wire in data from paths for self.clusters for real data,
@@ -172,7 +168,7 @@ class MatrixToIdeogramAnnots:
         for i, gene in enumerate(gene_expression_lists):
 
             gene_exp_list = gene_expression_lists[gene]
-            mean_expression_all = mean(gene_exp_list)
+            mean_expression_all = round(mean(gene_exp_list), 3)
 
             scores_list = [gene, mean_expression_all]
 
@@ -184,16 +180,13 @@ class MatrixToIdeogramAnnots:
                     gene_exp_in_cell = gene_exp_list[index_of_cell_in_matrix]
                     cluster_expressions.append(gene_exp_in_cell)
 
-                mean_cluster_expression = mean(cluster_expressions)
+                mean_cluster_expression = round(mean(cluster_expressions), 3)
                 scores_list.append(mean_cluster_expression)
 
-            if i % 1000 == 0 and i != 0:
-                print('Processed ' + str(i) + ' of ' + str(len(gene_expression_lists)))
+            # if i % 10 == 0 and i != 0:
+            print('Processed ' + str(i) + ' of ' + str(len(gene_expression_lists)))
 
             scores_lists.append(scores_list)
-
-        print('scores_lists')
-        print(scores_lists)
 
         return scores_lists
 
