@@ -32,7 +32,7 @@ class MatrixToIdeogramAnnots:
         self.write_ideogram_annots()
 
     def write_ideogram_annots(self):
-        """Write Ideogram.js annotations JSON file"""
+        """Write Ideogram.js annotations JSON file to specified output file"""
 
         ideogram_annots = self.get_ideogram_annots()
 
@@ -42,7 +42,7 @@ class MatrixToIdeogramAnnots:
             f.write(ideogram_annots_json)
 
     def get_ideogram_annots(self):
-        """Get Ideogram.js annotations"""
+        """Get Ideogram.js annotations from inferCNV and cluster data"""
 
         annots = []
 
@@ -135,6 +135,7 @@ class MatrixToIdeogramAnnots:
         return em_dict
 
     def set_cells_by_cluster(self, cells):
+        """Assign cells from expression matrix to the appropriate cluster"""
 
         clusters = self.clusters
 
@@ -171,6 +172,9 @@ class MatrixToIdeogramAnnots:
 
         gene_expression_lists = matrix['genes']
 
+        # For each gene, get its mean expression across all cells,
+        # then iterate through each cluster (a.k.a. ordination),
+        # and get the mean expression across all cells in that cluster
         for i, gene in enumerate(gene_expression_lists):
 
             gene_exp_list = gene_expression_lists[gene]
@@ -198,6 +202,8 @@ class MatrixToIdeogramAnnots:
 
 
 def get_clusters(names, paths):
+    """Organize cluster args provided via CLI into a more convenient dict"""
+
     if len(names) != len(paths):
         raise ValueError('Number of cluster names must equal length of cluster paths')
 
