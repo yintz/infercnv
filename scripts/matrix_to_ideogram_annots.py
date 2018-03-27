@@ -42,9 +42,11 @@ class MatrixToIdeogramAnnots:
             f.write(ideogram_annots_json)
 
     def get_ideogram_annots(self):
-        """Get Ideogram.js annotations from inferCNV and cluster data"""
+        """Get Ideogram.js annotations from inferCNV and cluster data
 
-        annots = []
+        Format and other details of Ideogram.js annotations:
+        https://github.com/eweitz/ideogram/wiki/Annotations
+        """
 
         genes = self.genes
 
@@ -196,7 +198,7 @@ class MatrixToIdeogramAnnots:
                 mean_cluster_expression = round(mean(cluster_expressions), 3)
                 scores_list.append(mean_cluster_expression)
 
-            if i % 100 == 0 and i != 0:
+            if i % 1000 == 0 and i != 0:
                 print('Processed ' + str(i) + ' of ' + str(len(gene_expression_lists)))
 
             scores_lists.append(scores_list)
