@@ -185,6 +185,16 @@ pargs <- optparse::add_option(pargs, c("--log"),
                                          "logging will occur to console.",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--delim"),
+                              type="character",
+                              action="store",
+                              default="\t",
+                              dest="delim",
+                              metavar="Delimiter",
+                              help=paste("Delimiter for reading expression matrix",
+                                        " and writing matrices output.",
+                                         "[Default %default]"))
+
 pargs <- optparse::add_option(pargs, c("--log_level"),
                               type="character",
                               action="store",
@@ -405,7 +415,7 @@ logging::loginfo(paste("::Input arguments. End."))
 # Manage inputs
 logging::loginfo(paste("::Reading data matrix.", sep=""))
 # Row = Genes/Features, Col = Cells/Observations
-expression_data <- read.table(args$input_matrix)
+expression_data <- read.table(args$input_matrix, sep=args$delim)
 logging::loginfo(paste("Original matrix dimensions (r,c)=",
                  paste(dim(expression_data), collapse=",")))
 
@@ -491,11 +501,11 @@ logging::loginfo(paste("::infer_cnv:Writing final data to ",
                        file.path(args$output_dir,
                        "expression_pre_vis_transform.txt"), sep="_"))
 # Output data before viz outlier
-write.table(ret_list["PREVIZ"],
+write.table(ret_list["PREVIZ"], sep=args$delim,
             file=file.path(args$output_dir,
                        "expression_pre_vis_transform.txt"))
 # Output data after viz outlier
-write.table(ret_list["VIZ"],
+write.table(ret_list["VIZ"], sep=args$delim,
             file=paste(args$output_dir,
                        "expression_post_viz_transform.txt",sep="_"))
 logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
