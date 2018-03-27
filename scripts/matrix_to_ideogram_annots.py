@@ -18,12 +18,12 @@ from statistics import mean
 
 class MatrixToIdeogramAnnots:
 
-    def __init__(self, infercnv_output, gen_pos_file, clusters,
+    def __init__(self, infercnv_output, gen_pos_file, clusters_meta,
                  output_file):
         """Class and parameter docs in module summary and argument parser"""
 
         self.infercnv_output = infercnv_output
-        self.clusters = clusters
+        self.clusters = self.get_clusters(clusters_meta)
         self.output_file = output_file
         self.genomic_position_file_path = gen_pos_file
 
@@ -134,24 +134,28 @@ class MatrixToIdeogramAnnots:
 
         return em_dict
 
-    def set_cells_by_cluster(self, cells):
+    def get_clusters(self, clusters_meta):
         """Assign cells from expression matrix to the appropriate cluster"""
 
-        clusters = self.clusters
+        clusters = clusters_meta
 
-        cluster_names = list(clusters.keys())
         for name in clusters:
+
+            cells = []
+
             clusters[name]['cells'] = []
+            cluster_path = clusters[name]['path']
 
-        for i, cell in enumerate(cells):
-            # TODO: Wire in data from paths for self.clusters for real data,
-            # this is currently mock data.
-            if i % 3 == 0:
-                clusters[cluster_names[0]]['cells'].append(cell)
-            else:
-                clusters[cluster_names[1]]['cells'].append(cell)
+            with open(cluster_path) as f:
+                lines = f.readlines()
 
-        self.clusters = clusters
+            for line in lines[3:]:
+                cell = line.split()[0]
+                cells.append(cell)
+
+            clusters[name]['cells'] = cells
+
+        return clusters
 
 
     def compute_gene_expression_means(self):
@@ -167,7 +171,6 @@ class MatrixToIdeogramAnnots:
         matrix = self.get_expression_matrix_dict()
 
         cells = matrix['cells']
-        self.set_cells_by_cluster(cells)
         clusters = self.clusters
 
         gene_expression_lists = matrix['genes']
@@ -201,18 +204,18 @@ class MatrixToIdeogramAnnots:
         return scores_lists
 
 
-def get_clusters(names, paths):
+def get_clusters_meta(names, paths):
     """Organize cluster args provided via CLI into a more convenient dict"""
 
     if len(names) != len(paths):
         raise ValueError('Number of cluster names must equal length of cluster paths')
 
-    clusters = {}
+    clusters_meta = {}
 
     for i, name in enumerate(names):
-        clusters[name] = {'path': paths[i]}
+        clusters_meta[name] = {'path': paths[i]}
 
-    return clusters
+    return clusters_meta
 
 
 if __name__ == '__main__':
@@ -241,6 +244,6 @@ if __name__ == '__main__':
     cluster_paths = args.cluster_paths
     output_file = args.output_file
 
-    clusters = get_clusters(cluster_names, cluster_paths)
+    clusters_meta = get_clusters_meta(cluster_names, cluster_paths)
 
-    MatrixToIdeogramAnnots(infercnv_output, gen_pos_file, clusters, output_file)
+    MatrixToIdeogramAnnots(infercnv_output, gen_pos_file, clusters_meta, output_file)
