@@ -32,7 +32,7 @@ class MatrixToIdeogramAnnots:
         self.write_ideogram_annots()
 
     def write_ideogram_annots(self):
-        """Write Ideogram.js annotations JSON file to specified output file"""
+        """Write Ideogram.js annotations JSON data to specified output file"""
 
         ideogram_annots = self.get_ideogram_annots()
 
@@ -40,6 +40,8 @@ class MatrixToIdeogramAnnots:
 
         with open(self.output_file, 'w') as f:
             f.write(ideogram_annots_json)
+
+        print('Wrote Ideogram.js annotations to ' + self.output_file)
 
     def get_ideogram_annots(self):
         """Get Ideogram.js annotations from inferCNV and cluster data
@@ -119,17 +121,19 @@ class MatrixToIdeogramAnnots:
 
         cells_dict = {}
 
-        cells_list = lines[0].strip().split(',')
+        cells_list = lines[0].strip().split()
         for i, cell in enumerate(cells_list):
+            cell = cell.strip('"').split('PREVIZ.')[1].replace('.', '-')  # "PREVIZ.AAACATACAAGGGC.1" -> AAACATACAAGGGC-1
             cells_dict[cell] = i
 
         em_dict['cells'] = cells_dict
         genes = {}
 
         for line in lines[1:]:
-            columns = line.strip().split(',')
-            gene = columns[0]
-            expression_by_cell = list(map(int, columns[1:]))
+            columns = line.strip().split()
+            gene = columns[0].strip('"')
+            expression_by_cell = list(map(float, columns[1:]))
+
             genes[gene] = expression_by_cell
 
         em_dict['genes'] = genes
@@ -191,7 +195,12 @@ class MatrixToIdeogramAnnots:
                 cluster = clusters[name]
                 cluster_expressions = []
                 for cluster_cell in cluster['cells']:
+                    # if cluster_cell in cells:
                     index_of_cell_in_matrix = cells[cluster_cell] - 1
+                    # else:
+                    #     if i == 0:
+                    #         print(cluster_cell + ' from ' + name + ' not found in expression matrix')
+                    #     continue
                     gene_exp_in_cell = gene_exp_list[index_of_cell_in_matrix]
                     cluster_expressions.append(gene_exp_in_cell)
 
