@@ -1,9 +1,8 @@
 # Docker file for inferCNV
 FROM ubuntu:xenial
-
-RUN echo "deb http://cran.rstudio.com/bin/linux/ubuntu xenial/" | tee -a /etc/apt/sources.list && \
 MAINTAINER ttickle@broadinstitute.org
 
+RUN echo "deb http://cran.rstudio.com/bin/linux/ubuntu xenial/" | tee -a /etc/apt/sources.list && \
 gpg --keyserver keyserver.ubuntu.com --recv-key E084DAB9 && \
 gpg -a --export E084DAB9 | apt-key add -
 
@@ -15,6 +14,8 @@ echo "install.packages(c(\"devtools\",\"ape\",\"GMD\",\"RColorBrewer\",\"optpars
 echo "library(\"devtools\")" >> install_devtools.r && \
 echo "install_github(\"broadinstitute/inferCNV\")" >> install_devtools.r && \
 R --no-save < install_devtools.r
+
+RUN apt-get update && apt-get install -y python3
 
 RUN git clone https://github.com/broadinstitute/inferCNV.git
 ENV PATH=${PATH}:/inferCNV/scripts
