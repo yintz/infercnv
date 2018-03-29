@@ -422,7 +422,7 @@ logging::loginfo(paste("Original matrix dimensions (r,c)=",
 # Read in the gen_pos file
 input_gene_order <- seq(1, nrow(expression_data), 1)
 if (args$gene_order != ""){
-    input_gene_order <- read.table(args$gene_order, row.names=1)
+    input_gene_order <- read.table(args$gene_order, row.names=1, sep="\t")
     names(input_gene_order) <- c(CHR, START, STOP)
 }
 logging::loginfo(paste("::Reading gene order.", sep=""))
