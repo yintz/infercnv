@@ -239,7 +239,7 @@ if __name__ == '__main__':
     ap.add_argument('--infercnv_output',
                     help='Path to pre_vis_transform.txt output from inferCNV')
     ap.add_argument('--infercnv_delimiter',
-                    help='Delimiter in pre_vis_transform.txt output from inferCNV',
+                    help='Delimiter in pre_vis_transform.txt output from inferCNV.  Default: \\t',
                     default='\t')
     ap.add_argument('--gen_pos_file',
                     help='Path to gen_pos.txt genomic positions file from inferCNV ')
