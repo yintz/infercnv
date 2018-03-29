@@ -18,11 +18,12 @@ from statistics import mean
 
 class MatrixToIdeogramAnnots:
 
-    def __init__(self, infercnv_output, gen_pos_file, clusters_meta,
-                 output_file):
+    def __init__(self, infercnv_output, infercnv_delimiter, gen_pos_file,
+                 clusters_meta, output_file):
         """Class and parameter docs in module summary and argument parser"""
 
         self.infercnv_output = infercnv_output
+        self.infercnv_delimiter = infercnv_delimiter
         self.clusters = self.get_clusters(clusters_meta)
         self.output_file = output_file
         self.genomic_position_file_path = gen_pos_file
@@ -121,7 +122,8 @@ class MatrixToIdeogramAnnots:
 
         cells_dict = {}
 
-        cells_list = lines[0].strip().split()
+        cells_list = lines[0].strip().split(self.infercnv_delimiter)
+
         for i, cell in enumerate(cells_list):
             cell = cell.strip('"').split('PREVIZ.')[1].replace('.', '-')  # "PREVIZ.AAACATACAAGGGC.1" -> AAACATACAAGGGC-1
             cells_dict[cell] = i
@@ -130,7 +132,7 @@ class MatrixToIdeogramAnnots:
         genes = {}
 
         for line in lines[1:]:
-            columns = line.strip().split()
+            columns = line.strip().split(self.infercnv_delimiter)
             gene = columns[0].strip('"')
             expression_by_cell = list(map(float, columns[1:]))
 
@@ -236,6 +238,9 @@ if __name__ == '__main__':
                         formatter_class=RawDescriptionHelpFormatter)
     ap.add_argument('--infercnv_output',
                     help='Path to pre_vis_transform.txt output from inferCNV')
+    ap.add_argument('--infercnv_delimiter',
+                    help='Delimiter in pre_vis_transform.txt output from inferCNV.  Default: \\t',
+                    default='\t')
     ap.add_argument('--gen_pos_file',
                     help='Path to gen_pos.txt genomic positions file from inferCNV ')
     ap.add_argument('--cluster_names',
@@ -250,6 +255,7 @@ if __name__ == '__main__':
     args = ap.parse_args()
 
     infercnv_output = args.infercnv_output
+    infercnv_delimiter = args.infercnv_delimiter
     gen_pos_file = args.gen_pos_file
     cluster_names = args.cluster_names
     cluster_paths = args.cluster_paths
@@ -257,4 +263,4 @@ if __name__ == '__main__':
 
     clusters_meta = get_clusters_meta(cluster_names, cluster_paths)
 
-    MatrixToIdeogramAnnots(infercnv_output, gen_pos_file, clusters_meta, output_file)
+    MatrixToIdeogramAnnots(infercnv_output, infercnv_delimiter, gen_pos_file, clusters_meta, output_file)
