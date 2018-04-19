@@ -694,7 +694,7 @@ plot_cnv <- function(plot_data,
     }
 
     # Rows observations, Columns CHR
-    pdf(paste(out_dir,"infercnv.pdf",sep="."),
+    pdf(paste(out_dir,"infercnv.pdf",sep="/"),
         useDingbats=FALSE,
         width=10,
         height=7.5,
