@@ -155,7 +155,7 @@ pargs <- optparse::add_option(pargs, c("--contig_lab_size"),
                                          "[Default %default]"))
 
 pargs <- optparse::add_option(pargs, c("--cutoff"),
-                              type="integer",
+                              type="numeric",
                               default=0,
                               action="store",
                               dest="cutoff",
