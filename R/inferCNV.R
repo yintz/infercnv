@@ -713,10 +713,18 @@ plot_cnv <- function(plot_data,
                 names(obs_data) <- c("", names(obs_data)[1])
         }
     }
+    
+    obs_data_t <- t(obs_data)
+    ref_data_t <- plot_data[, ref_idx, drop=FALSE]
+    nb_breaks <- 16
+    breaksList_t <-
+        seq(min(min(obs_data_t, na.rm=TRUE), min(ref_data_t, na.rm=TRUE)),
+        max(max(obs_data_t,na.rm=TRUE), max(ref_data_t, na.rm=TRUE)),
+        length.out=nb_breaks)
 
     # Create file base for plotting output
     force_layout <- plot_observations_layout()
-    plot_cnv_observations(obs_data=t(obs_data),
+    plot_cnv_observations(obs_data=obs_data_t,
                           file_base_name=out_dir,
                           cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
@@ -728,18 +736,20 @@ plot_cnv <- function(plot_data,
                           cnv_title=title,
                           cnv_obs_title=obs_title,
                           contig_lab_size=contig_cex,
+                          breaksList=breaksList_t,
                           layout_lmat=force_layout[["lmat"]],
                           layout_lhei=force_layout[["lhei"]],
                           layout_lwid=force_layout[["lwid"]])
     obs_data <- NULL
 
     if(!is.null(ref_idx)){
-        plot_cnv_references(ref_data=plot_data[, ref_idx, drop=FALSE],
+        plot_cnv_references(ref_data=ref_data_t,
                             ref_groups=ref_groups,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=out_dir,
                             cnv_ref_title=ref_title,
+                            breaksList=breaksList_t,
                             layout_add=TRUE)
     }
     dev.off()
@@ -779,6 +789,7 @@ plot_cnv_observations <- function(obs_data,
                                   cnv_obs_title,
                                   contig_lab_size=1,
                                   cluster_contig=NULL,
+                                  breaksList,
                                   testing=FALSE,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
@@ -858,6 +869,7 @@ plot_cnv_observations <- function(obs_data,
     contigSepList <- create_sep_list(row_count=nrow(obs_data),
                                      col_count=ncol(obs_data),
                                      col_seps=contig_seps)
+    
 
     # Remove row/col labels, too cluttered
     # and print.
@@ -870,7 +882,6 @@ plot_cnv_observations <- function(obs_data,
                                         cluster.by.col=FALSE,
                                         main=cnv_title,
                                         ylab=cnv_obs_title,
-                                        margin.for.labRow=10,
                                         margin.for.labCol=2,
                                         xlab="Genomic Region",
                                         key=TRUE,
@@ -882,6 +893,7 @@ plot_cnv_observations <- function(obs_data,
                                         trace="none",
                                         dendrogram="row",
                                         cexRow=0.8,
+                                        breaks=breaksList,
                                         scale="none",
                                         x.center=0,
                                         color.FUN=col_pal,
@@ -977,6 +989,7 @@ plot_cnv_references <- function(ref_data,
                                 contig_seps,
                                 file_base_name,
                                 cnv_ref_title,
+                                breaksList,
                                 layout_lmat=NULL,
                                 layout_lwid=NULL,
                                 layout_lhei=NULL,
@@ -1054,7 +1067,8 @@ plot_cnv_references <- function(ref_data,
                                    dendrogram="none",
                                    Colv=FALSE,
                                    Rowv=FALSE,
-                                   cexRow=0.8,
+                                   cexRow=0.4,
+                                   breaks=breaksList,
                                    scale="none",
                                    x.center=0,
                                    color.FUN=col_pal,
@@ -1063,7 +1077,6 @@ plot_cnv_references <- function(ref_data,
                                    sep.color=c("black","black"),
                                    sep.lty=1,
                                    sep.lwd=1,
-                                   margin.for.labRow=10,
                                    if.plot=!testing,
                                    # Layout
                                    force_lmat=layout_lmat,
@@ -1972,9 +1985,13 @@ heatmap.cnv <-
 
   if (.invalid(margin.for.labRow)){
     margin.for.labRow <- margin.for.labRow0
-  } else {
-    message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labRow.')
-    margin.for.labRow <- margin.for.labRow0*margin.for.labRow
+  }
+  #} else {
+  #  message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labRow.')
+  #  margin.for.labRow <- margin.for.labRow0*margin.for.labRow
+  #}
+  if (margin.for.labRow < 2) {
+      margin.for.labRow = 2
   }
 
   if (.invalid(margin.for.labCol)){
