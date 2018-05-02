@@ -506,8 +506,8 @@ write.table(ret_list["PREVIZ"], sep=args$delim,
                        "expression_pre_vis_transform.txt"))
 # Output data after viz outlier
 write.table(ret_list["VIZ"], sep=args$delim,
-            file=paste(args$output_dir,
-                       "expression_post_viz_transform.txt",sep="_"))
+            file=file.path(args$output_dir,
+                       "expression_post_viz_transform.txt"))
 logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
                        paste(dim(ret_list[["VIZ"]]), collapse=","), sep=""))
 
