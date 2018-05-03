@@ -1137,13 +1137,26 @@ order_reduce <- function(data, genomic_position){
     # Drop pos_gen entries that are position 0
     remove_by_position <- -1 * which(genomic_position[2] + genomic_position[3] == 0)
     if (length(remove_by_position)){
+        logging::logdebug(paste("::infer_cnv:order_reduce: removing genes specified by pos == 0, count: ",
+                                length(remove_by_position), sep=""))
+        
         genomic_position <- genomic_position[remove_by_position, , drop=FALSE]
     }
 
     # Reduce to genes in pos file
+    
+    logging::logdebug(paste("::infer_cnv:order_reduce: gene identifers in expression matrix: ",
+                            row.names(data), collapse="\n", sep=""))
+    logging::logdebug(paste("::infer_cnv:order_reduce: gene identifers in genomic position table: ",
+                            row.names(data), collapse="\n", sep=""))
+
+
+    
     keep_genes <- row.names(data)[which(row.names(data)
                                   %in% row.names(genomic_position))]
-
+    logging::logdebug(paste("::infer_cnv:order_reduce: keep_genes size: ", length(keep_genes),
+                            sep=""))
+    
     # Keep genes found in position file
     if(length(keep_genes)){
         ret_results$expr <- data[keep_genes, , drop=FALSE]

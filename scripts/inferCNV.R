@@ -18,6 +18,8 @@ CHR = "chr"
 START = "start"
 STOP = "stop"
 
+logging::basicConfig(level='INFO') #initialize to info setting.  
+
 #' Check arguments and make sure the user input meet certain 
 #' additional requirements.
 #'
@@ -30,10 +32,12 @@ check_arguments <- function(arguments){
 
     logging::loginfo(paste("::check_arguments:Start", sep=""))
     # Require the name of a output pdf file
-    if (!( "output_dir" %in% names(arguments)) || (arguments$output_dir == "")){
+    if ( (!( "output_dir" %in% names(arguments))) || (arguments$output_dir == "") || (is.na(arguments$output_dir)) ) {
         logging::logerror(paste(":: --output_dir: Please enter a file path to ",
                                 "save the heatmap.",
                                  sep=""))
+
+        stop("error, no --output_dir")
     }
 
     # Require the cut off to be above 0
@@ -41,6 +45,8 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --cutoff: Please enter a value",
                                 "greater or equal to zero for the cut off.",
                                 sep=""))
+
+        stop("error, no --cutoff")
     }
 
     # Require the logging level to be one handled by logging
@@ -48,13 +54,15 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --log_level: Please use a logging level ",
                                 "given here: ", C_LEVEL_CHOICES,
                                 collapse=",", sep=""))
+        stop("error, not recognizing log level")
     }
-
+    
     # Require the visualization outlier detection to be a correct choice.
     if (!(arguments$bound_method_vis %in% C_VIS_OUTLIER_CHOICES)){
         logging::logerror(paste(":: --vis_bound_method: Please use a method ",
                                 "given here: ", C_VIS_OUTLIER_CHOICES,
                                 collapse=",", sep=""))
+        stop("error, must specify acceptable --vis_bound_method")
     }
 
     # Warn that an average of the samples is used in the absence of
@@ -79,6 +87,8 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --tail: Please enter a value",
                                 "greater or equal to zero for the tail.",
                                 sep=""))
+
+        stop(980)
     }
 
     if (! is.na(suppressWarnings(as.integer(arguments$num_groups)))){
@@ -298,7 +308,7 @@ pargs <- optparse::add_option(pargs, c("--steps"),
 
 pargs <- optparse::add_option(pargs, c("--vis_bound_method"),
                               type="character",
-                              default=NA,
+                              default="average_bound",
                               action="store",
                               dest="bound_method_vis",
                               metavar="Outlier_Removal_Method_Vis",
@@ -376,6 +386,7 @@ args["gene_order"] <- args_parsed$args[2]
 # Check arguments
 args <- check_arguments(args)
 
+
 # Make sure the output directory exists
 if(!file.exists(args$output_dir)){
     dir.create(args$output_dir)
@@ -415,14 +426,14 @@ logging::loginfo(paste("::Input arguments. End."))
 # Manage inputs
 logging::loginfo(paste("::Reading data matrix.", sep=""))
 # Row = Genes/Features, Col = Cells/Observations
-expression_data <- read.table(args$input_matrix, sep=args$delim)
+expression_data <- read.table(args$input_matrix, sep=args$delim, header=T, row.names=1)
 logging::loginfo(paste("Original matrix dimensions (r,c)=",
                  paste(dim(expression_data), collapse=",")))
 
 # Read in the gen_pos file
 input_gene_order <- seq(1, nrow(expression_data), 1)
 if (args$gene_order != ""){
-    input_gene_order <- read.table(args$gene_order, row.names=1, sep="\t")
+    input_gene_order <- read.table(args$gene_order, header=F, row.names=1, sep="\t")
     names(input_gene_order) <- c(CHR, START, STOP)
 }
 logging::loginfo(paste("::Reading gene order.", sep=""))
