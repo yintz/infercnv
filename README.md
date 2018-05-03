@@ -1,1 +1,1 @@
-Visit project wiki (click tab at top) for InferCNV documentation.
+Visit project [wiki](https://github.com/broadinstitute/inferCNV/wiki) for InferCNV documentation.
