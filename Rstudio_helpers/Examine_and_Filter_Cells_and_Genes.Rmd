@@ -1,0 +1,144 @@
+---
+title: "Examine and Filter Cells and Genes"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Read in data matrix
+```{r} 
+data = read.table("Glioblastoma_expressed_genes.txt", header=T, row.names=1)  ## CHANGE TO YOUR INPUT MATRIX
+
+```
+
+# Examine distributions of counts of genes and cells
+```{r}
+reads_per_cell = colSums(data)
+reads_per_gene = rowSums(data)
+genes_per_cell = colSums(data>0)
+cells_per_gene = rowSums(data>0)
+
+hist(log10(reads_per_cell+1),main='reads per cell',col='wheat')
+hist(log10(genes_per_cell+1), main='genes per cell', col='wheat')
+plot(reads_per_cell, genes_per_cell, log='xy', col='wheat')
+hist(log10(reads_per_gene+1),main='reads per gene',col='wheat')
+```
+
+```{r}
+plot(sort(genes_per_cell), xlab='cell', log='y', main='genes per cell (ordered)')
+```
+#Cell filtering criteria: define min and max genes per cell
+
+```{r}
+##################################################
+## ********* USER DEFINED SECTION ***************
+##################################################
+
+#  set upper and lower thresholds for genes per cell:
+MIN_GENES_PER_CELL = 350  ## user-defined setting
+MAX_GENES_PER_CELL = 1800  ## user-defined setting
+
+# now replot with the thresholds being shown:
+plot(sort(genes_per_cell), xlab='cell', log='y', main='genes per cell (ordered)')
+abline(h=MIN_GENES_PER_CELL, col='green')  # lower threshold
+abline(h=MAX_GENES_PER_CELL, col='green') # upper threshold
+```
+
+
+# Examine percent mitochondrial read content
+```{r}
+# define the mitochondrial genes
+mito_genes = grep("^mt-", rownames(data) , ignore.case=T, value=T)
+print(mito_genes)
+```
+
+```{r}
+# compute pct mito
+mito_gene_read_counts = colSums(data[mito_genes,])
+pct_mito = mito_gene_read_counts / reads_per_cell * 100
+plot(sort(pct_mito))
+```
+
+# Decide on maximum allowed percent mitochondrial reads:
+```{r}
+##################################################
+## ********* USER DEFINED SECTION ***************
+##################################################
+
+MAX_PCT_MITO = 10   ## user-defined setting
+
+plot(sort(pct_mito))
+abline(h=MAX_PCT_MITO, col='red')
+```
+
+
+# cell selection as per Peter Karchenko - the Pagoda way
+
+```{r}
+df = data.frame(reads_per_cell=reads_per_cell, genes_per_cell=genes_per_cell)
+head(df)
+```
+
+
+# Plot gene_per_cell vs. reads_per_cell, define outliers
+
+```{r}
+library(MASS)
+df = df[order(df$reads_per_cell),] # order by reads_per_cell
+plot(df, log='xy')
+m <- rlm(genes_per_cell~reads_per_cell,data=df) # robust linear model, not sens to outliers
+p.level = 1e-3
+# predict genes_per_cell based on observed reads_per_cell
+suppressWarnings(pb <- data.frame(predict(m, interval='prediction', 
+                                          level = 1-p.level, # define conf interval
+                                          type="response")))
+polygon(c(df$reads_per_cell, rev(df$reads_per_cell)),
+        c(pb$lwr, rev(pb$upr)), col=adjustcolor(2,alpha=0.1), border = NA)
+
+# identifier outliers as having observed genes_per_cell outside the prediction confidence interval
+outliers <- rownames(df)[df$genes_per_cell > pb$upr | df$genes_per_cell < pb$lwr];
+points(df[outliers,],col=2,cex=0.6)
+```
+
+# Before pruning cells, let's make a backup copy of the original matrix:
+```{r}
+data.prefiltered = data
+```
+
+# Now, let's do some pruning to remove 'bad' cells
+```{r}
+filtered_data = data.prefiltered # just in case we re-run this block using different thresholds.
+
+###############################################################
+# prune genes, require a gene to be expressed in at least 3 cells
+
+filtered_data.prefiltered = filtered_data
+filtered_data = filtered_data[cells_per_gene >= 3,]  ## user can change this if needed.
+
+###############################################################
+# prune cells
+valid_cells = colnames(filtered_data) # all cells
+message('starting with: ', length(valid_cells), ' cells') # number starting with
+
+## remove cells based on gene count criteria:
+valid_cells = valid_cells[genes_per_cell >= MIN_GENES_PER_CELL & genes_per_cell <= MAX_GENES_PER_CELL]  # set values based on your evaluation above
+message('after filtering low and high gene count outliers: ', length(valid_cells), ' cells') # number after filtering based gene count thresholds
+
+## remove cells having excessive mito read content
+valid_cells = valid_cells[valid_cells %in% names(pct_mito)[pct_mito <= MAX_PCT_MITO]]
+message('after removing high-mito cells: ', length(valid_cells), ' cells') # number remaining after high-mito cells removed
+
+## remove cells identified as outliers via the Karchenko method
+valid_cells = valid_cells[ ! valid_cells %in% outliers]
+message('after removing final outliers: ', length(valid_cells), ' cells') # number surviving outlier detection
+
+## update the count matrix to contain only the valid cells
+filtered_data = filtered_data[,valid_cells]
+
+write.table(filtered_data, file="filtered_data.counts.matrix", quote=F, sep="\t")
+```
+
+
+
