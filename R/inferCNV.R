@@ -1014,6 +1014,7 @@ plot_cnv_references <- function(ref_data,
     if(number_references == 1){
         ref_data <- cbind(ref_data, ref_data)
         names(ref_data) <- c("",names(ref_data)[1])
+        colnames(ref_data) <- c("", colnames(ref_data)[1])
     }
 
     # Handle reference groups
