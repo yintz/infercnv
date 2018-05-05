@@ -463,6 +463,7 @@ if (!is.null(args$reference_observations)){
     if (length(refs) > 0){
         input_reference_samples <- refs
     }
+    logging::logdebug(paste("::Reference observations set to: ", input_reference_samples, collapse="\n"))
 }
 
 # Make sure the given reference samples are in the matrix.
@@ -474,6 +475,7 @@ if (length(input_reference_samples) !=
                            "names match a sample in your data matrix.",
                            "Attention to: ",
                            paste(missing_reference_sample, collapse=","))
+    logging::logdebug(paste("::colnames(expression_data): ", colnames(expression_data), collapse="\n"))
     logging::logerror(error_message)
     stop(error_message)
 }
