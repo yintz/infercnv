@@ -447,6 +447,8 @@ infer_cnv <- function(data,
     }
 
     # Reduce contig info
+    logging::logdebug("Gene order:")
+    logging::logdebug(gene_order)
     chr_order <- gene_order[1]
     gene_order <- NULL
 
@@ -515,7 +517,8 @@ infer_cnv <- function(data,
     }
 
     # Remove Ends
-    logging::logdebug(chr_order)
+    logging::logdebug(c("chr_order: ", chr_order))
+    #logging::logdebug(chr_order)
     remove_indices <- c()
     for (chr in unlist(unique(chr_order))){
         logging::loginfo(paste("::infer_cnv:Remove tail contig ",
