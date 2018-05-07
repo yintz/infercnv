@@ -409,8 +409,9 @@ infer_cnv <- function(data,
 
     # Make sure data is log transformed + 1
     if (transform_data){
-        data <- log2(data / 10 + 1)
+        data <- log2(data + 1)
     }
+    
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
@@ -437,6 +438,7 @@ infer_cnv <- function(data,
                                " Stoping."))
         stop(998)
     }
+    
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data,
@@ -1105,7 +1107,7 @@ plot_cnv_references <- function(ref_data,
 above_cutoff <- function(data, cutoff){
 
     logging::loginfo(paste("::above_cutoff:Start", sep=""))
-    average_gene <- log2(rowMeans( ( ( (2 ^ data) - 1) * 10 ), na.rm=TRUE) + 1 )
+    average_gene <- log2(rowMeans( ( (2 ^ data) - 1), na.rm=TRUE) + 1 )
     logging::loginfo(paste("::infer_cnv:Averages (counts).", sep=""))
     # Find averages above a certain threshold
     indicies <- which(average_gene > cutoff)
