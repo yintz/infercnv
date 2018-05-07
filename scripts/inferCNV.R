@@ -185,7 +185,7 @@ pargs <- optparse::add_option(pargs, c("--transform"),
                                          "use this flag so that the data will be ",
                                          "transformed. [Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--log"),
+pargs <- optparse::add_option(pargs, c("--log_file"),
                               type="character",
                               action="store",
                               default=NA,
