@@ -492,6 +492,7 @@ if(is.null(expression_data)){
     stop(error_message)
 }
 
+
 # Run CNV inference
 ret_list = infercnv::infer_cnv(data=expression_data,
                                gene_order=input_gene_order,
@@ -526,15 +527,24 @@ logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
 
 logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
-infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
-                   contigs=ret_list[["CONTIGS"]],
-                   k_obs_groups=args$num_obs,
-                   reference_idx=ret_list[["REF_OBS_IDX"]],
-                   ref_contig=args$clustering_contig,
-                   contig_cex=args$contig_label_size,
-                   ref_groups=ret_list[["REF_GROUPS"]],
-                   out_dir=args$output_dir,
-                   color_safe_pal=args$use_color_safe,
-                   title=args$fig_main,
-                   obs_title=args$obs_main,
-                   ref_title=args$ref_main)
+
+
+if (args$plot_steps) {
+    logging::loginfo("See results from each stage plotted separately")
+}  else {
+      
+    infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
+                       contigs=ret_list[["CONTIGS"]],
+                       k_obs_groups=args$num_obs,
+                       reference_idx=ret_list[["REF_OBS_IDX"]],
+                       ref_contig=args$clustering_contig,
+                       contig_cex=args$contig_label_size,
+                       ref_groups=ret_list[["REF_GROUPS"]],
+                       out_dir=args$output_dir,
+                       color_safe_pal=args$use_color_safe,
+                       title=args$fig_main,
+                       obs_title=args$obs_main,
+                       ref_title=args$ref_main)
+    
+}
+
