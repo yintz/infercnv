@@ -2272,6 +2272,10 @@ heatmap.cnv <-
   if (!.invalid(x.center)){ ## enhanced
     if (is.numeric(x.center)){
       x.range.old <- range(x,na.rm=TRUE)
+      if (length(breaks) > 1) {
+          # important, use specified breakpoint info here if set by user
+          x.range.old = range(breaks)
+      }
       dist.to.x.center <- max(abs(x.range.old-x.center))
       x.range <- c(x.center-dist.to.x.center,x.center+dist.to.x.center)
       if (length(breaks) > 1) {
@@ -2285,7 +2289,12 @@ heatmap.cnv <-
       stop("`x.center' should be numeric.")
     }
   } else{
-    x.range <- range(x,na.rm=TRUE)
+      x.range <- range(x,na.rm=TRUE)
+      if (length(breaks) > 1) {
+          # important, use specified breakpoint info here if set by user
+          x.range = range(breaks)
+      }
+      
   }
   logging::logdebug( paste("inferCNV::heatmap.cnv x range set to: ",
                           paste(x.range, collapse=",")), sep="" )
