@@ -462,7 +462,7 @@ infer_cnv <- function(data,
     if (plot_steps){
         plot_step(data=data,
                   plot_name=file.path(out_path,
-                                      "00_reduced_data.pdf"))
+                                      "01_incoming_data.pdf"))
 
         infercnv::plot_cnv(plot_data=data,
                            contigs=chr_order_for_plotting,
@@ -473,37 +473,38 @@ infer_cnv <- function(data,
                            ref_groups=ret_list[["REF_GROUPS"]],
                            out_dir=out_path,
                            color_safe_pal=FALSE,
-                           title="00_reduced_data",
+                           title="01_incoming_data",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.00_reduced_data.pdf")
+                           pdf_filename="infercnv.01_incoming_data.pdf")
     }
 
         
     # Make sure data is log transformed + 1
     if (transform_data){
         data <- log2(data + 1)
-    }
     
-    # Plot incremental steps.
-    if (plot_steps){
-        plot_step(data=data,
-                  plot_name=file.path(out_path,
-                                      "02_transformed.pdf"))
-        
-        infercnv::plot_cnv(plot_data=data,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=num_ref_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           title="02_log_transformed_data",
-                           obs_title="Observations (Cells)",
+    
+                                        # Plot incremental steps.
+        if (plot_steps){
+            plot_step(data=data,
+                      plot_name=file.path(out_path,
+                                          "02_transformed.pdf"))
+            
+            infercnv::plot_cnv(plot_data=data,
+                               contigs=chr_order_for_plotting,
+                               k_obs_groups=num_ref_groups,
+                               reference_idx=ret_list[["REF_OBS_IDX"]],
+                               ref_contig=NULL,
+                               contig_cex=1,
+                               ref_groups=ret_list[["REF_GROUPS"]],
+                               out_dir=out_path,
+                               color_safe_pal=FALSE,
+                               title="02_log_transformed_data",
+                               obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
                            pdf_filename="infercnv.02_log_transformed.pdf")
+        }
     }
     
     # Reduce by cutoff
