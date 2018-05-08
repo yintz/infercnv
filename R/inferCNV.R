@@ -541,6 +541,7 @@ infer_cnv <- function(data,
                                obs_title="Observations (Cells)",
                                ref_title="References (Cells)",
                                pdf_filename="infercnv.03_reduced_by_cutoff.pdf")
+            
         }
         
     } else {
@@ -905,7 +906,7 @@ plot_cnv <- function(plot_data,
     # Column seperation by contig and label axes with only one instance of name
     contig_tbl <- table(contigs)[unique_contigs]
     col_sep <- cumsum(contig_tbl)
-    col_sep <- col_sep[-1 * length(col_sep)]
+    col_sep <- col_sep[-1 * length(col_sep)]   ## FIXME:  removing last entry?
     # These labels are axes labels, indicating contigs at the first column only
     # and leaving the rest blank.
     contig_labels <- c()
@@ -946,6 +947,7 @@ plot_cnv <- function(plot_data,
         max(max(obs_data_t,na.rm=TRUE), max(ref_data_t, na.rm=TRUE)),
         length.out=nb_breaks)
 
+    
     # Create file base for plotting output
     force_layout <- plot_observations_layout()
     plot_cnv_observations(obs_data=obs_data_t,
@@ -1099,6 +1101,7 @@ plot_cnv_observations <- function(obs_data,
     # and print.
     orig_row_names <- row.names(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
+
     data_observations <- heatmap.cnv(obs_data,
                                         Rowv=obs_dendrogram,
                                         Colv=FALSE,
@@ -2261,22 +2264,32 @@ heatmap.cnv <-
   ## set breaks for binning x into colors ##
   if(.invalid(breaks)){
     breaks <- 16
+  } else {
+      logging::logdebug(paste("inferCNV::heatmap.cnv, breaks parameter set to: [", paste(breaks, collapse=","), "]", sep=""))
   }
-
+  
   ## get x.range according to the value of x.center ##
   if (!.invalid(x.center)){ ## enhanced
     if (is.numeric(x.center)){
       x.range.old <- range(x,na.rm=TRUE)
       dist.to.x.center <- max(abs(x.range.old-x.center))
       x.range <- c(x.center-dist.to.x.center,x.center+dist.to.x.center)
+      if (length(breaks) > 1) {
+          # re-set the breaks according to the new x.range
+          breaks=seq(x.range[1], x.range[2], length=16)
+          logging::logdebug(paste("inferCNV::heatmap.cnv, resetting breaks to adjusted x.range: [",
+                                  paste(breaks, collapse=","), "]", sep=""))
+      }
+      
     } else {
       stop("`x.center' should be numeric.")
     }
   } else{
     x.range <- range(x,na.rm=TRUE)
   }
-
-
+  logging::logdebug( paste("inferCNV::heatmap.cnv x range set to: ",
+                          paste(x.range, collapse=",")), sep="" )
+  
   ## set breaks for centering colors to the value of x.center ##
   if(length(breaks)==1){
     breaks <-
@@ -2575,6 +2588,7 @@ heatmap.cnv <-
           axes=FALSE,xlab="",ylab="",col=colors,breaks=breaks,
           ...)
 
+         
     ## plot/color NAs
     if(!.invalid(na.color) & any(is.na(x))){
       mmat <- ifelse(is.na(x),1,NA)
@@ -2822,7 +2836,10 @@ heatmap.cnv <-
 
       par(mar=c(2,1.5,0.75,1)*keysize,cex=cex.key,mgp=c(0.75,0,0),tcl=-0.05)
       z <- seq(x.range[1],x.range[2],length=length(colors))
-
+      logging::logdebug(paste("::inferCNV::heatmap.cnv colorkey z range: ", paste(z, collapse=","), sep=""))
+      logging::logdebug(paste("::inferCNV::heatmap.cnv colorkey breaks range: ", paste(breaks, collapse=","), sep=""))
+      logging::logdebug(paste("::inferCNV::heatmap.cnv colorkey colors range: ", paste(colors, collapse=","), sep=""))
+      
       image(z=matrix(z,ncol=1),
             col=colors,
             breaks=breaks,
@@ -2832,6 +2849,7 @@ heatmap.cnv <-
             ylab="",
             main="",add=force_add
             )
+
       par(usr=c(0,1,0,1))
       lv <- pretty(breaks)
       xv <- .scale.x(as.numeric(lv),x.range[1],x.range[2])
@@ -2865,6 +2883,8 @@ heatmap.cnv <-
       .plot.text()
       }
     }
+
+      
     ## 9)
     if(plot.row.individuals) {
       .plot.text("Row\nIndividuals",cex=cex.text,bg="white")

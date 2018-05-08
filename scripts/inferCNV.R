@@ -381,6 +381,7 @@ pargs <- optparse::add_option(pargs, c("--title_ref"),
 pargs <- optparse::add_option(pargs, c("--save"),
                               type="logical",
                               action="store_true",
+                              default=FALSE,
                               dest="save",
                               metavar="save",
                               help="Save workspace as infercnv.Rdata")
@@ -505,7 +506,6 @@ if (args$save) {
     logging::loginfo("Saving workspace")
     save.image("infercnv.Rdata")
 }
-
 
 # Run CNV inference
 ret_list = infercnv::infer_cnv(data=expression_data,
