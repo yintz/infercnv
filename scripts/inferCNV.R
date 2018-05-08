@@ -378,6 +378,14 @@ pargs <- optparse::add_option(pargs, c("--title_ref"),
                               help=paste("Title of the references matrix Y-axis (if used).",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--save"),
+                              type="logical",
+                              action="store_true",
+                              dest="save",
+                              metavar="save",
+                              help="Save workspace as infercnv.Rdata")
+
+
 args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
 args <- args_parsed$options
 args["input_matrix"] <- args_parsed$args[1]
@@ -493,6 +501,12 @@ if(is.null(expression_data)){
 }
 
 
+if (args$save) {
+    logging::loginfo("Saving workspace")
+    save.image("infercnv.Rdata")
+}
+
+
 # Run CNV inference
 ret_list = infercnv::infer_cnv(data=expression_data,
                                gene_order=input_gene_order,
@@ -527,6 +541,12 @@ logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
 
 logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
+
+
+if (args$save) {
+    logging::loginfo("Saving workspace")
+    save.image("infercnv.Rdata")
+}
 
 
 if (args$plot_steps) {

@@ -769,13 +769,14 @@ infer_cnv <- function(data,
         remove_outlier_viz_pdf <- file.path(out_path,
                                             "10A_remove_outlier.pdf")
     }
-    ret_list[["VIZ"]] <- remove_outliers_norm(data=data_smoothed,
-                                          out_method=method_bound_vis,
-                                          lower_bound=lower_bound_vis,
-                                          upper_bound=upper_bound_vis,
-                                          plot_step=remove_outlier_viz_pdf)
 
-
+    data_smoothed = remove_outliers_norm(data=data_smoothed,
+                                         out_method=method_bound_vis,
+                                         lower_bound=lower_bound_vis,
+                                         upper_bound=upper_bound_vis,
+                                         plot_step=remove_outlier_viz_pdf)
+    ret_list[["VIZ"]] <- data_smoothed
+    
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=ret_list[["VIZ"]],
