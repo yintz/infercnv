@@ -523,7 +523,7 @@ infer_cnv <- function(data,
 
 
         # Plot incremental steps.
-        chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[2])[keep_gene_indices]))
+        chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])[keep_gene_indices]))
         if (plot_steps){
             plot_step(data=data,
                       plot_name=file.path(out_path,
