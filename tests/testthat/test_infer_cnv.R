@@ -12,7 +12,7 @@ matrix_two_long_2 <- matrix(c(1,2,4,7,9,11,12,14,17,19,16,14,13,11,10,7,6,4,3,
 matrix_three <- matrix(1:15, ncol=3)
 matrix_five <- matrix(1:25, ncol=5)
 
-context("Test average_over_ref")
+context("Test subtract_ref")
 
 matrix_averef_five <- matrix(c(c(-101, -100, -100, -100, -99),
                                c(-101, -100, -99, -98, -99),
@@ -39,38 +39,38 @@ matrix_averef_five_answer <- matrix(c(c(-1,0,0,0,0,-1,0,0,1,0),
                                     ncol=10,
                                     byrow=TRUE)
 
-test_that("average_over_ref works with one observation, one reference",{
-    expect_equal(average_over_ref(average_data=t(matrix_one),
+test_that("subtract_ref works with one observation, one reference",{
+    expect_equal(subtract_ref(average_data=t(matrix_one),
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
                  t(avref_answer_1))
           })
-test_that("average_over_ref works with two observations, one reference",{
-    expect_equal(average_over_ref(average_data=t(matrix_two),
+test_that("subtract_ref works with two observations, one reference",{
+    expect_equal(subtract_ref(average_data=t(matrix_two),
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
                  t(avref_answer_2))
           })
-test_that("average_over_ref works with 3 observations, two reference",{
-    expect_equal(average_over_ref(average_data=t(matrix_three),
+test_that("subtract_ref works with 3 observations, two reference",{
+    expect_equal(subtract_ref(average_data=t(matrix_three),
                                   ref_observations=c(1,3),
                                   ref_groups=list(c(1,2))),
                  t(avref_answer_3))
           })
-test_that("average_over_ref works with 5 observations, two reference",{
-    expect_equal(average_over_ref(average_data=t(matrix_five),
+test_that("subtract_ref works with 5 observations, two reference",{
+    expect_equal(subtract_ref(average_data=t(matrix_five),
                                   ref_observations=c(2,5),
                                   ref_groups=list(c(1,2))),
                  t(avref_answer_4))
           })
-test_that("average_over_ref works with 1 observation, 1 reference",{
-    expect_equal(average_over_ref(average_data=t(matrix_zeros),
+test_that("subtract_ref works with 1 observation, 1 reference",{
+    expect_equal(subtract_ref(average_data=t(matrix_zeros),
                                   ref_observations=c(1),
                                   ref_groups=list(c(1))),
                  t(avref_answer_5))
           })
-test_that("average_over_ref works with 10 obs, 5 references, 3 groups",{
-    expect_equal(average_over_ref(average_data=t(matrix_averef_five),
+test_that("subtract_ref works with 10 obs, 5 references, 3 groups",{
+    expect_equal(subtract_ref(average_data=t(matrix_averef_five),
                                   ref_observations=c(2,4,6,8,10),
                                   ref_groups=list(c(1),c(2,3,4),c(5))),
                  matrix_averef_five_answer)
@@ -211,37 +211,37 @@ above_answer_6 <- NULL
 
 test_that(paste("above_cutoff works with one observation,",
                 "cutoff too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_one/10 + 1),
+    expect_equal(above_cutoff(data=log2(matrix_one + 1),
                               cutoff=0),
                  above_answer_1)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_three/10 + 1),
+    expect_equal(above_cutoff(data=log2(matrix_three + 1),
                               cutoff=0),
                  above_answer_2)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding two."),{
-    expect_equal(above_cutoff(data=log2(matrix_one/10 + 1),
+    expect_equal(above_cutoff(data=log2(matrix_one + 1),
                               cutoff=2),
                  above_answer_3)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding three."),{
-    expect_equal(above_cutoff(data=log2(matrix_three/10 + 1),
+    expect_equal(above_cutoff(data=log2(matrix_three + 1),
                               cutoff=3.4),
                  above_answer_4)
          })
 test_that(paste("above_cutoff works with one observation,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_one/10 + 1),
+    expect_equal(above_cutoff(data=log2(matrix_one + 1),
                               cutoff=100),
                  above_answer_5)
          })
 test_that(paste("above_cutoff works with three observations,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_three/10 + 1),
+    expect_equal(above_cutoff(data=log2(matrix_three + 1),
                               cutoff=100),
                  above_answer_6)
          })

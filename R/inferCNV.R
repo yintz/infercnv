@@ -19,7 +19,7 @@ USE_MEANS_FLAG = FALSE
 #             different groups of the reference indices.
 #
 # ref_subtract_method: method used to subtract reference data from obs.
-#                      options are: "by_mean", "by_quantiles"
+#                      options are: "by_mean", "by_quantiles"  (default: "by_mean")
 # 
 # quantiles: reference quantiles to use if ref_subtract_method == 'by_quantiles'
 #
@@ -29,7 +29,7 @@ USE_MEANS_FLAG = FALSE
 subtract_ref <- function(average_data,
                          ref_observations,
                          ref_groups,
-                         ref_subtract_method,
+                         ref_subtract_method="by_mean",
                          quantiles=c(0.25, 0.75)
                          ) {
     
