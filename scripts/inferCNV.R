@@ -68,7 +68,7 @@ check_arguments <- function(arguments){
 
     if (! (arguments$ref_subtract_method %in% C_REF_SUBTRACT_METHODS) ) {
         logging::logerror(paste(":: --ref_subtract_method: acceptable values are: ",
-                                C_REF_SUBTRACT_METHODS, collapse=",", sep="") )
+                                paste(C_REF_SUBTRACT_METHODS, collapse=","), sep="") )
         stop("error, must specify acceptable --ref_subtract_method")
     }
     

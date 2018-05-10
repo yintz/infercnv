@@ -93,7 +93,7 @@ subtract_ref <- function(average_data,
                 row_init[i_min] <- current_col[i_min] - average_min[gene_i]
             }
             average_data[gene_i, ] <- row_init
-        } else if (ref_subtract_emethod == "by_quantiles") {
+        } else if (ref_subtract_method == "by_quantiles") {
             # bhaas new code
             i_max <- which(current_col > average_max[gene_i])
             i_min <- which(current_col < average_min[gene_i])
