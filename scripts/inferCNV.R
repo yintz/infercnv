@@ -13,6 +13,7 @@ library(infercnv)
 C_LEVEL_CHOICES <- names(loglevels)
 # Visualization outlier thresholding and bounding method choices
 C_VIS_OUTLIER_CHOICES <- c("average_bound")
+C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
 
 CHR = "chr"
 START = "start"
@@ -65,6 +66,12 @@ check_arguments <- function(arguments){
         stop("error, must specify acceptable --vis_bound_method")
     }
 
+    if (! (arguments$ref_subtract_method %in% C_REF_SUBTRACT_METHODS) ) {
+        logging::logerror(paste(":: --ref_subtract_method: acceptable values are: ",
+                                C_REF_SUBTRACT_METHODS, collapse=",", sep="") )
+        stop("error, must specify acceptable --ref_subtract_method")
+    }
+    
     # Warn that an average of the samples is used in the absence of
     # normal / reference samples
     if (is.null(arguments$reference_observations)){
@@ -278,6 +285,17 @@ pargs <- optparse::add_option(pargs, c("--ref_groups"),
                                          "the reference samples; or a number",
                                          "of groups to make automatically",
                                          "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--ref_subtract_method"),
+                              type="character",
+                              default="by_mean",
+                              action="store",
+                              dest="ref_subtract_method",
+                              metavar="Reference_Subtraction_Method",
+                              help=paste("Method used to subtract the reference values from the observations. Valid choices are",
+                                         paste(C_REF_SUBTRACT_METHODS, collapse=", "),
+                                         " [Default %default]"))
+
 
 pargs <- optparse::add_option(pargs,c("--obs_cluster_contig"),
                               type="character",
@@ -518,11 +536,13 @@ ret_list = infercnv::infer_cnv(data=expression_data,
                                noise_threshold=args$magnitude_filter,
                                num_ref_groups=args$num_groups,
                                out_path=args$output_dir,
+                               k_obs_groups=args$num_obs,
                                plot_steps=args$plot_steps,
                                contig_tail=args$contig_tail,
                                method_bound_vis=args$bound_method_vis,
                                lower_bound_vis=bounds_viz[1],
-                               upper_bound_vis=bounds_viz[2])
+                               upper_bound_vis=bounds_viz[2],
+                               ref_subtract_method=args$ref_subtract_method)
 
 # Log output
 logging::loginfo(paste("::infer_cnv:Writing final data to ",
