@@ -13,10 +13,13 @@ library(infercnv)
 C_LEVEL_CHOICES <- names(loglevels)
 # Visualization outlier thresholding and bounding method choices
 C_VIS_OUTLIER_CHOICES <- c("average_bound")
+C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
 
 CHR = "chr"
 START = "start"
 STOP = "stop"
+
+logging::basicConfig(level='INFO') #initialize to info setting.  
 
 #' Check arguments and make sure the user input meet certain 
 #' additional requirements.
@@ -30,10 +33,12 @@ check_arguments <- function(arguments){
 
     logging::loginfo(paste("::check_arguments:Start", sep=""))
     # Require the name of a output pdf file
-    if (!( "output_dir" %in% names(arguments)) || (arguments$output_dir == "")){
+    if ( (!( "output_dir" %in% names(arguments))) || (arguments$output_dir == "") || (is.na(arguments$output_dir)) ) {
         logging::logerror(paste(":: --output_dir: Please enter a file path to ",
                                 "save the heatmap.",
                                  sep=""))
+
+        stop("error, no --output_dir")
     }
 
     # Require the cut off to be above 0
@@ -41,6 +46,8 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --cutoff: Please enter a value",
                                 "greater or equal to zero for the cut off.",
                                 sep=""))
+
+        stop("error, no --cutoff")
     }
 
     # Require the logging level to be one handled by logging
@@ -48,15 +55,23 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --log_level: Please use a logging level ",
                                 "given here: ", C_LEVEL_CHOICES,
                                 collapse=",", sep=""))
+        stop("error, not recognizing log level")
     }
-
+    
     # Require the visualization outlier detection to be a correct choice.
     if (!(arguments$bound_method_vis %in% C_VIS_OUTLIER_CHOICES)){
         logging::logerror(paste(":: --vis_bound_method: Please use a method ",
                                 "given here: ", C_VIS_OUTLIER_CHOICES,
                                 collapse=",", sep=""))
+        stop("error, must specify acceptable --vis_bound_method")
     }
 
+    if (! (arguments$ref_subtract_method %in% C_REF_SUBTRACT_METHODS) ) {
+        logging::logerror(paste(":: --ref_subtract_method: acceptable values are: ",
+                                paste(C_REF_SUBTRACT_METHODS, collapse=","), sep="") )
+        stop("error, must specify acceptable --ref_subtract_method")
+    }
+    
     # Warn that an average of the samples is used in the absence of
     # normal / reference samples
     if (is.null(arguments$reference_observations)){
@@ -79,6 +94,8 @@ check_arguments <- function(arguments){
         logging::logerror(paste(":: --tail: Please enter a value",
                                 "greater or equal to zero for the tail.",
                                 sep=""))
+
+        stop(980)
     }
 
     if (! is.na(suppressWarnings(as.integer(arguments$num_groups)))){
@@ -175,7 +192,7 @@ pargs <- optparse::add_option(pargs, c("--transform"),
                                          "use this flag so that the data will be ",
                                          "transformed. [Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--log"),
+pargs <- optparse::add_option(pargs, c("--log_file"),
                               type="character",
                               action="store",
                               default=NA,
@@ -269,6 +286,17 @@ pargs <- optparse::add_option(pargs, c("--ref_groups"),
                                          "of groups to make automatically",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--ref_subtract_method"),
+                              type="character",
+                              default="by_mean",
+                              action="store",
+                              dest="ref_subtract_method",
+                              metavar="Reference_Subtraction_Method",
+                              help=paste("Method used to subtract the reference values from the observations. Valid choices are",
+                                         paste(C_REF_SUBTRACT_METHODS, collapse=", "),
+                                         " [Default %default]"))
+
+
 pargs <- optparse::add_option(pargs,c("--obs_cluster_contig"),
                               type="character",
                               default=NULL,
@@ -298,7 +326,7 @@ pargs <- optparse::add_option(pargs, c("--steps"),
 
 pargs <- optparse::add_option(pargs, c("--vis_bound_method"),
                               type="character",
-                              default=NA,
+                              default="average_bound",
                               action="store",
                               dest="bound_method_vis",
                               metavar="Outlier_Removal_Method_Vis",
@@ -368,6 +396,15 @@ pargs <- optparse::add_option(pargs, c("--title_ref"),
                               help=paste("Title of the references matrix Y-axis (if used).",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--save"),
+                              type="logical",
+                              action="store_true",
+                              default=FALSE,
+                              dest="save",
+                              metavar="save",
+                              help="Save workspace as infercnv.Rdata")
+
+
 args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
 args <- args_parsed$options
 args["input_matrix"] <- args_parsed$args[1]
@@ -375,6 +412,7 @@ args["gene_order"] <- args_parsed$args[2]
 
 # Check arguments
 args <- check_arguments(args)
+
 
 # Make sure the output directory exists
 if(!file.exists(args$output_dir)){
@@ -415,14 +453,14 @@ logging::loginfo(paste("::Input arguments. End."))
 # Manage inputs
 logging::loginfo(paste("::Reading data matrix.", sep=""))
 # Row = Genes/Features, Col = Cells/Observations
-expression_data <- read.table(args$input_matrix, sep=args$delim)
+expression_data <- read.table(args$input_matrix, sep=args$delim, header=T, row.names=1)
 logging::loginfo(paste("Original matrix dimensions (r,c)=",
                  paste(dim(expression_data), collapse=",")))
 
 # Read in the gen_pos file
 input_gene_order <- seq(1, nrow(expression_data), 1)
 if (args$gene_order != ""){
-    input_gene_order <- read.table(args$gene_order, row.names=1, sep="\t")
+    input_gene_order <- read.table(args$gene_order, header=F, row.names=1, sep="\t")
     names(input_gene_order) <- c(CHR, START, STOP)
 }
 logging::loginfo(paste("::Reading gene order.", sep=""))
@@ -452,6 +490,7 @@ if (!is.null(args$reference_observations)){
     if (length(refs) > 0){
         input_reference_samples <- refs
     }
+    logging::logdebug(paste("::Reference observations set to: ", input_reference_samples, collapse="\n"))
 }
 
 # Make sure the given reference samples are in the matrix.
@@ -463,6 +502,7 @@ if (length(input_reference_samples) !=
                            "names match a sample in your data matrix.",
                            "Attention to: ",
                            paste(missing_reference_sample, collapse=","))
+    logging::logdebug(paste("::colnames(expression_data): ", colnames(expression_data), collapse="\n"))
     logging::logerror(error_message)
     stop(error_message)
 }
@@ -479,6 +519,12 @@ if(is.null(expression_data)){
     stop(error_message)
 }
 
+
+if (args$save) {
+    logging::loginfo("Saving workspace")
+    save.image("infercnv.Rdata")
+}
+
 # Run CNV inference
 ret_list = infercnv::infer_cnv(data=expression_data,
                                gene_order=input_gene_order,
@@ -490,11 +536,13 @@ ret_list = infercnv::infer_cnv(data=expression_data,
                                noise_threshold=args$magnitude_filter,
                                num_ref_groups=args$num_groups,
                                out_path=args$output_dir,
+                               k_obs_groups=args$num_obs,
                                plot_steps=args$plot_steps,
                                contig_tail=args$contig_tail,
                                method_bound_vis=args$bound_method_vis,
                                lower_bound_vis=bounds_viz[1],
-                               upper_bound_vis=bounds_viz[2])
+                               upper_bound_vis=bounds_viz[2],
+                               ref_subtract_method=args$ref_subtract_method)
 
 # Log output
 logging::loginfo(paste("::infer_cnv:Writing final data to ",
@@ -513,15 +561,30 @@ logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
 
 logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
-infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
-                   contigs=ret_list[["CONTIGS"]],
-                   k_obs_groups=args$num_obs,
-                   reference_idx=ret_list[["REF_OBS_IDX"]],
-                   ref_contig=args$clustering_contig,
-                   contig_cex=args$contig_label_size,
-                   ref_groups=ret_list[["REF_GROUPS"]],
-                   out_dir=args$output_dir,
-                   color_safe_pal=args$use_color_safe,
-                   title=args$fig_main,
-                   obs_title=args$obs_main,
-                   ref_title=args$ref_main)
+
+
+if (args$save) {
+    logging::loginfo("Saving workspace")
+    save.image("infercnv.Rdata")
+}
+
+
+if (args$plot_steps) {
+    logging::loginfo("See results from each stage plotted separately")
+}  else {
+      
+    infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
+                       contigs=ret_list[["CONTIGS"]],
+                       k_obs_groups=args$num_obs,
+                       reference_idx=ret_list[["REF_OBS_IDX"]],
+                       ref_contig=args$clustering_contig,
+                       contig_cex=args$contig_label_size,
+                       ref_groups=ret_list[["REF_GROUPS"]],
+                       out_dir=args$output_dir,
+                       color_safe_pal=args$use_color_safe,
+                       title=args$fig_main,
+                       obs_title=args$obs_main,
+                       ref_title=args$ref_main)
+    
+}
+
