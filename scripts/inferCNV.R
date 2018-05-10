@@ -179,7 +179,7 @@ pargs <- optparse::add_option(pargs, c("--cutoff"),
                               metavar="Cutoff",
                               help=paste("A number >= 0 is expected. A cut off for",
                                          "the average expression of genes to be used",
-                                         "for CNV inference. [Default %default]"))
+                                         "for CNV inference (use the value before log2 transformation). [Default %default]"))
 
 pargs <- optparse::add_option(pargs, c("--transform"),
                               type="logical",
