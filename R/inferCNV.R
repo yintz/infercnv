@@ -233,7 +233,8 @@ create_sep_list <- function(row_count,
 #             row, not the first row.
 split_references <- function(average_data,
                              ref_obs,
-                             num_groups){
+                             num_groups,
+                             hclust_method='complete') {
     logging::loginfo(paste("::split_references:Start", sep=""))
     ret_groups <- list()
     split_groups <- NULL
@@ -269,7 +270,8 @@ split_references <- function(average_data,
         # Get HCLUST
         # Get reference observations only.
         average_reference_obs <- t(average_data[, ref_obs, drop=FALSE])
-        hc <- hclust(dist(average_reference_obs))
+        
+        hc <- hclust(dist(average_reference_obs), method=hclust_method)
 
         split_groups <- cutree(hc, k=num_groups)
         split_groups <- split_groups[hc$order]
@@ -456,14 +458,16 @@ infer_cnv <- function(data,
                       method_bound_vis=NA,
                       lower_bound_vis=NA,
                       upper_bound_vis=NA,
-                      ref_subtract_method="by_mean") {
+                      ref_subtract_method="by_mean",
+                      hclust_method='complete') {
 
     logging::loginfo(paste("::infer_cnv:Start", sep=""))
     
     # Split the reference data into groups if requested
     groups_ref <- split_references(average_data=data, #data_smoothed,
-                                             ref_obs=reference_obs,
-                                             num_groups=num_ref_groups)
+                                   ref_obs=reference_obs,
+                                   num_groups=num_ref_groups,
+                                   hclust_method=hclust_method)
     logging::loginfo(paste("::infer_cnv:split_reference. ",
                            "found ",length(groups_ref)," reference groups.",
                            sep=""))
@@ -896,6 +900,7 @@ plot_cnv <- function(plot_data,
                      contig_cex=1,
                      k_obs_groups=1,
                      x.center=0,
+                     hclust_method='average',
                      color_safe_pal=TRUE,
                      pdf_filename="infercnv.pdf"){
 
@@ -994,6 +999,7 @@ plot_cnv <- function(plot_data,
                           contig_lab_size=contig_cex,
                           breaksList=breaksList_t,
                           x.center=x.center,
+                          hclust_method=hclust_method,
                           layout_lmat=force_layout[["lmat"]],
                           layout_lhei=force_layout[["lhei"]],
                           layout_lwid=force_layout[["lwid"]])
@@ -1049,6 +1055,7 @@ plot_cnv_observations <- function(obs_data,
                                   cluster_contig=NULL,
                                   breaksList,
                                   x.center,
+                                  hclust_method="average",
                                   testing=FALSE,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
@@ -1085,8 +1092,9 @@ plot_cnv_observations <- function(obs_data,
                                      sep=" ")) 
         }
     }
-    # HCL with a inversely weighted euclidean distance.
-    obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]),"average")
+                                        # HCL with a inversely weighted euclidean distance.
+    logging::loginfo(paste("clustering observations via method: ", hclust_method, sep=""))
+    obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
     obs_dendrogram <- as.dendrogram(obs_hcl)
     write.tree(as.phylo(obs_hcl),
                file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
