@@ -20,9 +20,9 @@ CHR = "chr"
 START = "start"
 STOP = "stop"
 
-logging::basicConfig(level='INFO') #initialize to info setting.  
+logging::basicConfig(level='INFO') #initialize to info setting.
 
-#' Check arguments and make sure the user input meet certain 
+#' Check arguments and make sure the user input meet certain
 #' additional requirements.
 #'
 #' Args:
@@ -58,7 +58,7 @@ check_arguments <- function(arguments){
                                 collapse=",", sep=""))
         stop("error, not recognizing log level")
     }
-    
+
     # Require the visualization outlier detection to be a correct choice.
     if (!(arguments$bound_method_vis %in% C_VIS_OUTLIER_CHOICES)){
         logging::logerror(paste(":: --vis_bound_method: Please use a method ",
@@ -79,7 +79,7 @@ check_arguments <- function(arguments){
                                 paste(C_HCLUST_METHODS, collapse=","), sep="") )
         stop("error, must specify acceptable --hclust_method")
     }
-        
+
     # Warn that an average of the samples is used in the absence of
     # normal / reference samples
     if (is.null(arguments$reference_observations)){
@@ -462,12 +462,12 @@ if (!is.na(args$log_file)){
 }
 
 # Log the input parameters
-logging::loginfo(paste("::Input arguments. Start.")) 
+logging::loginfo(paste("::Input arguments. Start."))
 for (arg_name in names(args)){
     logging::loginfo(paste(":Input_Argument:",arg_name,"=",args[[arg_name]],
-                           sep="")) 
+                           sep=""))
 }
-logging::loginfo(paste("::Input arguments. End.")) 
+logging::loginfo(paste("::Input arguments. End."))
 
 # Manage inputs
 logging::loginfo(paste("::Reading data matrix.", sep=""))
@@ -555,7 +555,7 @@ ret_list = infercnv::infer_cnv(data=expression_data,
                                noise_threshold=args$magnitude_filter,
                                num_ref_groups=args$num_groups,
                                out_path=args$output_dir,
-                               k_obs_groups=args$num_obs,
+                               k_obs_groups=args$num_obs_groups,
                                plot_steps=args$plot_steps,
                                contig_tail=args$contig_tail,
                                method_bound_vis=args$bound_method_vis,
@@ -592,10 +592,10 @@ if (args$save) {
 if (args$plot_steps) {
     logging::loginfo("See results from each stage plotted separately")
 }  else {
-      
+
     infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
                        contigs=ret_list[["CONTIGS"]],
-                       k_obs_groups=args$num_obs,
+                       k_obs_groups=args$num_obs_groups,
                        reference_idx=ret_list[["REF_OBS_IDX"]],
                        ref_contig=args$clustering_contig,
                        contig_cex=args$contig_label_size,
@@ -606,6 +606,6 @@ if (args$plot_steps) {
                        title=args$fig_main,
                        obs_title=args$obs_main,
                        ref_title=args$ref_main)
-    
+
 }
 
