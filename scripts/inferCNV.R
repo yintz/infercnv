@@ -106,47 +106,57 @@ check_arguments <- function(arguments){
         stop(980)
     }
 
-    if (! is.na(suppressWarnings(as.integer(arguments$num_groups)))){
-        arguments$num_groups <- list(as.integer(arguments$num_groups))
-    } else {
+    # if (! is.na(suppressWarnings(as.integer(arguments$name_ref_groups)))){
+    #     arguments$name_ref_groups <- list(as.integer(arguments$name_ref_groups))
+    # } else {
+    if (! is.na(arguments$name_ref_groups)) {
         # Warn references must be given.
         if (is.null(arguments$reference_observations)){
             logging::logerror(paste(":: --ref_groups to use this function ",
                                     "references must be given. "))
+            stop(979)
         }
 
         # TODO need to check and make sure all reference indices are given.
-        num_str <- unlist(strsplit(arguments$num_groups,","))
-        if (length(num_str) == 1){
-            logging::logerror(paste(":: --ref_groups. If explicitly giving ",
-                                    "indices, make sure to give atleast ",
-                                    "two groups", sep =""))
-            stop(990)
-        }
+        arguments$name_ref_groups <- unlist(strsplit(arguments$name_ref_groups,","))
+        # if (length(num_str) == 1){
+        #     logging::logerror(paste(":: --ref_groups. If explicitly giving ",
+        #                             "indices, make sure to give atleast ",
+        #                             "two groups", sep =""))
+        #     stop(990)
+        # }
 
-        num_groups <- list()
-        for (num_token in num_str){
-            token_numbers <- unlist(strsplit(num_token, ":"))
-            number_count <- length(token_numbers)
-            if (number_count == 1){
-                singleton <- as.integer(number_count)
-                num_groups[[length(num_groups) + 1]] <- singleton
-            } else if (number_count == 2){
-                from <- as.integer(token_numbers[1])
-                to <- as.integer(token_numbers[2])
-                num_groups[[length(num_groups) + 1]] <- seq(from, to)
-            } else {
-                logging::logerror(paste(":: --ref_groups is expecting either ",
-                                        "one number or a comma delimited list ",
-                                        "of numbers or spans using ':'. ",
-                                        "Examples include: --ref_groups 3 or ",
-                                        " --ref_groups 1,3,5,6,3 or ",
-                                        " --ref_groups 1:5,6:20 or ",
-                                        " --ref_groups 1,2:5,6,7:10 .", sep=""))
-                stop(999)
-            }
+        # name_ref_groups <- list()
+        # for (name_token in name_str){
+        #     # token_numbers <- unlist(strsplit(num_token, ":"))
+        #     # number_count <- length(token_numbers)
+        #     if (number_count == 1){
+        #         singleton <- as.integer(number_count)
+        #         name_ref_groups[[length(name_ref_groups) + 1]] <- singleton
+        #     } else if (number_count == 2){
+        #         from <- as.integer(token_numbers[1])
+        #         to <- as.integer(token_numbers[2])
+        #         name_ref_groups[[length(name_ref_groups) + 1]] <- seq(from, to)
+        #     } else {
+        #         logging::logerror(paste(":: --ref_groups is expecting either ",
+        #                                 "one number or a comma delimited list ",
+        #                                 "of numbers or spans using ':'. ",
+        #                                 "Examples include: --ref_groups 3 or ",
+        #                                 " --ref_groups 1,3,5,6,3 or ",
+        #                                 " --ref_groups 1:5,6:20 or ",
+        #                                 " --ref_groups 1,2:5,6,7:10 .", sep=""))
+        #         stop(999)
+        #     }
+        # }
+        # arguments$name_ref_groups <- name_ref_groups
+    }
+    else {
+        if(!is.null(arguments$num_ref_groups)) {
+            logging::logerror(paste("::  cannot use --num_ref_groups without",
+                                    "using --ref_groups as the average of all",
+                                    "cells is used."))
+            stop(978)
         }
-        arguments$num_groups <- num_groups
     }
     return(arguments)
 }
@@ -283,16 +293,28 @@ pargs <- optparse::add_option(pargs, c("--ref"),
                                          "all samples will be the reference.",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--num_ref_groups"),
+                              type="integer",
+                              default=NULL,
+                              action="store",
+                              dest="num_ref_groups",
+                              metavar="Number_of_reference_groups",
+                              help=paste("Define a number of groups to",
+                                         "make automatically by unsupervised",
+                                         "clustering. This ignores annotations",
+                                         "within references, but does not",
+                                         "mix them with observations.",
+                                         "[Default %default]"))
+
 pargs <- optparse::add_option(pargs, c("--ref_groups"),
                               type="character",
-                              default=1,
+                              default=NULL,
                               action="store",
-                              dest="num_groups",
-                              metavar="Number_of_reference_groups",
-                              help=paste("Indicies of groups in which to group",
-                                         "the reference samples; or a number",
-                                         "of groups to make automatically",
-                                         "[Default %default]"))
+                              dest="name_ref_groups",
+                              metavar="Name_of_reference_groups",
+                              help=paste("Names of groups for the cells",
+                                         "to use as reference groups.",
+                                         "[REQUIRED]"))
 
 pargs <- optparse::add_option(pargs, c("--ref_subtract_method"),
                               type="character",
@@ -479,7 +501,7 @@ logging::loginfo(paste("Original matrix dimensions (r,c)=",
 # Read in the gen_pos file
 input_gene_order <- seq(1, nrow(expression_data), 1)
 if (args$gene_order != ""){
-    input_gene_order <- read.table(args$gene_order, header=F, row.names=1, sep="\t")
+    input_gene_order <- read.table(args$gene_order, header=FALSE, row.names=1, sep="\t")
     names(input_gene_order) <- c(CHR, START, STOP)
 }
 logging::loginfo(paste("::Reading gene order.", sep=""))
@@ -487,28 +509,44 @@ logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
 
 # Default the reference samples to all
 input_reference_samples <- colnames(expression_data)
+
 if (!is.null(args$reference_observations)){
-    # This argument can be either a list of column labels
-    # which is a comma delimited list of column labels
-    # holding a comma delimited list of column labels
-    refs <- args$reference_observations
-    if (file.exists(args$reference_observations)){
-        refs <- scan(args$reference_observations,
-                     what="character",
-                     quiet=TRUE)
-        refs <- paste(refs, collapse=",")
+
+    ## replaces OLD args$num_groups
+    input_classifications <- read.table(args$reference_observations, header=FALSE, row.names=1, sep="\t")
+    # sort input classifications to same order as expression_data
+    input_classifications[order(match(row.names(input_classifications), colnames(expression_data))),]
+
+    # make a list of list of positions that are going to be refs for each classification
+    name_ref_groups_indices <- list()
+    refs <- c()
+    for (name_group in args$name_ref_groups) {
+        name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
+        refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group),]))
     }
-    # Split on comma
-    refs <- unique(unlist(strsplit(refs, ",", fixed=FALSE)))
-    # Remove multiple spaces to single spaces
-    refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
-    refs <- refs[refs != ""]
-    # Normalize names with make.names so they are treated
-    # as the matrix column names
-    refs <- make.names(refs)
-    if (length(refs) > 0){
-        input_reference_samples <- refs
-    }
+    input_reference_samples <- make.names(unique(refs))
+
+    # # This argument can be either a list of column labels
+    # # which is a comma delimited list of column labels
+    # # holding a comma delimited list of column labels
+    # refs <- args$reference_observations
+    # if (file.exists(args$reference_observations)){
+    #     refs <- scan(args$reference_observations,
+    #                  what="character",
+    #                  quiet=TRUE)
+    #     refs <- paste(refs, collapse=",")
+    # }
+    # # Split on comma
+    # refs <- unique(unlist(strsplit(refs, ",", fixed=FALSE)))
+    # # Remove multiple spaces to single spaces
+    # refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
+    # refs <- refs[refs != ""]
+    # # Normalize names with make.names so they are treated
+    # # as the matrix column names
+    # refs <- make.names(refs)
+    # if (length(refs) > 0){
+    #     input_reference_samples <- refs
+    # }
     logging::logdebug(paste("::Reference observations set to: ", input_reference_samples, collapse="\n"))
 }
 
@@ -553,7 +591,8 @@ ret_list = infercnv::infer_cnv(data=expression_data,
                                window_length=args$window_length,
                                max_centered_threshold=args$max_centered_expression,
                                noise_threshold=args$magnitude_filter,
-                               num_ref_groups=args$num_groups,
+                               name_ref_groups=args$name_ref_groups,
+                               num_ref_groups=name_ref_groups_indices,
                                out_path=args$output_dir,
                                k_obs_groups=args$num_obs_groups,
                                plot_steps=args$plot_steps,
