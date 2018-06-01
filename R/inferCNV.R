@@ -1223,7 +1223,7 @@ plot_cnv_observations <- function(obs_data,
 # list with slots "lmat" (layout matrix),
 #                             "lhei" (height, numerix vector),
 #                             and "lwid" (widths, numeric vector)
-plot_observations_layout <- function()
+plot_observations_layout_original <- function()
 {
     ## Plot observational samples
     obs_lmat <- c(0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
@@ -1242,6 +1242,37 @@ plot_observations_layout <- function()
                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     obs_lmat <- matrix(obs_lmat,ncol=13,byrow=TRUE)
+
+    obs_lhei <- c(1.125, 2.215, .15,
+                   .5, .5, .5,
+                   .5, .5, .5,
+                   .5, .5, .5,
+                  0.0075, 0.0075, 0.0075)
+
+    return(list(lmat=obs_lmat,
+           lhei=obs_lhei,
+           lwid=NULL))
+}
+
+plot_observations_layout <- function()
+{
+    ## Plot observational samples
+    obs_lmat <- c(0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                  7, 9, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                  0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    obs_lmat <- matrix(obs_lmat,ncol=14,byrow=TRUE)
 
     obs_lhei <- c(1.125, 2.215, .15,
                    .5, .5, .5,
@@ -2482,6 +2513,8 @@ heatmap.cnv <-
         stop("'RowIndividualColors' must be a character vector of length nrow(x)")
       lmat <- cbind(c(rep(NA,nrow(lmat)-sr),rep(max(lmat,na.rm=TRUE)+1,sr)),lmat)
       lwid <- c(0.2,lwid)
+      lmat <- cbind(c(rep(NA,nrow(lmat)-sr),rep(max(lmat,na.rm=TRUE)+1,sr)),lmat)  # not really useful as this if is only true in plot_cnv_observations which forces layout_lmat and layout_lhei
+      lwid <- c(0.2,lwid) # layout_lwid is however not forced, so need to actually update it here
     } else {
       lmat <- cbind(NA,lmat)
       lwid <- c(0.02,lwid)
@@ -2863,6 +2896,12 @@ heatmap.cnv <-
     if(!.invalid(RowIndividualColors)) {
       par(mar=c(margins[1],0,0,0.5))
       image(rbind(1:nr),col=RowIndividualColors[rowInd],axes=FALSE,add=force_add)
+    }
+
+    if(!.invalid(RowIndividualColors)) {
+        par(mar=c(margins[1],0,0,0.5))
+        # image(rbind(1:nr),col=rep("#E34015", nr)[rowInd], axes=FALSE, add=force_add)
+        image(rbind(1:nr),col=RowIndividualColors[rowInd], axes=FALSE, add=force_add)
     }
 
     ## 5) draw the side color bars - for col
