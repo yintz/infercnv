@@ -904,6 +904,7 @@ plot_cnv <- function(plot_data,
                      title,
                      obs_title,
                      ref_title,
+                     obs_annotations_groups,
                      contig_cex=1,
                      k_obs_groups=1,
                      x.center=0,
@@ -1015,6 +1016,7 @@ plot_cnv <- function(plot_data,
                           col_pal=custom_pal,
                           contig_seps=col_sep,
                           num_obs_groups=k_obs_groups,
+                          obs_annotations_groups=obs_annotations_groups,
                           cnv_title=title,
                           cnv_obs_title=obs_title,
                           contig_lab_size=contig_cex,
@@ -1074,6 +1076,7 @@ plot_cnv_observations <- function(obs_data,
                                   cnv_obs_title,
                                   contig_lab_size=1,
                                   cluster_contig=NULL,
+                                  obs_annotations_groups,
                                   breaksList,
                                   x.center,
                                   hclust_method="average",
@@ -1128,13 +1131,17 @@ plot_cnv_observations <- function(obs_data,
 
     # Make colors based on groupings
     row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
+    row_groupings <- cbind(row_groupings, get_group_color_palette()(length(table(obs_annotations_groups)))[obs_annotations_groups])
 
     # Make a file of coloring and groupings
     logging::loginfo("plot_cnv_observation:Writing observation groupings/color.")
     groups_file_name <- file.path(file_base_name, "observation_groupings.txt")
-    file_groups <- rbind(split_groups,row_groupings)
-    row.names(file_groups) <- c("Group","Color")
-    write.table(t(file_groups), groups_file_name)
+    # file_groups <- rbind(split_groups,row_groupings)
+    file_groups <- cbind(split_groups, row_groupings[,1], obs_annotations_groups, row_groupings[,2])
+    #row.names(file_groups) <- c("Group","Color")
+    colnames(file_groups) <- c("Dendrogram Group", "Dendrogram Color", "Annotation Group", "Annotation Color")
+    # write.table(t(file_groups), groups_file_name)
+    write.table(file_groups, groups_file_name)
 
     # Make a file of members of each group
     logging::loginfo("plot_cnv_observation:Writing observations by grouping.")
@@ -2509,7 +2516,8 @@ heatmap.cnv <-
     }
 
     if(!.invalid(RowIndividualColors)) { ## 4) add middle column to layout for vertical sidebar ##??check
-      if(!is.character(RowIndividualColors) || length(RowIndividualColors) !=nr)
+      # if(!is.character(RowIndividualColors) || length(RowIndividualColors) !=nr)
+      if(!is.character(RowIndividualColors) || dim(RowIndividualColors)[1] !=nr)
         stop("'RowIndividualColors' must be a character vector of length nrow(x)")
       lmat <- cbind(c(rep(NA,nrow(lmat)-sr),rep(max(lmat,na.rm=TRUE)+1,sr)),lmat)
       lwid <- c(0.2,lwid)
@@ -2895,13 +2903,13 @@ heatmap.cnv <-
     ## 4) draw the side color bars - for row
     if(!.invalid(RowIndividualColors)) {
       par(mar=c(margins[1],0,0,0.5))
-      image(rbind(1:nr),col=RowIndividualColors[rowInd],axes=FALSE,add=force_add)
+      image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=force_add)
     }
 
     if(!.invalid(RowIndividualColors)) {
         par(mar=c(margins[1],0,0,0.5))
         # image(rbind(1:nr),col=rep("#E34015", nr)[rowInd], axes=FALSE, add=force_add)
-        image(rbind(1:nr),col=RowIndividualColors[rowInd], axes=FALSE, add=force_add)
+        image(rbind(1:nr),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
     }
 
     ## 5) draw the side color bars - for col

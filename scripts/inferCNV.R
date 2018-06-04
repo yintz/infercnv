@@ -509,11 +509,12 @@ logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
 
 # Default the reference samples to all
 input_reference_samples <- colnames(expression_data)
+observations_annotations_groups = NULL
 
 if (!is.null(args$reference_observations)){
 
     ## replaces OLD args$num_groups
-    input_classifications <- read.table(args$reference_observations, header=FALSE, row.names=1, sep="\t")
+    input_classifications <- read.table(args$reference_observations, header=FALSE, row.names=1, sep="\t", stringsAsFactors = FALSE)
     # sort input classifications to same order as expression_data
     input_classifications[order(match(row.names(input_classifications), colnames(expression_data))),]
 
@@ -525,6 +526,9 @@ if (!is.null(args$reference_observations)){
         refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group),]))
     }
     input_reference_samples <- make.names(unique(refs))
+
+    all_annotations = unique(input_classifications[,1])
+    observations_annotations_names = setdiff(all_annotations, args$name_ref_groups)
 
     # # This argument can be either a list of column labels
     # # which is a comma delimited list of column labels
@@ -622,6 +626,17 @@ logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
 
 
+obs_annotations_groups <- input_classifications[,2]
+counter <- 1
+for (classification in observations_annotations_names) {
+  obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
+  counter <- counter + 1
+}
+obs_annotations_groups <- as.integer(obs_annotations_groups)
+names(obs_annotations_groups) <- rownames(input_classifications)
+obs_annotations_groups <- obs_annotations_groups[input_classifications[,2] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
+
+
 if (args$save) {
     logging::loginfo("Saving workspace")
     save.image("infercnv.Rdata")
@@ -635,6 +650,7 @@ if (args$plot_steps) {
     infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
                        contigs=ret_list[["CONTIGS"]],
                        k_obs_groups=args$num_obs_groups,
+                       obs_annotations_groups=obs_annotations_groups,
                        reference_idx=ret_list[["REF_OBS_IDX"]],
                        ref_contig=args$clustering_contig,
                        contig_cex=args$contig_label_size,
