@@ -632,9 +632,9 @@ for (classification in observations_annotations_names) {
   obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
   counter <- counter + 1
 }
-obs_annotations_groups <- as.integer(obs_annotations_groups)
 names(obs_annotations_groups) <- rownames(input_classifications)
 obs_annotations_groups <- obs_annotations_groups[input_classifications[,2] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
+obs_annotations_groups <- as.integer(obs_annotations_groups)
 
 
 if (args$save) {
