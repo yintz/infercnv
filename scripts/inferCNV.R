@@ -523,7 +523,7 @@ if (!is.null(args$reference_observations)){
     refs <- c()
     for (name_group in args$name_ref_groups) {
         name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
-        refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group),]))
+        refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group), , drop=FALSE]))
     }
     input_reference_samples <- make.names(unique(refs))
 
@@ -626,14 +626,14 @@ logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
 
 
-obs_annotations_groups <- input_classifications[,2]
+obs_annotations_groups <- input_classifications[,1]
 counter <- 1
 for (classification in observations_annotations_names) {
   obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
   counter <- counter + 1
 }
 names(obs_annotations_groups) <- rownames(input_classifications)
-obs_annotations_groups <- obs_annotations_groups[input_classifications[,2] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
+obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
 obs_annotations_groups <- as.integer(obs_annotations_groups)
 
 
