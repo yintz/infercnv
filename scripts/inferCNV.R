@@ -7,6 +7,9 @@ library("RColorBrewer", character.only=TRUE)
 library(GMD)
 library(optparse)
 library(logging)
+if (!require('fastcluster')) {
+    warning("fastcluster library not available, using the default hclust method instead.)
+}
 library(infercnv)
 
 # Logging level choices

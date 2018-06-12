@@ -27,7 +27,6 @@ USE_MEANS_FLAG = FALSE
 # Expression with the average gene expression in the reference
 #          observations removed.
 subtract_ref <- function(average_data,
-                         ref_observations,
                          ref_groups,
                          ref_subtract_method="by_mean",
                          quantiles=c(0.25, 0.75)
@@ -679,7 +678,6 @@ infer_cnv <- function(data,
     # Remove average reference
     i_ref_obs <- which(colnames(data_smoothed) %in% reference_obs)
     data_smoothed <- subtract_ref(average_data=data_smoothed,
-                                  ref_observations=i_ref_obs,
                                   ref_groups=groups_ref,
                                   ref_subtract_method=ref_subtract_method)
     logging::loginfo(paste("::infer_cnv:Remove average, ",
@@ -1011,7 +1009,7 @@ plot_cnv <- function(plot_data,
                           file_base_name=out_dir,
                           cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
-                          contig_label=contig_labels,
+                          contig_labels=contig_labels,
                           contig_names=contig_names,
                           col_pal=custom_pal,
                           contig_seps=col_sep,
