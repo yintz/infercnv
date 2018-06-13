@@ -94,7 +94,7 @@ check_arguments <- function(arguments){
 
     # Make sure the threshold is centered.
     arguments$max_centered_expression <- abs(arguments$max_centered_expression)
-    arguments$magnitude_filter <- abs(arguments$magnitude_filter)
+    arguments$magnitude_filter <- abs(arguments$magnitude_filter)  ## old argument?
 
     # Require the contig tail to be above 0
     if (is.na(arguments$contig_tail)){
@@ -290,10 +290,8 @@ pargs <- optparse::add_option(pargs, c("--ref"),
                               dest="reference_observations",
                               metavar="Input_reference_observations",
                               help=paste("Tab delimited characters are expected.",
-                                         "Names of the subset of samples ( data's",
-                                         "columns ) that should be used as",
-                                         "references if not given, the average of",
-                                         "all samples will be the reference.",
+                                         "Names of the subset each sample ( data's",
+                                         "columns ) is part of.",
                                          "[Default %default]"))
 
 pargs <- optparse::add_option(pargs, c("--num_ref_groups"),
@@ -519,7 +517,7 @@ if (!is.null(args$reference_observations)){
     ## replaces OLD args$num_groups
     input_classifications <- read.table(args$reference_observations, header=FALSE, row.names=1, sep="\t", stringsAsFactors = FALSE)
     # sort input classifications to same order as expression_data
-    input_classifications[order(match(row.names(input_classifications), colnames(expression_data))),]
+    input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))),]
 
     # make a list of list of positions that are going to be refs for each classification
     name_ref_groups_indices <- list()
@@ -583,6 +581,15 @@ if(is.null(expression_data)){
     stop(error_message)
 }
 
+obs_annotations_groups <- input_classifications[,1]
+counter <- 1
+for (classification in observations_annotations_names) {
+  obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
+  counter <- counter + 1
+}
+names(obs_annotations_groups) <- rownames(input_classifications)
+obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
+obs_annotations_groups <- as.integer(obs_annotations_groups)
 
 if (args$save) {
     logging::loginfo("Saving workspace")
@@ -600,6 +607,7 @@ ret_list = infercnv::infer_cnv(data=expression_data,
                                noise_threshold=args$magnitude_filter,
                                name_ref_groups=args$name_ref_groups,
                                num_ref_groups=name_ref_groups_indices,
+                               obs_annotations_groups=obs_annotations_groups,
                                out_path=args$output_dir,
                                k_obs_groups=args$num_obs_groups,
                                plot_steps=args$plot_steps,
@@ -627,17 +635,6 @@ logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
 
 logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
                            args$output_dir, sep=""))
-
-
-obs_annotations_groups <- input_classifications[,1]
-counter <- 1
-for (classification in observations_annotations_names) {
-  obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
-  counter <- counter + 1
-}
-names(obs_annotations_groups) <- rownames(input_classifications)
-obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
-obs_annotations_groups <- as.integer(obs_annotations_groups)
 
 
 if (args$save) {
