@@ -1,10 +1,19 @@
 #!/usr/bin/env Rscript
 
-CHR = "chr"
-START = "start"
-STOP = "stop"
+#library(ape)
+# @importFrom ape write.tree
+library("RColorBrewer", character.only=TRUE)
+library(GMD)
+library(logging)
+if (!require('fastcluster')) {
+    warning("fastcluster library not available, using the default hclust method instead.")
+}
 
-USE_MEANS_FLAG = FALSE
+CHR <- "chr"
+START <- "start"
+STOP <- "stop"
+
+# USE_MEANS_FLAG = FALSE
 
 # Remove the average of the genes of the reference observations from all
 # observations' expression. Normalization by column.
@@ -890,16 +899,20 @@ plot_step <- function(data, plot_name){
 #' @param plot_data: Data matrix to plot (columns are observations).
 #' @param contigs: The contigs the data is group in in order of rows.
 #' @param reference_idx: Vector of reference indices.
-#' @param ref_contig: If given, will focus cluster on only genes in this contig
-#' @param reg_groups: Groups of vector indices (as indices in reference_idx)
+#' @param ref_contig: If given, will focus cluster on only genes in this contig.
+#' @param ref_groups: Groups of vector indices (as indices in reference_idx).
 #' @param out_dir: Directory in which to save pdf and other output.
 #' @param title: Plot title.
 #' @param obs_title: Title for the observations matrix.
 #' @param ref_title: Title for the reference matrix.
+#' @param obs_annotations_groups: Vector of observations annotations group assignation (as indices).
 #' @param contig_cex: Contig text size.
-#' @param k_obs_groups: Number of groups to break observation into
+#' @param x.center: Value on which to center expression.
+#' @param hclust_method: Clustering method to use for hclust.
+#' @param k_obs_groups: Number of groups to break observation into.
 #' @param color_safe_pal: Logical indication of using a color blindness safe
 #'                          palette.
+#' @param pdf_filename: Filename to save the figure to.
 #'
 #' @return
 #' No return, void.
@@ -1055,22 +1068,27 @@ plot_cnv <- function(plot_data,
 # Plot the observational samples
 #
 # Args:
-# obs_data: Data to plot as observations. Rows = Cells, Col = Genes
-# col_pal: The color palette to use.
-# contig_colors: The colors for the contig bar.
-# contig_labels: The labels for the contigs.
-# contig_names: Names of the contigs
-# contig_seps: Indices for line seperators of contigs.
-# num_obs_groups: Number of groups of observations to create
-# file_base_name: Base of the file to used to make output file names.
-# cnv_title: Title of the plot.
-# cnv_obs_title: Title for the observation matrix.
-# contig_lab_size: Text size for contigs.
-# cluster_contig: A value directs cluster to only genes on this contig
-# layout_lmat: lmat values to use in layout
-# layout_lhei: lhei values to use in layout
-# layout_lwid: lwid values to use in layout
+#' @param obs_data: Data to plot as observations. Rows = Cells, Col = Genes.
+#' @param col_pal: The color palette to use.
+#' @param contig_colors: The colors for the contig bar.
+#' @param contig_labels: The labels for the contigs.
+#' @param contig_names: Names of the contigs.
+#' @param contig_seps: Indices for line seperators of contigs.
+#' @param num_obs_groups: Number of groups of observations to create.
+#' @param file_base_name: Base of the file to used to make output file names.
+#' @param cnv_title: Title of the plot.
+#' @param cnv_obs_title: Title for the observation matrix.
+#' @param contig_lab_size: Text size for contigs.
+#' @param cluster_contig: A value directs cluster to only genes on this contig.
+#' @param obs_annotations_groups: Vector of observations annotations group assignation (as indices).
+#' @param breaksList: List of values used as splitters on coloring range.
+#' @param hclust_method: Method to use for hclust.
+#' @param testing: If TRUE, does not plot anything.
+#' @param layout_lmat: lmat values to use in layout.
+#' @param layout_lhei: lhei values to use in layout.
+#' @param layout_lwid: lwid values to use in layout.
 #
+#' @return Void.
 # Returns:
 # Void
 plot_cnv_observations <- function(obs_data,
@@ -3160,3 +3178,269 @@ get.sep <-
   }
   sepList
 }
+
+
+//////EDIT THIS//////
+
+#' @title Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.
+#'
+#' @param plot_data: Data matrix to plot (columns are observations).
+#' @param contigs: The contigs the data is group in in order of rows.
+#' @param reference_idx: Vector of reference indices.
+#' @param ref_contig: If given, will focus cluster on only genes in this contig
+#' @param reg_groups: Groups of vector indices (as indices in reference_idx)
+#' @param out_dir: Directory in which to save pdf and other output.
+#' @param title: Plot title.
+#' @param obs_title: Title for the observations matrix.
+#' @param ref_title: Title for the reference matrix.
+#' @param contig_cex: Contig text size.
+#' @param k_obs_groups: Number of groups to break observation into
+#' @param color_safe_pal: Logical indication of using a color blindness safe
+#'                          palette.
+#'
+#' @return
+#' No return, void.
+#' @export
+infercnv <-
+  function(x,  ## input_matrix, accepted both as a data.frame or a text file to read
+        gene_order,  ## gene_order, accepted both as a data.frame or a text file to read
+        annotations=NULL,
+        use_color_safe=FALSE,
+        contig_label_size=1,
+        cutoff=0,
+        log_transform=FALSE,
+        delim="\t",
+        noise_filter=0,
+        max_centered_expression=3,
+        num_obs_groups=1,
+        output_dir=NULL,
+        ## reference_observations=NULL,
+        num_ref_groups=NULL,
+        name_ref_groups=NULL,
+        ref_subtract_method="by_mean",
+        hclust_method="complete",
+        clustering_contig=NULL,
+        plot_steps=FALSE,
+        bound_method_vis="average_bound",
+        bound_threshold_vis=" -1,1",
+        window_length=101,
+        contig_tail=NULL,
+        fig_main="Copy Number Variation Inference",
+        obs_main="Observations (Cells)",
+        ref_main="References (Cells)",
+        save_workspace=FALSE,
+        log_level="INFO"
+    )
+{
+
+
+    C_VIS_OUTLIER_CHOICES <- c("average_bound")
+    C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
+    C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")
+
+    logging::basicConfig(level=log_level)
+    logging::setLevel('DEBUG', logging::getHandler('basic.stdout'))
+    if ( (output_dir == "") || (is.null(output_dir) || (!is.character(output_dir))) ) {
+        stop("Error, no output_dir given. Please enter a file path to save the heatmap.")
+    }
+    if ( (!is.numeric(cutoff)) || (cutoff < 0) ) {
+        stop("Error, cutoff < 0. Please enter a value greater or equal to zero.")
+    }
+    if ( !(bound_method_vis %in% C_VIS_OUTLIER_CHOICES)) {
+        stop("Error, must specify acceptable vis_bound_method from one of the following: ", paste(C_VIS_OUTLIER_CHOICES, collapse=", "))
+    }
+    if ( !(ref_subtract_method %in% C_REF_SUBTRACT_METHODS)) {
+        stop("Error, must specify accepable ref_subtract_method from one of the following: ", paste(C_REF_SUBTRACT_METHODS, collapse=", "))
+    }
+    if ( !(hclust_method %in% C_HCLUST_METHODS)) {
+        stop("Error, must specify acceptable hclust_method from one of the following: ", paste(C_HCLUST_METHODS, collapse=", "))
+    }
+
+    if(!file.exists(output_dir)){
+        dir.create(output_dir)
+    }
+
+    bounds_viz <- c(NA,NA)
+    if (!is.null(bound_threshold_vis)){
+        bounds_viz <- as.numeric(unlist(strsplit(bound_threshold_vis,",")))  ## TOCHECK maybe require a list directly instead of a string to split?
+    }
+    if (length(bounds_viz) != 2){
+        stop(paste("Please use the correct format for the argument",
+                           "bound_threshold_vis . Two numbers seperated",
+                           "by a comma is expected (lowerbound,upperbound)",
+                           ". As an example, to indicate that outliers are",
+                           "outside of -1 and 1 give the following.",
+                           "vis_bound_threshold=\"-1,1\""))
+    }
+
+    max_centered_expression <- abs(max_centered_expression)
+    noise_filter <- abs(noise_filter)
+
+    if (window_length < 0) {
+        stop("Error, please provide a value greater or equal to zero for the window_length.")
+    }
+    if (is.null(contig_tail)) {
+        contig_tail <- (window_length - 1)/2
+    }
+    if(contig_tail < 0) {
+        stop("Error, please provide a value greater or equal to zero for the window_length.")
+    }
+
+    if (is.null(annotations)) {
+        warning("Warning, no annotations provided.")
+        if (!is.null(name_ref_groups)) {
+            stop("Error, provided name_ref_groups but no annotations to read the grouping information from.")
+        }
+    }
+    else {
+        if (!is.null(name_ref_groups)) {
+            name_ref_groups <- unlist(strsplit(name_ref_groups,","))  ## TOCHECK Could maybe require a list directly instead of a string with comas in between names?
+        }
+    }
+
+    if (!(is.data.frame(x))) {
+        expression_data <- read.table(x, sep=delim, header=TRUE, row.names=1, check.names=FALSE)
+    }
+    else {
+        expression_data <- x
+    }
+
+    input_gene_order <- seq(1, nrow(expression_data), 1)
+
+    if (!.invalid(gene_order)) {
+        if(!is.data.frame(gene_order)) {
+            input_gene_order <- read.table(gene_order, header=FALSE, row.names=1, sep="\t")
+            names(input_gene_order) <- c(CHR, START, STOP)
+        }
+        else {
+            if (names(input_gene_order) != c(CHR, START, STOP)) {
+                stop("Error, gene_order given but names do not match expected format.")
+            }
+        }
+    }
+
+    message("parsing reference annotation names")
+    input_reference_samples <- colnames(expression_data)
+    observations_annotations_groups <- NULL
+
+    if (!is.null(annotations)) {
+        if ( is.data.frame(annotations)) {
+            input_classifications <- annotations
+        }
+        else {
+            input_classifications <- read.table(annotations, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE)
+        }
+        input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))), , drop=FALSE]
+        name_ref_groups_indices <- list()
+        refs <- c()
+        for (name_group in name_ref_groups) {
+            name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
+            refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group), , drop=FALSE]))
+        }
+        input_reference_samples <- unique(refs)
+
+        all_annotations <- unique(input_classifications[,1])
+        observations_annotations_names <- setdiff(all_annotations, name_ref_groups)
+    }
+
+    if (length(input_reference_samples) !=
+        length(intersect(input_reference_samples, colnames(expression_data)))){
+        missing_reference_sample <- setdiff(input_reference_samples,
+                                            colnames(expression_data))
+        error_message <- paste("Please make sure that all the reference sample",
+                               "names match a sample in your data matrix.",
+                               "Attention to: ",
+                               paste(missing_reference_sample, collapse=","))
+        stop(error_message)
+    }
+
+    message("running order_ret")
+    order_ret <- order_reduce(data=expression_data, genomic_position=input_gene_order)
+    expression_data <- order_ret$expr
+    input_gene_order <- order_ret$order
+
+    message("done with order_ret")
+
+    if(is.null(expression_data)){
+        error_message <- paste("None of the genes in the expression data",
+                               "matched the genes in the reference genomic",
+                               "position file. Analysis Stopped.")
+        stop(error_message)
+    }
+
+    obs_annotations_groups <- input_classifications[,1]
+    counter <- 1
+    for (classification in observations_annotations_names) {
+      obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
+      counter <- counter + 1
+    }
+    names(obs_annotations_groups) <- rownames(input_classifications)
+    obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
+    obs_annotations_groups <- as.integer(obs_annotations_groups)
+
+    if (save_workspace) {
+        logging::loginfo("Saving workspace")
+        save.image("infercnv.Rdata")
+    }
+
+    message("running infer_cnv")
+
+    ret_list = infer_cnv(data=expression_data,
+                           gene_order=input_gene_order,
+                           cutoff=cutoff,
+                           reference_obs=input_reference_samples,
+                           transform_data=log_transform,
+                           window_length=window_length,
+                           max_centered_threshold=max_centered_expression,
+                           noise_threshold=noise_filter,
+                           name_ref_groups=name_ref_groups,
+                           num_ref_groups=name_ref_groups_indices,
+                           obs_annotations_groups=obs_annotations_groups,
+                           out_path=output_dir,
+                           k_obs_groups=num_obs_groups,
+                           plot_steps=plot_steps,
+                           contig_tail=contig_tail,
+                           method_bound_vis=bound_method_vis,
+                           lower_bound_vis=bounds_viz[1],
+                           upper_bound_vis=bounds_viz[2],
+                           ref_subtract_method=ref_subtract_method,
+                           hclust_method=hclust_method)
+
+    message("done with infer_cnv")
+
+    # Output data before viz outlier
+    write.table(ret_list["PREVIZ"], sep=delim,
+                file=file.path(output_dir,
+                           "expression_pre_vis_transform.txt"))
+    message("wrote pre vis data")
+
+    # Output data after viz outlier
+    write.table(ret_list["VIZ"], sep=delim,
+                file=file.path(output_dir,
+                           "expression_post_viz_transform.txt"))
+    message("wrote post vis data")
+
+    if (save_workspace) {
+        logging::loginfo("Saving workspace")
+        save.image("infercnv.Rdata")
+    }
+
+    message("running plot_cnv")
+
+    plot_cnv(plot_data=ret_list[["VIZ"]],
+               contigs=ret_list[["CONTIGS"]],
+               k_obs_groups=num_obs_groups,
+               obs_annotations_groups=obs_annotations_groups,
+               reference_idx=ret_list[["REF_OBS_IDX"]],
+               ref_contig=clustering_contig,
+               contig_cex=contig_label_size,
+               ref_groups=ret_list[["REF_GROUPS"]],
+               out_dir=output_dir,
+               color_safe_pal=use_color_safe,
+               hclust_method=hclust_method,
+               title=fig_main,
+               obs_title=obs_main,
+               ref_title=ref_main)
+
+}
+
