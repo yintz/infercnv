@@ -495,7 +495,7 @@ logging::loginfo(paste("::Input arguments. End."))
 # Manage inputs
 logging::loginfo(paste("::Reading data matrix.", sep=""))
 # Row = Genes/Features, Col = Cells/Observations
-expression_data <- read.table(args$input_matrix, sep=args$delim, header=T, row.names=1)
+expression_data <- read.table(args$input_matrix, sep=args$delim, header=T, row.names=1, check.names=FALSE)
 logging::loginfo(paste("Original matrix dimensions (r,c)=",
                  paste(dim(expression_data), collapse=",")))
 
@@ -517,7 +517,7 @@ if (!is.null(args$reference_observations)){
     ## replaces OLD args$num_groups
     input_classifications <- read.table(args$reference_observations, header=FALSE, row.names=1, sep="\t", stringsAsFactors = FALSE)
     # sort input classifications to same order as expression_data
-    input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))),]
+    input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))), , drop=FALSE]
 
     # make a list of list of positions that are going to be refs for each classification
     name_ref_groups_indices <- list()
@@ -526,7 +526,7 @@ if (!is.null(args$reference_observations)){
         name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
         refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group), , drop=FALSE]))
     }
-    input_reference_samples <- make.names(unique(refs))
+    input_reference_samples <- unique(refs)
 
     all_annotations = unique(input_classifications[,1])
     observations_annotations_names = setdiff(all_annotations, args$name_ref_groups)
