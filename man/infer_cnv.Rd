@@ -5,55 +5,71 @@
 \title{Infer CNV changes given a matrix of RNASeq counts. Output a pdf and matrix of final values.}
 \usage{
 infer_cnv(data, gene_order, cutoff, reference_obs, transform_data,
-  window_length, max_centered_threshold, noise_threshold, num_ref_groups,
-  out_path, plot_steps = FALSE, contig_tail = (window_length - 1)/2,
-  method_bound_vis = NA, lower_bound_vis = NA, upper_bound_vis = NA)
+  window_length, max_centered_threshold, noise_threshold, name_ref_groups,
+  num_ref_groups, out_path, obs_annotations_groups, k_obs_groups = 1,
+  plot_steps = FALSE, contig_tail = (window_length - 1)/2,
+  method_bound_vis = NA, lower_bound_vis = NA, upper_bound_vis = NA,
+  ref_subtract_method = "by_mean", hclust_method = "complete")
 }
 \arguments{
-\item{data:}{Expression matrix (genes X samples),
+\item{data}{Expression matrix (genes X samples),
 assumed to be log2(TPM+1) .}
 
-\item{gene_order:}{Ordering of the genes (data's rows) 
+\item{gene_order}{Ordering of the genes (data's rows)
 according to their genomic location
 To include all genes use 0.}
 
-\item{cutoff:}{Cut-off for the average expression of genes to be 
+\item{cutoff}{Cut-off for the average expression of genes to be
 used for CNV inference.}
 
-\item{reference_obs:}{Column names of the subset of samples (data's columns)
+\item{reference_obs}{Column names of the subset of samples (data's columns)
 that should be used as references.
-If not given, the average of all samples will 
+If not given, the average of all samples will
 be the reference.}
 
-\item{transform_data:}{Indicator to log2 + 1 transform}
+\item{transform_data}{Indicator to log2 + 1 transform}
 
-\item{window_length:}{Length of the window for the moving average
+\item{window_length}{Length of the window for the moving average
 (smoothing). Should be an odd integer.}
 
-\item{max_centered_threshold:}{The maximum value a a value can have after
+\item{max_centered_threshold}{The maximum value a a value can have after
 centering. Also sets a lower bound of
 -1 * this value.}
 
-\item{noise_threshold:}{The minimum difference a value can be from the 
+\item{noise_threshold}{The minimum difference a value can be from the
 average reference in order for it not to be
 removed as noise.}
 
-\item{num_ref_groups:}{The number of reference groups of a list of
-indicies for each group of reference indices in
+\item{name_ref_groups}{Names of groups from the "annotations" table whose cells 
+are to be used as reference groups.}
+
+\item{num_ref_groups}{The number of reference groups or a list of
+indices for each group of reference indices in
 relation to reference_obs.}
 
-\item{out_path:}{The path to what to save the pdf as. The raw data is
+\item{out_path}{The path to what to save the pdf as. The raw data is
 also written to this path but with the extension .txt .}
 
-\item{plot_steps:}{If true turns on plotting intermediate steps.}
+\item{obs_annotations_groups}{Vector with group index of observations cells, 
+based on the annotation ot the cells.}
 
-\item{contig_tail:}{Length of the tail removed from the ends of contigs.}
+\item{k_obs_groups}{Number of groups in which to break the observations.}
 
-\item{method_bound:}{Method to use for bounding values in the visualization.}
+\item{plot_steps}{If true turns on plotting intermediate steps.}
 
-\item{lower_bound_vis:}{Lower bound to normalize data to for visualization.}
+\item{contig_tail}{Length of the tail removed from the ends of contigs.}
 
-\item{upper_bound_vis:}{Upper bound to normalize data to for visualization.}
+\item{method_bound_vis}{Method to use for bounding values in the visualization.}
+
+\item{lower_bound_vis}{Lower bound to normalize data to for visualization.}
+
+\item{upper_bound_vis}{Upper bound to normalize data to for visualization.}
+
+\item{ref_subtract_method}{Method used to subtract the reference values from the observations. 
+Valid choices are: "by_mean", "by_quantiles".}
+
+\item{hclust_method}{Method used for hierarchical clustering of cells. Valid choices are: 
+"ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".}
 }
 \value{
 Returns a list including:
@@ -62,4 +78,7 @@ Returns a list including:
     Contig order
     Column names of the subset of samples that should be used as references.
     Names of samples in reference groups.
+}
+\description{
+Function doing the actual analysis before calling the plotting functions.
 }

@@ -7,10 +7,10 @@
 order_reduce(data, genomic_position)
 }
 \arguments{
-\item{data:}{Data (expression) matrix where the row names should be in
+\item{data}{Data (expression) matrix where the row names should be in
 the row names of the genomic_position file.}
 
-\item{genomic_position:}{Data frame read in from the genomic position file}
+\item{genomic_position}{Data frame read in from the genomic position file}
 }
 \value{
 Returns a matrix of expression in the order of the

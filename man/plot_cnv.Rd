@@ -5,35 +5,47 @@
 \title{Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.}
 \usage{
 plot_cnv(plot_data, contigs, reference_idx, ref_contig, ref_groups, out_dir,
-  title, obs_title, ref_title, contig_cex = 1, k_obs_groups = 1,
-  color_safe_pal = TRUE)
+  title, obs_title, ref_title, obs_annotations_groups, contig_cex = 1,
+  k_obs_groups = 1, x.center = 0, hclust_method = "average",
+  color_safe_pal = TRUE, pdf_filename = "infercnv.pdf")
 }
 \arguments{
-\item{plot_data:}{Data matrix to plot (columns are observations).}
+\item{plot_data}{Data matrix to plot (columns are observations).}
 
-\item{contigs:}{The contigs the data is group in in order of rows.}
+\item{contigs}{The contigs the data is group in in order of rows.}
 
-\item{reference_idx:}{Vector of reference indices.}
+\item{reference_idx}{Vector of reference indices.}
 
-\item{ref_contig:}{If given, will focus cluster on only genes in this contig}
+\item{ref_contig}{If given, will focus cluster on only genes in this contig.}
 
-\item{reg_groups:}{Groups of vector indices (as indices in reference_idx)}
+\item{ref_groups}{Groups of vector indices (as indices in reference_idx).}
 
-\item{out_dir:}{Directory in which to save pdf and other output.}
+\item{out_dir}{Directory in which to save pdf and other output.}
 
-\item{title:}{Plot title.}
+\item{title}{Plot title.}
 
-\item{obs_title:}{Title for the observations matrix.}
+\item{obs_title}{Title for the observations matrix.}
 
-\item{ref_title:}{Title for the reference matrix.}
+\item{ref_title}{Title for the reference matrix.}
 
-\item{contig_cex:}{Contig text size.}
+\item{obs_annotations_groups}{Vector of observations annotations group assignation (as indices).}
 
-\item{k_obs_groups:}{Number of groups to break observation into}
+\item{contig_cex}{Contig text size.}
 
-\item{color_safe_pal:}{Logical indication of using a color blindness safe
+\item{k_obs_groups}{Number of groups to break observation into.}
+
+\item{x.center}{Value on which to center expression.}
+
+\item{hclust_method}{Clustering method to use for hclust.}
+
+\item{color_safe_pal}{Logical indication of using a color blindness safe
 palette.}
+
+\item{pdf_filename}{Filename to save the figure to.}
 }
 \value{
 No return, void.
+}
+\description{
+Formats the data and sends it for plotting.
 }

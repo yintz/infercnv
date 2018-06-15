@@ -1,10 +1,9 @@
 #!/usr/bin/env Rscript
 
-#library(ape)
-# @importFrom ape write.tree
+# library(ape)
 library("RColorBrewer", character.only=TRUE)
-library(GMD)
-library(logging)
+# library(GMD)
+# library(logging)
 if (!require('fastcluster')) {
     warning("fastcluster library not available, using the default hclust method instead.")
 }
@@ -19,18 +18,18 @@ STOP <- "stop"
 # observations' expression. Normalization by column.
 #
 # Args:
-# average_data: Matrix containing the data to remove average
+# average_data Matrix containing the data to remove average
 #               from (this includes the reference observations).
 #               Row = Genes, Col = Cells.
-# ref_observations: Indices of reference observations.
+# ref_observations Indices of reference observations.
 #                   Only these are used in the average.
-# ref_groups: A list of vectors of indices refering to the
+# ref_groups A list of vectors of indices refering to the
 #             different groups of the reference indices.
 #
-# ref_subtract_method: method used to subtract reference data from obs.
+# ref_subtract_method method used to subtract reference data from obs.
 #                      options are: "by_mean", "by_quantiles"  (default: "by_mean")
 #
-# quantiles: reference quantiles to use if ref_subtract_method == 'by_quantiles'
+# quantiles reference quantiles to use if ref_subtract_method == 'by_quantiles'
 #
 # Returns:
 # Expression with the average gene expression in the reference
@@ -135,7 +134,7 @@ subtract_ref <- function(average_data,
 #               colorramppalette.html#more
 
 # Args:
-# steps: Vector of colors to change use in the palette
+# steps Vector of colors to change use in the palette
 # between: Steps where gradients change
 #
 # Returns:
@@ -178,10 +177,10 @@ color.palette <- function(steps,
 # Ie. list(list(c(1,0,3,10), c(5, 0, 10,10)), list(c(1,2,3,4)))
 #
 # Args:
-# row_count: Total number of rows
-# col_count: Total number of columns
-# row_seps: Vector of integers indices for row breaks
-# col_seps: Vector of integer indices for column breaks
+# row_count Total number of rows
+# col_count Total number of columns
+# row_seps Vector of integers indices for row breaks
+# col_seps Vector of integer indices for column breaks
 #
 # Returns
 # List of lists of vectors
@@ -230,9 +229,9 @@ create_sep_list <- function(row_count,
 # for the different groups.
 #
 # Args:
-# average_data: Matrix containing data. Row = Genes, Col = Cells.
-# ref_obs: Indices of reference obervations.
-# num_groups: The number of groups to partition nodes in or a list
+# average_data Matrix containing data. Row = Genes, Col = Cells.
+# ref_obs Indices of reference obervations.
+# num_groups The number of groups to partition nodes in or a list
 #                       of already partitioned indices.
 #
 # Returns:
@@ -300,10 +299,10 @@ split_references <- function(average_data,
 #
 # Args:
 # data: data to remove outliers. Outliers removed within columns.
-# out_method: Method to remove outliers [(average_bound, NA (hard threshold))]
-# lower_bound: Lower bound which identifies a measurement
+# out_method Method to remove outliers [(average_bound, NA (hard threshold))]
+# lower_bound Lower bound which identifies a measurement
 #                        as an outlier.
-# upper_bound: Upper bound which identifies a measurement
+# upper_bound Upper bound which identifies a measurement
 #                        as an outlier.
 # plot_step: True will plot this analysis step.
 #
@@ -367,7 +366,7 @@ remove_outliers_norm <- function(data,
 # Center data after smoothing. Center with in cells using median.
 #
 # Args:
-# data_smoothed: Matrix to center.
+# data_smoothed Matrix to center.
 #                          Row = Genes, Col = cells.
 #
 # Returns:
@@ -384,7 +383,7 @@ center_smoothed <- function(data_smoothed){
 # Center data and threshold (both negative and postive values)
 #
 # Args:
-# center_data: Matrix to center. Row = Genes, Col = Cells.
+# center_data Matrix to center. Row = Genes, Col = Cells.
 # threshold: Values will be required to be with -/+1 *
 #                      threshold after centering.
 # Returns:
@@ -410,38 +409,49 @@ get_group_color_palette <- function(){
 }
 
 
+#' Function doing the actual analysis before calling the plotting functions.
+#'
 #' @title Infer CNV changes given a matrix of RNASeq counts. Output a pdf and matrix of final values.
 #'
-#' @param data: Expression matrix (genes X samples),
+#' @param data Expression matrix (genes X samples),
 #'                 assumed to be log2(TPM+1) .
-#' @param gene_order: Ordering of the genes (data's rows)
+#' @param gene_order Ordering of the genes (data's rows)
 #'                       according to their genomic location
 #'                       To include all genes use 0.
-#' @param cutoff: Cut-off for the average expression of genes to be
+#' @param cutoff Cut-off for the average expression of genes to be
 #'                   used for CNV inference.
-#' @param reference_obs: Column names of the subset of samples (data's columns)
+#' @param reference_obs Column names of the subset of samples (data's columns)
 #'                          that should be used as references.
 #'                          If not given, the average of all samples will
 #'                          be the reference.
-#' @param transform_data: Indicator to log2 + 1 transform
-#' @param window_length: Length of the window for the moving average
+#' @param transform_data Indicator to log2 + 1 transform
+#' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer.
-#' @param max_centered_threshold: The maximum value a a value can have after
+#' @param max_centered_threshold The maximum value a a value can have after
 #'                                   centering. Also sets a lower bound of
 #'                                   -1 * this value.
-#' @param noise_threshold: The minimum difference a value can be from the
+#' @param noise_threshold The minimum difference a value can be from the
 #'                            average reference in order for it not to be
 #'                            removed as noise.
-#' @param num_ref_groups: The number of reference groups or a list of
+#' @param name_ref_groups Names of groups from the "annotations" table whose cells 
+#' are to be used as reference groups.
+#' @param num_ref_groups The number of reference groups or a list of
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs.
-#' @param out_path: The path to what to save the pdf as. The raw data is
+#' @param out_path The path to what to save the pdf as. The raw data is
 #'                     also written to this path but with the extension .txt .
-#' @param plot_steps: If true turns on plotting intermediate steps.
-#' @param contig_tail: Length of the tail removed from the ends of contigs.
-#' @param method_bound: Method to use for bounding values in the visualization.
-#' @param lower_bound_vis: Lower bound to normalize data to for visualization.
-#' @param upper_bound_vis: Upper bound to normalize data to for visualization.
+#' @param obs_annotations_groups Vector with group index of observations cells, 
+#' based on the annotation ot the cells.
+#' @param k_obs_groups Number of groups in which to break the observations.
+#' @param plot_steps If true turns on plotting intermediate steps.
+#' @param contig_tail Length of the tail removed from the ends of contigs.
+#' @param method_bound_vis Method to use for bounding values in the visualization.
+#' @param lower_bound_vis Lower bound to normalize data to for visualization.
+#' @param upper_bound_vis Upper bound to normalize data to for visualization.
+#' @param ref_subtract_method Method used to subtract the reference values from the observations. 
+#' Valid choices are: "by_mean", "by_quantiles".
+#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are: 
+#' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
 #'
 #' @return
 #' Returns a list including:
@@ -894,25 +904,28 @@ plot_step <- function(data, plot_name){
     write.table(data, file=text_file)
 }
 
+
+#' Formats the data and sends it for plotting.
+#'
 #' @title Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.
 #'
-#' @param plot_data: Data matrix to plot (columns are observations).
-#' @param contigs: The contigs the data is group in in order of rows.
-#' @param reference_idx: Vector of reference indices.
-#' @param ref_contig: If given, will focus cluster on only genes in this contig.
-#' @param ref_groups: Groups of vector indices (as indices in reference_idx).
-#' @param out_dir: Directory in which to save pdf and other output.
-#' @param title: Plot title.
-#' @param obs_title: Title for the observations matrix.
-#' @param ref_title: Title for the reference matrix.
-#' @param obs_annotations_groups: Vector of observations annotations group assignation (as indices).
-#' @param contig_cex: Contig text size.
-#' @param x.center: Value on which to center expression.
-#' @param hclust_method: Clustering method to use for hclust.
-#' @param k_obs_groups: Number of groups to break observation into.
-#' @param color_safe_pal: Logical indication of using a color blindness safe
+#' @param plot_data Data matrix to plot (columns are observations).
+#' @param contigs The contigs the data is group in in order of rows.
+#' @param reference_idx Vector of reference indices.
+#' @param ref_contig If given, will focus cluster on only genes in this contig.
+#' @param ref_groups Groups of vector indices (as indices in reference_idx).
+#' @param out_dir Directory in which to save pdf and other output.
+#' @param title Plot title.
+#' @param obs_title Title for the observations matrix.
+#' @param ref_title Title for the reference matrix.
+#' @param obs_annotations_groups Vector of observations annotations group assignation (as indices).
+#' @param contig_cex Contig text size.
+#' @param k_obs_groups Number of groups to break observation into.
+#' @param x.center Value on which to center expression.
+#' @param hclust_method Clustering method to use for hclust.
+#' @param color_safe_pal Logical indication of using a color blindness safe
 #'                          palette.
-#' @param pdf_filename: Filename to save the figure to.
+#' @param pdf_filename Filename to save the figure to.
 #'
 #' @return
 #' No return, void.
@@ -1068,25 +1081,25 @@ plot_cnv <- function(plot_data,
 # Plot the observational samples
 #
 # Args:
-#' @param obs_data: Data to plot as observations. Rows = Cells, Col = Genes.
-#' @param col_pal: The color palette to use.
-#' @param contig_colors: The colors for the contig bar.
-#' @param contig_labels: The labels for the contigs.
-#' @param contig_names: Names of the contigs.
-#' @param contig_seps: Indices for line seperators of contigs.
-#' @param num_obs_groups: Number of groups of observations to create.
-#' @param file_base_name: Base of the file to used to make output file names.
-#' @param cnv_title: Title of the plot.
-#' @param cnv_obs_title: Title for the observation matrix.
-#' @param contig_lab_size: Text size for contigs.
-#' @param cluster_contig: A value directs cluster to only genes on this contig.
-#' @param obs_annotations_groups: Vector of observations annotations group assignation (as indices).
-#' @param breaksList: List of values used as splitters on coloring range.
-#' @param hclust_method: Method to use for hclust.
-#' @param testing: If TRUE, does not plot anything.
-#' @param layout_lmat: lmat values to use in layout.
-#' @param layout_lhei: lhei values to use in layout.
-#' @param layout_lwid: lwid values to use in layout.
+#' @param obs_data Data to plot as observations. Rows = Cells, Col = Genes.
+#' @param col_pal The color palette to use.
+#' @param contig_colors The colors for the contig bar.
+#' @param contig_labels The labels for the contigs.
+#' @param contig_names Names of the contigs.
+#' @param contig_seps Indices for line seperators of contigs.
+#' @param num_obs_groups Number of groups of observations to create.
+#' @param file_base_name Base of the file to used to make output file names.
+#' @param cnv_title Title of the plot.
+#' @param cnv_obs_title Title for the observation matrix.
+#' @param contig_lab_size Text size for contigs.
+#' @param cluster_contig A value directs cluster to only genes on this contig.
+#' @param obs_annotations_groups Vector of observations annotations group assignation (as indices).
+#' @param breaksList List of values used as splitters on coloring range.
+#' @param hclust_method Method to use for hclust.
+#' @param testing If TRUE, does not plot anything.
+#' @param layout_lmat lmat values to use in layout.
+#' @param layout_lhei lhei values to use in layout.
+#' @param layout_lwid lwid values to use in layout.
 #
 #' @return Void.
 # Returns:
@@ -1133,7 +1146,7 @@ plot_cnv_observations <- function(obs_data,
             hcl_desc <- cluster_contig
             logging::loginfo(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
         } else {
-           logging::logwarning(paste("plot_cnv_observations: Not able to cluster by",
+           logging::logwarn(paste("plot_cnv_observations: Not able to cluster by",
                                      cluster_contig,
                                      "Clustering by all genomic locations.",
                                      "To cluster by local genomic location next time",
@@ -1323,16 +1336,16 @@ plot_observations_layout <- function()
 # Plot the reference samples
 #
 # Args:
-# ref_data: Data to plot as references. Rows = Cells, Col = Genes
-# ref_groups: Groups of references to plot together.
-# col_pal: The color palette to use.
-# contig_seps: Indices for line seperators of contigs.
-# file_base_name: Base of the file to used to make output file names.
-# cnv_ref_title: Title for reference matrix.
-# layout_lmat: lmat values to use in the layout.
-# layout_lwid: lwid values to use in the layout.
-# layout_lhei: lhei values to use in the layout.
-# layout_add: Indicates the ref image shoudl be added to the previous plot.
+# ref_data Data to plot as references. Rows = Cells, Col = Genes
+# ref_groups Groups of references to plot together.
+# col_pal The color palette to use.
+# contig_seps Indices for line seperators of contigs.
+# file_base_name Base of the file to used to make output file names.
+# cnv_ref_title Title for reference matrix.
+# layout_lmat lmat values to use in the layout.
+# layout_lwid lwid values to use in the layout.
+# layout_lhei lhei values to use in the layout.
+# layout_add Indicates the ref image shoudl be added to the previous plot.
 # testing: Turns off plotting when true.
 #
 # Returns:
@@ -1452,9 +1465,9 @@ plot_cnv_references <- function(ref_data,
 # Return the indices of the rows that average above the cut off
 #
 # Args:
-# data: Data to measure the average row and evaluate
+# data Data to measure the average row and evaluate
 #                 against the cutoff. Row = Genes, Col = Cells.
-# cutoff: Threshold to be above to be kept.
+# cutoff Threshold to be above to be kept.
 #
 # Returns:
 # Returns a vector of row indicies to keep (are above the cutoff).
@@ -1475,9 +1488,9 @@ above_cutoff <- function(data, cutoff){
 #' Order the data and subset the data to data in the genomic position file.
 #'
 #' Args:
-#' @param data: Data (expression) matrix where the row names should be in
+#' @param data Data (expression) matrix where the row names should be in
 #'                 the row names of the genomic_position file.
-#' @param genomic_position: Data frame read in from the genomic position file
+#' @param genomic_position Data frame read in from the genomic position file
 #'
 #' @return Returns a matrix of expression in the order of the
 #'            genomic_position file. NULL is returned if the genes in both
@@ -1555,9 +1568,9 @@ order_reduce <- function(data, genomic_position){
 # Remove values that are too close to the average and are considered noise.
 #
 # Args:
-# smooth_matrix: A matrix of values, smoothed, and with average
+# smooth_matrix A matrix of values, smoothed, and with average
 #                          reference removed. Row = Genes, Col = Cells.
-# threshold: The amount of difference a value must be from the
+# threshold The amount of difference a value must be from the
 #                      reference before the value can be kept and not
 #                      removed as noise.
 # Returns:
@@ -1577,10 +1590,10 @@ remove_noise <- function(smooth_matrix, threshold){
 # contig is left.
 #
 # Args:
-# smooth_matrix: Smoothed values in genomic order.
+# smooth_matrix Smoothed values in genomic order.
 #                          Row = Genes, Col = Cells.
-# chr: Indices of the chr in which the tails are to be removed.
-# tail_length: Length of the tail to remove on both ends of the
+# chr Indices of the chr in which the tails are to be removed.
+# tail_length Length of the tail to remove on both ends of the
 #                        chr indices.
 # Returns:
 # Indices to remove.
@@ -1606,8 +1619,8 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 # available data.
 #
 # Args:
-# data: Data matrix to smooth. Row = Genes, Col = Cells.
-# window_length: Length of window to use for the moving average.
+# data Data matrix to smooth. Row = Genes, Col = Cells.
+# window_length Length of window to use for the moving average.
 #        Should be a positive, odd integer.
 #
 # Returns:
@@ -1649,8 +1662,8 @@ smooth_window <- function(data, window_length){
 # Helper function for smoothing the ends of a moving average.
 #
 # Args:
-# obs_data: Data to smooth
-# obs_tails: Length of the tail to smooth.
+# obs_data Data to smooth
+# obs_tails Length of the tail to smooth.
 #
 # Returns:
 # Data smoothed.
@@ -1673,8 +1686,8 @@ smooth_ends_helper <- function(obs_data, obs_tails){
 # Smooth vector of values over the given window length.
 #
 # Args:
-# obs_data: Vector of data to smooth with a moving average.
-# window_length: Length of the window for smoothing.
+# obs_data Vector of data to smooth with a moving average.
+# window_length Length of the window for smoothing.
 #        Must be and odd, positive, integer.
 #
 # Returns:
@@ -1717,6 +1730,22 @@ smooth_window_helper <- function(obs_data, window_length){
     return(all(is.na(x)))
   else return(FALSE)
 }
+
+
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's authors.
+## I do not recommend using this version of the code, which
+## has been poorly modified for our use but recommend using
+## the official version from the package GMD
+## https://cran.r-project.org/web/packages/GMD/index.html
+.is.grouped <-
+  function(x)
+{
+  x <- as.character(x)
+  x.f <- factor(x,levels=unique(x),ordered=TRUE)
+  identical(as.character(sort(x.f)),x)
+}
+
 
 ## Please note this code is from the library GMD
 ## All credit for this code goes to GMD's authors.
@@ -3180,23 +3209,63 @@ get.sep <-
 }
 
 
-//////EDIT THIS//////
 
-#' @title Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.
+
+#' Wrapper method that verifies settings and prepares the input for the other methods. 
+#' Use this function unless you know what you are doing. 
 #'
-#' @param plot_data: Data matrix to plot (columns are observations).
-#' @param contigs: The contigs the data is group in in order of rows.
-#' @param reference_idx: Vector of reference indices.
-#' @param ref_contig: If given, will focus cluster on only genes in this contig
-#' @param reg_groups: Groups of vector indices (as indices in reference_idx)
-#' @param out_dir: Directory in which to save pdf and other output.
-#' @param title: Plot title.
-#' @param obs_title: Title for the observations matrix.
-#' @param ref_title: Title for the reference matrix.
-#' @param contig_cex: Contig text size.
-#' @param k_obs_groups: Number of groups to break observation into
-#' @param color_safe_pal: Logical indication of using a color blindness safe
-#'                          palette.
+#' @title Run the infercnv analysis.
+#'
+#' @param x Data to plot (columns are cells and rows are genes). Can be either a file path or the actual data frame.
+#' @param gene_order Position information for each gene used to smooth over chromosomes. 
+#' Can be either a file path or an actual data frame whose rows are genes and columns are the chromosome name, 
+#' the start position, and the end position.
+#' @param annotations A data frame with an annotation for each cell. It can be used with the name_ref_groups option 
+#' to define which cells are to be used as references (and how they are grouped), 
+#' and is used for a color bar on the side of the observations heatmap.
+#' @param use_color_safe To support the needs of those who see colors differently, 
+#' use this logical option to change the colors to a palette visibly distinct to all color blindness. 
+#' @param contig_label_size Used to increase or decrease the text labels for the X axis (contig names).
+#' @param cutoff A number >= 0 is expected. A cut off for the average expression of genes to be used 
+#' for CNV inference (use the value before log2 transformation).
+#' @param log_transform Matrix is assumed to be Log2(TPM+1) transformed. 
+#' If instead it is raw TPMs use this flag so that the data will be transformed.
+#' @param delim Delimiter for reading expression matrix and writing matrices output.
+#' @param noise_filter Delimiter for reading expression matrix and writing matrices output.
+#' @param max_centered_expression This value and -1 * this value are used as the maximum value 
+#' expression that can exist after centering data. If a value is outside of this range, 
+#' it is truncated to be within this range
+#' @param num_obs_groups Number of groups in which to break the observations.
+#' @param output_dir Directory in which to save pdf and other output.
+#' @param num_ref_groups Define a number of groups to make automatically 
+#' by unsupervised clustering. This ignores annotations within references, 
+#' but does not mix them with observations.
+#' @param name_ref_groups Names of groups from the "annotations" table whose cells 
+#' are to be used as reference groups.
+#' @param ref_subtract_method Method used to subtract the reference values from the observations. 
+#' Valid choices are: "by_mean", "by_quantiles".
+#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are: 
+#' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
+#' @param clustering_contig When clustering observation samples, all genomic locations 
+#' are used unless this option is given. The expected value is one of the contigs (Chr) 
+#' in the genomic positions file (case senstive). All genomic positions will be plotted 
+#' but only the given contig will be used in clustering / group creation.
+#' @param plot_steps Using this argument turns on plotting intemediate steps. 
+#' The plots will occur in the same directory as the output pdf. 
+#' Please note this option increases the time needed to run 
+#' @param bound_method_vis Method to automatically detect and bound outliers. 
+#' Used for visualizing. If both this argument and --vis_bound_threshold are given, 
+#' this will not be used. Valid choice is : "average_bound".
+#' @param bound_threshold_vis Used as upper and lower bounds for values 
+#' in the visualization. If a value is outside this bound it will be replaced by the 
+#' closest bound. Should be given in the form of 1,1 (upper bound, lower bound).
+#' @param window_length Window length for the smoothing.
+#' @param contig_tail Contig tail to be removed.
+#' @param fig_title Plot title.
+#' @param obs_title Title for the observations matrix.
+#' @param ref_title Title for the reference matrix.
+#' @param save_workspace Save workspace as infercnv.Rdata
+#' @param log_level Logging level.
 #'
 #' @return
 #' No return, void.
@@ -3225,9 +3294,9 @@ infercnv <-
         bound_threshold_vis=" -1,1",
         window_length=101,
         contig_tail=NULL,
-        fig_main="Copy Number Variation Inference",
-        obs_main="Observations (Cells)",
-        ref_main="References (Cells)",
+        fig_title="Copy Number Variation Inference",
+        obs_title="Observations (Cells)",
+        ref_title="References (Cells)",
         save_workspace=FALSE,
         log_level="INFO"
     )
@@ -3238,8 +3307,11 @@ infercnv <-
     C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
     C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")
 
-    logging::basicConfig(level=log_level)
-    logging::setLevel('DEBUG', logging::getHandler('basic.stdout'))
+    if (!(log_level %in% names(loglevels))) {
+        stop("Error, log_level given not accepable, please use one from the following: ", paste(names(loglevels), collapse=", "))
+    }
+    logging::basicConfig()
+    logging::setLevel(log_level, logging::getHandler('basic.stdout'))
     if ( (output_dir == "") || (is.null(output_dir) || (!is.character(output_dir))) ) {
         stop("Error, no output_dir given. Please enter a file path to save the heatmap.")
     }
@@ -3319,7 +3391,6 @@ infercnv <-
         }
     }
 
-    message("parsing reference annotation names")
     input_reference_samples <- colnames(expression_data)
     observations_annotations_groups <- NULL
 
@@ -3354,12 +3425,9 @@ infercnv <-
         stop(error_message)
     }
 
-    message("running order_ret")
     order_ret <- order_reduce(data=expression_data, genomic_position=input_gene_order)
     expression_data <- order_ret$expr
     input_gene_order <- order_ret$order
-
-    message("done with order_ret")
 
     if(is.null(expression_data)){
         error_message <- paste("None of the genes in the expression data",
@@ -3383,8 +3451,6 @@ infercnv <-
         save.image("infercnv.Rdata")
     }
 
-    message("running infer_cnv")
-
     ret_list = infer_cnv(data=expression_data,
                            gene_order=input_gene_order,
                            cutoff=cutoff,
@@ -3406,26 +3472,20 @@ infercnv <-
                            ref_subtract_method=ref_subtract_method,
                            hclust_method=hclust_method)
 
-    message("done with infer_cnv")
-
     # Output data before viz outlier
     write.table(ret_list["PREVIZ"], sep=delim,
                 file=file.path(output_dir,
                            "expression_pre_vis_transform.txt"))
-    message("wrote pre vis data")
 
     # Output data after viz outlier
     write.table(ret_list["VIZ"], sep=delim,
                 file=file.path(output_dir,
                            "expression_post_viz_transform.txt"))
-    message("wrote post vis data")
 
     if (save_workspace) {
         logging::loginfo("Saving workspace")
         save.image("infercnv.Rdata")
     }
-
-    message("running plot_cnv")
 
     plot_cnv(plot_data=ret_list[["VIZ"]],
                contigs=ret_list[["CONTIGS"]],
@@ -3438,9 +3498,9 @@ infercnv <-
                out_dir=output_dir,
                color_safe_pal=use_color_safe,
                hclust_method=hclust_method,
-               title=fig_main,
-               obs_title=obs_main,
-               ref_title=ref_main)
+               title=fig_title,
+               obs_title=obs_title,
+               ref_title=ref_title)
 
 }
 

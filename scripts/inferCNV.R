@@ -94,7 +94,7 @@ check_arguments <- function(arguments){
 
     # Make sure the threshold is centered.
     arguments$max_centered_expression <- abs(arguments$max_centered_expression)
-    arguments$magnitude_filter <- abs(arguments$magnitude_filter)  ## old argument?
+    arguments$magnitude_filter <- abs(arguments$magnitude_filter)
 
     # Require the contig tail to be above 0
     if (is.na(arguments$contig_tail)){
@@ -313,8 +313,8 @@ pargs <- optparse::add_option(pargs, c("--ref_groups"),
                               action="store",
                               dest="name_ref_groups",
                               metavar="Name_of_reference_groups",
-                              help=paste("Names of groups for the cells",
-                                         "to use as reference groups.",
+                              help=paste("Names of groups from --ref table whose cells",
+                                         "are to be used as reference groups.",
                                          "[REQUIRED]"))
 
 pargs <- optparse::add_option(pargs, c("--ref_subtract_method"),
