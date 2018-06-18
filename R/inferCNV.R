@@ -460,8 +460,8 @@ get_group_color_palette <- function(){
 #'     Contig order
 #'     Column names of the subset of samples that should be used as references.
 #'     Names of samples in reference groups.
-#' @export
-infer_cnv <- function(data,
+#'
+process_data <- function(data,
                       gene_order,
                       cutoff,
                       reference_obs,
@@ -482,7 +482,7 @@ infer_cnv <- function(data,
                       ref_subtract_method="by_mean",
                       hclust_method='complete') {
 
-    logging::loginfo(paste("::infer_cnv:Start", sep=""))
+    logging::loginfo(paste("::process_data:Start", sep=""))
 
     # Split the reference data into groups if requested
     if (!is.null(num_ref_groups)) {
@@ -494,7 +494,7 @@ infer_cnv <- function(data,
     else {
         groups_ref <- name_ref_groups
     }
-    logging::loginfo(paste("::infer_cnv:split_reference. ",
+    logging::loginfo(paste("::process_data:split_reference. ",
                            "found ",length(groups_ref)," reference groups.",
                            sep=""))
 
@@ -511,7 +511,7 @@ infer_cnv <- function(data,
                   plot_name=file.path(out_path,
                                       "01_incoming_data.pdf"))
 
-        infercnv::plot_cnv(plot_data=data,
+        plot_cnv(plot_data=data,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -540,7 +540,7 @@ infer_cnv <- function(data,
                       plot_name=file.path(out_path,
                                           "02_transformed.pdf"))
 
-            infercnv::plot_cnv(plot_data=data,
+            plot_cnv(plot_data=data,
                                contigs=chr_order_for_plotting,
                                k_obs_groups=k_obs_groups,
                                obs_annotations_groups=obs_annotations_groups,
@@ -563,14 +563,14 @@ infer_cnv <- function(data,
     if (!is.null(keep_gene_indices)){
         data <- data[keep_gene_indices, , drop=FALSE]
         gene_order <- gene_order[keep_gene_indices, , drop=FALSE]
-        logging::loginfo(paste("::infer_cnv:Reduce by cutoff, ",
+        logging::loginfo(paste("::process_data:Reduce by cutoff, ",
                       "new dimensions (r,c) = ",
                       paste(dim(data), collapse=","),
                            " Total=", sum(data),
                            " Min=", min(data),
                            " Max=", max(data),
                            ".", sep=""))
-        logging::logdebug(paste("::infer_cnv:Keeping indices.", sep=""))
+        logging::logdebug(paste("::process_data:Keeping indices.", sep=""))
 
 
         # Plot incremental steps.
@@ -580,7 +580,7 @@ infer_cnv <- function(data,
                       plot_name=file.path(out_path,
                                           "03_reduced_by_cutoff.pdf"))
 
-            infercnv::plot_cnv(plot_data=data,
+            plot_cnv(plot_data=data,
                                contigs=chr_order_for_plotting,
                                k_obs_groups=k_obs_groups,
                                obs_annotations_groups=obs_annotations_groups,
@@ -599,7 +599,7 @@ infer_cnv <- function(data,
         }
 
     } else {
-        logging::loginfo(paste("::infer_cnv:Reduce by cutoff.", sep=""))
+        logging::loginfo(paste("::process_data:Reduce by cutoff.", sep=""))
         logging::logwarn(paste("::No indicies left to keep.",
                                " Stoping."))
         stop(998)
@@ -613,7 +613,7 @@ infer_cnv <- function(data,
 
     # Center data (automatically ignores zeros)
     data <- center_with_threshold(data, max_centered_threshold)
-    logging::loginfo(paste("::infer_cnv:Outlier removal, ",
+    logging::loginfo(paste("::process_data:Outlier removal, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
                            " Total=", sum(data),
@@ -626,7 +626,7 @@ infer_cnv <- function(data,
                             plot_name=file.path(out_path,
                                                 "04_center_with_threshold.pdf"))
 
-        infercnv::plot_cnv(plot_data=data,
+        plot_cnv(plot_data=data,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -648,7 +648,7 @@ infer_cnv <- function(data,
     # Smooth the data with gene windows
     data_smoothed <- smooth_window(data, window_length)
     data <- NULL
-    logging::loginfo(paste("::infer_cnv:Smoothed data.", sep=""))
+    logging::loginfo(paste("::process_data:Smoothed data.", sep=""))
     # Plot incremental steps.
     if (plot_steps){
         plot_step(data=data_smoothed,
@@ -656,7 +656,7 @@ infer_cnv <- function(data,
                                                 "05_smoothed.pdf"))
 
 
-        infercnv::plot_cnv(plot_data=data_smoothed,
+        plot_cnv(plot_data=data_smoothed,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -682,7 +682,7 @@ infer_cnv <- function(data,
                             plot_name=file.path(out_path,
                                                 "06_recentered.pdf"))
 
-        infercnv::plot_cnv(plot_data=data_smoothed,
+        plot_cnv(plot_data=data_smoothed,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -706,7 +706,7 @@ infer_cnv <- function(data,
     data_smoothed <- subtract_ref(average_data=data_smoothed,
                                   ref_groups=groups_ref,
                                   ref_subtract_method=ref_subtract_method)
-    logging::loginfo(paste("::infer_cnv:Remove average, ",
+    logging::loginfo(paste("::process_data:Remove average, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
                            " Total=", sum(data_smoothed),
@@ -718,7 +718,7 @@ infer_cnv <- function(data,
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "07_remove_average.pdf"))
-        infercnv::plot_cnv(plot_data=data_smoothed,
+        plot_cnv(plot_data=data_smoothed,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -743,12 +743,12 @@ infer_cnv <- function(data,
     #logging::logdebug(chr_order)
     remove_indices <- c()
     for (chr in unlist(unique(chr_order))){
-        logging::loginfo(paste("::infer_cnv:Remove tail contig ",
+        logging::loginfo(paste("::process_data:Remove tail contig ",
                                chr, ".", sep=""))
         remove_chr <- remove_tails(data_smoothed,
                                              which(chr_order == chr),
                                              contig_tail)
-        logging::logdebug(paste("::infer_cnv:Remove tail - removing indices for chr: ", chr, ", count: ", length(remove_chr), sep=""))
+        logging::logdebug(paste("::process_data:Remove tail - removing indices for chr: ", chr, ", count: ", length(remove_chr), sep=""))
         remove_indices <- c(remove_indices, remove_chr)
 
     }
@@ -764,7 +764,7 @@ infer_cnv <- function(data,
                             plot_name=file.path(out_path,
                                                 "08_remove_ends.pdf"))
 
-        infercnv::plot_cnv(plot_data=data_smoothed,
+        plot_cnv(plot_data=data_smoothed,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -781,7 +781,7 @@ infer_cnv <- function(data,
                            pdf_filename="infercnv.08_remove_ends.pdf")
 
     }
-    logging::loginfo(paste("::infer_cnv:Remove ends, ",
+    logging::loginfo(paste("::process_data:Remove ends, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
                            " Total=", sum(data_smoothed),
@@ -794,7 +794,7 @@ infer_cnv <- function(data,
     if (noise_threshold > 0) {
         data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
                                       threshold=noise_threshold)
-        logging::loginfo(paste("::infer_cnv:Remove moise, ",
+        logging::loginfo(paste("::process_data:Remove moise, ",
                                "new dimensions (r,c) = ",
                                paste(dim(data_smoothed), collapse=","),
                                " Total=", sum(data_smoothed),
@@ -809,7 +809,7 @@ infer_cnv <- function(data,
                       plot_name=file.path(out_path,
                                           "09_denoise.pdf"))
 
-            infercnv::plot_cnv(plot_data=data_smoothed,
+            plot_cnv(plot_data=data_smoothed,
                                contigs=chr_order_for_plotting,
                                k_obs_groups=k_obs_groups,
                                obs_annotations_groups=obs_annotations_groups,
@@ -851,7 +851,7 @@ infer_cnv <- function(data,
                   plot_name=file.path(out_path,
                                       "10B_remove_outlier.pdf"))
 
-        infercnv::plot_cnv(plot_data=data_smoothed,
+        plot_cnv(plot_data=data_smoothed,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -870,7 +870,7 @@ infer_cnv <- function(data,
 
 
     }
-    logging::loginfo(paste("::infer_cnv:remove outliers, ",
+    logging::loginfo(paste("::process_data:remove outliers, ",
                            "new dimensions (r,c) = ",
                            paste(dim(ret_list[["VIZ"]]), collapse=","),
                            " Total=", sum(ret_list[["VIZ"]]),
@@ -929,7 +929,7 @@ plot_step <- function(data, plot_name){
 #'
 #' @return
 #' No return, void.
-#' @export
+#'
 plot_cnv <- function(plot_data,
                      contigs,
                      reference_idx,
@@ -1475,7 +1475,7 @@ above_cutoff <- function(data, cutoff){
 
     logging::loginfo(paste("::above_cutoff:Start", sep=""))
     average_gene <- log2(rowMeans( ( (2 ^ data) - 1), na.rm=TRUE) + 1 )
-    logging::loginfo(paste("::infer_cnv:Averages (counts).", sep=""))
+    logging::loginfo(paste("::process_data:Averages (counts).", sep=""))
     # Find averages above a certain threshold
     indicies <- which(average_gene > cutoff)
     if (length(indicies) > 0){
@@ -1495,7 +1495,7 @@ above_cutoff <- function(data, cutoff){
 #' @return Returns a matrix of expression in the order of the
 #'            genomic_position file. NULL is returned if the genes in both
 #'            data parameters do not match.
-#' @export
+#'
 order_reduce <- function(data, genomic_position){
     logging::loginfo(paste("::order_reduce:Start.", sep=""))
     ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)
@@ -1506,7 +1506,7 @@ order_reduce <- function(data, genomic_position){
     # Drop pos_gen entries that are position 0
     remove_by_position <- -1 * which(genomic_position[2] + genomic_position[3] == 0)
     if (length(remove_by_position)){
-        logging::logdebug(paste("::infer_cnv:order_reduce: removing genes specified by pos == 0, count: ",
+        logging::logdebug(paste("::process_data:order_reduce: removing genes specified by pos == 0, count: ",
                                 length(remove_by_position), sep=""))
 
         genomic_position <- genomic_position[remove_by_position, , drop=FALSE]
@@ -1514,16 +1514,16 @@ order_reduce <- function(data, genomic_position){
 
     # Reduce to genes in pos file
 
-    logging::logdebug(paste("::infer_cnv:order_reduce: gene identifers in expression matrix: ",
+    logging::logdebug(paste("::process_data:order_reduce: gene identifers in expression matrix: ",
                             row.names(data), collapse="\n", sep=""))
-    logging::logdebug(paste("::infer_cnv:order_reduce: gene identifers in genomic position table: ",
+    logging::logdebug(paste("::process_data:order_reduce: gene identifers in genomic position table: ",
                             row.names(data), collapse="\n", sep=""))
 
 
 
     keep_genes <- row.names(data)[which(row.names(data)
                                   %in% row.names(genomic_position))]
-    logging::logdebug(paste("::infer_cnv:order_reduce: keep_genes size: ", length(keep_genes),
+    logging::logdebug(paste("::process_data:order_reduce: keep_genes size: ", length(keep_genes),
                             sep=""))
 
     # Keep genes found in position file
@@ -1531,7 +1531,7 @@ order_reduce <- function(data, genomic_position){
         ret_results$expr <- data[keep_genes, , drop=FALSE]
         ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
     } else {
-        logging::loginfo(paste("::infer_cnv:order_reduce:The position file ",
+        logging::loginfo(paste("::process_data:order_reduce:The position file ",
                                "and the expression file row (gene) names do not match."))
         return(list(expr=NULL, order=NULL, chr_order=NULL))
     }
@@ -1554,14 +1554,14 @@ order_reduce <- function(data, genomic_position){
     # Remove any gene without position information
     # Genes may be sorted correctly by not have position information
     # Here they are removed.
-    logging::loginfo(paste("::infer_cnv:order_reduce:Reduction from positional ",
+    logging::loginfo(paste("::process_data:order_reduce:Reduction from positional ",
                            "data, new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
                            " Total=", sum(data),
                            " Min=", min(data),
                            " Max=", max(data),
                            ".", sep=""))
-    logging::logdebug(paste("::infer_cnv:order_reduce end."))
+    logging::logdebug(paste("::process_data:order_reduce end."))
     return(ret_results)
 }
 
@@ -1886,7 +1886,7 @@ heatmap.cnv <-
            hclust.row,
            hclust.col,
            hclust.FUN=hclust,
-           hclust.FUN.MoreArgs=list(method="ward"),
+           hclust.FUN.MoreArgs=list(method="ward.D"),
 
            ## data scaling
            scale=c("none","row","column"),
@@ -2175,13 +2175,13 @@ heatmap.cnv <-
   if (.invalid(cexRow)) {
     cexRow <- cexRow0
   } else {
-    message('heatmap.3 | From GMD 0.3.3, please use relative values for cexRow.')
+    # message('heatmap.3 | From GMD 0.3.3, please use relative values for cexRow.')
     cexRow <- cexRow0*cexRow
   }
   if (.invalid(cexCol)) {
     cexCol <- cexCol0
   } else {
-    message('heatmap.3 | From GMD 0.3.3, please use relative values for cexCol.')
+    # message('heatmap.3 | From GMD 0.3.3, please use relative values for cexCol.')
     cexCol <- cexCol0*cexCol
   }
 
@@ -2395,7 +2395,7 @@ heatmap.cnv <-
   if (.invalid(margin.for.labCol)){
     margin.for.labCol <- margin.for.labCol0
   } else {
-    message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labCol.')
+    # message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labCol.')
     margin.for.labCol <- margin.for.labCol0*margin.for.labCol
   }
 
@@ -3451,7 +3451,7 @@ infercnv <-
         save.image("infercnv.Rdata")
     }
 
-    ret_list = infer_cnv(data=expression_data,
+    ret_list = process_data(data=expression_data,
                            gene_order=input_gene_order,
                            cutoff=cutoff,
                            reference_obs=input_reference_samples,
