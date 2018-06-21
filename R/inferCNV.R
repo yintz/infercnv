@@ -433,14 +433,14 @@ get_group_color_palette <- function(){
 #' @param noise_threshold The minimum difference a value can be from the
 #'                            average reference in order for it not to be
 #'                            removed as noise.
-#' @param name_ref_groups Names of groups from the "annotations" table whose cells 
+#' @param name_ref_groups Names of groups from the "annotations" table whose cells
 #' are to be used as reference groups.
 #' @param num_ref_groups The number of reference groups or a list of
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs.
 #' @param out_path The path to what to save the pdf as. The raw data is
 #'                     also written to this path but with the extension .txt .
-#' @param obs_annotations_groups Vector with group index of observations cells, 
+#' @param obs_annotations_groups Vector with group index of observations cells,
 #' based on the annotation ot the cells.
 #' @param k_obs_groups Number of groups in which to break the observations.
 #' @param plot_steps If true turns on plotting intermediate steps.
@@ -448,9 +448,9 @@ get_group_color_palette <- function(){
 #' @param method_bound_vis Method to use for bounding values in the visualization.
 #' @param lower_bound_vis Lower bound to normalize data to for visualization.
 #' @param upper_bound_vis Upper bound to normalize data to for visualization.
-#' @param ref_subtract_method Method used to subtract the reference values from the observations. 
+#' @param ref_subtract_method Method used to subtract the reference values from the observations.
 #' Valid choices are: "by_mean", "by_quantiles".
-#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are: 
+#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
 #'
 #' @return
@@ -999,14 +999,14 @@ plot_cnv <- function(plot_data,
 
     # Rows observations, Columns CHR
     if (output_format == "pdf") {
-        pdf(paste(out_dir, paste(output_filename, ".pdf"), sep="/"),
+        pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
             useDingbats=FALSE,
             width=10,
             height=7.5,
             paper="USr")
     }
     else if (output_format == "png") {
-        png(paste(out_dir, paste(output_filename, ".png"), sep="/"),
+        png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
             width=10,
             height=7.5,
             units="in",
@@ -3224,54 +3224,54 @@ get.sep <-
 
 
 
-#' Wrapper method that verifies settings and prepares the input for the other methods. 
-#' Use this function unless you know what you are doing. 
+#' Wrapper method that verifies settings and prepares the input for the other methods.
+#' Use this function unless you know what you are doing.
 #'
 #' @title Run the infercnv analysis.
 #'
 #' @param x Data to plot (columns are cells and rows are genes). Can be either a file path or the actual data frame.
-#' @param gene_order Position information for each gene used to smooth over chromosomes. 
-#' Can be either a file path or an actual data frame whose rows are genes and columns are the chromosome name, 
+#' @param gene_order Position information for each gene used to smooth over chromosomes.
+#' Can be either a file path or an actual data frame whose rows are genes and columns are the chromosome name,
 #' the start position, and the end position.
-#' @param annotations A data frame with an annotation for each cell. It can be used with the name_ref_groups option 
-#' to define which cells are to be used as references (and how they are grouped), 
+#' @param annotations A data frame with an annotation for each cell. It can be used with the name_ref_groups option
+#' to define which cells are to be used as references (and how they are grouped),
 #' and is used for a color bar on the side of the observations heatmap.
-#' @param use_color_safe To support the needs of those who see colors differently, 
-#' use this logical option to change the colors to a palette visibly distinct to all color blindness. 
+#' @param use_color_safe To support the needs of those who see colors differently,
+#' use this logical option to change the colors to a palette visibly distinct to all color blindness.
 #' @param contig_label_size Used to increase or decrease the text labels for the X axis (contig names).
-#' @param cutoff A number >= 0 is expected. A cut off for the average expression of genes to be used 
+#' @param cutoff A number >= 0 is expected. A cut off for the average expression of genes to be used
 #' for CNV inference (use the value before log2 transformation).
-#' @param log_transform Matrix is assumed to be Log2(TPM+1) transformed. 
+#' @param log_transform Matrix is assumed to be Log2(TPM+1) transformed.
 #' If instead it is raw TPMs use this flag so that the data will be transformed.
 #' @param delim Delimiter for reading expression matrix and writing matrices output.
 #' @param noise_filter Delimiter for reading expression matrix and writing matrices output.
-#' @param max_centered_expression This value and -1 * this value are used as the maximum value 
-#' expression that can exist after centering data. If a value is outside of this range, 
+#' @param max_centered_expression This value and -1 * this value are used as the maximum value
+#' expression that can exist after centering data. If a value is outside of this range,
 #' it is truncated to be within this range
 #' @param num_obs_groups Number of groups in which to break the observations.
 #' @param output_dir Directory in which to save plot and other output.
 #' @param output_format Format in which to save plot. One of either "pdf" or "png"
-#' @param num_ref_groups Define a number of groups to make automatically 
-#' by unsupervised clustering. This ignores annotations within references, 
+#' @param num_ref_groups Define a number of groups to make automatically
+#' by unsupervised clustering. This ignores annotations within references,
 #' but does not mix them with observations.
-#' @param name_ref_groups Names of groups from the "annotations" table whose cells 
+#' @param name_ref_groups Names of groups from the "annotations" table whose cells
 #' are to be used as reference groups.
-#' @param ref_subtract_method Method used to subtract the reference values from the observations. 
+#' @param ref_subtract_method Method used to subtract the reference values from the observations.
 #' Valid choices are: "by_mean", "by_quantiles".
-#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are: 
+#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
-#' @param clustering_contig When clustering observation samples, all genomic locations 
-#' are used unless this option is given. The expected value is one of the contigs (Chr) 
-#' in the genomic positions file (case senstive). All genomic positions will be plotted 
+#' @param clustering_contig When clustering observation samples, all genomic locations
+#' are used unless this option is given. The expected value is one of the contigs (Chr)
+#' in the genomic positions file (case senstive). All genomic positions will be plotted
 #' but only the given contig will be used in clustering / group creation.
-#' @param plot_steps Using this argument turns on plotting intemediate steps. 
-#' The plots will occur in the same directory as the output pdf. 
-#' Please note this option increases the time needed to run 
-#' @param bound_method_vis Method to automatically detect and bound outliers. 
-#' Used for visualizing. If both this argument and --vis_bound_threshold are given, 
+#' @param plot_steps Using this argument turns on plotting intemediate steps.
+#' The plots will occur in the same directory as the output pdf.
+#' Please note this option increases the time needed to run
+#' @param bound_method_vis Method to automatically detect and bound outliers.
+#' Used for visualizing. If both this argument and --vis_bound_threshold are given,
 #' this will not be used. Valid choice is : "average_bound".
-#' @param bound_threshold_vis Used as upper and lower bounds for values 
-#' in the visualization. If a value is outside this bound it will be replaced by the 
+#' @param bound_threshold_vis Used as upper and lower bounds for values
+#' in the visualization. If a value is outside this bound it will be replaced by the
 #' closest bound. Should be given in the form of 1,1 (upper bound, lower bound).
 #' @param window_length Window length for the smoothing.
 #' @param contig_tail Contig tail to be removed.
@@ -3507,20 +3507,20 @@ infercnv <-
     }
 
     plot_cnv(plot_data=ret_list[["VIZ"]],
-               contigs=ret_list[["CONTIGS"]],
-               k_obs_groups=num_obs_groups,
-               obs_annotations_groups=obs_annotations_groups,
-               reference_idx=ret_list[["REF_OBS_IDX"]],
-               ref_contig=clustering_contig,
-               contig_cex=contig_label_size,
-               ref_groups=ret_list[["REF_GROUPS"]],
-               out_dir=output_dir,
-               color_safe_pal=use_color_safe,
-               hclust_method=hclust_method,
-               title=fig_title,
-               obs_title=obs_title,
-               ref_title=ref_title,
-               output_format=output_format)
+             contigs=ret_list[["CONTIGS"]],
+             k_obs_groups=num_obs_groups,
+             obs_annotations_groups=obs_annotations_groups,
+             reference_idx=ret_list[["REF_OBS_IDX"]],
+             ref_contig=clustering_contig,
+             contig_cex=contig_label_size,
+             ref_groups=ret_list[["REF_GROUPS"]],
+             out_dir=output_dir,
+             color_safe_pal=use_color_safe,
+             hclust_method=hclust_method,
+             title=fig_title,
+             obs_title=obs_title,
+             ref_title=ref_title,
+             output_format=output_format)
 
 }
 

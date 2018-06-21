@@ -1,5 +1,5 @@
 importFrom("grDevices", "col2rgb", "colorRampPalette", "dev.off",
-           "pdf", "rgb")
+           "pdf", "png", "rgb")
 importFrom("graphics", "abline", "axis", "boxplot", "hist", "image",
            "layout", "lines", "mtext", "par", "plot", "points", "rect",
            "text", "title")
@@ -11,4 +11,5 @@ import(logging)
 importFrom("GMD", "gdist")
 importFrom("gplots", "bluered")
 importFrom("ape", "write.tree", "as.phylo")
+import(RColorBrewer)
 export(infercnv)

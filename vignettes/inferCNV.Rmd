@@ -42,12 +42,15 @@ infercnv(x="../example/oligodendroglioma.tp100k.expr.matrix",
         annotations="../example/__sampled_cells_bis.annotations.dat", 
         cutoff=1, 
         noise_filter=0.2, 
-        output_dir="../devel_debug_bioc", 
+        output_dir="../example_output", 
         name_ref_groups="Microglia/Macrophage,Oligodendrocytes (non-malignant)", 
         hclust_method="ward.D",
-        log_level="WARNING")
+        log_level="WARNING",
+        output_format="png")
 
 
 ```
+
+![infercnv output](../example_output/infercnv.png)
 
 
