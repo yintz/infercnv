@@ -525,7 +525,7 @@ process_data <- function(data,
                            title="01_incoming_data",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.01_incoming_data.pdf")
+                           output_filename="infercnv.01_incoming_data")
     }
 
 
@@ -553,8 +553,8 @@ process_data <- function(data,
                                x.center=0,
                                title="02_log_transformed_data",
                                obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           pdf_filename="infercnv.02_log_transformed.pdf")
+                               ref_title="References (Cells)",
+                               output_filename="infercnv.02_log_transformed")
         }
     }
 
@@ -594,7 +594,7 @@ process_data <- function(data,
                                title="03_reduced_by_cutoff",
                                obs_title="Observations (Cells)",
                                ref_title="References (Cells)",
-                               pdf_filename="infercnv.03_reduced_by_cutoff.pdf")
+                               output_filename="infercnv.03_reduced_by_cutoff")
 
         }
 
@@ -640,7 +640,7 @@ process_data <- function(data,
                            title="04_center_with_threshold",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.04_center_with_threshold.pdf")
+                           output_filename="infercnv.04_center_with_threshold")
 
 
     }
@@ -670,7 +670,7 @@ process_data <- function(data,
                            title="05_smoothed",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.05_smoothed.pdf")
+                           output_filename="infercnv.05_smoothed")
     }
 
     # Center cells/observations after smoothing. This helps reduce the
@@ -696,7 +696,7 @@ process_data <- function(data,
                            title="06_centering_of_smoothed",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.06_centering_of_smoothed.pdf")
+                           output_filename="infercnv.06_centering_of_smoothed")
 
 
     }
@@ -732,7 +732,7 @@ process_data <- function(data,
                            title="07_remove_average",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.07_remove_average.pdf")
+                           output_filename="infercnv.07_remove_average")
 
 
     }
@@ -778,7 +778,7 @@ process_data <- function(data,
                            title="08_remove_Ends",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.08_remove_ends.pdf")
+                           output_filename="infercnv.08_remove_ends")
 
     }
     logging::loginfo(paste("::process_data:Remove ends, ",
@@ -823,7 +823,7 @@ process_data <- function(data,
                                title="09_denoised",
                                obs_title="Observations (Cells)",
                                ref_title="References (Cells)",
-                               pdf_filename="infercnv.09_denoised.pdf")
+                               output_filename="infercnv.09_denoised")
 
         }
     }
@@ -865,7 +865,7 @@ process_data <- function(data,
                            title="10_removed_outliers",
                            obs_title="Observations (Cells)",
                            ref_title="References (Cells)",
-                           pdf_filename="infercnv.10_removed_outliers.pdf")
+                           output_filename="infercnv.10_removed_outliers")
 
 
 
@@ -945,7 +945,8 @@ plot_cnv <- function(plot_data,
                      x.center=0,
                      hclust_method='average',
                      color_safe_pal=TRUE,
-                     pdf_filename="infercnv.pdf"){
+                     output_filename="infercnv",
+                     output_format="pdf"){
 
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
@@ -997,11 +998,20 @@ plot_cnv <- function(plot_data,
     }
 
     # Rows observations, Columns CHR
-    pdf(paste(out_dir,pdf_filename,sep="/"),
-        useDingbats=FALSE,
-        width=10,
-        height=7.5,
-        paper="USr")
+    if (output_format == "pdf") {
+        pdf(paste(out_dir, paste(output_filename, ".pdf"), sep="/"),
+            useDingbats=FALSE,
+            width=10,
+            height=7.5,
+            paper="USr")
+    }
+    else if (output_format == "png") {
+        png(paste(out_dir, paste(output_filename, ".png"), sep="/"),
+            width=10,
+            height=7.5,
+            units="in",
+            res=600)
+    }
 
     # Plot observations
     ## Make Observation Samples
@@ -1426,9 +1436,9 @@ plot_cnv_references <- function(ref_data,
     # Print controls
     logging::loginfo("plot_cnv_references:Plotting heatmap.")
     data_references <- heatmap.cnv(ref_data,
-                                   main=NA,
+                                   main=NULL, #NA,
                                    ylab=reference_ylab,
-                                   xlab=NA,
+                                   xlab=NULL, #NA,
                                    key=FALSE,
                                    labCol=rep("", nrow(ref_data)),
                                    notecol="black",
@@ -2993,7 +3003,9 @@ heatmap.cnv <-
     if(dendrogram %in% c("both","column")){
       plot(ddc,axes=FALSE,xaxs="i",leaflab="none")
     } else{
-      .plot.text(xlim=range(1:nc))
+      if(key) {
+        .plot.text(xlim=range(1:nc))
+      }
       if (sideCol==3){
         .sideCol <- par("usr")[3]+0.5*srtCol/90
         text(1:nc,.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
@@ -3236,7 +3248,8 @@ get.sep <-
 #' expression that can exist after centering data. If a value is outside of this range, 
 #' it is truncated to be within this range
 #' @param num_obs_groups Number of groups in which to break the observations.
-#' @param output_dir Directory in which to save pdf and other output.
+#' @param output_dir Directory in which to save plot and other output.
+#' @param output_format Format in which to save plot. One of either "pdf" or "png"
 #' @param num_ref_groups Define a number of groups to make automatically 
 #' by unsupervised clustering. This ignores annotations within references, 
 #' but does not mix them with observations.
@@ -3283,6 +3296,7 @@ infercnv <-
         max_centered_expression=3,
         num_obs_groups=1,
         output_dir=NULL,
+        output_format="png",
         ## reference_observations=NULL,
         num_ref_groups=NULL,
         name_ref_groups=NULL,
@@ -3306,6 +3320,7 @@ infercnv <-
     C_VIS_OUTLIER_CHOICES <- c("average_bound")
     C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
     C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")
+    C_OUTPUT_FORMAT <- c("pdf", "png")
 
     if (!(log_level %in% names(loglevels))) {
         stop("Error, log_level given not accepable, please use one from the following: ", paste(names(loglevels), collapse=", "))
@@ -3326,6 +3341,9 @@ infercnv <-
     }
     if ( !(hclust_method %in% C_HCLUST_METHODS)) {
         stop("Error, must specify acceptable hclust_method from one of the following: ", paste(C_HCLUST_METHODS, collapse=", "))
+    }
+    if ( !(output_format %in% C_OUTPUT_FORMAT)) {
+        stop("Error, must specify acceptable output_format from one of the following: ", paste(C_OUTPUT_FORMAT, collapse=", "))
     }
 
     if(!file.exists(output_dir)){
@@ -3500,7 +3518,8 @@ infercnv <-
                hclust_method=hclust_method,
                title=fig_title,
                obs_title=obs_title,
-               ref_title=ref_title)
+               ref_title=ref_title,
+               output_format=output_format)
 
 }
 
