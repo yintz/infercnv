@@ -510,7 +510,7 @@ logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
 
 # Default the reference samples to all
 input_reference_samples <- colnames(expression_data)
-observations_annotations_groups = NULL
+observations_annotations_names = NULL
 
 if (!is.null(args$reference_observations)){
 
