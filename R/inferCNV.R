@@ -999,6 +999,7 @@ plot_cnv <- function(plot_data,
     updated_ref_groups <- list()
     current_ref_count <- 1
     current_grp_idx <- 1
+    plot_data <- as.matrix(plot_data)
     for (ref_grp in ref_groups) {
         ref_data_t <- cbind(ref_data_t, plot_data[, ref_grp, drop=FALSE])
         updated_ref_groups[[current_grp_idx]] = seq(current_ref_count, current_ref_count + length(ref_grp) - 1)
