@@ -940,13 +940,14 @@ plot_cnv <- function(plot_data,
                      obs_title,
                      ref_title,
                      obs_annotations_groups,
+                     cluster_by_groups=FALSE,
                      contig_cex=1,
                      k_obs_groups=1,
                      x.center=0,
                      hclust_method='average',
                      color_safe_pal=TRUE,
                      output_filename="infercnv",
-                     output_format="pdf"){
+                     output_format="png"){
 
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
@@ -1063,6 +1064,7 @@ plot_cnv <- function(plot_data,
                           contig_seps=col_sep,
                           num_obs_groups=k_obs_groups,
                           obs_annotations_groups=obs_annotations_groups,
+                          cluster_by_groups=cluster_by_groups,
                           cnv_title=title,
                           cnv_obs_title=obs_title,
                           contig_lab_size=contig_cex,
@@ -1128,6 +1130,7 @@ plot_cnv_observations <- function(obs_data,
                                   contig_lab_size=1,
                                   cluster_contig=NULL,
                                   obs_annotations_groups,
+                                  cluster_by_groups,
                                   breaksList,
                                   x.center,
                                   hclust_method="average",
@@ -1169,16 +1172,48 @@ plot_cnv_observations <- function(obs_data,
     }
                                         # HCL with a inversely weighted euclidean distance.
     logging::loginfo(paste("clustering observations via method: ", hclust_method, sep=""))
-    obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
-    obs_dendrogram <- as.dendrogram(obs_hcl)
-    write.tree(as.phylo(obs_hcl),
-               file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
+    # obs_hcl <- NULL
+    obs_dendrogram <- list()
+    ordered_names <- NULL
+    isfirst <- TRUE
+    if (cluster_by_groups) {
+        for (i in seq(1, max(obs_annotations_groups))) {
+            group_obs_hcl <- hclust(dist(obs_data[which(obs_annotations_groups == i), hcl_group_indices]), method=hclust_method)
+            ordered_names <- c(ordered_names, rev(row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order]))
+            if (isfirst) {
+                write.tree(as.phylo(group_obs_hcl),
+                   file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
+                isfirst <- FALSE
+            }
+            else {
+                write.tree(as.phylo(group_obs_hcl),
+                   file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep), append=TRUE)
+            }
+            group_obs_dend <- as.dendrogram(group_obs_hcl)
+            obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
+
+            # if (is.null(obs_hcl)) {
+            #     obs_hcl <- group_obs_hcl
+            # }
+            # else {
+            #     obs_hcl <- merge(obs_hcl, group_obs_hcl)
+            # }
+        }
+        obs_dendrogram <- do.call(merge, obs_dendrogram)
+        split_groups <- rep(1, dim(obs_data)[1])
+    }
+    else {
+        obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
+        write.tree(as.phylo(obs_hcl),
+                   file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
+        obs_dendrogram <- as.dendrogram(obs_hcl)
+        ordered_names <- rev(row.names(obs_data)[obs_hcl$order])
+        split_groups <- cutree(obs_hcl, k=num_obs_groups)
+    }
 
     # Output HCL group membership.
     # Record locations of seperations
     obs_seps <- c(0)
-    ordered_names <- rev(row.names(obs_data)[obs_hcl$order])
-    split_groups <- cutree(obs_hcl, k=num_obs_groups)
 
     # Make colors based on groupings
     row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
@@ -3256,6 +3291,7 @@ get.sep <-
 #' but does not mix them with observations.
 #' @param name_ref_groups Names of groups from the "annotations" table whose cells
 #' are to be used as reference groups.
+#' @param cluster_by_groups Whether to cluster observations by their annotations or not.
 #' @param ref_subtract_method Method used to subtract the reference values from the observations.
 #' Valid choices are: "by_mean", "by_quantiles".
 #' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
@@ -3301,6 +3337,7 @@ infercnv <-
         ## reference_observations=NULL,
         num_ref_groups=NULL,
         name_ref_groups=NULL,
+        cluster_by_groups=FALSE,
         ref_subtract_method="by_mean",
         hclust_method="complete",
         clustering_contig=NULL,
@@ -3462,8 +3499,8 @@ infercnv <-
       counter <- counter + 1
     }
     names(obs_annotations_groups) <- rownames(input_classifications)
-    obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
-    obs_annotations_groups <- as.integer(obs_annotations_groups)
+    obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format and to remove references indexes
+    obs_annotations_groups <- as.integer(obs_annotations_groups)  ## they should already all be integers because they are based on "counter"
 
     if (save_workspace) {
         logging::loginfo("Saving workspace")
@@ -3510,6 +3547,7 @@ infercnv <-
              contigs=ret_list[["CONTIGS"]],
              k_obs_groups=num_obs_groups,
              obs_annotations_groups=obs_annotations_groups,
+             cluster_by_groups=cluster_by_groups,
              reference_idx=ret_list[["REF_OBS_IDX"]],
              ref_contig=clustering_contig,
              contig_cex=contig_label_size,
