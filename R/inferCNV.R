@@ -286,7 +286,8 @@ split_references <- function(average_data,
         # Keep the sort of the hclust
         for(cut_group in unique(split_groups)){
             group_idx <- which(split_groups == cut_group)
-            ret_groups[[cut_group]] <- hc$order[group_idx]
+            # ret_groups[[cut_group]] <- hc$order[group_idx]
+            ret_groups[[cut_group]] <- which(colnames(average_data) %in% names(group_idx))
         }
     } else {
         ret_groups <- num_groups
@@ -919,6 +920,7 @@ plot_step <- function(data, plot_name){
 #' @param obs_title Title for the observations matrix.
 #' @param ref_title Title for the reference matrix.
 #' @param obs_annotations_groups Vector of observations annotations group assignation (as indices).
+#' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.
 #' @param contig_cex Contig text size.
 #' @param k_obs_groups Number of groups to break observation into.
 #' @param x.center Value on which to center expression.
@@ -1107,6 +1109,7 @@ plot_cnv <- function(plot_data,
 #' @param contig_lab_size Text size for contigs.
 #' @param cluster_contig A value directs cluster to only genes on this contig.
 #' @param obs_annotations_groups Vector of observations annotations group assignation (as indices).
+#' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores num_obs_groups.
 #' @param breaksList List of values used as splitters on coloring range.
 #' @param hclust_method Method to use for hclust.
 #' @param testing If TRUE, does not plot anything.
@@ -3291,8 +3294,8 @@ get.sep <-
 #' by unsupervised clustering. This ignores annotations within references,
 #' but does not mix them with observations.
 #' @param name_ref_groups Names of groups from the "annotations" table whose cells
-#' are to be used as reference groups.
-#' @param cluster_by_groups Whether to cluster observations by their annotations or not.
+#' are to be used as reference groups. If num_ref_groups is not provided, groups will be kept.
+#' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores num_obs_groups.
 #' @param ref_subtract_method Method used to subtract the reference values from the observations.
 #' Valid choices are: "by_mean", "by_quantiles".
 #' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
@@ -3469,6 +3472,10 @@ infercnv <-
 
         all_annotations <- unique(input_classifications[,1])
         observations_annotations_names <- setdiff(all_annotations, name_ref_groups)
+    }
+
+    if (!is.null(num_ref_groups)) {
+        name_ref_groups_indices <- c(num_ref_groups)
     }
 
     if (length(input_reference_samples) !=
