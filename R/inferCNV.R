@@ -1179,7 +1179,7 @@ plot_cnv_observations <- function(obs_data,
     if (cluster_by_groups) {
         for (i in seq(1, max(obs_annotations_groups))) {
             group_obs_hcl <- hclust(dist(obs_data[which(obs_annotations_groups == i), hcl_group_indices]), method=hclust_method)
-            ordered_names <- c(ordered_names, rev(row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order]))
+            ordered_names <- c(rev(row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order]), ordered_names)
             if (isfirst) {
                 write.tree(as.phylo(group_obs_hcl),
                    file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
@@ -1201,6 +1201,7 @@ plot_cnv_observations <- function(obs_data,
         }
         obs_dendrogram <- do.call(merge, obs_dendrogram)
         split_groups <- rep(1, dim(obs_data)[1])
+        names(split_groups) <- rownames(obs_data)
     }
     else {
         obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
