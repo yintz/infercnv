@@ -9,10 +9,10 @@ infercnv(x, gene_order, annotations = NULL, use_color_safe = FALSE,
   delim = "\\t", noise_filter = 0, max_centered_expression = 3,
   num_obs_groups = 1, output_dir = NULL, output_format = "png",
   num_ref_groups = NULL, name_ref_groups = NULL,
-  ref_subtract_method = "by_mean", hclust_method = "complete",
-  clustering_contig = NULL, plot_steps = FALSE,
-  bound_method_vis = "average_bound", bound_threshold_vis = " -1,1",
-  window_length = 101, contig_tail = NULL,
+  cluster_by_groups = FALSE, ref_subtract_method = "by_mean",
+  hclust_method = "complete", clustering_contig = NULL,
+  plot_steps = FALSE, bound_method_vis = "average_bound",
+  bound_threshold_vis = " -1,1", window_length = 101, contig_tail = NULL,
   fig_title = "Copy Number Variation Inference",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
   save_workspace = FALSE, log_level = "INFO")
@@ -58,7 +58,9 @@ by unsupervised clustering. This ignores annotations within references,
 but does not mix them with observations.}
 
 \item{name_ref_groups}{Names of groups from the "annotations" table whose cells
-are to be used as reference groups.}
+are to be used as reference groups. If num_ref_groups is not provided, groups will be kept.}
+
+\item{cluster_by_groups}{Whether to cluster observations by their annotations or not. Using this ignores num_obs_groups.}
 
 \item{ref_subtract_method}{Method used to subtract the reference values from the observations.
 Valid choices are: "by_mean", "by_quantiles".}
