@@ -286,8 +286,8 @@ split_references <- function(average_data,
         # Keep the sort of the hclust
         for(cut_group in unique(split_groups)){
             group_idx <- which(split_groups == cut_group)
-            # ret_groups[[cut_group]] <- hc$order[group_idx]
-            ret_groups[[cut_group]] <- which(colnames(average_data) %in% names(group_idx))
+            ret_groups[[cut_group]] <- ref_obs[hc$order[group_idx]]
+            # ret_groups[[cut_group]] <- which(colnames(average_data) %in% names(group_idx))
         }
     } else {
         ret_groups <- num_groups
