@@ -259,8 +259,8 @@ split_references <- function(average_data,
     # If a supervised grouping is given as a commandline argument
     # num_groups will be a list of length of more than 1.
     # Otherwise do this.
-    if (length(num_groups) == 1){
-        num_groups <- unlist(num_groups)
+    if (!is.list(num_groups)){
+        # num_groups <- unlist(num_groups)
         if (num_groups > ncol(average_data)){
             num_groups <- ncol(average_data)
         }
@@ -3369,6 +3369,7 @@ infercnv <-
     }
     logging::basicConfig()
     logging::setLevel(log_level, logging::getHandler('basic.stdout'))
+    logging::basicConfig(level=log_level)
     if ( (output_dir == "") || (is.null(output_dir) || (!is.character(output_dir))) ) {
         stop("Error, no output_dir given. Please enter a file path to save the heatmap.")
     }
