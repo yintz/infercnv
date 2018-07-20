@@ -115,9 +115,9 @@ split_answer_three[[1]] <- split_obs_three
 split_answer_four <- list()
 split_answer_four[[1]] <- split_obs_four
 split_answer_five <- list()
-split_answer_five[[1]] <- c(1)
-split_answer_five[[2]] <- c(2)
-split_answer_five[[3]] <- c(3)
+split_answer_five[[1]] <- c(2)
+split_answer_five[[2]] <- c(4)
+split_answer_five[[3]] <- c(6)
 
 test_that("split_references for null matrix.",{
     expect_equal(split_references(average_data=split_matrix_one,
