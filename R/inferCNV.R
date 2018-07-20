@@ -3512,7 +3512,7 @@ infercnv <-
 
     if (save_workspace) {
         logging::loginfo("Saving workspace")
-        save.image("infercnv.Rdata")
+        save(list=ls(), file="infercnv.Rdata")
     }
 
     ret_list = process_data(data=expression_data,
@@ -3548,7 +3548,7 @@ infercnv <-
 
     if (save_workspace) {
         logging::loginfo("Saving workspace")
-        save.image("infercnv.Rdata")
+        save(list=ls(), file="infercnv.Rdata")
     }
 
     plot_cnv(plot_data=ret_list[["VIZ"]],
