@@ -15,7 +15,8 @@ infercnv(x, gene_order, annotations = NULL, use_color_safe = FALSE,
   bound_threshold_vis = " -1,1", window_length = 101, contig_tail = NULL,
   fig_title = "Copy Number Variation Inference",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
-  save_workspace = FALSE, log_level = "INFO")
+  save_workspace = FALSE, log_level = "INFO", ngchm = FALSE,
+  path_to_shaidyMapGen = NULL, gene_symbol = NULL)
 }
 \arguments{
 \item{x}{Data to plot (columns are cells and rows are genes). Can be either a file path or the actual data frame.}
@@ -98,6 +99,12 @@ closest bound. Should be given in the form of 1,1 (upper bound, lower bound).}
 \item{save_workspace}{Save workspace as infercnv.Rdata}
 
 \item{log_level}{Logging level.}
+
+\item{ngchm}{Logical to decide whether to create a Next Generation Clustered Heat Map.}
+
+\item{path_to_shaidyMapGen}{Path to the java application ShaidyMapGen.jar.}
+
+\item{gene_symbol}{Specify the label type that is given to the gene needed to create linkouts, default is NULL,}
 }
 \value{
 No return, void.

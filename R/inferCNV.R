@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 
+source("R/NextGenHeatMap.R")
 # library(ape)
 library("RColorBrewer", character.only=TRUE)
 # library(GMD)
@@ -3320,6 +3321,9 @@ get.sep <-
 #' @param ref_title Title for the reference matrix.
 #' @param save_workspace Save workspace as infercnv.Rdata
 #' @param log_level Logging level.
+#' @param ngchm Logical to decide whether to create a Next Generation Clustered Heat Map.
+#' @param path_to_shaidyMapGen Path to the java application ShaidyMapGen.jar.
+#' @param gene_symbol Specify the label type that is given to the gene needed to create linkouts, default is NULL,
 #'
 #' @return
 #' No return, void.
@@ -3354,8 +3358,11 @@ infercnv <-
         obs_title="Observations (Cells)",
         ref_title="References (Cells)",
         save_workspace=FALSE,
-        log_level="INFO"
-    )
+        log_level="INFO",
+        ngchm=FALSE,
+        path_to_shaidyMapGen=NULL,
+        gene_symbol=NULL
+        )
 {
 
 
@@ -3568,6 +3575,19 @@ infercnv <-
              obs_title=obs_title,
              ref_title=ref_title,
              output_format=output_format)
-
+    
+    if (ngchm) {
+        logging::loginfo("Creating NGCHM as infercnv.ngchm")
+        Create_NGCHM(plot_data = ret_list[["VIZ"]],
+                               path_to_shaidyMapGen = path_to_shaidyMapGen,
+                               reference_idx = ret_list[["REF_OBS_IDX"]],
+                               ref_index = name_ref_groups_indices,
+                               location_data = input_gene_order,
+                               out_dir = output_dir,
+                               contigs = ret_list[["CONTIGS"]],
+                               ref_groups = ret_list[["REF_GROUPS"]],
+                               title = fig_title,
+                               gene_symbol = gene_symbol)
+    }
 }
 

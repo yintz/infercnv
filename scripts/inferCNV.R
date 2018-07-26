@@ -446,6 +446,35 @@ pargs <- optparse::add_option(pargs, c("--save"),
                               metavar="save",
                               help="Save workspace as infercnv.Rdata")
 
+pargs <- optparse::add_option(pargs, c("--ngchm"),
+                              type="logical",
+                              action="store_true",
+                              default=FALSE,
+                              dest="ngchm",
+                              metavar="NextGen_HeatMap",
+                              help=paste("Create a Next Generation Clustered Heat Map"))
+
+pargs <- optparse::add_option(pargs, c("--path_to_shaidyMapGen"),
+                              type="character",
+                              action="store",
+                              default=NULL,
+                              dest="path_to_shaidyMapGen",
+                              metavar="Path_To_ShaidyMapGenp",
+                              help=paste("This is the pathway to the java application ShaidyMapGen.jar.",
+                                    "If this is not assigned, then an enviornmental variable that ",
+                                    "contains the "))
+
+pargs <- optparse::add_option(pargs, c("--gene_symbol"),
+                              type="character",
+                              action="store",
+                              default=NULL,
+                              dest="gene_symbol",
+                              metavar="Gene_Symbol",
+                              help=paste("The labeling type used to represent the genes in the expression",
+                                   "data. This needs to be passed in order to add linkouts to the ",
+                                   "genes. Possible gene label types to choose from are specified on",
+                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
+
 
 args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
 args <- args_parsed$options
@@ -596,6 +625,47 @@ if (args$save) {
     save.image("infercnv.Rdata")
 }
 
+# Make sure the required java application ShaidyMapGen.jar exists. 
+if (args$ngchm){
+    ## if argument is passed, check if file exists
+    if (!is.null(args$path_to_shaidyMapGen)) {
+        if (!file.exists(args$path_to_shaidyMapGen)){
+            error_message <- paste("Cannot find the file ShaidyMapGen.jar using path_to_shaidyMapGen.", 
+                                   "Make sure the entire pathway is being used.")
+            logging::logerror(error_message)
+            stop(error_message)
+        } else {
+            shaidy.path <- unlist(strsplit(args$path_to_shaidyMapGen, split = .Platform$file.sep))
+            if (tail(shaidy.path, n = 1L) != "ShaidyMapGen.jar") {
+                stop("Check pathway to ShaidyMapGen: ", args$path_to_shaidyMapGen, 
+                     "\n Make sure to add 'ShaidyMapGen.jar' to the end of the path.")
+            }
+        }
+    } else { 
+        ## check if envionrmental variable is passed and check if file exists
+        if(exists("SHAIDYMAPGEN")) {
+            if (!file.exists(SHAIDYMAPGEN)){
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
+                                       "Make sure the entire pathway is being used.")
+                logging::logerror(error_message)
+                stop(error_message)
+            } else {
+                args$path_to_shaidyMapGen <- SHAIDYMAPGEN
+            }
+        }
+        if (Sys.getenv("SHAIDYMAPGEN") != "") {
+            if (!file.exists(Sys.getenv("SHAIDYMAPGEN"))){
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
+                                       "Make sure the entire pathway is being used.")
+                logging::logerror(error_message)
+                stop(error_message)
+            } else {
+                args$path_to_shaidyMapGen <- Sys.getenv("SHAIDYMAPGEN")
+            }
+        }
+    }    
+}
+
 # Run CNV inference
 ret_list = infercnv::infer_cnv(data=expression_data,
                                gene_order=input_gene_order,
@@ -662,5 +732,19 @@ if (args$plot_steps) {
                        obs_title=args$obs_main,
                        ref_title=args$ref_main)
 
+}
+
+if (args$ngchm) {
+    logging::loginfo("Creating NGCHM as infercnv.ngchm")
+    infercnv::Create_NGCHM(plot_data = ret_list[["VIZ"]],
+                           path_to_shaidyMapGen = args$path_to_shaidyMapGen,
+                           reference_idx = ret_list[["REF_OBS_IDX"]],
+                           ref_index = name_ref_groups_indices,
+                           location_data = input_gene_order,
+                           out_dir = args$output_dir,
+                           contigs = ret_list[["CONTIGS"]],
+                           ref_groups = ret_list[["REF_GROUPS"]],
+                           title = args$fig_main,
+                           gene_symbol = ards$gene_symbol) 
 }
 
