@@ -3438,6 +3438,9 @@ infercnv <-
         expression_data <- x
     }
 
+    # remove rows with NAs
+    expression_data <- expression_data[complete.cases(expression_data), , drop=FALSE]
+
     input_gene_order <- seq(1, nrow(expression_data), 1)
 
     if (!.invalid(gene_order)) {
