@@ -3319,7 +3319,7 @@ get.sep <-
 #' @param fig_title Plot title.
 #' @param obs_title Title for the observations matrix.
 #' @param ref_title Title for the reference matrix.
-#' @param save_workspace Save workspace as infercnv.Rdata
+#' @param load_workspace Try to load workspace saved from a previous run as far in the run as possible (checks for that important arguments match).
 #' @param log_level Logging level.
 #' @param ngchm Logical to decide whether to create a Next Generation Clustered Heat Map.
 #' @param path_to_shaidyMapGen Path to the java application ShaidyMapGen.jar.
@@ -3357,7 +3357,7 @@ infercnv <-
         fig_title="Copy Number Variation Inference",
         obs_title="Observations (Cells)",
         ref_title="References (Cells)",
-        save_workspace=FALSE,
+        load_workspace=TRUE,
         log_level="INFO",
         ngchm=FALSE,
         path_to_shaidyMapGen=NULL,
@@ -3438,114 +3438,224 @@ infercnv <-
         }
     }
 
-    if (!(is.data.frame(x))) {
-        expression_data <- read.table(x, sep=delim, header=TRUE, row.names=1, check.names=FALSE)
-    }
-    else {
-        expression_data <- x
-    }
+    do_work = 0
 
-    # remove rows with NAs
-    expression_data <- expression_data[complete.cases(expression_data), , drop=FALSE]
+    passed_args <- list(x=x, gene_order=gene_order, annotations=annotations, cutoff=cutoff,
+        log_transform=log_transform, delim=delim, noise_filter=noise_filter,
+        max_centered_expression=max_centered_expression, num_obs_groups=num_obs_groups, num_ref_groups=num_ref_groups,
+        name_ref_groups=name_ref_groups, cluster_by_groups=cluster_by_groups, ref_subtract_method=ref_subtract_method,
+        hclust_method=hclust_method, clustering_contig=clustering_contig, window_length=window_length,
+        contig_tail=contig_tail, bound_method_vis=bound_method_vis, bounds_viz=bounds_viz)
 
-    input_gene_order <- seq(1, nrow(expression_data), 1)
+    to_save_processed_args <- c("x", "gene_order", "annotations", "cutoff", "log_transform", "delim", "noise_filter",
+        "max_centered_expression", "num_obs_groups", "num_ref_groups", "name_ref_groups", "cluster_by_groups",
+        "ref_subtract_method", "hclust_method", "clustering_contig", "window_length", "contig_tail",
+        "bound_method_vis", "bounds_viz")
 
-    if (!.invalid(gene_order)) {
-        if(!is.data.frame(gene_order)) {
-            input_gene_order <- read.table(gene_order, header=FALSE, row.names=1, sep="\t")
-            names(input_gene_order) <- c(CHR, START, STOP)
+    processed_save_path <- paste(output_dir, "/infercnv.processed.", hclust_method, ".Rdata", sep="")
+    processed_args_save_path <- paste(output_dir, "/infercnv.processed.args.", hclust_method, ".Rdata", sep="")
+    if (file.exists(processed_args_save_path) && file.exists(processed_save_path) && load_workspace) {
+        load(processed_args_save_path)
+        if (identical(passed_args$x, x) &&
+            identical(passed_args$gene_order, gene_order) &&
+            identical(passed_args$annotations, annotations) &&
+            identical(passed_args$cutoff, cutoff) &&
+            identical(passed_args$log_transform, log_transform) &&
+            identical(passed_args$delim, delim) &&
+            identical(passed_args$noise_filter, noise_filter) &&
+            identical(passed_args$max_centered_expression, max_centered_expression) &&
+            identical(passed_args$num_obs_groups, num_obs_groups) &&
+            identical(passed_args$num_ref_groups, num_ref_groups) &&
+            identical(passed_args$name_ref_groups, name_ref_groups) &&
+            identical(passed_args$cluster_by_groups, cluster_by_groups) &&
+            identical(passed_args$ref_subtract_method, ref_subtract_method) &&
+            identical(passed_args$hclust_method, hclust_method) &&  # not really needed since the filename implies it is the same hclust method
+            identical(passed_args$clustering_contig, clustering_contig) &&
+            identical(passed_args$window_length, window_length) &&
+            identical(passed_args$contig_tail, contig_tail) &&
+            identical(passed_args$bound_method_vis, bound_method_vis) &&
+            identical(passed_args$bounds_viz, bounds_viz)
+            ) {
+
+            load(processed_save_path)
+            logging::loginfo("Successfully loaded previously processed workspace.")
+            do_work = 2 # only plot
+
+
+        } else {  # restore arguments
+            x <- passed_args$x
+            gene_order <- passed_args$gene_order
+            annotations <- passed_args$annotations
+            cutoff <- passed_args$cutoff
+            log_transform <- passed_args$log_transform
+            delim <- passed_args$delim
+            noise_filter <- passed_args$noise_filter
+            max_centered_expression <- passed_args$max_centered_expression
+            num_obs_groups <- passed_args$num_obs_groups
+            num_ref_groups <- passed_args$num_ref_groups
+            name_ref_groups <- passed_args$name_ref_groups
+            cluster_by_groups <- passed_args$cluster_by_groups
+            ref_subtract_method <- passed_args$ref_subtract_method
+            hclust_method <- passed_args$hclust_method
+            clustering_contig <- passed_args$clustering_contig
+            window_length <- passed_args$window_length
+            contig_tail <- passed_args$contig_tail
+            bound_method_vis <- passed_args$bound_method_vis
+            bounds_viz <- passed_args$bounds_viz
         }
-        else {
-            if (names(input_gene_order) != c(CHR, START, STOP)) {
-                stop("Error, gene_order given but names do not match expected format.")
+    }
+
+    to_save_preprocess_args <- c("x", "gene_order", "annotations", "delim", "num_obs_groups", "num_ref_groups", "name_ref_groups")
+
+    preprocess_save_path <- paste(output_dir, "/infercnv.preprocess.Rdata", sep="")
+    preprocess_args_save_path <- paste(output_dir, "/infercnv.preprocess.args.Rdata", sep="")
+    if (do_work == 0) {
+        preprocess_save_path <- paste(output_dir, "/infercnv.preprocess.Rdata", sep="")
+        if (file.exists(preprocess_args_save_path) && file.exists(preprocess_save_path) && load_workspace) {
+            load(preprocess_args_save_path)
+            if (identical(passed_args$x, x) && 
+                identical(passed_args$gene_order, gene_order) &&
+                identical(passed_args$annotations, annotations) &&
+                identical(passed_args$delim, delim) &&
+                identical(passed_args$num_obs_groups, num_obs_groups) &&
+                identical(passed_args$num_ref_groups, num_ref_groups) &&
+                identical(passed_args$name_ref_groups, name_ref_groups)
+                ) {
+
+                load(preprocess_save_path)
+                logging::loginfo("Successfully loaded previously prepared workspace for processing.")
+                do_work = 1  # process and plot
+            } else {  # restpre arguments
+                x <- passed_args$x
+                gene_order <- passed_args$gene_order
+                annotations <- passed_args$annotations
+                delim <- passed_args$delim
+                num_obs_groups <- passed_args$num_obs_groups
+                num_ref_groups <- passed_args$num_ref_groups
+                name_ref_groups <- passed_args$name_ref_groups
             }
         }
     }
 
-    input_reference_samples <- colnames(expression_data)
-    observations_annotations_groups <- NULL
-
-    if (!is.null(annotations)) {
-        if ( is.data.frame(annotations)) {
-            input_classifications <- annotations
+    if (do_work == 0) {
+        if (!(is.data.frame(x))) {
+            expression_data <- read.table(x, sep=delim, header=TRUE, row.names=1, check.names=FALSE)
         }
         else {
-            input_classifications <- read.table(annotations, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE)
+            expression_data <- x
         }
-        input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))), , drop=FALSE]
-        name_ref_groups_indices <- list()
-        refs <- c()
-        for (name_group in name_ref_groups) {
-            name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
-            refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group), , drop=FALSE]))
+
+        # remove rows with NAs
+        expression_data <- expression_data[complete.cases(expression_data), , drop=FALSE]
+
+        input_gene_order <- seq(1, nrow(expression_data), 1)
+
+        if (!.invalid(gene_order)) {
+            if(!is.data.frame(gene_order)) {
+                input_gene_order <- read.table(gene_order, header=FALSE, row.names=1, sep="\t")
+                names(input_gene_order) <- c(CHR, START, STOP)
+            }
+            else {
+                if (names(input_gene_order) != c(CHR, START, STOP)) {
+                    stop("Error, gene_order given but names do not match expected format.")
+                }
+            }
         }
-        input_reference_samples <- unique(refs)
 
-        all_annotations <- unique(input_classifications[,1])
-        observations_annotations_names <- setdiff(all_annotations, name_ref_groups)
-    }
+        input_reference_samples <- colnames(expression_data)
+        observations_annotations_groups <- NULL
 
-    if (!is.null(num_ref_groups)) {
-        name_ref_groups_indices <- c(num_ref_groups)
-    }
+        if (!is.null(annotations)) {
+            if ( is.data.frame(annotations)) {
+                input_classifications <- annotations
+            }
+            else {
+                input_classifications <- read.table(annotations, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE)
+            }
+            input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))), , drop=FALSE]
+            name_ref_groups_indices <- list()
+            refs <- c()
+            for (name_group in name_ref_groups) {
+                name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
+                refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group), , drop=FALSE]))
+            }
+            input_reference_samples <- unique(refs)
 
-    if (length(input_reference_samples) !=
-        length(intersect(input_reference_samples, colnames(expression_data)))){
-        missing_reference_sample <- setdiff(input_reference_samples,
-                                            colnames(expression_data))
-        error_message <- paste("Please make sure that all the reference sample",
-                               "names match a sample in your data matrix.",
-                               "Attention to: ",
-                               paste(missing_reference_sample, collapse=","))
-        stop(error_message)
-    }
+            all_annotations <- unique(input_classifications[,1])
+            observations_annotations_names <- setdiff(all_annotations, name_ref_groups)
+        }
 
-    order_ret <- order_reduce(data=expression_data, genomic_position=input_gene_order)
-    expression_data <- order_ret$expr
-    input_gene_order <- order_ret$order
+        if (!is.null(num_ref_groups)) {
+            name_ref_groups_indices <- c(num_ref_groups)
+        }
 
-    if(is.null(expression_data)){
-        error_message <- paste("None of the genes in the expression data",
-                               "matched the genes in the reference genomic",
-                               "position file. Analysis Stopped.")
-        stop(error_message)
-    }
+        if (length(input_reference_samples) !=
+            length(intersect(input_reference_samples, colnames(expression_data)))){
+            missing_reference_sample <- setdiff(input_reference_samples,
+                                                colnames(expression_data))
+            error_message <- paste("Please make sure that all the reference sample",
+                                   "names match a sample in your data matrix.",
+                                   "Attention to: ",
+                                   paste(missing_reference_sample, collapse=","))
+            stop(error_message)
+        }
 
-    obs_annotations_groups <- input_classifications[,1]
-    counter <- 1
-    for (classification in observations_annotations_names) {
-      obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
-      counter <- counter + 1
-    }
-    names(obs_annotations_groups) <- rownames(input_classifications)
-    obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format and to remove references indexes
-    obs_annotations_groups <- as.integer(obs_annotations_groups)  ## they should already all be integers because they are based on "counter"
+        order_ret <- order_reduce(data=expression_data, genomic_position=input_gene_order)
+        expression_data <- order_ret$expr
+        input_gene_order <- order_ret$order
 
-    if (save_workspace) {
+        if(is.null(expression_data)){
+            error_message <- paste("None of the genes in the expression data",
+                                   "matched the genes in the reference genomic",
+                                   "position file. Analysis Stopped.")
+            stop(error_message)
+        }
+
+        obs_annotations_groups <- input_classifications[,1]
+        counter <- 1
+        for (classification in observations_annotations_names) {
+          obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
+          counter <- counter + 1
+        }
+        names(obs_annotations_groups) <- rownames(input_classifications)
+        obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format and to remove references indexes
+        obs_annotations_groups <- as.integer(obs_annotations_groups)  ## they should already all be integers because they are based on "counter"
+
         logging::loginfo("Saving workspace")
-        save(list=ls(), file="infercnv.Rdata")
+
+        to_save_preprocess <- c("expression_data", "input_gene_order", "input_reference_samples", "name_ref_groups", "name_ref_groups_indices", "obs_annotations_groups", "num_obs_groups")
+        save(list=to_save_preprocess_args, file=preprocess_args_save_path)
+        save(list=to_save_preprocess, file=preprocess_save_path)
     }
 
-    ret_list = process_data(data=expression_data,
-                           gene_order=input_gene_order,
-                           cutoff=cutoff,
-                           reference_obs=input_reference_samples,
-                           transform_data=log_transform,
-                           window_length=window_length,
-                           max_centered_threshold=max_centered_expression,
-                           noise_threshold=noise_filter,
-                           name_ref_groups=name_ref_groups,
-                           num_ref_groups=name_ref_groups_indices,
-                           obs_annotations_groups=obs_annotations_groups,
-                           out_path=output_dir,
-                           k_obs_groups=num_obs_groups,
-                           plot_steps=plot_steps,
-                           contig_tail=contig_tail,
-                           method_bound_vis=bound_method_vis,
-                           lower_bound_vis=bounds_viz[1],
-                           upper_bound_vis=bounds_viz[2],
-                           ref_subtract_method=ref_subtract_method,
-                           hclust_method=hclust_method)
+    if (do_work < 2) {  # 0 or 1
+        ret_list = process_data(data=expression_data,
+                               gene_order=input_gene_order,
+                               cutoff=cutoff,
+                               reference_obs=input_reference_samples,
+                               transform_data=log_transform,
+                               window_length=window_length,
+                               max_centered_threshold=max_centered_expression,
+                               noise_threshold=noise_filter,
+                               name_ref_groups=name_ref_groups,
+                               num_ref_groups=name_ref_groups_indices,
+                               obs_annotations_groups=obs_annotations_groups,
+                               out_path=output_dir,
+                               k_obs_groups=num_obs_groups,
+                               plot_steps=plot_steps,
+                               contig_tail=contig_tail,
+                               method_bound_vis=bound_method_vis,
+                               lower_bound_vis=bounds_viz[1],
+                               upper_bound_vis=bounds_viz[2],
+                               ref_subtract_method=ref_subtract_method,
+                               hclust_method=hclust_method)
+
+
+        to_save_processed <- c("ret_list", "num_obs_groups", "obs_annotations_groups", "hclust_method", "input_gene_order", "name_ref_groups_indices")  # only save what will be needed for plotting and can not be changed without the processing having to be changed too
+
+        save(list=to_save_processed_args, file=processed_args_save_path)
+        save(list=to_save_processed, file=processed_save_path)
+    }
 
     # Output data before viz outlier
     write.table(ret_list["PREVIZ"], sep=delim,
@@ -3556,11 +3666,6 @@ infercnv <-
     write.table(ret_list["VIZ"], sep=delim,
                 file=file.path(output_dir,
                            "expression_post_viz_transform.txt"))
-
-    if (save_workspace) {
-        logging::loginfo("Saving workspace")
-        save(list=ls(), file="infercnv.Rdata")
-    }
 
     plot_cnv(plot_data=ret_list[["VIZ"]],
              contigs=ret_list[["CONTIGS"]],
@@ -3582,15 +3687,15 @@ infercnv <-
     if (ngchm) {
         logging::loginfo("Creating NGCHM as infercnv.ngchm")
         Create_NGCHM(plot_data = ret_list[["VIZ"]],
-                               path_to_shaidyMapGen = path_to_shaidyMapGen,
-                               reference_idx = ret_list[["REF_OBS_IDX"]],
-                               ref_index = name_ref_groups_indices,
-                               location_data = input_gene_order,
-                               out_dir = output_dir,
-                               contigs = ret_list[["CONTIGS"]],
-                               ref_groups = ret_list[["REF_GROUPS"]],
-                               title = fig_title,
-                               gene_symbol = gene_symbol)
+                       path_to_shaidyMapGen = path_to_shaidyMapGen,
+                       reference_idx = ret_list[["REF_OBS_IDX"]],
+                       ref_index = name_ref_groups_indices,
+                       location_data = input_gene_order,
+                       out_dir = output_dir,
+                       contigs = ret_list[["CONTIGS"]],
+                       ref_groups = ret_list[["REF_GROUPS"]],
+                       title = fig_title,
+                       gene_symbol = gene_symbol)
     }
 }
 
