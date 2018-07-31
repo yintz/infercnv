@@ -3443,14 +3443,13 @@ infercnv <-
     passed_args <- list(x=x, gene_order=gene_order, annotations=annotations, cutoff=cutoff,
         log_transform=log_transform, delim=delim, noise_filter=noise_filter,
         max_centered_expression=max_centered_expression, num_obs_groups=num_obs_groups, num_ref_groups=num_ref_groups,
-        name_ref_groups=name_ref_groups, cluster_by_groups=cluster_by_groups, ref_subtract_method=ref_subtract_method,
+        name_ref_groups=name_ref_groups, ref_subtract_method=ref_subtract_method,
         hclust_method=hclust_method, clustering_contig=clustering_contig, window_length=window_length,
         contig_tail=contig_tail, bound_method_vis=bound_method_vis, bounds_viz=bounds_viz)
 
     to_save_processed_args <- c("x", "gene_order", "annotations", "cutoff", "log_transform", "delim", "noise_filter",
-        "max_centered_expression", "num_obs_groups", "num_ref_groups", "name_ref_groups", "cluster_by_groups",
-        "ref_subtract_method", "hclust_method", "clustering_contig", "window_length", "contig_tail",
-        "bound_method_vis", "bounds_viz")
+        "max_centered_expression", "num_obs_groups", "num_ref_groups", "name_ref_groups", "ref_subtract_method",
+        "hclust_method", "clustering_contig", "window_length", "contig_tail", "bound_method_vis", "bounds_viz")
 
     processed_save_path <- paste(output_dir, "/infercnv.processed.", hclust_method, ".Rdata", sep="")
     processed_args_save_path <- paste(output_dir, "/infercnv.processed.args.", hclust_method, ".Rdata", sep="")
@@ -3467,7 +3466,6 @@ infercnv <-
             identical(passed_args$num_obs_groups, num_obs_groups) &&
             identical(passed_args$num_ref_groups, num_ref_groups) &&
             identical(passed_args$name_ref_groups, name_ref_groups) &&
-            identical(passed_args$cluster_by_groups, cluster_by_groups) &&
             identical(passed_args$ref_subtract_method, ref_subtract_method) &&
             identical(passed_args$hclust_method, hclust_method) &&  # not really needed since the filename implies it is the same hclust method
             identical(passed_args$clustering_contig, clustering_contig) &&
@@ -3494,7 +3492,6 @@ infercnv <-
             num_obs_groups <- passed_args$num_obs_groups
             num_ref_groups <- passed_args$num_ref_groups
             name_ref_groups <- passed_args$name_ref_groups
-            cluster_by_groups <- passed_args$cluster_by_groups
             ref_subtract_method <- passed_args$ref_subtract_method
             hclust_method <- passed_args$hclust_method
             clustering_contig <- passed_args$clustering_contig
