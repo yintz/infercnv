@@ -15,7 +15,7 @@ infercnv(x, gene_order, annotations = NULL, use_color_safe = FALSE,
   bound_threshold_vis = " -1,1", window_length = 101, contig_tail = NULL,
   fig_title = "Copy Number Variation Inference",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
-  save_workspace = FALSE, log_level = "INFO", ngchm = FALSE,
+  load_workspace = TRUE, log_level = "INFO", ngchm = FALSE,
   path_to_shaidyMapGen = NULL, gene_symbol = NULL)
 }
 \arguments{
@@ -96,7 +96,7 @@ closest bound. Should be given in the form of 1,1 (upper bound, lower bound).}
 
 \item{ref_title}{Title for the reference matrix.}
 
-\item{save_workspace}{Save workspace as infercnv.Rdata}
+\item{load_workspace}{Try to load workspace saved from a previous run as far in the run as possible (checks for that important arguments match).}
 
 \item{log_level}{Logging level.}
 

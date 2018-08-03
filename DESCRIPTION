@@ -3,7 +3,7 @@ Type: Package
 Title: Infer Copy Number Variation from Single-Cell RNA-Seq Data
 Version: 0.1
 Date: 2017-05-25
-Authors@R: c( person("Timothy", "Tickle", email = "ttickle@broadinstitute.org", role = c("aut", "cre")), person("Itay", "Tirosh", email = "tirosh@broadinstitute.org", role = "aut"), person("Brian", "Haas", email = "bhaas@broadinstitute.org", role = "aut"), person("Christophe", "Georgescu", email = "cgeorges@broadinstitute.org", role = "ctb"))
+Authors@R: c( person("Timothy", "Tickle", email = "ttickle@broadinstitute.org", role = c("aut", "cre")), person("Itay", "Tirosh", email = "tirosh@broadinstitute.org", role = "aut"), person("Brian", "Haas", email = "bhaas@broadinstitute.org", role = "aut"), person("Christophe", "Georgescu", email = "cgeorges@broadinstitute.org", role = "ctb"), person("Maxwell", "Brown", email = "mbrown@broadinstitute.org", role = "ctb")
 Author: Timothy Tickle [aut, cre], Itay Tirosh [aut], Brian Haas [aut]
 Maintainer: Christophe Georgescu <cgeorges@broadinstitute.org>
 BugReports: https://github.com/broadinstitute/inferCNV/issues
@@ -12,7 +12,7 @@ Depends: R(>= 3.2.1)
 License: BSD_3_clause + file LICENSE
 LazyData: TRUE
 VignetteBuilder: knitr
-Suggests: BiocStyle, knitr, rmarkdown, testthat, fastcluster
+Suggests: BiocStyle, knitr, rmarkdown, testthat, fastcluster, NGCHM
 RoxygenNote: 6.0.1
 NeedsCompilation: no
 Imports: RColorBrewer, gplots, logging, stats, utils, ape, GMD
