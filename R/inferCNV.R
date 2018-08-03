@@ -1,8 +1,5 @@
 #!/usr/bin/env Rscript
 
-if (!require('fastcluster')) {
-    warning("fastcluster library not available, using the default hclust method instead.")
-}
 
 CHR <- "chr"
 START <- "start"
@@ -3357,6 +3354,9 @@ infercnv <-
         )
 {
 
+    if (!requireNamespace("fastcluster", quietly=TRUE)) {
+        warning("fastcluster library not available, using the default hclust method instead.")
+    }
 
     C_VIS_OUTLIER_CHOICES <- c("average_bound")
     C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
@@ -3674,6 +3674,11 @@ infercnv <-
              output_format=output_format)
     
     if (ngchm) {
+
+        if (!requireNamespace("NGCHM", quietly=TRUE)) {
+            stop("The \"NGCHM\" library is required to use \"-ngchm=TRUE\" but it is not available.", .call=FALSE)
+        }
+
         logging::loginfo("Creating NGCHM as infercnv.ngchm")
         Create_NGCHM(plot_data = ret_list[["VIZ"]],
                        path_to_shaidyMapGen = path_to_shaidyMapGen,
