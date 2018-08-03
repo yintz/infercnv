@@ -1,10 +1,5 @@
 #!/usr/bin/env Rscript
 
-source("R/NextGenHeatMap.R")
-# library(ape)
-library("RColorBrewer", character.only=TRUE)
-# library(GMD)
-# library(logging)
 if (!require('fastcluster')) {
     warning("fastcluster library not available, using the default hclust method instead.")
 }

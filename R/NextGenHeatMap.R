@@ -19,7 +19,6 @@
 #'
 #' @return
 #' Exports a NGCHM file named infercnv.ngchm and saves it to the output directory given to infercnv. 
-#' @export
 # Requires:
 #	NGCHM, dplyr, ape, RcolorBrewer, tibble
 
