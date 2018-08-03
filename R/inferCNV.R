@@ -1180,6 +1180,7 @@ plot_cnv_observations <- function(obs_data,
     obs_dendrogram <- list()
     ordered_names <- NULL
     isfirst <- TRUE
+    hcl_obs_annotations_groups <- vector()
     if (cluster_by_groups) {
         for (i in seq(1, max(obs_annotations_groups))) {
             group_obs_hcl <- hclust(dist(obs_data[which(obs_annotations_groups == i), hcl_group_indices]), method=hclust_method)
@@ -1195,17 +1196,11 @@ plot_cnv_observations <- function(obs_data,
             }
             group_obs_dend <- as.dendrogram(group_obs_hcl)
             obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
-
-            # if (is.null(obs_hcl)) {
-            #     obs_hcl <- group_obs_hcl
-            # }
-            # else {
-            #     obs_hcl <- merge(obs_hcl, group_obs_hcl)
-            # }
+            hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
         }
         obs_dendrogram <- do.call(merge, obs_dendrogram)
         split_groups <- rep(1, dim(obs_data)[1])
-        names(split_groups) <- rownames(obs_data)
+        names(split_groups) <- ordered_names
     }
     else {
         obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
@@ -1214,6 +1209,7 @@ plot_cnv_observations <- function(obs_data,
         obs_dendrogram <- as.dendrogram(obs_hcl)
         ordered_names <- rev(row.names(obs_data)[obs_hcl$order])
         split_groups <- cutree(obs_hcl, k=num_obs_groups)
+        hcl_obs_annotations_groups <- rev(obs_annotations_groups[obs_hcl$order])  ## verify
     }
 
     # Output HCL group membership.
@@ -1222,13 +1218,13 @@ plot_cnv_observations <- function(obs_data,
 
     # Make colors based on groupings
     row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
-    row_groupings <- cbind(row_groupings, get_group_color_palette()(length(table(obs_annotations_groups)))[obs_annotations_groups])
+    row_groupings <- cbind(row_groupings, get_group_color_palette()(length(table(hcl_obs_annotations_groups)))[hcl_obs_annotations_groups])
 
     # Make a file of coloring and groupings
     logging::loginfo("plot_cnv_observation:Writing observation groupings/color.")
     groups_file_name <- file.path(file_base_name, "observation_groupings.txt")
     # file_groups <- rbind(split_groups,row_groupings)
-    file_groups <- cbind(split_groups, row_groupings[,1], obs_annotations_groups, row_groupings[,2])
+    file_groups <- cbind(split_groups, row_groupings[,1], hcl_obs_annotations_groups, row_groupings[,2])
     #row.names(file_groups) <- c("Group","Color")
     colnames(file_groups) <- c("Dendrogram Group", "Dendrogram Color", "Annotation Group", "Annotation Color")
     # write.table(t(file_groups), groups_file_name)
@@ -1256,6 +1252,7 @@ plot_cnv_observations <- function(obs_data,
                                      col_count=ncol(obs_data),
                                      col_seps=contig_seps)
 
+    obs_data <- obs_data[rev(ordered_names), ]
 
     # Remove row/col labels, too cluttered
     # and print.
@@ -2295,7 +2292,8 @@ heatmap.cnv <-
       stop("`Rowv' should contain equal size of members as the rows.")
     }
     ddr <- Rowv ## use Rowv 'as-is',when it is dendrogram
-    rowInd <- order.dendrogram(ddr)
+    # rowInd <- order.dendrogram(ddr)
+    rowInd <- 1:nr  ### data has already been sorted in the proper order, and coloring vectors too
   } else if (is.integer(Rowv)){ ## compute dendrogram and do reordering based on given vector
     ddr <- as.dendrogram(hclust.row)
     ddr <-  reorder(ddr,Rowv)
@@ -3015,7 +3013,6 @@ heatmap.cnv <-
 
     if(!.invalid(RowIndividualColors)) {
         par(mar=c(margins[1],0,0,0.5))
-        # image(rbind(1:nr),col=rep("#E34015", nr)[rowInd], axes=FALSE, add=force_add)
         image(rbind(1:nr),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
     }
 
