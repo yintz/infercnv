@@ -568,7 +568,7 @@ process_data <- function(data,
 
 
         # Plot incremental steps.
-        chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])[keep_gene_indices]))
+        chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])))
         if (plot_steps){
             plot_step(data=data,
                       plot_name=file.path(out_path,
