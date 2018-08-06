@@ -895,7 +895,7 @@ plot_step <- function(data, plot_name){
     image(as.matrix(data),
           col=colorRampPalette(c("cyan","white","white","magenta"))(n=100))
     dev.off()
-    write.table(data, file=text_file)
+    write.table(data, file=text_file, quote=F, sep="\t")
 }
 
 
