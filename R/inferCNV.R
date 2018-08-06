@@ -1191,6 +1191,7 @@ plot_cnv_observations <- function(obs_data,
     ordered_names <- NULL
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
+    obs_seps <- c()
     if (cluster_by_groups) {
         for (i in seq(1, max(obs_annotations_groups))) {
             group_obs_hcl <- hclust(dist(obs_data[which(obs_annotations_groups == i), hcl_group_indices]), method=hclust_method)
@@ -1207,6 +1208,7 @@ plot_cnv_observations <- function(obs_data,
             group_obs_dend <- as.dendrogram(group_obs_hcl)
             obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
             hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+            obs_seps <- c(obs_seps, length(ordered_names))
         }
         obs_dendrogram <- do.call(merge, obs_dendrogram)
         split_groups <- rep(1, dim(obs_data)[1])
@@ -1219,12 +1221,36 @@ plot_cnv_observations <- function(obs_data,
         obs_dendrogram <- as.dendrogram(obs_hcl)
         ordered_names <- rev(row.names(obs_data)[obs_hcl$order])
         split_groups <- cutree(obs_hcl, k=num_obs_groups)
+        split_groups <- split_groups[rev(ordered_names)]
         hcl_obs_annotations_groups <- rev(obs_annotations_groups[obs_hcl$order])  ## verify
+
+        # Make a file of members of each group
+        logging::loginfo("plot_cnv_observation:Writing observations by grouping.")
+        for (cut_group in unique(split_groups)){
+          group_memb <- names(split_groups)[which(split_groups == cut_group)]
+          # Write group to file
+          memb_file <- file(paste(file_base_name,
+                                  paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
+                                  sep=.Platform$file.sep))
+          write.table(obs_data[group_memb,], memb_file)
+          # Record seperation
+          ordered_memb <- which(ordered_names %in% group_memb)
+          if (is.null(obs_seps)) {
+            obs_seps <- c(length(ordered_memb))
+          }
+          else {
+            obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
+          }
+        }
+        obs_seps <- c(obs_seps, length(ordered_names))
+    }
+
+    if (length(obs_seps) > 1) {
+        obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
     }
 
     # Output HCL group membership.
     # Record locations of seperations
-    obs_seps <- c(0)
 
     # Make colors based on groupings
     row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
@@ -1240,26 +1266,15 @@ plot_cnv_observations <- function(obs_data,
     # write.table(t(file_groups), groups_file_name)
     write.table(file_groups, groups_file_name)
 
-    # Make a file of members of each group
-    logging::loginfo("plot_cnv_observation:Writing observations by grouping.")
-    for (cut_group in unique(split_groups)){
-        group_memb = names(split_groups)[which(split_groups == cut_group)]
-        # Write group to file
-        memb_file <- file(paste(file_base_name,
-                                paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
-                                sep=.Platform$file.sep))
-        write.table(obs_data[group_memb,], memb_file)
-        # Record seperation
-        ordered_memb <- which(ordered_names %in% group_memb)
-        obs_seps <- c(obs_seps, max(ordered_memb),max(ordered_memb))
-    }
-    obs_hcl <- NULL
-    obs_seps <- unique(obs_seps)
-    obs_seps <- sort(obs_seps)
+
+
+    # obs_seps <- unique(obs_seps)
+    # obs_seps <- sort(obs_seps)
 
     # Generate the Sep list for heatmap.3
     contigSepList <- create_sep_list(row_count=nrow(obs_data),
                                      col_count=ncol(obs_data),
+                                     row_seps=obs_seps,
                                      col_seps=contig_seps)
 
     obs_data <- obs_data[rev(ordered_names), ]
@@ -1294,7 +1309,7 @@ plot_cnv_observations <- function(obs_data,
                                         if.plot=!testing,
                                         # Seperate by contigs
                                         sepList=contigSepList,
-                                        sep.color="black",
+                                        sep.color=c("black","black"),
                                         sep.lty=1,
                                         sep.lwd=1,
                                         # Color rows by user defined cut
@@ -3520,7 +3535,7 @@ infercnv <-
         preprocess_save_path <- paste(output_dir, "/infercnv.preprocess.Rdata", sep="")
         if (file.exists(preprocess_args_save_path) && file.exists(preprocess_save_path) && load_workspace) {
             load(preprocess_args_save_path)
-            if (identical(passed_args$x, x) && 
+            if (identical(passed_args$x, x) &&
                 identical(passed_args$gene_order, gene_order) &&
                 identical(passed_args$annotations, annotations) &&
                 identical(passed_args$delim, delim) &&
@@ -3690,7 +3705,7 @@ infercnv <-
              obs_title=obs_title,
              ref_title=ref_title,
              output_format=output_format)
-    
+
     if (ngchm) {
 
         if (!requireNamespace("NGCHM", quietly=TRUE)) {
