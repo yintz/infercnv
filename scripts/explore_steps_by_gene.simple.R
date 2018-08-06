@@ -14,6 +14,9 @@ main = function() {
 
     data_bundles = load_all_data()
 
+    pdf_filename = paste("by_step.", gene_name, ".pdf", sep="")
+    pdf(pdf_filename)
+    
     make_plots(gene_name, data_bundles)
 
     quit(save = "no", status = 0, runLast = FALSE)
@@ -76,7 +79,7 @@ plot_gene_dist = function(gene_name, data_bundle, drop_zeros=F) {
 
 make_plots = function(gene_name, data_bundles) {
 
-    dev.new()
+    #dev.new()
     par(mfrow=c(3,3))
 
     count = 0
