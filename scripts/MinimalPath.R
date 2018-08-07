@@ -1,5 +1,36 @@
 #!/usr/bin/env Rscript
 
+library(optparse)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+# Command line arguments
+pargs <- optparse::OptionParser()
+pargs <- optparse::add_option(pargs, c("--file_dir"),
+                              type="character",
+                              action="store",
+                              dest="file_dir",
+                              metavar="File_Directory",
+                              help=paste("Path to the expression data files created by inferCNV.",
+                                         "[Default %default][REQUIRED]"))
+
+pargs <- optparse::add_option(pargs, c("--output_dir"),
+                              type="character",
+                              action="store",
+                              dest="output_dir",
+                              metavar="Output_directory",
+                              help=paste("location to save PDF file.",
+                                         "[Default %default][REQUIRED]"))
+pargs <- optparse::add_option(pargs, c("--genes"),
+                              type="character",
+                              action="store",
+                              dest="genes",
+                              metavar="Genes",
+                              help=paste("Desired Gene to plot.",
+                                         "[Default %default][REQUIRED]"))
+args_parsed <- optparse::parse_args(pargs)
+
+
 #' @title Plot Gene Distributions Along InferCNV Steps
 #' @description Takes in expression data created by inferCNV and plots the 
 #'              distribution of desired genes expression along each step in inferCNV. 
@@ -16,7 +47,6 @@
 MinimalPath <- function (files_dir,
                           genes,
                           output_dir){
-
     # ----------------------Check Pathways----------------------------------------------------------------------------------------
     # Error handling 
     ## check if pathway exists
@@ -192,4 +222,8 @@ MinimalPath <- function (files_dir,
 }
 
 
-
+if (!is.null(args)) {
+    MinimalPath(files_dir = args_parsed$file_dir, 
+                genes = args_parsed$genes,
+                output_dir = args_parsed$output_dir)
+}
