@@ -192,7 +192,8 @@ MinimalPath <- function (files_dir,
                                  axis.title.y = element_blank())+
                            scale_x_continuous(breaks = pretty( data_list[[i]]$exp, n = 5)))
         }
-    
+        
+        pdf(paste0(output_file_name), onefile = TRUE, height = 9, width = 9)
         pull_legend<-function(plot){
             plot_params <- ggplot_gtable(ggplot_build(plot))
             # get which grob in list is the legend called "guide=box" 
@@ -214,7 +215,7 @@ MinimalPath <- function (files_dir,
                                       bottom = grid::textGrob("Expression Levels",
                                                               gp = grid::gpar(fontsize=15)))
         # create the pdf and plot it on a grid 
-        pdf(paste0(output_file_name), onefile = TRUE, height = 9, width = 9)
+        
         gridExtra::grid.arrange(arrange_plots,
                      plot_legend, nrow = 2, ncol = 1, heights = c(10,1))
         dev.off()
