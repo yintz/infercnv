@@ -953,6 +953,8 @@ plot_cnv <- function(plot_data,
                      obs_title,
                      ref_title,
                      obs_annotations_groups,
+                     obs_annotations_names,
+                     grouping_key_coln,
                      cluster_by_groups=FALSE,
                      contig_cex=1,
                      k_obs_groups=1,
@@ -1011,18 +1013,23 @@ plot_cnv <- function(plot_data,
         contig_names <- c(contig_names,rep(contig_name,contig_tbl[contig_name]))
     }
 
+    # Calculate how many rows will be made for the number of columns in the grouping key
+    grouping_key_rown <- ceiling(length(obs_annotations_names)/grouping_key_coln)
+    # Calculate how much bigger the output needs to be to accodomate for the grouping key
+    grouping_key_height <- (grouping_key_rown + 2) * 0.175
+
     # Rows observations, Columns CHR
     if (output_format == "pdf") {
         pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
             useDingbats=FALSE,
             width=10,
-            height=7.5,
+            height=(8 + grouping_key_height),
             paper="USr")
     }
     else if (output_format == "png") {
         png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
             width=10,
-            height=7.5,
+            height=(8 + grouping_key_height),
             units="in",
             res=600)
     }
@@ -1066,7 +1073,7 @@ plot_cnv <- function(plot_data,
 
 
     # Create file base for plotting output
-    force_layout <- plot_observations_layout()
+    force_layout <- plot_observations_layout(grouping_key_height=grouping_key_height)
     plot_cnv_observations(obs_data=obs_data_t,
                           file_base_name=out_dir,
                           cluster_contig=ref_contig,
@@ -1077,6 +1084,8 @@ plot_cnv <- function(plot_data,
                           contig_seps=col_sep,
                           num_obs_groups=k_obs_groups,
                           obs_annotations_groups=obs_annotations_groups,
+                          obs_annotations_names=obs_annotations_names,
+                          grouping_key_coln=grouping_key_coln,
                           cluster_by_groups=cluster_by_groups,
                           cnv_title=title,
                           cnv_obs_title=obs_title,
@@ -1144,6 +1153,8 @@ plot_cnv_observations <- function(obs_data,
                                   contig_lab_size=1,
                                   cluster_contig=NULL,
                                   obs_annotations_groups,
+                                  obs_annotations_names,
+                                  grouping_key_coln,
                                   cluster_by_groups,
                                   breaksList,
                                   x.center,
@@ -1259,6 +1270,7 @@ plot_cnv_observations <- function(obs_data,
     # Make colors based on groupings
     row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
     row_groupings <- cbind(row_groupings, get_group_color_palette()(length(table(hcl_obs_annotations_groups)))[hcl_obs_annotations_groups])
+    annotations_legend <- cbind(obs_annotations_names, get_group_color_palette()(length(table(hcl_obs_annotations_groups))))
 
     # Make a file of coloring and groupings
     logging::loginfo("plot_cnv_observation:Writing observation groupings/color.")
@@ -1318,6 +1330,8 @@ plot_cnv_observations <- function(obs_data,
                                         sep.lwd=1,
                                         # Color rows by user defined cut
                                         RowIndividualColors=row_groupings,
+                                        annotations_legend=annotations_legend,
+                                        grouping_key_coln=grouping_key_coln,
                                         # Color by contigs
                                         ColIndividualColors=contig_colors,
                                         # Legend
@@ -1350,37 +1364,6 @@ plot_cnv_observations <- function(obs_data,
 plot_observations_layout_original <- function()
 {
     ## Plot observational samples
-    obs_lmat <- c(0, 0, 0, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-                  6, 8, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                  0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  4, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    obs_lmat <- matrix(obs_lmat,ncol=13,byrow=TRUE)
-
-    obs_lhei <- c(1.125, 2.215, .15,
-                   .5, .5, .5,
-                   .5, .5, .5,
-                   .5, .5, .5,
-                  0.0075, 0.0075, 0.0075)
-
-    return(list(lmat=obs_lmat,
-           lhei=obs_lhei,
-           lwid=NULL))
-}
-
-plot_observations_layout <- function()
-{
-    ## Plot observational samples
     obs_lmat <- c(0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
                   7, 9, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
                   0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -1403,6 +1386,37 @@ plot_observations_layout <- function()
                    .5, .5, .5,
                    .5, .5, .5,
                   0.0075, 0.0075, 0.0075)
+
+    return(list(lmat=obs_lmat,
+           lhei=obs_lhei,
+           lwid=NULL))
+}
+
+plot_observations_layout <- function(grouping_key_height)
+{
+    ## Plot observational samples
+    obs_lmat <- c(0,  0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                  8, 10, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+                  0,  0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  6,  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    obs_lmat <- matrix(obs_lmat,ncol=14,byrow=TRUE)
+
+    obs_lhei <- c(1.125, 2.215, .15,
+                   .5, .5, .5,
+                   .5, .5, .5,
+                   .5, .5, .5,
+                  0.03, grouping_key_height+0.04, 0.03)
 
     return(list(lmat=obs_lmat,
            lhei=obs_lhei,
@@ -2020,6 +2034,8 @@ heatmap.cnv <-
            margin.for.labCol,
            ColIndividualColors,
            RowIndividualColors,
+           annotations_legend,
+           grouping_key_coln,
            cexRow,
            cexCol,
            labRow.by.group=FALSE,
@@ -3067,6 +3083,17 @@ heatmap.cnv <-
         text(.sideRow,iy,labels=labRow,srt=srtRow,pos=1,xpd=TRUE,cex=cexRow)
       }
     }
+
+    if(key) {
+        par(mar=c(0,0,0,0))
+        plot(1, type="n", axes=FALSE, xlab="", ylab="")
+        legend(x=0.6,y=1.2 ,legend=annotations_legend[,1],
+            cex=1.2,
+            fill=annotations_legend[,2],
+            ncol=grouping_key_coln)
+    }
+
+
     ## 7) col-dend and title
     mar3 <- (if(!is.null(main)) mar.main else 0) +
       (if(!is.null(sub)) mar.sub else 0)
@@ -3083,6 +3110,7 @@ heatmap.cnv <-
         text(1:nc,.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
       }
     }
+
 
     ## title
     if (is.null(sub)) main.line <- 1 else main.line <- 3
@@ -3671,17 +3699,24 @@ infercnv <-
 
         obs_annotations_groups <- input_classifications[,1]
         counter <- 1
+        obs_annotations_names <- c()
         for (classification in observations_annotations_names) {
           obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
+          obs_annotations_names[counter] = classification
           counter <- counter + 1
         }
         names(obs_annotations_groups) <- rownames(input_classifications)
         obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format and to remove references indexes
         obs_annotations_groups <- as.integer(obs_annotations_groups)  ## they should already all be integers because they are based on "counter"
 
+        grouping_key_coln <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
+        if (grouping_key_coln < 1) {
+            grouping_key_coln <- 1
+        }
+
         logging::loginfo("Saving workspace")
 
-        to_save_preprocess <- c("expression_data", "input_gene_order", "input_reference_samples", "name_ref_groups", "name_ref_groups_indices", "obs_annotations_groups", "num_obs_groups")
+        to_save_preprocess <- c("expression_data", "input_gene_order", "input_reference_samples", "name_ref_groups", "name_ref_groups_indices", "obs_annotations_groups", "obs_annotations_names", "grouping_key_coln", "num_obs_groups")
         save(list=to_save_preprocess_args, file=preprocess_args_save_path)
         save(list=to_save_preprocess, file=preprocess_save_path)
     }
@@ -3708,7 +3743,7 @@ infercnv <-
                                hclust_method=hclust_method)
 
 
-        to_save_processed <- c("ret_list", "num_obs_groups", "obs_annotations_groups", "hclust_method", "input_gene_order", "name_ref_groups_indices")  # only save what will be needed for plotting and can not be changed without the processing having to be changed too
+        to_save_processed <- c("ret_list", "num_obs_groups", "obs_annotations_groups", "obs_annotations_names", "grouping_key_coln", "hclust_method", "input_gene_order", "name_ref_groups_indices")  # only save what will be needed for plotting and can not be changed without the processing having to be changed too
 
         save(list=to_save_processed_args, file=processed_args_save_path)
         save(list=to_save_processed, file=processed_save_path)
@@ -3728,6 +3763,8 @@ infercnv <-
              contigs=ret_list[["CONTIGS"]],
              k_obs_groups=num_obs_groups,
              obs_annotations_groups=obs_annotations_groups,
+             obs_annotations_names=obs_annotations_names,
+             grouping_key_coln=grouping_key_coln,
              cluster_by_groups=cluster_by_groups,
              reference_idx=ret_list[["REF_OBS_IDX"]],
              ref_contig=clustering_contig,
