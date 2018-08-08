@@ -35,46 +35,7 @@ Create_NGCHM <- function(plot_data,
     
     # ----------------------Check Pathways----------------------------------------------------------------------------------------
     # Error handling 
-    ## check if pathway exists and if ShaidyMapGen.jar is downloaded
-    ## if the pathway exists, check the pathway and make sure 'ShaidyMapGen.jar' is at the end of the pathway 
-    # Make sure the required java application ShaidyMapGen.jar exists. 
-
-    if (!is.null(path_to_shaidyMapGen)) {
-        if (!file.exists(path_to_shaidyMapGen)){
-            error_message <- paste("Cannot find the file ShaidyMapGen.jar using path_to_shaidyMapGen.", 
-                                   "Make sure the entire pathway is being used.")
-            logging::logerror(error_message)
-            stop(error_message)
-        } else {
-            shaidy.path <- unlist(strsplit(path_to_shaidyMapGen, split = .Platform$file.sep))
-            if (tail(shaidy.path, n = 1L) != "ShaidyMapGen.jar") {
-                stop("Check pathway to ShaidyMapGen: ", path_to_shaidyMapGen, 
-                     "\n Make sure to add 'ShaidyMapGen.jar' to the end of the path.")
-            }
-        }
-    } else { 
-        ## check if envionrmental variable is passed and check if file exists
-        if(exists("SHAIDYMAPGEN")) {
-            if (!file.exists(SHAIDYMAPGEN)){
-                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
-                                       "Make sure the entire pathway is being used.")
-                logging::logerror(error_message)
-                stop(error_message)
-            } else {
-                path_to_shaidyMapGen <- SHAIDYMAPGEN
-            }
-        }
-        if (Sys.getenv("SHAIDYMAPGEN") != "") {
-            if (!file.exists(Sys.getenv("SHAIDYMAPGEN"))){
-                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
-                                       "Make sure the entire pathway is being used.")
-                logging::logerror(error_message)
-                stop(error_message)
-            } else {
-                path_to_shaidyMapGen <- Sys.getenv("SHAIDYMAPGEN")
-            }
-        }
-    }    
+    
     
     if (file.exists(out_dir)){
         file_path <- paste(out_dir, "infercnv.ngchm", sep = .Platform$file.sep)

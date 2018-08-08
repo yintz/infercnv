@@ -3462,6 +3462,27 @@ infercnv <-
             name_ref_groups <- unlist(strsplit(name_ref_groups,","))  ## TOCHECK Could maybe require a list directly instead of a string with comas in between names?
         }
     }
+    
+    if (ngchm == TRUE){ ## check if required java application ShaidyMapGen.jar exists.
+        if (!is.null(path_to_shaidyMapGen)) {
+            shaidy.path <- unlist(strsplit(path_to_shaidyMapGen, split = .Platform$file.sep))
+            if (!file.exists(path_to_shaidyMapGen) || tail(shaidy.path, n = 1L) != "ShaidyMapGen.jar"){
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using the parameter \"path_to_shaidyMapGen\".",
+                                       "Check that the correct pathway is being used.")
+                logging::logerror(error_message)
+                stop(error_message)
+            }
+        } else { 
+            path_to_shaidyMapGen <- Sys.getenv("SHAIDYMAPGEN")
+            if (!file.exists(path_to_shaidyMapGen)){ ## check if envionrmental variable is passed
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
+                                       "Check that the correct pathway is being used.")
+                logging::logerror(error_message)
+                stop(error_message)
+            } 
+        }
+    }
+    
 
     do_work = 0
 
