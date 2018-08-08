@@ -2467,14 +2467,19 @@ heatmap.cnv <-
   #  margin.for.labRow <- margin.for.labRow0*margin.for.labRow
   #}
   if (margin.for.labRow < 2) {
-      margin.for.labRow = 2
+      margin.for.labRow <- 2
   }
 
-  if (.invalid(margin.for.labCol)){
-    margin.for.labCol <- margin.for.labCol0
-  } else {
-    # message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labCol.')
-    margin.for.labCol <- margin.for.labCol0*margin.for.labCol
+  # if (.invalid(margin.for.labCol)){
+  margin.for.labCol <- margin.for.labCol0
+  # }
+  #  else {
+  #   # message('heatmap.3 | From GMD 0.3.3, please use relative values for margin.for.labCol.')
+  #   margin.for.labCol <- margin.for.labCol0*margin.for.labCol
+  # }
+
+  if (margin.for.labCol < 2) {
+    margin.for.labCol <- 2
   }
 
   ## group unique labels - row ## ##??check
