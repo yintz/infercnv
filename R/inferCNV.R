@@ -386,11 +386,23 @@ center_with_threshold <- function(center_data, threshold){
 
     logging::loginfo(paste("::center_with_threshold:Start", sep=""))
     # Center data (automatically ignores zeros)
-    center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
+
+    # convert zeros to NA so ignored during calculations
+    is_zero = (center_data == 0)
+    center_data[is_zero] = NA 
+    
+    #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
+    center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
     # Cap values between threshold and -threshold and recenter
     center_data[center_data > threshold] <- threshold
     center_data[center_data < (-1 * threshold)] <- -1 * threshold
-    center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
+
+    # re-center the data
+    #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
+    center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
+
+    center_data[is_zero] = 0 #restore zeros
+    
     return(center_data)
 }
 
@@ -605,6 +617,9 @@ process_data <- function(data,
     chr_order_for_plotting = paste(as.vector(as.matrix(chr_order)))
     gene_order <- NULL
 
+    # remember zero positions for plot_steps below
+    zero_pos = (data==0)
+    
     # Center data (automatically ignores zeros)
     data <- center_with_threshold(data, max_centered_threshold)
     logging::loginfo(paste("::process_data:Outlier removal, ",
@@ -616,11 +631,14 @@ process_data <- function(data,
                            ".", sep=""))
     # Plot incremental steps.
     if (plot_steps){
-        plot_step(data=data,
+        # set the orig zero vals to NA for reporting here.
+        plot_data = data
+        plot_data[zero_pos] = NA
+        plot_step(data=plot_data,
                             plot_name=file.path(out_path,
                                                 "04_center_with_threshold.pdf"))
 
-        plot_cnv(plot_data=data,
+        plot_cnv(plot_data=plot_data,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
                            obs_annotations_groups=obs_annotations_groups,
@@ -788,7 +806,7 @@ process_data <- function(data,
     if (noise_threshold > 0) {
         data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
                                       threshold=noise_threshold)
-        logging::loginfo(paste("::process_data:Remove moise, ",
+        logging::loginfo(paste("::process_data:Remove noise, ",
                                "new dimensions (r,c) = ",
                                paste(dim(data_smoothed), collapse=","),
                                " Total=", sum(data_smoothed),
@@ -947,9 +965,9 @@ plot_cnv <- function(plot_data,
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
                             paste(dim(plot_data), collapse=","),
-                            " Total=", sum(plot_data),
-                            " Min=", min(plot_data),
-                            " Max=", max(plot_data),
+                            " Total=", sum(plot_data, na.rm=T),
+                            " Min=", min(plot_data, na.rm=T),
+                            " Max=", max(plot_data, na.rm=T),
                             ".", sep=""))
     logging::loginfo(paste("::plot_cnv:Depending on the size of the matrix",
                            " this may take a moment.",
@@ -3444,6 +3462,27 @@ infercnv <-
             name_ref_groups <- unlist(strsplit(name_ref_groups,","))  ## TOCHECK Could maybe require a list directly instead of a string with comas in between names?
         }
     }
+    
+    if (ngchm == TRUE){ ## check if required java application ShaidyMapGen.jar exists.
+        if (!is.null(path_to_shaidyMapGen)) {
+            shaidy.path <- unlist(strsplit(path_to_shaidyMapGen, split = .Platform$file.sep))
+            if (!file.exists(path_to_shaidyMapGen) || tail(shaidy.path, n = 1L) != "ShaidyMapGen.jar"){
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using the parameter \"path_to_shaidyMapGen\".",
+                                       "Check that the correct pathway is being used.")
+                logging::logerror(error_message)
+                stop(error_message)
+            }
+        } else { 
+            path_to_shaidyMapGen <- Sys.getenv("SHAIDYMAPGEN")
+            if (!file.exists(path_to_shaidyMapGen)){ ## check if envionrmental variable is passed
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
+                                       "Check that the correct pathway is being used.")
+                logging::logerror(error_message)
+                stop(error_message)
+            } 
+        }
+    }
+    
 
     # do_work = 0
 
