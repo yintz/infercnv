@@ -1210,7 +1210,11 @@ plot_cnv_observations <- function(obs_data,
             hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
             obs_seps <- c(obs_seps, length(ordered_names))
         }
-        obs_dendrogram <- do.call(merge, obs_dendrogram)
+        if (length(obs_dendrogram) > 1) {
+            obs_dendrogram <- do.call(merge, obs_dendrogram)
+        } else {
+            obs_dendrogram <- obs_dendrogram[[1]]
+        }
         split_groups <- rep(1, dim(obs_data)[1])
         names(split_groups) <- ordered_names
     }
@@ -3586,7 +3590,7 @@ infercnv <-
         }
     }
 
-    if (load_workspace == 0) {
+    if (load_workspace <= 0) {
         if (!(is.data.frame(x))) {
             expression_data <- read.table(x, sep=delim, header=TRUE, row.names=1, check.names=FALSE)
         }
