@@ -3323,7 +3323,7 @@ get.sep <-
 #' @param fig_title Plot title.
 #' @param obs_title Title for the observations matrix.
 #' @param ref_title Title for the reference matrix.
-#' @param load_workspace Try to load workspace saved from a previous run as far in the run as possible (checks for that important arguments match).
+#' @param load_workspace Try to load workspace saved from a previous run as far in the run as possible (checks for that important arguments match). Possible values are 0 "don't load any previous data", 1 "load preprocessed data", >2 "load processed data".
 #' @param log_level Logging level.
 #' @param ngchm Logical to decide whether to create a Next Generation Clustered Heat Map.
 #' @param path_to_shaidyMapGen Path to the java application ShaidyMapGen.jar.
@@ -3361,7 +3361,7 @@ infercnv <-
         fig_title="Copy Number Variation Inference",
         obs_title="Observations (Cells)",
         ref_title="References (Cells)",
-        load_workspace=TRUE,
+        load_workspace=2,
         log_level="INFO",
         ngchm=FALSE,
         path_to_shaidyMapGen=NULL,
@@ -3445,7 +3445,7 @@ infercnv <-
         }
     }
 
-    do_work = 0
+    # do_work = 0
 
     passed_args <- list(x=x, gene_order=gene_order, annotations=annotations, cutoff=cutoff,
         log_transform=log_transform, delim=delim, noise_filter=noise_filter,
@@ -3460,7 +3460,7 @@ infercnv <-
 
     processed_save_path <- paste(output_dir, "/infercnv.processed.", hclust_method, ".Rdata", sep="")
     processed_args_save_path <- paste(output_dir, "/infercnv.processed.args.", hclust_method, ".Rdata", sep="")
-    if (file.exists(processed_args_save_path) && file.exists(processed_save_path) && load_workspace) {
+    if (file.exists(processed_args_save_path) && file.exists(processed_save_path) && load_workspace >= 2) {
         load(processed_args_save_path)
         if (identical(passed_args$x, x) &&
             identical(passed_args$gene_order, gene_order) &&
@@ -3484,9 +3484,7 @@ infercnv <-
 
             load(processed_save_path)
             logging::loginfo("Successfully loaded previously processed workspace.")
-            do_work = 2 # only plot
-
-
+            # load_workspace <- 2 # only plot
         } else {  # restore arguments
             x <- passed_args$x
             gene_order <- passed_args$gene_order
@@ -3506,16 +3504,20 @@ infercnv <-
             contig_tail <- passed_args$contig_tail
             bound_method_vis <- passed_args$bound_method_vis
             bounds_viz <- passed_args$bounds_viz
+
+            load_workspace <- 1 # try to load preprocessed data
         }
+    } else if (load_workspace >= 2) {
+        load_workspace <- 1
     }
 
     to_save_preprocess_args <- c("x", "gene_order", "annotations", "delim", "num_obs_groups", "num_ref_groups", "name_ref_groups")
 
     preprocess_save_path <- paste(output_dir, "/infercnv.preprocess.Rdata", sep="")
     preprocess_args_save_path <- paste(output_dir, "/infercnv.preprocess.args.Rdata", sep="")
-    if (do_work == 0) {
+    if (load_workspace == 1) {
         preprocess_save_path <- paste(output_dir, "/infercnv.preprocess.Rdata", sep="")
-        if (file.exists(preprocess_args_save_path) && file.exists(preprocess_save_path) && load_workspace) {
+        if (file.exists(preprocess_args_save_path) && file.exists(preprocess_save_path)) {
             load(preprocess_args_save_path)
             if (identical(passed_args$x, x) &&
                 identical(passed_args$gene_order, gene_order) &&
@@ -3528,8 +3530,8 @@ infercnv <-
 
                 load(preprocess_save_path)
                 logging::loginfo("Successfully loaded previously prepared workspace for processing.")
-                do_work = 1  # process and plot
-            } else {  # restpre arguments
+                # load_workspace <- 1  # process and plot
+            } else {  # restore arguments
                 x <- passed_args$x
                 gene_order <- passed_args$gene_order
                 annotations <- passed_args$annotations
@@ -3537,11 +3539,15 @@ infercnv <-
                 num_obs_groups <- passed_args$num_obs_groups
                 num_ref_groups <- passed_args$num_ref_groups
                 name_ref_groups <- passed_args$name_ref_groups
+
+                load_workspace <- 0 # can't usefully load any data
             }
+        } else {
+            load_workspace <- 0
         }
     }
 
-    if (do_work == 0) {
+    if (load_workspace == 0) {
         if (!(is.data.frame(x))) {
             expression_data <- read.table(x, sep=delim, header=TRUE, row.names=1, check.names=FALSE)
         }
@@ -3631,8 +3637,7 @@ infercnv <-
         save(list=to_save_preprocess_args, file=preprocess_args_save_path)
         save(list=to_save_preprocess, file=preprocess_save_path)
     }
-
-    if (do_work < 2) {  # 0 or 1
+    if (load_workspace < 2) {  # 0 or 1
         ret_list = process_data(data=expression_data,
                                gene_order=input_gene_order,
                                cutoff=cutoff,
