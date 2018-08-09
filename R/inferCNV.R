@@ -1,5 +1,10 @@
 #!/usr/bin/env Rscript
 
+USE_ZSCORES=FALSE
+
+MAKE_ZERO_NA=FALSE
+
+options(error = function() traceback(2))
 
 CHR <- "chr"
 START <- "start"
@@ -79,6 +84,12 @@ subtract_ref <- function(average_data,
     }
     # Remove the Max and min averages of the reference groups from the
     # For each gene.  (using quantiles now, bhaas)
+
+    if (TRUE) { ## DEBUGGING bhaas
+        ref_gene_group_means = data.frame(avg_min=average_min, avg_max=average_max);  
+        write.table(ref_gene_group_means, "ref_gene_group_means.dat", quote=F, sep="\t")
+    }
+    
     for(gene_i in 1:nrow(average_data)){
         current_col <- average_data[gene_i, ]
 
@@ -86,7 +97,11 @@ subtract_ref <- function(average_data,
             # original code
             i_max <- which(current_col > average_max[gene_i])
             i_min <- which(current_col < average_min[gene_i])
-            row_init <- rep(0, length(current_col))
+            i_between <- which(current_col >= average_min[gene_i] & current_col <= average_max[gene_i])
+            row_init <- current_col #rep(0, length(current_col))
+            if(length(i_between) > 0) {
+                row_init[i_between] = 0
+            }
             if(length(i_max) > 0){
                 row_init[i_max] <- current_col[i_max] - average_max[gene_i]
             }
@@ -96,6 +111,7 @@ subtract_ref <- function(average_data,
             average_data[gene_i, ] <- row_init
         } else if (ref_subtract_method == "by_quantiles") {
             # bhaas new code
+            stop("needs updating... bhaas") ## DEBUG bhaas
             i_max <- which(current_col > average_max[gene_i])
             i_min <- which(current_col < average_min[gene_i])
             row_init <- rep(0, length(current_col))
@@ -306,21 +322,29 @@ remove_outliers_norm <- function(data,
                                  out_method=NA,
                                  lower_bound=NA,
                                  upper_bound=NA,
-                                 plot_step=NA){
-    logging::loginfo(paste("::remove_outlier_norm:Start"))
-    if(is.na(data) || is.null(data) || nrow(data) < 1 || ncol(data) < 1){
-        return(data)
+                                 plot_step=NA) {
+    logging::loginfo(paste("::remove_outlier_norm:Start",
+                           "out_method:", out_method,
+                           "lower_bound:" , lower_bound,
+                           "upper_bound:", upper_bound,
+                           "plot_step:" , plot_step))
+    if(is.null(data) || nrow(data) < 1 || ncol(data) < 1){
+        logging::logerror("::remove_outlier_norm: Error, something is wrong with the data, either null or no rows or columns")
+        stop("Error, something is wrong with the data, either null or no rows or columns")
     }
     if (is.na(lower_bound) || is.na(upper_bound)){
+                                        # using out_method instead of specified bounds.
+        logging::loginfo(paste("::remove_outlier_norm using method:", out_method, "for defining outliers."))
         if(is.na(out_method)){
             logging::loginfo("::remove_outlier_norm:WARNING outlier removal was not performed.")
             return(data)
         }
         if (out_method == "average_bound"){
+            
             lower_bound <- mean(apply(data, 2,
-                                      function(x) quantile(x)[[1]]))
+                                      function(x) quantile(x, na.rm=TRUE)[[1]]))
             upper_bound <- mean(apply(data, 2,
-                                      function(x) quantile(x)[[5]]))
+                                      function(x) quantile(x, na.rm=TRUE)[[5]]))
             # Plot bounds on data
             if(!is.na(plot_step)){
                 pdf(plot_step, useDingbats=FALSE)
@@ -341,20 +365,26 @@ remove_outliers_norm <- function(data,
             stop(991)
         }
     }
-
-    # Hard threshold given bounds
-    if(!is.na(plot_step)){
-        pdf(plot_step, useDingbats=FALSE)
-        boxplot(data)
-        points(1:ncol(data), rep(lower_bound, ncol(data)),
-               pch=19, col="orange")
-        points(1:ncol(data), rep(upper_bound, ncol(data)),
-               pch=19, col="orange")
-        dev.off()
+    else {
+        # Hard threshold given bounds
+        logging::loginfo(paste("::remove_outlier_norm:",
+                               "lower_bound:" , lower_bound,
+                               "upper_bound:", upper_bound) )
+        
+        if(!is.na(plot_step)){
+            pdf(plot_step, useDingbats=FALSE)
+            boxplot(data)
+            points(1:ncol(data), rep(lower_bound, ncol(data)),
+                   pch=19, col="orange")
+            points(1:ncol(data), rep(upper_bound, ncol(data)),
+                   pch=19, col="orange")
+            dev.off()
+        }
+        data[data < lower_bound] <- lower_bound
+        data[data > upper_bound] <- upper_bound
+        
+        return(data)
     }
-    data[data < lower_bound] <- lower_bound
-    data[data > upper_bound] <- upper_bound
-    return(data)
 }
 
 # Center data after smoothing. Center with in cells using median.
@@ -369,8 +399,10 @@ remove_outliers_norm <- function(data,
 center_smoothed <- function(data_smoothed){
 
     logging::loginfo(paste("::center_smoothed:Start"))
-    # Center within columns
-    row_median <- apply(data_smoothed, 2, median)
+
+    # Center within columns (cells)
+    row_median <- apply(data_smoothed, 2, function(x) { median(x, na.rm=T) } )
+    
     return(t(apply(data_smoothed, 1, "-", row_median)))
 }
 
@@ -382,29 +414,42 @@ center_smoothed <- function(data_smoothed){
 #                      threshold after centering.
 # Returns:
 # Centered and thresholded matrix
-center_with_threshold <- function(center_data, threshold){
+center_with_threshold <- function(center_data, threshold=NA){
 
     logging::loginfo(paste("::center_with_threshold:Start", sep=""))
     # Center data (automatically ignores zeros)
 
-    # convert zeros to NA so ignored during calculations
-    is_zero = (center_data == 0)
-    center_data[is_zero] = NA 
+    if (USE_ZSCORES) {
+        # add pseudocounts (cheap way to reduce bcv for small data points)
+        center_data = center_data + 0.5
     
-    #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
-    center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
+        # convert to z-scores
+        center_data = t(scale(t(center_data), center=T, scale=T))
+    }
+    else {
+    
+        #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
+        center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
+    }
+
+    if (is.na(threshold)) {
+       # default to using quantiles
+        threshold = mean(abs(quantile(center_data, na.rm=T, c(0.25, 0.75))))
+    }
+    
     # Cap values between threshold and -threshold and recenter
     center_data[center_data > threshold] <- threshold
     center_data[center_data < (-1 * threshold)] <- -1 * threshold
-
+    
     # re-center the data
     #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
     center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
 
-    center_data[is_zero] = 0 #restore zeros
+    #center_data[is_zero] = 0 #restore zeros  -- no, leave as NA
     
     return(center_data)
 }
+
 
 # Returns the color palette for contigs.
 #
@@ -486,7 +531,8 @@ process_data <- function(data,
                       lower_bound_vis=NA,
                       upper_bound_vis=NA,
                       ref_subtract_method="by_mean",
-                      hclust_method='complete') {
+                      hclust_method='complete',
+                      min_cells_per_gene=3) {
 
     logging::loginfo(paste("::process_data:Start", sep=""))
 
@@ -510,13 +556,17 @@ process_data <- function(data,
     ret_list[["REF_GROUPS"]] = groups_ref
     ret_list[["REF_OBS_IDX"]] = reference_obs
     chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])))
-
+    
     # Plot incremental steps.
     if (plot_steps){
+        logging::loginfo(paste("\n\tSTEP 01: incoming data\n\n"))
+        
+        save(list=ls(), file=file.path(out_path, "01_incoming_data.Rdata"))
+        
         plot_step(data=data,
                   plot_name=file.path(out_path,
                                       "01_incoming_data.pdf"))
-
+        
         plot_cnv(plot_data=data,
                            contigs=chr_order_for_plotting,
                            k_obs_groups=k_obs_groups,
@@ -542,46 +592,76 @@ process_data <- function(data,
 
                                         # Plot incremental steps.
         if (plot_steps){
+            logging::loginfo(paste("\n\tSTEP 02: log transformation of data\n\n"))
+
+            save(list=ls(), file=file.path(out_path, "02_transformed.Rdata"))
+            
             plot_step(data=data,
                       plot_name=file.path(out_path,
                                           "02_transformed.pdf"))
 
             plot_cnv(plot_data=data,
-                               contigs=chr_order_for_plotting,
-                               k_obs_groups=k_obs_groups,
-                               obs_annotations_groups=obs_annotations_groups,
-                               reference_idx=ret_list[["REF_OBS_IDX"]],
-                               ref_contig=NULL,
-                               contig_cex=1,
-                               ref_groups=ret_list[["REF_GROUPS"]],
-                               out_dir=out_path,
-                               color_safe_pal=FALSE,
-                               x.center=0,
-                               title="02_log_transformed_data",
-                               obs_title="Observations (Cells)",
-                               ref_title="References (Cells)",
-                               output_filename="infercnv.02_log_transformed")
+                     contigs=chr_order_for_plotting,
+                     k_obs_groups=k_obs_groups,
+                     obs_annotations_groups=obs_annotations_groups,
+                     reference_idx=ret_list[["REF_OBS_IDX"]],
+                     ref_contig=NULL,
+                     contig_cex=1,
+                     ref_groups=ret_list[["REF_GROUPS"]],
+                     out_dir=out_path,
+                     color_safe_pal=FALSE,
+                     x.center=0,
+                     title="02_log_transformed_data",
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename="infercnv.02_log_transformed"
+                     )
         }
     }
 
-    # Reduce by cutoff
-    keep_gene_indices <- above_cutoff(data, cutoff)
+
+    if (MAKE_ZERO_NA) {
+        data[data==0] = NA
+    }
+    
+    
+    # Remove genes that aren't sufficiently expressed, according to min mean count cutoff.
+    # Examines the original (non-log-transformed) data, gets mean for each gene, and removes genes
+    #  with mean values below cutoff.
+
+    genes_min_expr_cutoff <- above_min_mean_expr_cutoff(data, cutoff)
+
+    ## require each gene to be present in a min number of cells for both obs and ref sets
+    
+    genes_min_cells_obs_and_ref <- above_min_cells_obs_and_ref(data, min_cells_per_gene=min_cells_per_gene,
+                                                               obs_idx=ret_list[["REF_OBS_IDX"]], ref_idx=unlist(ret_list[["REF_GROUPS"]]))
+    
+    # require both critiera:  min expression and min cell occupancy
+    keep_gene_indices <- intersect(genes_min_expr_cutoff, genes_min_cells_obs_and_ref)
+    
+
+
     if (!is.null(keep_gene_indices)){
         data <- data[keep_gene_indices, , drop=FALSE]
         gene_order <- gene_order[keep_gene_indices, , drop=FALSE]
-        logging::loginfo(paste("::process_data:Reduce by cutoff, ",
+        logging::loginfo(paste("::process_data:Reduce by removing genes below mean threshold, ",
                       "new dimensions (r,c) = ",
                       paste(dim(data), collapse=","),
                            " Total=", sum(data),
                            " Min=", min(data),
                            " Max=", max(data),
                            ".", sep=""))
-        logging::logdebug(paste("::process_data:Keeping indices.", sep=""))
+        logging::logdebug(paste("::process_data:Keeping gene indices.", sep=""))
 
 
         # Plot incremental steps.
         chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])))
         if (plot_steps){
+
+            logging::loginfo(paste("\n\tSTEP 03: Removing lowly expressed genes\n\n"))
+
+            save(list=ls(), file=file.path(out_path, "03_reduced_by_cutoff.Rdata"))
+            
             plot_step(data=data,
                       plot_name=file.path(out_path,
                                           "03_reduced_by_cutoff.pdf"))
@@ -617,23 +697,24 @@ process_data <- function(data,
     chr_order_for_plotting = paste(as.vector(as.matrix(chr_order)))
     gene_order <- NULL
 
-    # remember zero positions for plot_steps below
-    zero_pos = (data==0)
     
     # Center data (automatically ignores zeros)
     data <- center_with_threshold(data, max_centered_threshold)
     logging::loginfo(paste("::process_data:Outlier removal, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
-                           " Total=", sum(data),
-                           " Min=", min(data),
-                           " Max=", max(data),
+                           " Total=", sum(data, na.rm=TRUE),
+                           " Min=", min(data, na.rm=TRUE),
+                           " Max=", max(data, na.rm=TRUE),
                            ".", sep=""))
     # Plot incremental steps.
     if (plot_steps){
-        # set the orig zero vals to NA for reporting here.
-        plot_data = data
-        plot_data[zero_pos] = NA
+
+        logging::loginfo(paste("\n\tSTEP 04: centering with max expression threshold\n\n"))
+
+        save(list=ls(), file=file.path(out_path, "04_center_with_threshold.Rdata"))
+        
+
         plot_step(data=plot_data,
                             plot_name=file.path(out_path,
                                                 "04_center_with_threshold.pdf"))
@@ -657,16 +738,20 @@ process_data <- function(data,
 
     }
 
+    
     # Smooth the data with gene windows
     data_smoothed <- smooth_window(data, window_length)
+
     data <- NULL
     logging::loginfo(paste("::process_data:Smoothed data.", sep=""))
     # Plot incremental steps.
     if (plot_steps){
+        logging::loginfo(paste("\n\tSTEP 05: Smoothing data by chromosome\n\n"))
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "05_smoothed.pdf"))
-
+        
+        save(list=ls(), file=file.path(out_path, "05_smoothed.Rdata"))
 
         plot_cnv(plot_data=data_smoothed,
                            contigs=chr_order_for_plotting,
@@ -688,8 +773,13 @@ process_data <- function(data,
     # Center cells/observations after smoothing. This helps reduce the
     # effect of complexity.
     data_smoothed <- center_smoothed(data_smoothed)
+
     # Plot incremental steps.
     if (plot_steps){
+
+        logging::loginfo(paste("\n\tSTEP 06: re-centering data after smoothing\n\n"))
+
+        save(list=ls(), file=file.path(out_path, "06_recentered.Rdata"))
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "06_recentered.pdf"))
@@ -727,6 +817,11 @@ process_data <- function(data,
                            ".", sep=""))
     # Plot incremental steps.
     if (plot_steps){
+
+
+        logging::loginfo(paste("\n\tSTEP 07: removing average of reference data\n\n"))
+
+        save(list=ls(), file=file.path(out_path, "07_remove_average.Rdata"))
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "07_remove_average.pdf"))
@@ -772,6 +867,11 @@ process_data <- function(data,
 
                                         # Plot incremental steps.
     if (plot_steps){
+
+        logging::loginfo(paste("\n\tSTEP 08: removing genes at chr ends\n\n"))
+
+        save(list=ls(), file=file.path(out_path, "08_remove_ends.Rdata"))
+        
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "08_remove_ends.pdf"))
@@ -796,27 +896,33 @@ process_data <- function(data,
     logging::loginfo(paste("::process_data:Remove ends, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
-                           " Total=", sum(data_smoothed),
-                           " Min=", min(data_smoothed),
-                           " Max=", max(data_smoothed),
+                           " Total=", sum(data_smoothed, na.rm=TRUE),
+                           " Min=", min(data_smoothed, na.rm=TRUE),
+                           " Max=", max(data_smoothed, na.rm=TRUE),
                            ".", sep=""))
 
     # Remove noise
-
+    logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_threshold))
     if (noise_threshold > 0) {
+        
         data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
                                       threshold=noise_threshold)
         logging::loginfo(paste("::process_data:Remove noise, ",
                                "new dimensions (r,c) = ",
                                paste(dim(data_smoothed), collapse=","),
-                               " Total=", sum(data_smoothed),
-                               " Min=", min(data_smoothed),
-                               " Max=", max(data_smoothed),
+                               " Total=", sum(data_smoothed, na.rm=TRUE),
+                               " Min=", min(data_smoothed, na.rm=TRUE),
+                               " Max=", max(data_smoothed, na.rm=TRUE),
                                ".", sep=""))
-
+        
 
         # Plot incremental steps.
         if (plot_steps){
+
+            logging::loginfo(paste("\n\tSTEP 09: Denoising\n\n"))
+
+            save(list=ls(), file=file.path(out_path, "09_denoise.Rdata"))
+            
             plot_step(data=data_smoothed,
                       plot_name=file.path(out_path,
                                           "09_denoise.pdf"))
@@ -846,6 +952,7 @@ process_data <- function(data,
     # Remove outliers for viz
     remove_outlier_viz_pdf <- NA
     if (plot_steps){
+                
         remove_outlier_viz_pdf <- file.path(out_path,
                                             "10A_remove_outlier.pdf")
     }
@@ -859,6 +966,11 @@ process_data <- function(data,
 
     # Plot incremental steps.
     if (plot_steps){
+
+        logging::loginfo(paste("\n\tSTEP 10: Removing outliers\n\n"))
+
+        save(list=ls(), file=file.path(out_path, "10B_remove_outlier.Rdata"))
+        
         plot_step(data=ret_list[["VIZ"]],
                   plot_name=file.path(out_path,
                                       "10B_remove_outlier.pdf"))
@@ -1544,7 +1656,7 @@ plot_cnv_references <- function(ref_data,
 #
 # Returns:
 # Returns a vector of row indicies to keep (are above the cutoff).
-above_cutoff <- function(data, cutoff){
+above_min_mean_expr_cutoff <- function(data, cutoff){
 
     logging::loginfo(paste("::above_cutoff:Start", sep=""))
     average_gene <- log2(rowMeans( ( (2 ^ data) - 1), na.rm=TRUE) + 1 )
@@ -1557,6 +1669,34 @@ above_cutoff <- function(data, cutoff){
         return(NULL)
     }
 }
+
+
+#' indicate which genes (rows) have at least specified min_cells_per_gene
+#' 
+#' Args
+#' @param data Data (expression) matrix
+#' @param min_cells_per_gene int indicating number of cells required per gene for both obs and ref data
+#' @param obs_idx vector containing the column indices for the observed (tumor) cells
+#' @param ref_idx vector containing the column indices for teh reference (normal) cells
+
+above_min_cells_obs_and_ref = function(data, min_cells_per_gene, obs_idx, ref_idx) {
+
+    ref_data = data[,ref_idx]
+    
+    ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
+
+    
+    obs_data = data[,obs_idx]
+    
+    obs_genes_passed = which(apply(obs_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
+    
+    both_passed = intersect(ref_genes_passed, obs_genes_passed)
+
+    return(both_passed)
+    
+}
+
+
 
 #' Order the data and subset the data to data in the genomic position file.
 #'
@@ -1650,7 +1790,7 @@ order_reduce <- function(data, genomic_position){
 # Denoised matrix
 remove_noise <- function(smooth_matrix, threshold){
 
-    logging::loginfo(paste("::remove_noise:Start.", sep=""))
+    logging::loginfo(paste("::remove_noise:Start. threshold: ", threshold,  sep=""))
     if (threshold > 0){
         smooth_matrix[abs(smooth_matrix) < threshold] <- 0
     }
@@ -1714,18 +1854,18 @@ smooth_window <- function(data, window_length){
                      2,
                      smooth_window_helper,
                      window_length=window_length)
-    # Fix ends
-    data_end <- apply(data,
-                      2,
-                      smooth_ends_helper,
-                      obs_tails=tail_length)
+    logging::logdebug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
 
-    for (row_end in 1:tail_length){
-        end_bound <- (num_genes - row_end) + 1
-        data_sm[row_end, ] <- data_end[row_end, ]
-        data_sm[end_bound, ] <- data_end[end_bound, ]
-    }
-
+    # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
+    data_sm <- apply(data_sm,
+                     2,
+                     smooth_ends_helper,
+                     tail_length=tail_length)
+    
+    
+    # re-center genes now after the smoothing:
+    data_sm = sweep(data_sm, 1, rowMeans(data_sm, na.rm=TRUE))
+    
     # Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
@@ -1735,25 +1875,38 @@ smooth_window <- function(data, window_length){
 # Helper function for smoothing the ends of a moving average.
 #
 # Args:
-# obs_data Data to smooth
-# obs_tails Length of the tail to smooth.
+# obs_data: Data to smooth
+# tail_length:  Length of the tail to smooth.
 #
 # Returns:
 # Data smoothed.
-smooth_ends_helper <- function(obs_data, obs_tails){
-    end_data <- rep(NA,length(obs_data))
-    obs_count <- length(obs_data)
-    for (tail_end in 1:obs_tails){
-        bounds <- tail_end - 1
-        end_tail <- obs_count - bounds
-        end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
-                                           (tail_end + bounds)],
-                                           na.rm=TRUE)
-        end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
-                                           (end_tail + bounds)],
-                                           na.rm=TRUE)
+smooth_ends_helper <- function(obs_data, tail_length){
+
+    orig_obs_data = obs_data
+    
+    nas = is.na(obs_data)
+
+    obs_data = obs_data[!nas]
+
+    obs_length <- length(obs_data)
+    end_data <- obs_data
+    # end_data will have the end positions replaced with mean values, smoothing just at the ends.
+    
+    for (tail_end in 2:tail_length){
+
+        ## beginning of chromosome
+        logging::logdebug(paste("::smooth_ends_helper: tail range <", 1, "-", tail_end, ">", sep=" ")) 
+        end_data[tail_end] <- mean(obs_data[1:tail_end])
+
+        ## end of chromosome
+        end_tail = obs_length - tail_end +1
+        logging::logdebug(paste("::smooth_ends_helper: tail range <", end_tail, "-", obs_length, ">", sep=" ")) 
+        end_data[end_tail] <- mean(obs_data[end_tail:obs_length])
     }
-    return(end_data)
+
+    orig_obs_data[! nas] = end_data  # replace original data with end-smoothed data
+    
+    return(orig_obs_data)
 }
 
 # Smooth vector of values over the given window length.
@@ -1767,7 +1920,17 @@ smooth_ends_helper <- function(obs_data, obs_tails){
 # Vector of values smoothed with a moving average.
 smooth_window_helper <- function(obs_data, window_length){
 
-    return(filter(obs_data, rep(1 / window_length, window_length), sides=2))
+    nas = is.na(obs_data)
+    vals = obs_data[! nas]
+    
+    smoothed = filter(vals, rep(1 / window_length, window_length), sides=2)
+    
+    ind = which(! is.na(smoothed))
+    vals[ind] = smoothed[ind]
+
+    obs_data[! nas] = vals
+    
+    return(obs_data)
 }
 
 
@@ -3360,7 +3523,7 @@ infercnv <-
         log_transform=FALSE,
         delim="\t",
         noise_filter=0,
-        max_centered_expression=3,
+        max_centered_expression=NA,
         num_obs_groups=1,
         output_dir=NULL,
         output_format="png",

@@ -1,17 +1,17 @@
 #!/usr/bin/env Rscript
 
-args<-commandArgs(TRUE)
-
-if (length(args) == 0) {
-    stop("\n\n\tUsage:\texplore_steps_by_gene.simple.R gene_name\n\n");
-}
-
-gene_name = args[1]
-
 options(error = function() traceback(2))
 
 main = function() {
 
+    args<-commandArgs(TRUE)
+    
+    if (length(args) == 0) {
+        stop("\n\n\tUsage:\texplore_steps_by_gene.simple.R gene_name\n\n");
+    }
+    
+    gene_name = args[1]
+        
     data_bundles = load_all_data()
 
     pdf_filename = paste("by_step.", gene_name, ".pdf", sep="")
@@ -137,4 +137,64 @@ plot_ref_obs_comparison = function(data_bundle, gene_name) {
 }
 
 
-main()
+plot_chr_expr_lineplot = function(data_bundle, num_random_cells=5, ylim=NA, xlim=NA, plot_separate=F) {
+
+    mean_expr_ref = rowMeans(data_bundle$ref_matrix, na.rm=T)
+    mean_expr_obs = rowMeans(data_bundle$obs_matrix, na.rm=T)
+
+    num_features = length(mean_expr_ref)
+    idx = seq(1, num_features)
+
+    
+    if (length(xlim)==1 && is.na(xlim)) {
+        xlim = c(1,num_features)
+    }
+    
+    
+    if (length(ylim)==1 && is.na(ylim)) {
+        ylim = range(mean_expr_ref, mean_expr_obs, na.rm=T)
+    }
+
+    
+    
+    if (plot_separate) {
+        prevpar = par(mfrow=c(2,1))
+        plot(idx, mean_expr_ref, col='gray', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
+        plot(idx, mean_expr_obs, col='blue', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
+        
+        par(prevpar)
+
+    }
+    else {
+    
+        plot(idx, mean_expr_ref, col='gray', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
+        points(idx, mean_expr_obs, col='blue', t='l')
+        
+    }
+}
+
+
+
+plot_chr_num_cells_lineplot = function(data_bundle) {
+
+    ref_num_cells_expr = apply(data_bundle$ref_matrix, 1, function(x) { x[is.na(x)] = 0; sum(x!=0)} )
+    obs_num_cells_expr = apply(data_bundle$obs_matrix, 1, function(x) { x[is.na(x)] = 0; sum(x!=0)} )
+
+    idx = seq(1, length(ref_num_cells_expr))
+    
+    ylim = range(ref_num_cells_expr, obs_num_cells_expr, na.rm=T)
+
+    oldpar = par(mfrow=c(2,1))
+    plot(idx, ref_num_cells_expr, col='gray', t='l', ylim=ylim)
+    plot(idx, obs_num_cells_expr, col='blue', t='l', ylim=ylim)
+    
+    par(oldpar)
+
+}
+
+
+
+if (!interactive()) {
+    main()
+}
+
