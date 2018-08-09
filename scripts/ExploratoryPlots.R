@@ -14,11 +14,11 @@ pargs <- optparse::add_option(pargs, c("--file_dir"),
                                          "[Default %default][REQUIRED]"))
 args_parsed <- optparse::parse_args(pargs)
     # ----------------------Select Gene & Add Cell Types-----------------------------------------------------------------------
-create_gene_eset <- function(plot_data,
+create_gene_eset <- function(ploting_data,
                              files_dir,
                              reference_idx, 
                              ref_groups) {
-    cell_ids <- colnames(plot_data)
+    cell_ids <- colnames(ploting_data)
     # label observed or Reference(s)
     ## find what index values are not in ref_groups 
     cell_type <- replace(cell_ids, !(1:length(cell_ids) %in% unlist(ref_groups)), paste("Observed"))
@@ -47,7 +47,7 @@ create_gene_eset <- function(plot_data,
         stop(error_message)
     }
 
-    filtered_plot_data_t <- t(plot_data )
+    filtered_plot_data_t <- t(ploting_data )
     # add the labled cell annotation information
     final_eset <- data.table(filtered_plot_data_t, cell_type = cell_type, check.names = FALSE, stringsAsFactors = FALSE)
     return(final_eset)
@@ -69,6 +69,8 @@ CreatePlots <- function(files_dir){
     }
     # ----------------------Load Data----------------------------------------------------------------------------------------
     filenames <- list.files(files_dir, pattern="*.pdf.txt", full.names=TRUE)
+    reference_idx = ret_list$REF_OBS_IDX
+    ref_groups = ret_list$REF_GROUPS
     if (file.exists(paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))) {
         message("Loading Rdata file.")
         load(paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
@@ -77,18 +79,15 @@ CreatePlots <- function(files_dir){
         plot_data <- lapply(filenames , function(x) { 
             read.table(file = x, header=TRUE, row.names=1, check.names = FALSE, stringsAsFactors = FALSE)
         })
-        
-        reference_idx = ret_list$REF_OBS_IDX
-        ref_groups = ret_list$REF_GROUPS
-        data_list <- list()
-        for (q in 1:length(plot_data)){
-            q<-q
-            data_list[[q]] <- create_gene_eset(plot_data = plot_data[[q]], 
-                                               files_dir = path,
-                                               reference_idx = reference_idx, 
-                                               ref_groups = ref_groups)
-        }
-        save(data_list, file = paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
+        save(plot_data, file = paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
+    }
+    data_list <- list()
+    for (q in 1:length(plot_data)){
+        q<-q
+        data_list[[q]] <- create_gene_eset(ploting_data = plot_data[[q]], 
+                                           files_dir = path,
+                                           reference_idx = reference_idx, 
+                                           ref_groups = ref_groups)
     }
     dir.create(file.path(files_dir, "Plots"), showWarnings = FALSE) # will create directory if it doesnt exist 
     out_directory <- paste(files_dir, "Plots", sep = .Platform$file.sep)
