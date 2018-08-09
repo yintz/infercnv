@@ -41,38 +41,46 @@ matrix_averef_five_answer <- matrix(c(c(-1,0,0,0,0,-1,0,0,1,0),
 
 test_that("subtract_ref works with one observation, one reference",{
     expect_equal(subtract_ref(average_data=t(matrix_one),
-                                  ref_observations=c(1),
+                                  #ref_observations=c(1),
                                   ref_groups=list(c(1))),
                  t(avref_answer_1))
           })
 test_that("subtract_ref works with two observations, one reference",{
     expect_equal(subtract_ref(average_data=t(matrix_two),
-                                  ref_observations=c(1),
+                                  #ref_observations=c(1),
                                   ref_groups=list(c(1))),
                  t(avref_answer_2))
           })
-test_that("subtract_ref works with 3 observations, two reference",{
-    expect_equal(subtract_ref(average_data=t(matrix_three),
-                                  ref_observations=c(1,3),
-                                  ref_groups=list(c(1,2))),
+#test_that("subtract_ref works with 3 observations, two reference",{
+#    expect_equal(subtract_ref(average_data=t(matrix_three),
+#                                  ref_observations=c(1,3),
+#                                  ref_groups=list(c(1,2))),
+#                 t(avref_answer_3))
+#          })
+test_that("subtract_ref updated works with 3 observaions, two reference",{
+   expect_equal(subtract_ref(average_data=t(matrix_three),
+				  #ref_observations=c(1,3),
+                                  ref_groups=list(c(1,3))),
                  t(avref_answer_3))
-          })
+	  })
 test_that("subtract_ref works with 5 observations, two reference",{
     expect_equal(subtract_ref(average_data=t(matrix_five),
-                                  ref_observations=c(2,5),
-                                  ref_groups=list(c(1,2))),
+                                  #ref_observations=c(2,5),
+                                  #ref_groups=list(c(1,2))),
+				  ref_groups=list(c(2,5))),
                  t(avref_answer_4))
           })
 test_that("subtract_ref works with 1 observation, 1 reference",{
     expect_equal(subtract_ref(average_data=t(matrix_zeros),
-                                  ref_observations=c(1),
+                                  #ref_observations=c(1),
                                   ref_groups=list(c(1))),
                  t(avref_answer_5))
           })
 test_that("subtract_ref works with 10 obs, 5 references, 3 groups",{
     expect_equal(subtract_ref(average_data=t(matrix_averef_five),
-                                  ref_observations=c(2,4,6,8,10),
-                                  ref_groups=list(c(1),c(2,3,4),c(5))),
+                                  #ref_observations=c(2,4,6,8,10),
+                                  #ref_groups=list(c(1),c(2,3,4),c(5))),
+				  ref_groups=list(c(2),c(4,6,8),c(10))),
                  matrix_averef_five_answer)
           })
 
@@ -107,9 +115,9 @@ split_answer_three[[1]] <- split_obs_three
 split_answer_four <- list()
 split_answer_four[[1]] <- split_obs_four
 split_answer_five <- list()
-split_answer_five[[1]] <- c(1)
-split_answer_five[[2]] <- c(2)
-split_answer_five[[3]] <- c(3)
+split_answer_five[[1]] <- c(2)
+split_answer_five[[2]] <- c(4)
+split_answer_five[[3]] <- c(6)
 
 test_that("split_references for null matrix.",{
     expect_equal(split_references(average_data=split_matrix_one,

@@ -1,17 +1,56 @@
+---
+title: "Visualizing Large-scale Copy Number Variation in Single-Cell RNA-Seq Expression Data"
+author: 
+- name: Timothy Tickle
+  affiliation: &kco Klarman Cell Observatory, Broad Institute of MIT and Harvard, Cambridge, MA, USA
+- name: Itay Tirosh
+  affiliation: 
+    - *kco
+    - Weizmann Institute of Science, Rehovot, Israel
+- name: Brian Haas
+  affiliation: *kco
+output:
+  BiocStyle::pdf_document: default
+package: inferCNV
+abstract: >
+  InferCNV is used to explore tumor single cell RNA-Seq data to identify evidence for large-scale chromosomal copy number variations, such as gains or deletions of entire chromosomes or large segments of chromosomes. This is done by exploring expression intensity of genes across positions of the genome in comparison to the average or a set of reference 'normal' cells. A heatmap is generated illustrating the relative expression intensities across each chromosome, and it becomes readily apparent as to which regions of the genome are over-abundant or less-abundant as compared to normal cells (or the average, if reference normal cells are not provided).
+vignette: >
+  %\VignetteIndexEntry{Visualizing Large-scale Copy Number Variation in Single-Cell RNA-Seq Expression Data}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
 
-## Infer Copy Number Variation using Single-cell RNA-Seq Expression Data.
-Authors: Timothy Tickle, Itay Tirosh, Brian Haas
 
-For a quick start, explainations on files, usage, and a tutorial please visit the wiki at [https://github.com/broadinstitute/inferCNV/wiki](https://github.com/broadinstitute/inferCNV/wiki)
+# Prerequisites
 
-## TrinityCTAT
-This tool is a part of the TrinityCTAT toolkit focused on leveraging the use of RNA-Seq to better understand cancer transcriptomes. To find out more please visit [TrinityCTAT](https://github.com/NCIP/Trinity_CTAT/wiki)
+_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r CRANpkg("RColorBrewer")` and `r CRANpkg("GMD")`
 
-## Citation
-Please use the following citation:
+<!--
+[https://cran.r-project.org/web/packages/ape/index.html]
+[https://cran.r-project.org/web/packages/RColorBrewer/index.html]
+[https://cran.r-project.org/src/contrib/Archive/GMD/]
+-->
 
-[Anoop P. Patel et al. Single-cell RNA-seq highlights intratumoral heterogeneity in primary glioblastoma. Science. 2014 Jun 20: 1396-1401](http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4123637/)
 
-This methodology was also used in:
 
-[Tirosh I et al.Dissecting the multicellular ecosystem of metastatic melanoma by single-cell RNA-seq. Science. 2016 Apr 8;352(6282):189-96](http://www.ncbi.nlm.nih.gov/pubmed/27124452)
+# Run the example
+
+```{r}
+library(infercnv)
+infercnv(x="../example/oligodendroglioma.tp100k.expr.matrix",
+        gene_order="../example/gencode_v19_gene_pos.txt", 
+        annotations="../example/__sampled_cells_bis.annotations.dat", 
+        cutoff=1, 
+        noise_filter=0.2, 
+        output_dir="../example_output", 
+        name_ref_groups="Microglia/Macrophage,Oligodendrocytes (non-malignant)", 
+        hclust_method="ward.D",
+        log_level="WARNING",
+        output_format="png")
+
+
+```
+
+![infercnv output](../example_output/infercnv.png)
+
+

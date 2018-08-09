@@ -1,1 +1,11 @@
 ^\.travis\.yml$
+^docker
+^run_tests
+^\.
+^infercnv.Rdata
+^inferCNV.Rproj
+^Rstudio_helpers
+^example_output
+^.*\.Rproj$
+^\.Rproj\.user$
+^devel_debug_bioc
