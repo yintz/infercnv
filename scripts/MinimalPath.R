@@ -1,5 +1,36 @@
 #!/usr/bin/env Rscript
 
+library(optparse)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+# Command line arguments
+pargs <- optparse::OptionParser()
+pargs <- optparse::add_option(pargs, c("--file_dir"),
+                              type="character",
+                              action="store",
+                              dest="file_dir",
+                              metavar="File_Directory",
+                              help=paste("Path to the expression data files created by inferCNV.",
+                                         "[Default %default][REQUIRED]"))
+
+pargs <- optparse::add_option(pargs, c("--output_dir"),
+                              type="character",
+                              action="store",
+                              dest="output_dir",
+                              metavar="Output_directory",
+                              help=paste("location to save PDF file.",
+                                         "[Default %default][REQUIRED]"))
+pargs <- optparse::add_option(pargs, c("--genes"),
+                              type="character",
+                              action="store",
+                              dest="genes",
+                              metavar="Genes",
+                              help=paste("Desired Gene to plot.",
+                                         "[Default %default][REQUIRED]"))
+args_parsed <- optparse::parse_args(pargs)
+
+
 #' @title Plot Gene Distributions Along InferCNV Steps
 #' @description Takes in expression data created by inferCNV and plots the 
 #'              distribution of desired genes expression along each step in inferCNV. 
@@ -16,7 +47,6 @@
 MinimalPath <- function (files_dir,
                           genes,
                           output_dir){
-
     # ----------------------Check Pathways----------------------------------------------------------------------------------------
     # Error handling 
     ## check if pathway exists
@@ -162,7 +192,8 @@ MinimalPath <- function (files_dir,
                                  axis.title.y = element_blank())+
                            scale_x_continuous(breaks = pretty( data_list[[i]]$exp, n = 5)))
         }
-    
+        
+        pdf(paste0(output_file_name), onefile = TRUE, height = 9, width = 9)
         pull_legend<-function(plot){
             plot_params <- ggplot_gtable(ggplot_build(plot))
             # get which grob in list is the legend called "guide=box" 
@@ -184,7 +215,7 @@ MinimalPath <- function (files_dir,
                                       bottom = grid::textGrob("Expression Levels",
                                                               gp = grid::gpar(fontsize=15)))
         # create the pdf and plot it on a grid 
-        pdf(paste0(output_file_name), onefile = TRUE, height = 9, width = 9)
+        
         gridExtra::grid.arrange(arrange_plots,
                      plot_legend, nrow = 2, ncol = 1, heights = c(10,1))
         dev.off()
@@ -192,4 +223,8 @@ MinimalPath <- function (files_dir,
 }
 
 
-
+if (!is.null(args)) {
+    MinimalPath(files_dir = args_parsed$file_dir, 
+                genes = args_parsed$genes,
+                output_dir = args_parsed$output_dir)
+}
