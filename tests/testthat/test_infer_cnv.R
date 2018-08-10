@@ -1,15 +1,23 @@
 # Global data
+
 matrix_zeros <- matrix(rep(0,5), ncol=1)
+
 matrix_one <- matrix(1:5, ncol=1)
+
 matrix_one_long <- matrix(1:20, ncol=1)
+
 matrix_one_long_2 <- matrix(c(1,2,4,7,9,11,12,14,17,19,16,14,
                               13,11,10,7,6,4,3,1), ncol=1)
 matrix_two <- matrix(1:10, ncol=2)
+
 matrix_two_long <- matrix(1:40, ncol=2)
+
 matrix_two_long_2 <- matrix(c(1,2,4,7,9,11,12,14,17,19,16,14,13,11,10,7,6,4,3,
                               1,1,2,4,7,9,11,12,14,17,19,16,14,13,11,10,7,6,4,
                               3,1), ncol=2)
+
 matrix_three <- matrix(1:15, ncol=3)
+
 matrix_five <- matrix(1:25, ncol=5)
 
 context("Test subtract_ref")
@@ -208,7 +216,7 @@ test_that("center_smoothed works with 3 observations",{
     })
 
 
-context("Test above_cutoff")
+context("Test above_min_mean_expr_cutoff")
 
 above_answer_1 <- 1:5
 above_answer_2 <- 1:5
@@ -217,39 +225,39 @@ above_answer_4 <- c(5)
 above_answer_5 <- NULL
 above_answer_6 <- NULL
 
-test_that(paste("above_cutoff works with one observation,",
+test_that(paste("above_min_mean_expr_cutoff works with one observation,",
                 "cutoff too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_one + 1),
+    expect_equal(above_min_mean_expr_cutoff(data=log2(matrix_one + 1),
                               cutoff=0),
                  above_answer_1)
          })
-test_that(paste("above_cutoff works with three observations,",
+test_that(paste("above_min_mean_expr_cutoff works with three observations,",
                 "threshold too large to affect"),{
-    expect_equal(above_cutoff(data=log2(matrix_three + 1),
+    expect_equal(above_min_mean_expr_cutoff(data=log2(matrix_three + 1),
                               cutoff=0),
                  above_answer_2)
          })
-test_that(paste("above_cutoff works with one observation,",
+test_that(paste("above_min_mean_expr_cutoff works with one observation,",
                 "threshold excluding two."),{
-    expect_equal(above_cutoff(data=log2(matrix_one + 1),
+    expect_equal(above_min_mean_expr_cutoff(data=log2(matrix_one + 1),
                               cutoff=2),
                  above_answer_3)
          })
-test_that(paste("above_cutoff works with three observations,",
+test_that(paste("above_min_mean_expr_cutoff works with three observations,",
                 "threshold excluding three."),{
-    expect_equal(above_cutoff(data=log2(matrix_three + 1),
+    expect_equal(above_min_mean_expr_cutoff(data=log2(matrix_three + 1),
                               cutoff=3.4),
                  above_answer_4)
          })
-test_that(paste("above_cutoff works with one observation,",
+test_that(paste("above_min_mean_expr_cutoff works with one observation,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_one + 1),
+    expect_equal(above_min_mean_expr_cutoff(data=log2(matrix_one + 1),
                               cutoff=100),
                  above_answer_5)
          })
-test_that(paste("above_cutoff works with three observations,",
+test_that(paste("above_min_mean_expr_cutoff works with three observations,",
                 "threshold excluding all."),{
-    expect_equal(above_cutoff(data=log2(matrix_three + 1),
+    expect_equal(above_min_mean_expr_cutoff(data=log2(matrix_three + 1),
                               cutoff=100),
                  above_answer_6)
          })
@@ -343,42 +351,57 @@ test_that(paste("remove tails works with one contig, one observation,",
 context("smooth_window")
 
 smooth_answer_1 <- matrix_one
+
 smooth_answer_2 <- matrix_one
-smooth_answer_3 <- matrix(c(1.00,2.33,4.60,6.60,8.60,10.60,12.60,14.60,
+
+smooth_answer_3 <- matrix(c(1.00,1.5,4.60,6.60,8.60,10.60,12.60,14.60,
                             15.60,16.00,15.80,14.60,12.80,11.00,9.40,
-                            7.60,6.00,4.20,2.67,1.00), ncol=1)
-smooth_answer_4 <- matrix(c(1.00,2.33,4.60,6.60,8.60,10.60,12.60,14.60,
+                            7.60,6.00,4.20,2.00,1.00), ncol=1)
+
+smooth_answer_4 <- matrix(c(1.00,1.5,4.60,6.60,8.60,10.60,12.60,14.60,
                             15.60,16.00,15.80,14.60,12.80,11.00,9.40,
-                            7.60,6.00,4.20,2.67,1.00,1.00,2.33,4.60,
+                            7.60,6.00,4.20,2.0,1.00,
+                            1.00,1.5,4.60,
                             6.60,8.60,10.60,12.60,14.60,
                             15.60,16.00,15.80,14.60,12.80,11.00,9.40,
-                            7.60,6.00,4.20,2.67,1.00), ncol=2)
+                            7.60,6.00,4.20,2.0,1.00), ncol=2)
+
 smooth_answer_5 <- matrix_one
 
 test_that("smooth_window works with one observation, window_length 0",{
     expect_equal(smooth_window(data=matrix_one,
-                               window_length=0),
+                               window_length=0,
+                               smooth_ends=F,
+                               re_center=F),
                  smooth_answer_1)
          })
 test_that("smooth_window works with one observation, window_length 1",{
     expect_equal(smooth_window(data=matrix_one,
-                               window_length=1),
+                               window_length=1,
+                               smooth_ends=F,
+                               re_center=F),
                  smooth_answer_2)
          })
 test_that("smooth_window works with one observation, window_length 5",{
     expect_equal(round(smooth_window(data=matrix_one_long_2,
-                                     window_length=5),2),
+                                     window_length=5,
+                                     smooth_ends=T,
+                                     re_center=F),2),
                  smooth_answer_3)
          })
 test_that("smooth_window works with two observations, window_length 5",{
     expect_equal(round(smooth_window(data=matrix_two_long_2,
-                                     window_length=5),2),
+                                     window_length=5,
+                                     smooth_ends=T,
+                                     re_center=F),2),
                  smooth_answer_4)
          })
 test_that(paste("smooth_window works with one observation,",
                 "window_length longer than measurements"),{
-    expect_equal(smooth_window(data=matrix_one,
-                               window_length=100),
+                    expect_equal(smooth_window(data=matrix_one,
+                                               window_length=100,
+                                               smooth_ends=F,
+                                               re_center=F),
                  smooth_answer_5)
          })
 
@@ -434,10 +457,7 @@ remove_outlier_norm_out_2 <- matrix(c(1:15,
                                     c(-.5,-.5,3:13,17.75,17.75),
                                     1:15,
                                     1:15), ncol=4)
-test_that("remove_outliers_norm for bad data",{
-    expect_equal(remove_outliers_norm( NA ),
-                  NA)
-})
+
 test_that("remove_outliers_norm for no change",{
     expect_equal(remove_outliers_norm( remove_outlier_norm_in_1 ),
                  remove_outlier_norm_in_1)

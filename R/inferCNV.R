@@ -1675,7 +1675,7 @@ plot_cnv_references <- function(ref_data,
 # Returns a vector of row indicies to keep (are above the cutoff).
 above_min_mean_expr_cutoff <- function(data, cutoff){
 
-    logging::loginfo(paste("::above_cutoff:Start", sep=""))
+    logging::loginfo(paste("::above_min_mean_expr_cutoff:Start", sep=""))
     average_gene <- log2(rowMeans( ( (2 ^ data) - 1), na.rm=TRUE) + 1 )
     logging::loginfo(paste("::process_data:Averages (counts).", sep=""))
     # Find averages above a certain threshold
@@ -1855,7 +1855,7 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 #
 # Returns:
 # Matrix with columns smoothed with a simple moving average.
-smooth_window <- function(data, window_length){
+smooth_window <- function(data, window_length, smooth_ends=TRUE, re_center=TRUE){
 
     logging::loginfo(paste("::smooth_window:Start.", sep=""))
     if (window_length < 2){
@@ -1873,15 +1873,19 @@ smooth_window <- function(data, window_length){
                      window_length=window_length)
     logging::logdebug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
 
-    # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
-    data_sm <- apply(data_sm,
-                     2,
-                     smooth_ends_helper,
-                     tail_length=tail_length)
-    
-    
-    # re-center genes now after the smoothing:
-    data_sm = sweep(data_sm, 1, rowMeans(data_sm, na.rm=TRUE))
+    if (smooth_ends) {
+        # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
+        data_sm <- apply(data_sm,
+                         2,
+                         smooth_ends_helper,
+                         tail_length=tail_length)
+        
+    }
+    if (re_center) {
+        
+        # re-center genes now after the smoothing:
+        data_sm = sweep(data_sm, 1, rowMeans(data_sm, na.rm=TRUE))
+    }
     
     # Set back row and column names
     row.names(data_sm) <- row.names(data)
