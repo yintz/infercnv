@@ -1,8 +1,5 @@
 #!/usr/bin/env Rscript
 
-USE_ZSCORES=FALSE
-
-MAKE_ZERO_NA=FALSE
 
 options(error = function() traceback(2))
 
@@ -412,17 +409,17 @@ center_smoothed <- function(data_smoothed){
 # center_data Matrix to center. Row = Genes, Col = Cells.
 # threshold: Values will be required to be with -/+1 *
 #                      threshold after centering.
+#            If threshold is NA, will instead use mean of 1st and 3rd quartiles
 # Returns:
 # Centered and thresholded matrix
-center_with_threshold <- function(center_data, threshold=NA){
+center_with_threshold <- function(center_data, threshold=NA, use_zscores=FALSE){
 
     logging::loginfo(paste("::center_with_threshold:Start", sep=""))
     # Center data (automatically ignores zeros)
 
-    if (USE_ZSCORES) {
-        # add pseudocounts (cheap way to reduce bcv for small data points)
-        center_data = center_data + 0.5
-    
+    if (use_zscores) {
+        # TODO:: deal w/ small counts having large relative variation and corresponding Zscores
+        
         # convert to z-scores
         center_data = t(scale(t(center_data), center=T, scale=T))
     }
@@ -532,7 +529,9 @@ process_data <- function(data,
                       upper_bound_vis=NA,
                       ref_subtract_method="by_mean",
                       hclust_method='complete',
-                      min_cells_per_gene=3) {
+                      min_cells_per_gene=3,
+                      use_zscores=FALSE,
+                      make_zero_NA=FALSE) {
 
     logging::loginfo(paste("::process_data:Start", sep=""))
 
@@ -620,7 +619,7 @@ process_data <- function(data,
     }
 
 
-    if (MAKE_ZERO_NA) {
+    if (make_zero_NA) {
         data[data==0] = NA
     }
     
@@ -699,7 +698,7 @@ process_data <- function(data,
 
     
     # Center data (automatically ignores zeros)
-    data <- center_with_threshold(data, max_centered_threshold)
+    data <- center_with_threshold(data, max_centered_threshold, use_zscores)
     logging::loginfo(paste("::process_data:Outlier removal, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
@@ -3583,7 +3582,10 @@ infercnv <-
         log_level="INFO",
         ngchm=FALSE,
         path_to_shaidyMapGen=NULL,
-        gene_symbol=NULL
+        gene_symbol=NULL,
+        min_cells_per_gene=3,
+        use_zscores=FALSE,
+        make_zero_NA=FALSE
         )
 {
 
@@ -3903,8 +3905,11 @@ infercnv <-
                                lower_bound_vis=bounds_viz[1],
                                upper_bound_vis=bounds_viz[2],
                                ref_subtract_method=ref_subtract_method,
-                               hclust_method=hclust_method)
-
+                               hclust_method=hclust_method,
+                               min_cells_per_gene=min_cells_per_gene,
+                               use_zscores=use_zscores,
+                               make_zero_NA=make_zero_NA)
+        
 
         to_save_processed <- c("ret_list", "num_obs_groups", "obs_annotations_groups", "obs_annotations_names", "grouping_key_coln", "hclust_method", "input_gene_order", "name_ref_groups_indices")  # only save what will be needed for plotting and can not be changed without the processing having to be changed too
 
