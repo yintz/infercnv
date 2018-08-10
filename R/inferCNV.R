@@ -521,6 +521,8 @@ process_data <- function(data,
                       num_ref_groups,
                       out_path,
                       obs_annotations_groups,
+                      obs_annotations_names,
+                      grouping_key_coln,
                       k_obs_groups=1,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
@@ -567,20 +569,22 @@ process_data <- function(data,
                                       "01_incoming_data.pdf"))
         
         plot_cnv(plot_data=data,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="01_incoming_data",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.01_incoming_data")
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="01_incoming_data",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.01_incoming_data")
     }
 
 
@@ -603,6 +607,8 @@ process_data <- function(data,
                      contigs=chr_order_for_plotting,
                      k_obs_groups=k_obs_groups,
                      obs_annotations_groups=obs_annotations_groups,
+                     obs_annotations_names=obs_annotations_names,
+                     grouping_key_coln=grouping_key_coln,
                      reference_idx=ret_list[["REF_OBS_IDX"]],
                      ref_contig=NULL,
                      contig_cex=1,
@@ -618,7 +624,7 @@ process_data <- function(data,
         }
     }
 
-
+    
     if (make_zero_NA) {
         data[data==0] = NA
     }
@@ -666,23 +672,25 @@ process_data <- function(data,
                                           "03_reduced_by_cutoff.pdf"))
 
             plot_cnv(plot_data=data,
-                               contigs=chr_order_for_plotting,
-                               k_obs_groups=k_obs_groups,
-                               obs_annotations_groups=obs_annotations_groups,
-                               reference_idx=ret_list[["REF_OBS_IDX"]],
-                               ref_contig=NULL,
-                               contig_cex=1,
-                               ref_groups=ret_list[["REF_GROUPS"]],
-                               out_dir=out_path,
-                               color_safe_pal=FALSE,
-                               x.center=0,
-                               title="03_reduced_by_cutoff",
-                               obs_title="Observations (Cells)",
-                               ref_title="References (Cells)",
-                               output_filename="infercnv.03_reduced_by_cutoff")
-
+                     contigs=chr_order_for_plotting,
+                     k_obs_groups=k_obs_groups,
+                     obs_annotations_groups=obs_annotations_groups,
+                     obs_annotations_names=obs_annotations_names,
+                     grouping_key_coln=grouping_key_coln,
+                     reference_idx=ret_list[["REF_OBS_IDX"]],
+                     ref_contig=NULL,
+                     contig_cex=1,
+                     ref_groups=ret_list[["REF_GROUPS"]],
+                     out_dir=out_path,
+                     color_safe_pal=FALSE,
+                     x.center=0,
+                     title="03_reduced_by_cutoff",
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename="infercnv.03_reduced_by_cutoff")
+            
         }
-
+        
     } else {
         logging::loginfo(paste("::process_data:Reduce by cutoff.", sep=""))
         logging::logwarn(paste("::No indicies left to keep.",
@@ -714,29 +722,30 @@ process_data <- function(data,
         save(list=ls(), file=file.path(out_path, "04_center_with_threshold.Rdata"))
         
 
-        plot_step(data=plot_data,
-                            plot_name=file.path(out_path,
-                                                "04_center_with_threshold.pdf"))
-
-        plot_cnv(plot_data=plot_data,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="04_center_with_threshold",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.04_center_with_threshold")
-
-
+        plot_step(data=data,
+                  plot_name=file.path(out_path,
+                                      "04_center_with_threshold.pdf"))
+        
+        plot_cnv(plot_data=data,
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="04_center_with_threshold",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.04_center_with_threshold")
+                
     }
-
+    
     
     # Smooth the data with gene windows
     data_smoothed <- smooth_window(data, window_length)
@@ -753,22 +762,24 @@ process_data <- function(data,
         save(list=ls(), file=file.path(out_path, "05_smoothed.Rdata"))
 
         plot_cnv(plot_data=data_smoothed,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="05_smoothed",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.05_smoothed")
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="05_smoothed",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.05_smoothed")
     }
-
+    
     # Center cells/observations after smoothing. This helps reduce the
     # effect of complexity.
     data_smoothed <- center_smoothed(data_smoothed)
@@ -784,24 +795,26 @@ process_data <- function(data,
                                                 "06_recentered.pdf"))
 
         plot_cnv(plot_data=data_smoothed,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="06_centering_of_smoothed",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.06_centering_of_smoothed")
-
-
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="06_centering_of_smoothed",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.06_centering_of_smoothed")
+        
     }
-
+    
+    
     # Remove average reference
     i_ref_obs <- which(colnames(data_smoothed) %in% reference_obs)
     data_smoothed <- subtract_ref(average_data=data_smoothed,
@@ -825,24 +838,25 @@ process_data <- function(data,
                             plot_name=file.path(out_path,
                                                 "07_remove_average.pdf"))
         plot_cnv(plot_data=data_smoothed,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="07_remove_average",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.07_remove_average")
-
-
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="07_remove_average",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.07_remove_average")
+        
     }
-
+    
 
     # Remove Ends
     logging::logdebug(c("chr_order: ", chr_order))
@@ -876,21 +890,23 @@ process_data <- function(data,
                                                 "08_remove_ends.pdf"))
 
         plot_cnv(plot_data=data_smoothed,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="08_remove_Ends",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.08_remove_ends")
-
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="08_remove_Ends",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.08_remove_ends")
+        
     }
     logging::loginfo(paste("::process_data:Remove ends, ",
                            "new dimensions (r,c) = ",
@@ -925,26 +941,28 @@ process_data <- function(data,
             plot_step(data=data_smoothed,
                       plot_name=file.path(out_path,
                                           "09_denoise.pdf"))
-
+            
             plot_cnv(plot_data=data_smoothed,
-                               contigs=chr_order_for_plotting,
-                               k_obs_groups=k_obs_groups,
-                               obs_annotations_groups=obs_annotations_groups,
-                               reference_idx=ret_list[["REF_OBS_IDX"]],
-                               ref_contig=NULL,
-                               contig_cex=1,
-                               ref_groups=ret_list[["REF_GROUPS"]],
-                               out_dir=out_path,
-                               color_safe_pal=FALSE,
-                               x.center=0,
-                               title="09_denoised",
-                               obs_title="Observations (Cells)",
-                               ref_title="References (Cells)",
-                               output_filename="infercnv.09_denoised")
-
+                     contigs=chr_order_for_plotting,
+                     k_obs_groups=k_obs_groups,
+                     obs_annotations_groups=obs_annotations_groups,
+                     obs_annotations_names=obs_annotations_names,
+                     grouping_key_coln=grouping_key_coln,
+                     reference_idx=ret_list[["REF_OBS_IDX"]],
+                     ref_contig=NULL,
+                     contig_cex=1,
+                     ref_groups=ret_list[["REF_GROUPS"]],
+                     out_dir=out_path,
+                     color_safe_pal=FALSE,
+                     x.center=0,
+                     title="09_denoised",
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename="infercnv.09_denoised")
+            
         }
     }
-
+    
     # Output before viz outlier
     ret_list[["PREVIZ"]] = data_smoothed
 
@@ -975,24 +993,24 @@ process_data <- function(data,
                                       "10B_remove_outlier.pdf"))
 
         plot_cnv(plot_data=data_smoothed,
-                           contigs=chr_order_for_plotting,
-                           k_obs_groups=k_obs_groups,
-                           obs_annotations_groups=obs_annotations_groups,
-                           reference_idx=ret_list[["REF_OBS_IDX"]],
-                           ref_contig=NULL,
-                           contig_cex=1,
-                           ref_groups=ret_list[["REF_GROUPS"]],
-                           out_dir=out_path,
-                           color_safe_pal=FALSE,
-                           x.center=0,
-                           title="10_removed_outliers",
-                           obs_title="Observations (Cells)",
-                           ref_title="References (Cells)",
-                           output_filename="infercnv.10_removed_outliers")
-
-
-
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="10_removed_outliers",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.10_removed_outliers")
     }
+    
     logging::loginfo(paste("::process_data:remove outliers, ",
                            "new dimensions (r,c) = ",
                            paste(dim(ret_list[["VIZ"]]), collapse=","),
@@ -3901,6 +3919,8 @@ infercnv <-
                                name_ref_groups=name_ref_groups,
                                num_ref_groups=name_ref_groups_indices,
                                obs_annotations_groups=obs_annotations_groups,
+                               obs_annotations_names=obs_annotations_names,
+                               grouping_key_coln,
                                out_path=output_dir,
                                k_obs_groups=num_obs_groups,
                                plot_steps=plot_steps,
