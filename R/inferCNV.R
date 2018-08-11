@@ -43,10 +43,10 @@ subtract_ref <- function(average_data,
     # average_reference_obs <- average_data[,ref_observations, drop=FALSE]
     # Reference gene within reference groups
     # now reference indexes of ref_groups are relative to the full average_data matrix and not the average_reference_obs references submatrix
-    for (ref_group in ref_groups){
-
+    for (ref_group in ref_groups) {
+        
         if (ref_subtract_method == "by_mean") {
-            # grp_average <- rowMeans(average_reference_obs[,ref_group, drop=FALSE], na.rm=TRUE)
+            
             grp_average <- rowMeans(average_data[,ref_group, drop=FALSE], na.rm=TRUE)
             if(is.null(average_max)){
                 average_max <- grp_average
@@ -56,11 +56,11 @@ subtract_ref <- function(average_data,
             }
             average_max <- pmax(average_max, grp_average)
             average_min <- pmin(average_min, grp_average)
+            
         } else if (ref_subtract_method == "by_quantiles") {
-                                        # new way, bhaas, use quantiles
-            # grp_expression_data = average_reference_obs[,ref_group, drop=FALSE]
-            grp_expression_data = average_data[,ref_group, drop=FALSE]
-            quants = x = apply(grp_expression_data, 1, function(x) { quantile(x, quantiles);})
+            
+            grp_expression_data = average_data[,ref_group, drop=FALSE, na.rm=TRUE]
+            quants = x = apply(grp_expression_data, 1, function(x) { quantile(x, quantiles, na.rm=TRUE);})
             quants = t(x)
             q_low_bound = quants[,1]
             q_high_bound = quants[,2]
@@ -79,60 +79,34 @@ subtract_ref <- function(average_data,
             stop(paste("Error, unsupported ref_subtract_method specified: ", ref_subtract_method, sep=""))
         }
     }
-    # Remove the Max and min averages of the reference groups from the
-    # For each gene.  (using quantiles now, bhaas)
+    
+    # Remove the Max and min averages (or quantiles) of the reference groups for each gene
 
-    if (TRUE) { ## DEBUGGING bhaas
-        ref_gene_group_means = data.frame(avg_min=average_min, avg_max=average_max);  
-        write.table(ref_gene_group_means, "ref_gene_group_means.dat", quote=F, sep="\t")
-    }
+    # debugging
+    #ref_gene_group_means = data.frame(avg_min=average_min, avg_max=average_max);  
+    #write.table(ref_gene_group_means, file.path(out_path, "ref_gene_group_means.dat"), quote=F, sep="\t")
+    
     
     for(gene_i in 1:nrow(average_data)){
         current_col <- average_data[gene_i, ]
 
-        if (ref_subtract_method == "by_mean") {
-            # original code
-            i_max <- which(current_col > average_max[gene_i])
-            i_min <- which(current_col < average_min[gene_i])
-            i_between <- which(current_col >= average_min[gene_i] & current_col <= average_max[gene_i])
-            row_init <- current_col #rep(0, length(current_col))
-            if(length(i_between) > 0) {
-                row_init[i_between] = 0
-            }
-            if(length(i_max) > 0){
-                row_init[i_max] <- current_col[i_max] - average_max[gene_i]
-            }
-            if(length(i_min) > 0){
-                row_init[i_min] <- current_col[i_min] - average_min[gene_i]
-            }
-            average_data[gene_i, ] <- row_init
-        } else if (ref_subtract_method == "by_quantiles") {
-            # bhaas new code
-            stop("needs updating... bhaas") ## DEBUG bhaas
-            i_max <- which(current_col > average_max[gene_i])
-            i_min <- which(current_col < average_min[gene_i])
-            row_init <- rep(0, length(current_col))
-            if(length(i_max) > 0){
-                row_init[i_max] <- current_col[i_max] - average_max[gene_i]
-            }
-            if(length(i_min) > 0){
-                row_init[i_min] <- current_col[i_min] - average_min[gene_i]
-            }
-            # zap the values intra-quantile
-            i_inbetween <- which(current_col >= average_min[gene_i] & current_col <= average_max[gene_i])
-            if (length(i_inbetween) > 0) {
-                #logging::logdebug(paste("have: ", length(i_inbetween), " inbetween values", sep=""))
-                row_init[i_inbetween] <- 0
-            }
-
-            average_data[gene_i, ] <- row_init
+        # original code
+        i_max <- which(current_col > average_max[gene_i])
+        i_min <- which(current_col < average_min[gene_i])
+        
+        row_init <- rep(0, length(current_col))
+        if(length(i_max) > 0){
+            row_init[i_max] <- current_col[i_max] - average_max[gene_i]
         }
-        else {
-            stop("Error, shouldn't get here... ref_subtract_method should be recognized... BUG")
+        if(length(i_min) > 0){
+            row_init[i_min] <- current_col[i_min] - average_min[gene_i]
         }
+        average_data[gene_i, ] <- row_init
     }
+    
     return(average_data)
 }
+
 
 # Not testing, parameters ok.
 # Helper function allowing greater control over the steps in a color palette.
@@ -352,9 +326,7 @@ remove_outliers_norm <- function(data,
                        pch=19, col="orange")
                 dev.off()
             }
-            data[data < lower_bound] <- lower_bound
-            data[data > upper_bound] <- upper_bound
-            return(data)
+
         } else {
             logging::logerror(paste("::remove_outlier_norm:Error, please",
                                     "provide an approved method for outlier",
@@ -377,11 +349,14 @@ remove_outliers_norm <- function(data,
                    pch=19, col="orange")
             dev.off()
         }
-        data[data < lower_bound] <- lower_bound
-        data[data > upper_bound] <- upper_bound
-        
-        return(data)
+
     }
+
+    data[data < lower_bound] <- lower_bound
+    data[data > upper_bound] <- upper_bound
+    
+    return(data)
+    
 }
 
 # Center data after smoothing. Center with in cells using median.
@@ -417,6 +392,12 @@ center_with_threshold <- function(center_data, threshold=NA, use_zscores=FALSE){
     logging::loginfo(paste("::center_with_threshold:Start", sep=""))
     # Center data (automatically ignores zeros)
 
+    ########################################################
+    ##TODO:  bhaas - do we ignore or keep the zeros here???
+    ###  and be aware of the make_zero_NA status
+    ###  Christophe - code originally said it was ignoring zeros weeks ago...  how???  ;-)
+
+    
     if (use_zscores) {
         # TODO:: deal w/ small counts having large relative variation and corresponding Zscores
         
@@ -431,7 +412,7 @@ center_with_threshold <- function(center_data, threshold=NA, use_zscores=FALSE){
 
     if (is.na(threshold)) {
        # default to using quantiles
-        threshold = mean(abs(quantile(center_data, na.rm=T, c(0.25, 0.75))))
+        threshold = mean(abs(quantile(center_data, na.rm=T, c(0.10, 0.90)))) ##TODO: determine best cutoff here
     }
     
     # Cap values between threshold and -threshold and recenter
@@ -637,7 +618,8 @@ process_data <- function(data,
     genes_min_expr_cutoff <- above_min_mean_expr_cutoff(data, cutoff)
 
     ## require each gene to be present in a min number of cells for both obs and ref sets
-    
+
+    ## note, changed to just using the reference cells and not the observed here. See method for more details.
     genes_min_cells_obs_and_ref <- above_min_cells_obs_and_ref(data, min_cells_per_gene=min_cells_per_gene,
                                                                obs_idx=ret_list[["REF_OBS_IDX"]], ref_idx=unlist(ret_list[["REF_GROUPS"]]))
     
@@ -1715,19 +1697,25 @@ above_min_mean_expr_cutoff <- function(data, cutoff){
 #' @param ref_idx vector containing the column indices for teh reference (normal) cells
 
 above_min_cells_obs_and_ref = function(data, min_cells_per_gene, obs_idx, ref_idx) {
-
+    
     ref_data = data[,ref_idx]
     
     ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
-    
-    obs_data = data[,obs_idx]
-    
-    obs_genes_passed = which(apply(obs_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
-    
-    both_passed = intersect(ref_genes_passed, obs_genes_passed)
 
-    return(both_passed)
+    #### chromosomes lost in the observed (tumor) may have no expression and don't want to lose those cells via filtering!
+
+    ## require expression in reference, needed for determining gain / loss.  
+    
+    #obs_data = data[,obs_idx]
+    
+    #obs_genes_passed = which(apply(obs_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
+    
+    #both_passed = intersect(ref_genes_passed, obs_genes_passed)
+
+    #return(both_passed)
+
+    return(ref_genes_passed)
     
 }
 
@@ -1919,8 +1907,9 @@ smooth_window <- function(data, window_length, smooth_ends=TRUE, re_center=TRUE)
 #
 # Returns:
 # Data smoothed.
-smooth_ends_helper <- function(obs_data, tail_length){
+smooth_ends_helper <- function(obs_data, tail_length) {
 
+    # strip NAs out and replace after smoothing
     orig_obs_data = obs_data
     
     nas = is.na(obs_data)
@@ -1929,20 +1918,44 @@ smooth_ends_helper <- function(obs_data, tail_length){
 
     obs_length <- length(obs_data)
     end_data <- obs_data
+    
     # end_data will have the end positions replaced with mean values, smoothing just at the ends.
     
-    for (tail_end in 2:tail_length){
+    obs_count <- length(obs_data)
+    
+    for (tail_end in 1:tail_length) {
 
-        ## beginning of chromosome
-        logging::logdebug(paste("::smooth_ends_helper: tail range <", 1, "-", tail_end, ">", sep=" ")) 
-        end_data[tail_end] <- mean(obs_data[1:tail_end])
-
-        ## end of chromosome
-        end_tail = obs_length - tail_end +1
-        logging::logdebug(paste("::smooth_ends_helper: tail range <", end_tail, "-", obs_length, ">", sep=" ")) 
-        end_data[end_tail] <- mean(obs_data[end_tail:obs_length])
+        # algorithm generates smoothing windows from the end like so:
+        # <|>
+        # < | >
+        # <  |  >
+        # <   |   >
+        # <    |    >
+        # where | is the central position assigned the mean of observations in the window.
+        
+        bounds <- tail_end - 1
+        end_tail <- obs_count - bounds
+        
+        logging::logdebug(paste("::smooth_ends_helper: tail range <",
+                                tail_end - bounds,
+                                "|", tail_end, "|",
+                                tail_end + bounds,">", sep=" "))
+        
+        end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
+                                            (tail_end + bounds)],
+                                   na.rm=TRUE)
+        
+        
+        logging::logdebug(paste("::smooth_ends_helper: tail range <",
+                                end_tail - bounds,
+                                "|", end_tail, "|",
+                                end_tail + bounds, ">", sep=" "))
+        
+        end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
+                                            (end_tail + bounds)],
+                                   na.rm=TRUE)
     }
-
+    
     orig_obs_data[! nas] = end_data  # replace original data with end-smoothed data
     
     return(orig_obs_data)
