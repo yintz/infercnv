@@ -14,7 +14,7 @@ zscores:
 	./__test_scripts/run.zscores.R
 	touch zscores
 
-zscores_steps: zscores_steps.ok
+zscores_steps:
 	./__test_scripts/run.zscores.R.steps
 	touch zscores_steps
 
