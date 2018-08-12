@@ -312,10 +312,10 @@ remove_outliers_norm <- function(data,
         }
         if (out_method == "average_bound"){
             
-            lower_bound <- mean(apply(data, 2,
-                                      function(x) quantile(x, na.rm=TRUE)[[1]]))
-            upper_bound <- mean(apply(data, 2,
-                                      function(x) quantile(x, na.rm=TRUE)[[5]]))
+            bounds = get_average_bounds(data)
+            lower_bound = bounds[1]
+            upper_bound = bounds[2]
+                        
             # Plot bounds on data
             if(!is.na(plot_step)){
                 pdf(plot_step, useDingbats=FALSE)
@@ -378,56 +378,6 @@ center_smoothed <- function(data_smoothed){
     return(t(apply(data_smoothed, 1, "-", row_median)))
 }
 
-# Center data and threshold (both negative and postive values)
-#
-# Args:
-# center_data Matrix to center. Row = Genes, Col = Cells.
-# threshold: Values will be required to be with -/+1 *
-#                      threshold after centering.
-#            If threshold is NA, will instead use mean of 1st and 3rd quartiles
-# Returns:
-# Centered and thresholded matrix
-center_with_threshold <- function(center_data, threshold=NA, use_zscores=FALSE){
-
-    logging::loginfo(paste("::center_with_threshold:Start", sep=""))
-    # Center data (automatically ignores zeros)
-
-    ########################################################
-    ##TODO:  bhaas - do we ignore or keep the zeros here???
-    ###  and be aware of the make_zero_NA status
-    ###  Christophe - code originally said it was ignoring zeros weeks ago...  how???  ;-)
-
-    
-    if (use_zscores) {
-        # TODO:: deal w/ small counts having large relative variation and corresponding Zscores
-        
-        # convert to z-scores
-        center_data = t(scale(t(center_data), center=T, scale=T))
-    }
-    else {
-    
-        #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
-        center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
-    }
-
-    if (is.na(threshold)) {
-       # default to using quantiles
-        threshold = mean(abs(quantile(center_data, na.rm=T, c(0.10, 0.90)))) ##TODO: determine best cutoff here
-    }
-    
-    # Cap values between threshold and -threshold and recenter
-    center_data[center_data > threshold] <- threshold
-    center_data[center_data < (-1 * threshold)] <- -1 * threshold
-    
-    # re-center the data
-    #center_data <- center_data - rowMeans(center_data, na.rm=TRUE)
-    center_data <- sweep(center_data, 1, rowMeans(center_data, na.rm=T), FUN="-")
-
-    #center_data[is_zero] = 0 #restore zeros  -- no, leave as NA
-    
-    return(center_data)
-}
-
 
 # Returns the color palette for contigs.
 #
@@ -459,9 +409,12 @@ get_group_color_palette <- function(){
 #' @param max_centered_threshold The maximum value a a value can have after
 #'                                   centering. Also sets a lower bound of
 #'                                   -1 * this value.
-#' @param noise_threshold The minimum difference a value can be from the
+#' @param noise_filter The minimum difference a value can be from the
 #'                            average reference in order for it not to be
-#'                            removed as noise.
+#'                            cleared (zeroed out as noise).
+#' @param noise_quantiles quantile range within the residual reference
+#'                            distribution to be cleared (zeroed out as noise). Alternative
+#'                            to param noise_filter.
 #' @param name_ref_groups Names of groups from the "annotations" table whose cells
 #' are to be used as reference groups.
 #' @param num_ref_groups The number of reference groups or a list of
@@ -481,7 +434,8 @@ get_group_color_palette <- function(){
 #' Valid choices are: "by_mean", "by_quantiles".
 #' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
-#'
+#' @param use_zscores If true, converts log(expression) data to zscores
+#' 
 #' @return
 #' Returns a list including:
 #'     CNV matrix before visualization.
@@ -497,7 +451,8 @@ process_data <- function(data,
                       transform_data,
                       window_length,
                       max_centered_threshold,
-                      noise_threshold,
+                      noise_filter=NA,
+                      noise_quantiles=c(0.025, 0.975),
                       name_ref_groups,
                       num_ref_groups,
                       out_path,
@@ -679,16 +634,26 @@ process_data <- function(data,
                                " Stoping."))
         stop(998)
     }
-
+    
 
     # Reduce contig info
     chr_order <- gene_order[1]  # resetting
     chr_order_for_plotting = paste(as.vector(as.matrix(chr_order)))
     gene_order <- NULL
 
-    
-    # Center data (automatically ignores zeros)
-    data <- center_with_threshold(data, max_centered_threshold, use_zscores)
+
+    if (use_zscores) {
+        
+        # center and convert to z-scores
+        logging::loginfo(paste("::center_and_Zscore_conversion", sep=""))
+        data = t(scale(t(data), center=T, scale=T))
+    }
+    else {
+        # just center
+        logging::loginfo(paste("::centering", sep=""))
+        data <- sweep(data, 1, rowMeans(data, na.rm=T), FUN="-")
+    }
+
     logging::loginfo(paste("::process_data:Outlier removal, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
@@ -696,6 +661,24 @@ process_data <- function(data,
                            " Min=", min(data, na.rm=TRUE),
                            " Max=", max(data, na.rm=TRUE),
                            ".", sep=""))
+
+    #######################################################
+    ## Apply maximum centered expression thresholds to data
+    threshold = max_centered_threshold
+    if (is.na(max_centered_threshold)) {
+
+        threshold = mean(abs(get_average_bounds(data)))
+        
+        logging::loginfo(paste("::process_data:setting max centered expr threshold using quantiles, set to: +/-: ", threshold)) 
+    }
+    else {
+        logging::loginfo(paste("::process_data:setting max centered expr threshold using specified settings of +/-: ", threshold))
+    }
+    
+    # Cap values between threshold and -threshold and recenter
+    data[data > threshold] <- threshold
+    data[data < (-1 * threshold)] <- -1 * threshold
+    
     # Plot incremental steps.
     if (plot_steps){
 
@@ -703,7 +686,6 @@ process_data <- function(data,
 
         save(list=ls(), file=file.path(out_path, "04_center_with_threshold.Rdata"))
         
-
         plot_step(data=data,
                   plot_name=file.path(out_path,
                                       "04_center_with_threshold.pdf"))
@@ -841,16 +823,15 @@ process_data <- function(data,
     
 
     # Remove Ends
-    logging::logdebug(c("chr_order: ", chr_order))
+    #logging::logdebug(c("chr_order: ", chr_order))
     #logging::logdebug(chr_order)
     remove_indices <- c()
     for (chr in unlist(unique(chr_order))){
-        logging::loginfo(paste("::process_data:Remove tail contig ",
-                               chr, ".", sep=""))
+        #logging::loginfo(paste("::process_data:Remove tail contig ",chr, ".", sep=""))
         remove_chr <- remove_tails(data_smoothed,
                                              which(chr_order == chr),
                                              contig_tail)
-        logging::logdebug(paste("::process_data:Remove tail - removing indices for chr: ", chr, ", count: ", length(remove_chr), sep=""))
+        #logging::logdebug(paste("::process_data:Remove tail - removing indices for chr: ", chr, ", count: ", length(remove_chr), sep=""))
         remove_indices <- c(remove_indices, remove_chr)
 
     }
@@ -898,52 +879,61 @@ process_data <- function(data,
                            " Max=", max(data_smoothed, na.rm=TRUE),
                            ".", sep=""))
 
-    # Remove noise
-    logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_threshold))
-    if (noise_threshold > 0) {
-        
-        data_smoothed <- remove_noise(smooth_matrix=data_smoothed,
-                                      threshold=noise_threshold)
-        logging::loginfo(paste("::process_data:Remove noise, ",
-                               "new dimensions (r,c) = ",
-                               paste(dim(data_smoothed), collapse=","),
-                               " Total=", sum(data_smoothed, na.rm=TRUE),
-                               " Min=", min(data_smoothed, na.rm=TRUE),
-                               " Max=", max(data_smoothed, na.rm=TRUE),
-                               ".", sep=""))
-        
-
-        # Plot incremental steps.
-        if (plot_steps){
-
-            logging::loginfo(paste("\n\tSTEP 09: Denoising\n\n"))
-
-            save(list=ls(), file=file.path(out_path, "09_denoise.Rdata"))
-            
-            plot_step(data=data_smoothed,
-                      plot_name=file.path(out_path,
-                                          "09_denoise.pdf"))
-            
-            plot_cnv(plot_data=data_smoothed,
-                     contigs=chr_order_for_plotting,
-                     k_obs_groups=k_obs_groups,
-                     obs_annotations_groups=obs_annotations_groups,
-                     obs_annotations_names=obs_annotations_names,
-                     grouping_key_coln=grouping_key_coln,
-                     reference_idx=ret_list[["REF_OBS_IDX"]],
-                     ref_contig=NULL,
-                     contig_cex=1,
-                     ref_groups=ret_list[["REF_GROUPS"]],
-                     out_dir=out_path,
-                     color_safe_pal=FALSE,
-                     x.center=0,
-                     title="09_denoised",
-                     obs_title="Observations (Cells)",
-                     ref_title="References (Cells)",
-                     output_filename="infercnv.09_denoised")
-            
-        }
+    # Clear noise: set values to zero that are in the defined noise range
+    
+    if ( (! is.na(noise_filter)) && noise_filter > 0) {
+        logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
+        data_smoothed <- clear_noise(smooth_matrix=data_smoothed,
+                                      threshold=noise_filter)
     }
+    else {
+        logging::loginfo(paste("::process_data:Remove noise, noise threshold defined via quantiles: ", noise_quantiles))
+        data_smoothed <- clear_noise_via_ref_quantiles(smooth_matrix=data_smoothed,
+                                                        ref_idx=unlist(ret_list[["REF_GROUPS"]]),
+                                                        quantiles=noise_quantiles)
+    }
+    
+    
+    logging::loginfo(paste("::process_data:Remove noise, ",
+                           "new dimensions (r,c) = ",
+                           paste(dim(data_smoothed), collapse=","),
+                           " Total=", sum(data_smoothed, na.rm=TRUE),
+                           " Min=", min(data_smoothed, na.rm=TRUE),
+                           " Max=", max(data_smoothed, na.rm=TRUE),
+                           ".", sep=""))
+    
+    
+                                        # Plot incremental steps.
+    if (plot_steps){
+        
+        logging::loginfo(paste("\n\tSTEP 09: Denoising\n\n"))
+        
+        save(list=ls(), file=file.path(out_path, "09_denoise.Rdata"))
+        
+        plot_step(data=data_smoothed,
+                  plot_name=file.path(out_path,
+                                      "09_denoise.pdf"))
+        
+        plot_cnv(plot_data=data_smoothed,
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="09_denoised",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.09_denoised")
+        
+    }
+    
     
     # Output before viz outlier
     ret_list[["PREVIZ"]] = data_smoothed
@@ -1811,15 +1801,45 @@ order_reduce <- function(data, genomic_position){
 #                      removed as noise.
 # Returns:
 # Denoised matrix
-remove_noise <- function(smooth_matrix, threshold){
+clear_noise <- function(smooth_matrix, threshold){
 
-    logging::loginfo(paste("::remove_noise:Start. threshold: ", threshold,  sep=""))
+    logging::loginfo(paste("********* ::clear_noise:Start. threshold: ", threshold,  sep=""))
     if (threshold > 0){
         smooth_matrix[abs(smooth_matrix) < threshold] <- 0
     }
     return(smooth_matrix)
 }
 
+# clear_noise_via_ref_quantiles: define noise levels based on quantiles within the ref (normal cell) distribution.
+# Any data points within this defined quantile are set to zero. 
+
+clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.025, 0.975) ) {
+   
+    vals = smooth_matrix[,ref_idx]
+        
+    vals[vals==0] = NA  # use remaining ref vals that weren't already turned to zeros
+
+    lower_quantile = quantiles[1]
+    upper_quantile = quantiles[2]
+
+    logging::loginfo(paste("::clear_noise_via_ref_quantiles: using noise quantiles set at: ",
+                           lower_quantile, "-", upper_quantile, sep=""))
+    
+    lower_bound <- mean(apply(vals, 2,
+                              function(x) quantile(x, probs=lower_quantile, na.rm=TRUE)))
+    
+    upper_bound <- mean(apply(vals, 2,
+                              function(x) quantile(x, probs=upper_quantile, na.rm=TRUE)))
+
+    logging::loginfo(paste("::clear_noise_via_ref_quantiles: removing noise between bounds: ",
+                           lower_bound, "-", upper_bound, sep=" "))
+    
+    smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = 0
+    
+    return(smooth_matrix)
+}
+
+    
 # Remove the tails of values of a specific chromosome.
 # The smooth_matrix values are expected to be in genomic order.
 # If the tail is too large and no contig will be left 1/3 of the
@@ -1835,7 +1855,7 @@ remove_noise <- function(smooth_matrix, threshold){
 # Indices to remove.
 remove_tails <- function(smooth_matrix, chr, tail_length){
 
-    logging::loginfo(paste("::remove_tails:Start.", sep=""))
+    #logging::loginfo(paste("::remove_tails:Start.", sep=""))
     chr_length <- length(chr)
     if ((tail_length < 3) || (chr_length < 3)){
         return(c())
@@ -1935,21 +1955,27 @@ smooth_ends_helper <- function(obs_data, tail_length) {
         
         bounds <- tail_end - 1
         end_tail <- obs_count - bounds
-        
-        logging::logdebug(paste("::smooth_ends_helper: tail range <",
-                                tail_end - bounds,
-                                "|", tail_end, "|",
-                                tail_end + bounds,">", sep=" "))
+
+        show_debug_logging_here = FALSE
+
+        if (show_debug_logging_here) {
+            logging::logdebug(paste("::smooth_ends_helper: tail range <",
+                                    tail_end - bounds,
+                                    "|", tail_end, "|",
+                                    tail_end + bounds,">", sep=" "))
+        }
         
         end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
                                             (tail_end + bounds)],
                                    na.rm=TRUE)
         
-        
-        logging::logdebug(paste("::smooth_ends_helper: tail range <",
-                                end_tail - bounds,
-                                "|", end_tail, "|",
-                                end_tail + bounds, ">", sep=" "))
+
+        if (show_debug_logging_here) {
+            logging::logdebug(paste("::smooth_ends_helper: tail range <",
+                                    end_tail - bounds,
+                                    "|", end_tail, "|",
+                                    end_tail + bounds, ">", sep=" "))
+        }
         
         end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
                                             (end_tail + bounds)],
@@ -3540,7 +3566,9 @@ get.sep <-
 #' @param log_transform Matrix is assumed to be Log2(TPM+1) transformed.
 #' If instead it is raw TPMs use this flag so that the data will be transformed.
 #' @param delim Delimiter for reading expression matrix and writing matrices output.
-#' @param noise_filter Delimiter for reading expression matrix and writing matrices output.
+#' @param noise_filter value for which +/- from zero will be set to zero to clear on heatmap
+#' @param noise_quantiles quantile range for average bounds of residual reference values to
+#' be set to zero to clear on heatmap (alternative to noise_filter)
 #' @param max_centered_expression This value and -1 * this value are used as the maximum value
 #' expression that can exist after centering data. If a value is outside of this range,
 #' it is truncated to be within this range
@@ -3580,7 +3608,8 @@ get.sep <-
 #' @param ngchm Logical to decide whether to create a Next Generation Clustered Heat Map.
 #' @param path_to_shaidyMapGen Path to the java application ShaidyMapGen.jar.
 #' @param gene_symbol Specify the label type that is given to the gene needed to create linkouts, default is NULL,
-#'
+#' @param min_cells_per_gene minimum number of cells to be expressed for a gene in the reference set to be retained.
+#' 
 #' @return
 #' No return, void.
 #' @export
@@ -3593,7 +3622,8 @@ infercnv <-
         cutoff=0,
         log_transform=FALSE,
         delim="\t",
-        noise_filter=0,
+        noise_filter=NA,
+        noise_quantiles=c(0.025,0.975),
         max_centered_expression=NA,
         num_obs_groups=1,
         output_dir=NULL,
@@ -3607,7 +3637,7 @@ infercnv <-
         clustering_contig=NULL,
         plot_steps=FALSE,
         bound_method_vis="average_bound",
-        bound_threshold_vis=" -1,1",
+        bound_threshold_vis=NULL, # example:  "-1,1"
         window_length=101,
         contig_tail=NULL,
         fig_title="Copy Number Variation Inference",
@@ -3662,19 +3692,6 @@ infercnv <-
         dir.create(output_dir)
     }
 
-    bounds_viz <- c(NA,NA)
-    if (!is.null(bound_threshold_vis)){
-        bounds_viz <- as.numeric(unlist(strsplit(bound_threshold_vis,",")))  ## TOCHECK maybe require a list directly instead of a string to split?
-    }
-    if (length(bounds_viz) != 2){
-        stop(paste("Please use the correct format for the argument",
-                           "bound_threshold_vis . Two numbers seperated",
-                           "by a comma is expected (lowerbound,upperbound)",
-                           ". As an example, to indicate that outliers are",
-                           "outside of -1 and 1 give the following.",
-                           "vis_bound_threshold=\"-1,1\""))
-    }
-
     max_centered_expression <- abs(max_centered_expression)
     noise_filter <- abs(noise_filter)
 
@@ -3720,7 +3737,11 @@ infercnv <-
         }
     }
     
-
+    bounds_viz <- c(NA,NA)
+    if (! (is.null(bound_threshold_vis) || is.na(bound_threshold_vis) ) ) {
+        bounds_viz <- as.numeric(unlist(strsplit(bound_threshold_vis,",")))  ## TOCHECK maybe require a list directly instead of a string to split?
+    }
+    
     # do_work = 0
 
     passed_args <- list(x=x, gene_order=gene_order, annotations=annotations, cutoff=cutoff,
@@ -3920,6 +3941,29 @@ infercnv <-
         save(list=to_save_preprocess_args, file=preprocess_args_save_path)
         save(list=to_save_preprocess, file=preprocess_save_path)
     }
+
+
+    
+    #if (all.equal(bounds_viz, c(NA,NA))) {
+        
+        # determine viz bounds in a data-driven way.
+    #    d = as.numeric(as.matrix(expression_data))
+    #    q = quantile(d[d>0], c(0.9))
+    #    bounds_viz=c(-1*q, q)
+        
+        
+        #if (length(bounds_viz) != 2){
+        #stop(paste("Please use the correct format for the argument",
+        #                   "bound_threshold_vis . Two numbers seperated",
+        #                   "by a comma is expected (lowerbound,upperbound)",
+        #                   ". As an example, to indicate that outliers are",
+        #                   "outside of -1 and 1 give the following.",
+        #                   "vis_bound_threshold=\"-1,1\""))
+    #}
+
+    
+
+    
     if (load_workspace < 2) {  # 0 or 1
         ret_list = process_data(data=expression_data,
                                gene_order=input_gene_order,
@@ -3928,12 +3972,12 @@ infercnv <-
                                transform_data=log_transform,
                                window_length=window_length,
                                max_centered_threshold=max_centered_expression,
-                               noise_threshold=noise_filter,
+                               noise_filter=noise_filter,
                                name_ref_groups=name_ref_groups,
                                num_ref_groups=name_ref_groups_indices,
                                obs_annotations_groups=obs_annotations_groups,
                                obs_annotations_names=obs_annotations_names,
-                               grouping_key_coln,
+                               grouping_key_coln=grouping_key_coln,
                                out_path=output_dir,
                                k_obs_groups=num_obs_groups,
                                plot_steps=plot_steps,
@@ -4003,3 +4047,15 @@ infercnv <-
     }
 }
 
+
+
+get_average_bounds = function (data) {
+    
+    lower_bound <- mean(apply(data, 2,
+                              function(x) quantile(x, na.rm=TRUE)[[1]]))
+    upper_bound <- mean(apply(data, 2,
+                              function(x) quantile(x, na.rm=TRUE)[[5]]))
+
+    return(c(lower_bound, upper_bound))
+
+}
