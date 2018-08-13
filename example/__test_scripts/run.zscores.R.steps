@@ -1,0 +1,20 @@
+#!/usr/bin/env Rscript
+
+
+options(error = function() traceback(2))
+
+library("infercnv")
+
+infercnv::infercnv(x="oligodendroglioma.tp100k.expr.matrix", 
+                   gene_order="gencode_v19_gene_pos.txt", 
+                   annotations="__sampled_cells.annotations.dat",
+                   cutoff=1, 
+                   bound_threshold_vis=NA,
+                   output_dir="__test_outdir.zscores.steps", 
+                   name_ref_groups="Microglia/Macrophage,Oligodendrocytes (non-malignant)", 
+                   cluster_by_groups=F, 
+                   plot_steps=T,
+                   use_zscores=T,
+                   log_level="DEBUG"
+                   )
+
