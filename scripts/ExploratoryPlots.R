@@ -1,4 +1,3 @@
-
 #!/usr/bin/env Rscript
 library(optparse)
 library(ggplot2)
@@ -56,8 +55,7 @@ create_gene_eset <- function(ploting_data,
 
 CreatePlots <- function(files_dir){
     # ----------------------Load Environment and variables----------------------------------------------------------------------------------------
-    inferCNVenv <- c("infercnv.preprocess.Rdata", "infercnv.processed.ward.D.Rdata")
-    env <- paste(files_dir,inferCNVenv, sep = .Platform$file.sep)
+    env <- list.files(files_dir, pattern="infercnv.*.Rdata", full.names=TRUE)
     if (all(!(file.exists(env)))){
         path_error <- c(inferCNVenv)[which(!file.exists(inferCNVenv))]
         error_message <- paste("Error in argument pathway.",
@@ -226,7 +224,7 @@ CreatePlots <- function(files_dir){
     
     ksValues <- lapply(geneOrder,function(i,d1,d2){
         ks_values <- ks.test(d1[,i],d2[,i])
-        c(KS = ks_values$statistic, p.value = ks_values$p.value)}, obs_dat, ref_dat)
+        c(KS = ks_values$statistic, p.value = (-10*log10(ks_values$p.value)))}, obs_dat, ref_dat)
     names(ksValues) <- geneOrder
     ksData <- t(data.frame(ksValues, check.names = FALSE) )
     ksData <- transform(ksData, KS.D = as.numeric(KS.D),
@@ -248,7 +246,7 @@ CreatePlots <- function(files_dir){
     #plot p-values
     pValPlot <- ggplot(data = ksData, aes(x = Gene, group = 1)) +
         geom_line(aes(y = p.value), color = "skyblue2") +
-        ylab(label="P-Value") +
+        ylab(label="Phred Score (-10log10(P-Value))") +
         theme(plot.title = element_text(hjust = 0.5, colour = "Black", size = 15),
               panel.background = element_blank(),
               panel.grid.major.x = element_line(colour = "grey"),
