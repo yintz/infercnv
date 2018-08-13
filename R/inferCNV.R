@@ -675,7 +675,7 @@ process_data <- function(data,
         logging::loginfo(paste("::process_data:setting max centered expr threshold using specified settings of +/-: ", threshold))
     }
     
-    # Cap values between threshold and -threshold and recenter
+    # Cap values between threshold and -threshold, retaining earlier center
     data[data > threshold] <- threshold
     data[data < (-1 * threshold)] <- -1 * threshold
     
