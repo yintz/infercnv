@@ -6,17 +6,18 @@
 \usage{
 infercnv(x, gene_order, annotations = NULL, use_color_safe = FALSE,
   contig_label_size = 1, cutoff = 0, log_transform = FALSE,
-  delim = "\\t", noise_filter = 0, max_centered_expression = 3,
-  num_obs_groups = 1, output_dir = NULL, output_format = "png",
-  num_ref_groups = NULL, name_ref_groups = NULL,
+  delim = "\\t", noise_filter = NA, noise_quantiles = c(0.025, 0.975),
+  max_centered_expression = NA, num_obs_groups = 1, output_dir = NULL,
+  output_format = "png", num_ref_groups = NULL, name_ref_groups = NULL,
   cluster_by_groups = FALSE, ref_subtract_method = "by_mean",
   hclust_method = "complete", clustering_contig = NULL,
   plot_steps = FALSE, bound_method_vis = "average_bound",
-  bound_threshold_vis = " -1,1", window_length = 101, contig_tail = NULL,
+  bound_threshold_vis = NULL, window_length = 101, contig_tail = NULL,
   fig_title = "Copy Number Variation Inference",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
-  load_workspace = TRUE, log_level = "INFO", ngchm = FALSE,
-  path_to_shaidyMapGen = NULL, gene_symbol = NULL)
+  load_workspace = 2, log_level = "INFO", ngchm = FALSE,
+  path_to_shaidyMapGen = NULL, gene_symbol = NULL, min_cells_per_gene = 3,
+  use_zscores = FALSE, make_zero_NA = FALSE)
 }
 \arguments{
 \item{x}{Data to plot (columns are cells and rows are genes). Can be either a file path or the actual data frame.}
@@ -42,7 +43,10 @@ If instead it is raw TPMs use this flag so that the data will be transformed.}
 
 \item{delim}{Delimiter for reading expression matrix and writing matrices output.}
 
-\item{noise_filter}{Delimiter for reading expression matrix and writing matrices output.}
+\item{noise_filter}{value for which +/- from zero will be set to zero to clear on heatmap}
+
+\item{noise_quantiles}{quantile range for average bounds of residual reference values to
+be set to zero to clear on heatmap (alternative to noise_filter)}
 
 \item{max_centered_expression}{This value and -1 * this value are used as the maximum value
 expression that can exist after centering data. If a value is outside of this range,
@@ -96,7 +100,7 @@ closest bound. Should be given in the form of 1,1 (upper bound, lower bound).}
 
 \item{ref_title}{Title for the reference matrix.}
 
-\item{load_workspace}{Try to load workspace saved from a previous run as far in the run as possible (checks for that important arguments match).}
+\item{load_workspace}{Try to load workspace saved from a previous run as far in the run as possible (checks for that important arguments match). Possible values are 0 "don't load any previous data", 1 "load preprocessed data", >2 "load processed data".}
 
 \item{log_level}{Logging level.}
 
@@ -105,6 +109,12 @@ closest bound. Should be given in the form of 1,1 (upper bound, lower bound).}
 \item{path_to_shaidyMapGen}{Path to the java application ShaidyMapGen.jar.}
 
 \item{gene_symbol}{Specify the label type that is given to the gene needed to create linkouts, default is NULL,}
+
+\item{min_cells_per_gene}{Minimum number of cells to be expressed for a gene in the reference set to be retained.}
+
+\item{use_zscores}{Whether to calculate z scores from expression values for analysis or not.}
+
+\item{make_zero_NA}{Replaces 0 values in the matrix by NA.}
 }
 \value{
 No return, void.

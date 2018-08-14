@@ -21,7 +21,8 @@ vignette: >
 ---
 
 
-# Prerequisites
+# Installation
+## Required dependencies
 
 _inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r CRANpkg("RColorBrewer")` and `r CRANpkg("GMD")`
 
@@ -32,14 +33,48 @@ _inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r CRANpkg("RColorBrewer")`
 -->
 
 
+Use the biocLite.R script to install Bioconductor packages. To install core packages, type the following in an R command window:
+```{r install, eval = FALSE}
+## try http:// if https:// URLs are not supported
+source("https://bioconductor.org/biocLite.R")
+biocLite("inferCNV")
+```
 
-# Run the example
+## Optional dependencies
+If you want to use the interactive heatmap visualization, please also install the _R_ packages `r CRANpkg("dplyr")`, `r CRANpkg("tibble")`, `r Githubpkg("bmbroom/tsvio")` and `r Githubpkg("bmbroom/NGCHMR")`. To install optional packages, type the following in an R command window:
 
-```{r}
+<!--
+[https://cran.r-project.org/web/packages/dplyr/index.html]
+[https://cran.r-project.org/web/packages/tibble/index.html]
+[https://github.com/bmbroom/tsvio]
+[https://github.com/bmbroom/NGCHMR]
+-->
+
+```{r install-optionals, eval = FALSE}
+install.packages("dplyr")
+install.packages("tibble")
+
+install.packages("devtools")
+devtools::install_github("bmbroom/tsvio")
+devtools::install_github("bmbroom/NGCHMR", ref="stable")
+
+```
+
+And download the NGCHM java application by typing the following in a regular shell:
+```{bash, eval = FALSE}
+wget http://tcga.ngchm.net/NGCHM/ShaidyMapGen.jar
+```
+
+
+
+
+# Copy Number Variation inference
+
+```{r run-infercnv, eval=FALSE}
 library(infercnv)
-infercnv(x="../example/oligodendroglioma.tp100k.expr.matrix",
-        gene_order="../example/gencode_v19_gene_pos.txt", 
-        annotations="../example/__sampled_cells_bis.annotations.dat", 
+infercnv(x="../example/oligodendrocytoma_expression_downsampled.txt",
+        gene_order="../example/gencode_downsampled.txt", 
+        annotations="../example/oligodendrocytoma_annotations_downsampled.txt", 
         cutoff=1, 
         noise_filter=0.2, 
         output_dir="../example_output", 
@@ -53,4 +88,11 @@ infercnv(x="../example/oligodendroglioma.tp100k.expr.matrix",
 
 ![infercnv output](../example_output/infercnv.png)
 
+
+
+# Session info
+
+```{r sessioninfo, echo=FALSE, tidy=TRUE, tidy.opts=list()}
+sessionInfo()
+```
 

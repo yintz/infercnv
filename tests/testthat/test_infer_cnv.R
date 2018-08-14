@@ -163,40 +163,6 @@ test_that("split_references for three observation matrix, three groups",{
         })
 
 
-context("Test center_with_threshold")
-
-center_answer_1 <- matrix(rep(0,5), ncol=1)
-center_answer_2 <- matrix(c(rep(-5,5),rep(0,5),rep(5,5)), ncol=3)
-center_answer_3 <- matrix(c(rep(-6,5),rep(-5,5),rep(0,5),
-                            rep(5,5),rep(6,5)), ncol=5)
-center_answer_4 <- matrix(rep(0,25), ncol=5)
-
-test_that(paste("center_with_threshold works with one observation,",
-                "threshold too large to affect"),{
-    expect_equal(center_with_threshold(center_data=matrix_one,
-                                       threshold=100),
-                 center_answer_1)
-          })
-test_that(paste("center_with_threshold works with three observations,",
-                "threshold too large to affect"),{
-    expect_equal(center_with_threshold(center_data=matrix_three,
-                                       threshold=100),
-                 center_answer_2)
-          })
-test_that(paste("center_with_threshold works with five observations,",
-                "threshold affecting some"),{
-    expect_equal(center_with_threshold(center_data=matrix_five,
-                                       threshold=6),
-                 center_answer_3)
-         })
-test_that(paste("center_with_threshold works with one observation,",
-                "threshold of 0, affecting all"),{
-    expect_equal(center_with_threshold(center_data=matrix_five,
-                                       threshold=0),
-                 center_answer_4)
-         })
-
-
 context("Test center_smoothed")
 
 center_sm_1 <- matrix(1:10, ncol=1)
@@ -263,7 +229,7 @@ test_that(paste("above_min_mean_expr_cutoff works with three observations,",
          })
 
 
-context("Test remove_noise")
+context("Test clear_noise")
 
 noise_answer_1 <- matrix_one
 noise_answer_2 <- matrix(c(0,0,0,4,5), ncol=1)
@@ -273,34 +239,34 @@ noise_answer_5 <- matrix(c(rep(0,11),12:15), ncol=3)
 noise_answer_6 <- matrix(rep(0,15), ncol=3)
 
 test_that("remove_noise works with one observation, threshold 0",{
-    expect_equal(remove_noise(smooth_matrix=matrix_one,
+    expect_equal(clear_noise(smooth_matrix=matrix_one,
                               threshold=0),
                   noise_answer_1)
          })
 test_that(paste("remove_noise works with one observation, one ref,",
                 "threshold removing some"),{
-    expect_equal(remove_noise(smooth_matrix=matrix_one,
+    expect_equal(clear_noise(smooth_matrix=matrix_one,
                               threshold=4),
                   noise_answer_2)
          })
 test_that(paste("remove_noise works with one observation,",
                 "threshold removing all"),{
-    expect_equal(remove_noise(smooth_matrix=matrix_one,
+    expect_equal(clear_noise(smooth_matrix=matrix_one,
                               threshold=6),
                   noise_answer_3)
          })
 test_that("remove_noise works with three observation, threshold 0",{
-    expect_equal(remove_noise(smooth_matrix=matrix_three,
+    expect_equal(clear_noise(smooth_matrix=matrix_three,
                               threshold=0),
                   noise_answer_4)
          })
 test_that("remove_noise works with three observation, threshold some",{
-    expect_equal(remove_noise(smooth_matrix=matrix_three,
+    expect_equal(clear_noise(smooth_matrix=matrix_three,
                               threshold=12),
                   noise_answer_5)
          })
 test_that("remove_noise works with three observation, threshold all",{
-    expect_equal(remove_noise(smooth_matrix=matrix_three,
+    expect_equal(clear_noise(smooth_matrix=matrix_three,
                               threshold=100),
                   noise_answer_6)
          })

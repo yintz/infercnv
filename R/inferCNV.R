@@ -3608,7 +3608,9 @@ get.sep <-
 #' @param ngchm Logical to decide whether to create a Next Generation Clustered Heat Map.
 #' @param path_to_shaidyMapGen Path to the java application ShaidyMapGen.jar.
 #' @param gene_symbol Specify the label type that is given to the gene needed to create linkouts, default is NULL,
-#' @param min_cells_per_gene minimum number of cells to be expressed for a gene in the reference set to be retained.
+#' @param min_cells_per_gene Minimum number of cells to be expressed for a gene in the reference set to be retained.
+#' @param use_zscores Whether to calculate z scores from expression values for analysis or not.
+#' @param make_zero_NA Replaces 0 values in the matrix by NA.
 #' 
 #' @return
 #' No return, void.
