@@ -70,7 +70,7 @@ wget http://tcga.ngchm.net/NGCHM/ShaidyMapGen.jar
 
 # Copy Number Variation inference
 
-```{r run-infercnv, eval=FALSE}
+```{r run-infercnv}
 library(infercnv)
 infercnv(x="../example/oligodendrocytoma_expression_downsampled.txt",
         gene_order="../example/gencode_downsampled.txt", 

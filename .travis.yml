@@ -12,6 +12,8 @@ r_packages:
   - gplots
   - optparse
   - logging
+  - ape
+  - GMD
 
 r_check_args: "--timings"
 
