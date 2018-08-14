@@ -8,7 +8,6 @@ importFrom("stats", "as.dendrogram", "as.dist", "cutree", "density",
            "quantile", "reorder", "sd", "complete.cases")
 importFrom("utils", "flush.console", "read.table", "write.table", "tail")
 import(logging)
-importFrom("GMD", "gdist")
 importFrom("gplots", "bluered")
 importFrom("ape", "write.tree", "as.phylo")
 import(RColorBrewer)

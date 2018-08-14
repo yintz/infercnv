@@ -3504,6 +3504,66 @@ heatmap.cnv <-
 
 ## Please note this code is from the library GMD
 ## All credit for this code goes to GMD's authors.
+## The official version from the package GMD is now archived
+## https://cran.r-project.org/web/packages/GMD/index.html
+gdist <-
+  function(x,
+           method="euclidean",
+           MoreArgs=NULL,
+           diag=FALSE,
+           upper=FALSE
+           )
+{
+  if(method %in% c("correlation","correlation.of.observations")){
+    FUN <- function(x,...){
+      as.dist(1-cor(t(x),y=NULL,...),diag=diag,upper=upper)}
+    if (.invalid(MoreArgs)) MoreArgs=list(method="pearson",use="everything")
+  } else if(method %in% c("correlation.of.variables")){
+    FUN <- function(x,...){
+      as.dist(1-cor(x,y=NULL,...),diag=diag,upper=upper)}
+    if (.invalid(MoreArgs)) MoreArgs=list(method="pearson",use="everything")
+  }
+
+  COMMON_METHODS <-
+    c("euclidean","maximum",
+      "manhattan","canberra",
+      "binary","minkowski"
+      )
+  if(method %in% COMMON_METHODS){    
+    d <- dist(x=x,method=method,diag=diag,upper=upper,p=MoreArgs$p)
+  } else if (method %in% c("correlation","correlation.of.observations","correlation.of.variables")){
+    ##d <- .call.FUN(FUN,x,MoreArgs)
+    d <- FUN(x,method=MoreArgs$method,use=MoreArgs$use)
+    attr(d,"method") <- method
+  } else {
+    FUN <- match.fun(method)
+    MoreArgs[["diag"]] <- diag
+    MoreArgs[["upper"]] <- upper
+    d <- .call.FUN(FUN,x,MoreArgs)
+
+    ## check attributes of the dist object ##
+    if(is.null(attr(d,"method"))){
+      attr(d,"method") <- method
+    }
+    if(is.null(attr(d,"call"))){
+      attr(d,"call") <- match.call()
+    }
+    if(is.null(attr(d,"Size"))){
+      warning(sprintf("The `dist' object returned by %s does not contain a specified attribute of `Size'.",attr(d,"method")))
+    }
+    if(is.null(attr(d,"Labels"))){
+      warning(sprintf("The `dist' object returned by %s does not contain a specified attribute of `Labels'.",attr(d,"method")))
+    }
+  }
+  attr(d,"Diag") <- diag
+  attr(d,"Upper") <- upper
+  class(d) <- "dist"
+  return(d)
+}
+
+
+## Please note this code is from the library GMD
+## All credit for this code goes to GMD's authors.
 ## I do not recommend using this version of the code, which
 ## has been poorly modified for our use but recommend using
 ## the official version from the package GMD

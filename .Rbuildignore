@@ -6,7 +6,10 @@
 ^inferCNV.Rproj
 ^Rstudio_helpers
 ^example/test_data
+^example/before_downsize
 ^example_output
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^devel_debug_bioc
+^devel_debug
+^run_tests
+^external
