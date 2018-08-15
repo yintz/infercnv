@@ -13,7 +13,6 @@ r_packages:
   - optparse
   - logging
   - ape
-  - GMD
 
 r_check_args: "--timings"
 
