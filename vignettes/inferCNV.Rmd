@@ -7,6 +7,10 @@ author:
   affiliation: 
     - *kco
     - Weizmann Institute of Science, Rehovot, Israel
+- name: Christophe Georgescu
+  affiliation: *kco
+- name: Maxwell Brown
+  affiliation: *kco
 - name: Brian Haas
   affiliation: *kco
 output:
@@ -24,7 +28,7 @@ vignette: >
 # Installation
 ## Required dependencies
 
-_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r CRANpkg("RColorBrewer")` and `r CRANpkg("GMD")`
+_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r CRANpkg("RColorBrewer")` and import functions from the archived `r CRANpkg("GMD")`.
 
 <!--
 [https://cran.r-project.org/web/packages/ape/index.html]
@@ -92,7 +96,7 @@ infercnv(x="../example/oligodendrocytoma_expression_downsampled.txt",
 
 # Session info
 
-```{r sessioninfo, echo=FALSE, tidy=TRUE, tidy.opts=list()}
+```{r sessioninfo, echo=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60), out.width=60}
 sessionInfo()
 ```
 
