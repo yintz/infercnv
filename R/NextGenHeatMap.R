@@ -49,19 +49,19 @@ Create_NGCHM <- function(plot_data,
     # create color map for the heat map and save it as a new data layer 
     # cut_value is the value that represents cuts on the heatmap
     cut_value <- -2147483648.0 
-    colMap <- chmNewColorMap(values        = c(cut_value, min(plot_data, na.rm=TRUE), 0, max(plot_data,na.rm=TRUE)),
+    colMap <- NGCHM::chmNewColorMap(values        = c(cut_value, min(plot_data, na.rm=TRUE), 0, max(plot_data,na.rm=TRUE)),
                              colors        = c("grey45","darkblue","white","darkred"),
                              missing.color = "white", 
                              type          = "linear") 
-    layer <- chmNewDataLayer("DATA", as.matrix(plot_data), colMap, summarizationMethod = "average")
+    layer <- NGCHM::chmNewDataLayer("DATA", as.matrix(plot_data), colMap, summarizationMethod = "average")
     # create the heat map object with the name "inferCNV"
-    hm <- chmNew(title, layer)
+    hm <- NGCHM::chmNew(title, layer)
     # set the column (gene) order 
-    chmColOrder(hm) <- colnames(plot_data)
+    NGCHM::chmColOrder(hm) <- colnames(plot_data)
     
     # add linkouts to each gene (column) for more information 
     if (!is.null(gene_symbol)) {
-        hm <- chmAddAxisType(hm, 'col', gene_symbol)
+        hm <- NGCHM::chmAddAxisType(hm, 'col', gene_symbol)
     }
     
 
@@ -79,7 +79,7 @@ Create_NGCHM <- function(plot_data,
              \n Difference in row length: Original ", nrow(plot_data), ", After ordering ", length(row_order))
     }
     ## set the row order for the heatmap
-    chmRowOrder(hm) <- row_order
+    NGCHM::chmRowOrder(hm) <- row_order
     
     # ----------------------Add Divisions Between References And Chromosomes ------------------------------------------------------------------
     # Column Separation: separation between the chromosomes 
@@ -89,7 +89,9 @@ Create_NGCHM <- function(plot_data,
     ## get gene locations in correct order, then find frequency of each chromosome
     ## add locations to each gene 
     location_data$Gene <- row.names(location_data)
-    gene_locations <- inner_join(data.frame(Gene = colnames(plot_data), stringsAsFactors = FALSE), location_data, by = "Gene") 
+    gene_order = colnames(plot_data)
+    gene_locations_merge <- merge(data.frame(Gene = colnames(plot_data), stringsAsFactors = FALSE), location_data, by.x = "Gene")
+    gene_locations <- gene_locations_merge[match(gene_order,gene_locations_merge$Gene),]
     ## check if the number of genes has changed 
     if (nrow(gene_locations) != length(colnames(plot_data))){
         warning(paste0("Number of similar genes between expression data and locations:", nrow(gene_locations),
@@ -143,16 +145,16 @@ Create_NGCHM <- function(plot_data,
     names(chr_palette) <- unique(location_data$chr)
     
     ## create color mapping
-    colMap_chr <- chmNewColorMap(values        = as.vector(chr_labels),
-                                 colors        = chr_palette,
-                                 missing.color = "white")
-    chr_cov <- chmNewCovariate(fullname        = 'Chromosome', 
-                               values           = chr, 
-                               value.properties = colMap_chr,
-                               type             = "discrete")
-    hm <- chmAddCovariateBar(hm, "column", chr_cov, 
-                             display   = "visible", 
-                             thickness = as.integer(20))
+    colMap_chr <- NGCHM::chmNewColorMap(values        = as.vector(chr_labels),
+                                        colors        = chr_palette,
+                                        missing.color = "white")
+    chr_cov <- NGCHM::chmNewCovariate(fullname        = 'Chromosome', 
+                                     values           = chr, 
+                                     value.properties = colMap_chr,
+                                     type             = "discrete")
+    hm <- NGCHM::chmAddCovariateBar(hm, "column", chr_cov, 
+                                    display   = "visible", 
+                                    thickness = as.integer(20))
     
     #---------------------ROW Covariate bar----------------------------------------------------------------------------------------------------------------------
     
@@ -160,55 +162,43 @@ Create_NGCHM <- function(plot_data,
     ## row_groups is taken from the dendrogram created by inferCNV
     ## create better column names 
     colnames(row_groups) <- c("Dendrogram.Group", "Dendrogram.Color", "Annotation.Group", "Annotation.Color")
-    dendrogram_col <- # group colors
-        row_groups %>%
-        pull(Dendrogram.Color) %>%
-        as.character()
-    dendrogram_group <- # group number
-        row_groups %>% 
-        pull(Dendrogram.Group) %>% 
-        as.character()
+    dendrogram_col <- as.character(unlist(row_groups["Dendrogram.Color"]))# group colors
+    dendrogram_group <- as.character(unlist(row_groups["Dendrogram.Group"]))# group number
     dendrogram_unique_group <- unique(dendrogram_group)
     cells <- row.names(row_groups) # cell line ID's
     names(dendrogram_col) <- cells
     names(dendrogram_group) <- cells
     dendrogram_palette <- get_group_color_palette()(length(unique(dendrogram_col)))
     ## create color mapping
-    colMap_dendrogram <- chmNewColorMap(values = as.vector(dendrogram_unique_group),
-                                        colors = dendrogram_palette,
-                                        missing.color = "white")
-    dendrogram_cov <- chmNewCovariate(fullname = 'Dendrogram',
-                                      values = dendrogram_group,
-                                      value.properties = colMap_dendrogram,
-                                      type = "discrete")
-    hm <- chmAddCovariateBar(hm, "row", dendrogram_cov,
-                             display = "visible",
-                             thickness = as.integer(20))
+    colMap_dendrogram <- NGCHM::chmNewColorMap(values        = as.vector(dendrogram_unique_group),
+                                               colors        = dendrogram_palette,
+                                               missing.color = "white")
+    dendrogram_cov <- NGCHM::chmNewCovariate(fullname         = 'Dendrogram',
+                                             values           = dendrogram_group,
+                                             value.properties = colMap_dendrogram,
+                                             type             = "discrete")
+    hm <- NGCHM::chmAddCovariateBar(hm, "row", dendrogram_cov,
+                                    display   = "visible",
+                                    thickness = as.integer(20))
     
     # Covariate bar for annotation groups 
-    annotation_col <- # group colors
-        row_groups %>% 
-        pull(Annotation.Color) %>% 
-        as.character()
-    annotation_group <- # group number
-        row_groups %>% 
-        pull(Annotation.Group) %>% 
-        as.character()
+    annotation_col <- as.character(unlist(row_groups["Annotation.Color"])) # group colors
+    annotation_group <- as.character(unlist(row_groups["Annotation.Group"]))# group number
     names(annotation_group) <- cells
     names(annotation_col) <- cells
     annotation_palette <- get_group_color_palette()(length(unique(annotation_group)))
     annotation_unique_group <- unique(annotation_group)
     ## create color mapping
-    colMap_annotation <- chmNewColorMap(values        = as.vector(annotation_unique_group), # row names are the cells 
-                                        colors        = annotation_palette,
-                                        missing.color = "white")
-    annotation_cov <- chmNewCovariate(fullname         = 'Annotation', 
-                                      values           = annotation_group, 
-                                      value.properties = colMap_annotation,
-                                      type             = "discrete")
-    hm <- chmAddCovariateBar(hm, "row", annotation_cov, 
-                             display   = "visible", 
-                             thickness = as.integer(20))
+    colMap_annotation <- NGCHM::chmNewColorMap(values        = as.vector(annotation_unique_group), # row names are the cells 
+                                               colors        = annotation_palette,
+                                               missing.color = "white")
+    annotation_cov <- NGCHM::chmNewCovariate(fullname         = 'Annotation', 
+                                             values           = annotation_group, 
+                                             value.properties = colMap_annotation,
+                                             type             = "discrete")
+    hm <- NGCHM::chmAddCovariateBar(hm, "row", annotation_cov, 
+                                    display   = "visible", 
+                                    thickness = as.integer(20))
     # Covariate to identify Reference and Observed data
     ## Seperate and identify observed and reference cells
     if (typeof(unlist(ref_groups)) != "character"){
@@ -249,19 +239,19 @@ Create_NGCHM <- function(plot_data,
         type_palette <- get_group_color_palette()(length(types))
         names(type_palette) <- types 
         
-        colMap_type <- chmNewColorMap(values        = types, 
-                                      names         = types,
-                                      colors        = type_palette,
-                                      missing.color = "white", 
-                                      type          = "linear")
+        colMap_type <- NGCHM::chmNewColorMap(values        = types, 
+                                             names         = types,
+                                             colors        = type_palette,
+                                             missing.color = "white", 
+                                             type          = "linear")
         
-        type_cov <- chmNewCovariate(fullname         = 'Cell Type', 
-                                    values           = cell_type, 
-                                    value.properties = colMap_type,
-                                    type             = "discrete")
-        hm <- chmAddCovariateBar(hm, "row", type_cov, 
-                                 display   = "visible", 
-                                 thickness = as.integer(20))
+        type_cov <- NGCHM::chmNewCovariate(fullname         = 'Cell Type', 
+                                           values           = cell_type, 
+                                           value.properties = colMap_type,
+                                           type             = "discrete")
+        hm <- NGCHM::chmAddCovariateBar(hm, "row", type_cov, 
+                                        display   = "visible", 
+                                        thickness = as.integer(20))
     }
     
     #---------------------------------------Export the heat map-----------------------------------------------------------------------------------------------------------------------
@@ -271,6 +261,6 @@ Create_NGCHM <- function(plot_data,
     ## adjust label display size 
     #hm@rowDisplayLength <- as.integer(10) 
     logging::loginfo(paste("Saving new NGCHM object"))
-    suppressMessages(chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen))
+    suppressMessages(NGCHM::chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen))
 }
 

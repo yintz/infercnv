@@ -44,9 +44,9 @@ subtract_ref <- function(average_data,
     # Reference gene within reference groups
     # now reference indexes of ref_groups are relative to the full average_data matrix and not the average_reference_obs references submatrix
     for (ref_group in ref_groups) {
-        
+
         if (ref_subtract_method == "by_mean") {
-            
+
             grp_average <- rowMeans(average_data[,ref_group, drop=FALSE], na.rm=TRUE)
             if(is.null(average_max)){
                 average_max <- grp_average
@@ -56,9 +56,9 @@ subtract_ref <- function(average_data,
             }
             average_max <- pmax(average_max, grp_average)
             average_min <- pmin(average_min, grp_average)
-            
+
         } else if (ref_subtract_method == "by_quantiles") {
-            
+
             grp_expression_data = average_data[,ref_group, drop=FALSE, na.rm=TRUE]
             quants = x = apply(grp_expression_data, 1, function(x) { quantile(x, quantiles, na.rm=TRUE);})
             quants = t(x)
@@ -79,21 +79,21 @@ subtract_ref <- function(average_data,
             stop(paste("Error, unsupported ref_subtract_method specified: ", ref_subtract_method, sep=""))
         }
     }
-    
+
     # Remove the Max and min averages (or quantiles) of the reference groups for each gene
 
     # debugging
-    #ref_gene_group_means = data.frame(avg_min=average_min, avg_max=average_max);  
+    #ref_gene_group_means = data.frame(avg_min=average_min, avg_max=average_max);
     #write.table(ref_gene_group_means, file.path(out_path, "ref_gene_group_means.dat"), quote=F, sep="\t")
-    
-    
+
+
     for(gene_i in 1:nrow(average_data)){
         current_col <- average_data[gene_i, ]
 
         # original code
         i_max <- which(current_col > average_max[gene_i])
         i_min <- which(current_col < average_min[gene_i])
-        
+
         row_init <- rep(0, length(current_col))
         if(length(i_max) > 0){
             row_init[i_max] <- current_col[i_max] - average_max[gene_i]
@@ -103,7 +103,7 @@ subtract_ref <- function(average_data,
         }
         average_data[gene_i, ] <- row_init
     }
-    
+
     return(average_data)
 }
 
@@ -311,11 +311,11 @@ remove_outliers_norm <- function(data,
             return(data)
         }
         if (out_method == "average_bound"){
-            
+
             bounds = get_average_bounds(data)
             lower_bound = bounds[1]
             upper_bound = bounds[2]
-                        
+
             # Plot bounds on data
             if(!is.na(plot_step)){
                 pdf(plot_step, useDingbats=FALSE)
@@ -339,7 +339,7 @@ remove_outliers_norm <- function(data,
         logging::loginfo(paste("::remove_outlier_norm:",
                                "lower_bound:" , lower_bound,
                                "upper_bound:", upper_bound) )
-        
+
         if(!is.na(plot_step)){
             pdf(plot_step, useDingbats=FALSE)
             boxplot(data)
@@ -354,9 +354,9 @@ remove_outliers_norm <- function(data,
 
     data[data < lower_bound] <- lower_bound
     data[data > upper_bound] <- upper_bound
-    
+
     return(data)
-    
+
 }
 
 # Center data after smoothing. Center with in cells using median.
@@ -374,7 +374,7 @@ center_smoothed <- function(data_smoothed){
 
     # Center within columns (cells)
     row_median <- apply(data_smoothed, 2, function(x) { median(x, na.rm=T) } )
-    
+
     return(t(apply(data_smoothed, 1, "-", row_median)))
 }
 
@@ -435,7 +435,7 @@ get_group_color_palette <- function(){
 #' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
 #' @param use_zscores If true, converts log(expression) data to zscores
-#' 
+#'
 #' @return
 #' Returns a list including:
 #'     CNV matrix before visualization.
@@ -493,17 +493,17 @@ process_data <- function(data,
     ret_list[["REF_GROUPS"]] = groups_ref
     ret_list[["REF_OBS_IDX"]] = reference_obs
     chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])))
-    
+
     # Plot incremental steps.
     if (plot_steps){
         logging::loginfo(paste("\n\tSTEP 01: incoming data\n\n"))
-        
+
         save(list=ls(), file=file.path(out_path, "01_incoming_data.Rdata"))
-        
+
         plot_step(data=data,
                   plot_name=file.path(out_path,
                                       "01_incoming_data.pdf"))
-        
+
         plot_cnv(plot_data=data,
                  contigs=chr_order_for_plotting,
                  k_obs_groups=k_obs_groups,
@@ -514,6 +514,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -534,7 +535,7 @@ process_data <- function(data,
             logging::loginfo(paste("\n\tSTEP 02: log transformation of data\n\n"))
 
             save(list=ls(), file=file.path(out_path, "02_transformed.Rdata"))
-            
+
             plot_step(data=data,
                       plot_name=file.path(out_path,
                                           "02_transformed.pdf"))
@@ -549,6 +550,7 @@ process_data <- function(data,
                      ref_contig=NULL,
                      contig_cex=1,
                      ref_groups=ret_list[["REF_GROUPS"]],
+                     name_ref_groups=name_ref_groups,
                      out_dir=out_path,
                      color_safe_pal=FALSE,
                      x.center=0,
@@ -560,12 +562,12 @@ process_data <- function(data,
         }
     }
 
-    
+
     if (make_zero_NA) {
         data[data==0] = NA
     }
-    
-    
+
+
     # Remove genes that aren't sufficiently expressed, according to min mean count cutoff.
     # Examines the original (non-log-transformed) data, gets mean for each gene, and removes genes
     #  with mean values below cutoff.
@@ -577,10 +579,10 @@ process_data <- function(data,
     ## note, changed to just using the reference cells and not the observed here. See method for more details.
     genes_min_cells_obs_and_ref <- above_min_cells_obs_and_ref(data, min_cells_per_gene=min_cells_per_gene,
                                                                obs_idx=ret_list[["REF_OBS_IDX"]], ref_idx=unlist(ret_list[["REF_GROUPS"]]))
-    
+
     # require both critiera:  min expression and min cell occupancy
     keep_gene_indices <- intersect(genes_min_expr_cutoff, genes_min_cells_obs_and_ref)
-    
+
 
 
     if (!is.null(keep_gene_indices)){
@@ -603,7 +605,7 @@ process_data <- function(data,
             logging::loginfo(paste("\n\tSTEP 03: Removing lowly expressed genes\n\n"))
 
             save(list=ls(), file=file.path(out_path, "03_reduced_by_cutoff.Rdata"))
-            
+
             plot_step(data=data,
                       plot_name=file.path(out_path,
                                           "03_reduced_by_cutoff.pdf"))
@@ -618,6 +620,7 @@ process_data <- function(data,
                      ref_contig=NULL,
                      contig_cex=1,
                      ref_groups=ret_list[["REF_GROUPS"]],
+                     name_ref_groups=name_ref_groups,
                      out_dir=out_path,
                      color_safe_pal=FALSE,
                      x.center=0,
@@ -625,16 +628,16 @@ process_data <- function(data,
                      obs_title="Observations (Cells)",
                      ref_title="References (Cells)",
                      output_filename="infercnv.03_reduced_by_cutoff")
-            
+
         }
-        
+
     } else {
         logging::loginfo(paste("::process_data:Reduce by cutoff.", sep=""))
         logging::logwarn(paste("::No indicies left to keep.",
                                " Stoping."))
         stop(998)
     }
-    
+
 
     # Reduce contig info
     chr_order <- gene_order[1]  # resetting
@@ -643,7 +646,7 @@ process_data <- function(data,
 
 
     if (use_zscores) {
-        
+
         # center and convert to z-scores
         logging::loginfo(paste("::center_and_Zscore_conversion", sep=""))
         data = t(scale(t(data), center=T, scale=T))
@@ -668,28 +671,28 @@ process_data <- function(data,
     if (is.na(max_centered_threshold)) {
 
         threshold = mean(abs(get_average_bounds(data)))
-        
-        logging::loginfo(paste("::process_data:setting max centered expr threshold using quantiles, set to: +/-: ", threshold)) 
+
+        logging::loginfo(paste("::process_data:setting max centered expr threshold using quantiles, set to: +/-: ", threshold))
     }
     else {
         logging::loginfo(paste("::process_data:setting max centered expr threshold using specified settings of +/-: ", threshold))
     }
-    
+
     # Cap values between threshold and -threshold, retaining earlier center
     data[data > threshold] <- threshold
     data[data < (-1 * threshold)] <- -1 * threshold
-    
+
     # Plot incremental steps.
     if (plot_steps){
 
         logging::loginfo(paste("\n\tSTEP 04: centering with max expression threshold\n\n"))
 
         save(list=ls(), file=file.path(out_path, "04_center_with_threshold.Rdata"))
-        
+
         plot_step(data=data,
                   plot_name=file.path(out_path,
                                       "04_center_with_threshold.pdf"))
-        
+
         plot_cnv(plot_data=data,
                  contigs=chr_order_for_plotting,
                  k_obs_groups=k_obs_groups,
@@ -700,6 +703,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -707,10 +711,10 @@ process_data <- function(data,
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
                  output_filename="infercnv.04_center_with_threshold")
-                
+
     }
-    
-    
+
+
     # Smooth the data with gene windows
     data_smoothed <- smooth_window(data, window_length)
 
@@ -722,7 +726,7 @@ process_data <- function(data,
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "05_smoothed.pdf"))
-        
+
         save(list=ls(), file=file.path(out_path, "05_smoothed.Rdata"))
 
         plot_cnv(plot_data=data_smoothed,
@@ -735,6 +739,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -743,7 +748,7 @@ process_data <- function(data,
                  ref_title="References (Cells)",
                  output_filename="infercnv.05_smoothed")
     }
-    
+
     # Center cells/observations after smoothing. This helps reduce the
     # effect of complexity.
     data_smoothed <- center_smoothed(data_smoothed)
@@ -768,6 +773,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -775,10 +781,10 @@ process_data <- function(data,
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
                  output_filename="infercnv.06_centering_of_smoothed")
-        
+
     }
-    
-    
+
+
     # Remove average reference
     i_ref_obs <- which(colnames(data_smoothed) %in% reference_obs)
     data_smoothed <- subtract_ref(average_data=data_smoothed,
@@ -811,6 +817,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -818,9 +825,9 @@ process_data <- function(data,
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
                  output_filename="infercnv.07_remove_average")
-        
+
     }
-    
+
 
     # Remove Ends
     #logging::logdebug(c("chr_order: ", chr_order))
@@ -847,7 +854,7 @@ process_data <- function(data,
         logging::loginfo(paste("\n\tSTEP 08: removing genes at chr ends\n\n"))
 
         save(list=ls(), file=file.path(out_path, "08_remove_ends.Rdata"))
-        
+
         plot_step(data=data_smoothed,
                             plot_name=file.path(out_path,
                                                 "08_remove_ends.pdf"))
@@ -862,6 +869,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -869,7 +877,7 @@ process_data <- function(data,
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
                  output_filename="infercnv.08_remove_ends")
-        
+
     }
     logging::loginfo(paste("::process_data:Remove ends, ",
                            "new dimensions (r,c) = ",
@@ -880,7 +888,7 @@ process_data <- function(data,
                            ".", sep=""))
 
     # Clear noise: set values to zero that are in the defined noise range
-    
+
     if ( (! is.na(noise_filter)) && noise_filter > 0) {
         logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
         data_smoothed <- clear_noise(smooth_matrix=data_smoothed,
@@ -892,8 +900,8 @@ process_data <- function(data,
                                                         ref_idx=unlist(ret_list[["REF_GROUPS"]]),
                                                         quantiles=noise_quantiles)
     }
-    
-    
+
+
     logging::loginfo(paste("::process_data:Remove noise, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
@@ -901,19 +909,19 @@ process_data <- function(data,
                            " Min=", min(data_smoothed, na.rm=TRUE),
                            " Max=", max(data_smoothed, na.rm=TRUE),
                            ".", sep=""))
-    
-    
+
+
                                         # Plot incremental steps.
     if (plot_steps){
-        
+
         logging::loginfo(paste("\n\tSTEP 09: Denoising\n\n"))
-        
+
         save(list=ls(), file=file.path(out_path, "09_denoise.Rdata"))
-        
+
         plot_step(data=data_smoothed,
                   plot_name=file.path(out_path,
                                       "09_denoise.pdf"))
-        
+
         plot_cnv(plot_data=data_smoothed,
                  contigs=chr_order_for_plotting,
                  k_obs_groups=k_obs_groups,
@@ -924,6 +932,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -931,17 +940,17 @@ process_data <- function(data,
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
                  output_filename="infercnv.09_denoised")
-        
+
     }
-    
-    
+
+
     # Output before viz outlier
     ret_list[["PREVIZ"]] = data_smoothed
 
     # Remove outliers for viz
     remove_outlier_viz_pdf <- NA
     if (plot_steps){
-                
+
         remove_outlier_viz_pdf <- file.path(out_path,
                                             "10A_remove_outlier.pdf")
     }
@@ -959,7 +968,7 @@ process_data <- function(data,
         logging::loginfo(paste("\n\tSTEP 10: Removing outliers\n\n"))
 
         save(list=ls(), file=file.path(out_path, "10B_remove_outlier.Rdata"))
-        
+
         plot_step(data=ret_list[["VIZ"]],
                   plot_name=file.path(out_path,
                                       "10B_remove_outlier.pdf"))
@@ -974,6 +983,7 @@ process_data <- function(data,
                  ref_contig=NULL,
                  contig_cex=1,
                  ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -982,7 +992,7 @@ process_data <- function(data,
                  ref_title="References (Cells)",
                  output_filename="infercnv.10_removed_outliers")
     }
-    
+
     logging::loginfo(paste("::process_data:remove outliers, ",
                            "new dimensions (r,c) = ",
                            paste(dim(ret_list[["VIZ"]]), collapse=","),
@@ -1049,6 +1059,7 @@ plot_cnv <- function(plot_data,
                      reference_idx,
                      ref_contig,
                      ref_groups,
+                     name_ref_groups,
                      out_dir,
                      title,
                      obs_title,
@@ -1115,22 +1126,24 @@ plot_cnv <- function(plot_data,
     }
 
     # Calculate how many rows will be made for the number of columns in the grouping key
-    grouping_key_rown <- ceiling(length(obs_annotations_names)/grouping_key_coln)
+    grouping_key_rown <- c()
+    grouping_key_rown[1] <- ceiling(length(obs_annotations_names)/grouping_key_coln[1])
+    grouping_key_rown[2] <- ceiling(length(name_ref_groups)/grouping_key_coln[2])
     # Calculate how much bigger the output needs to be to accodomate for the grouping key
-    grouping_key_height <- (grouping_key_rown + 2) * 0.175
+    grouping_key_height <- c((grouping_key_rown[2] + 2) * 0.175, (grouping_key_rown[1] + 3) * 0.175)
 
     # Rows observations, Columns CHR
     if (output_format == "pdf") {
         pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
             useDingbats=FALSE,
             width=10,
-            height=(8 + grouping_key_height),
+            height=(8.13 + sum(grouping_key_height)),
             paper="USr")
     }
     else if (output_format == "png") {
         png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
             width=10,
-            height=(8 + grouping_key_height),
+            height=(8.13 + sum(grouping_key_height)),
             units="in",
             res=600)
     }
@@ -1186,7 +1199,7 @@ plot_cnv <- function(plot_data,
                           num_obs_groups=k_obs_groups,
                           obs_annotations_groups=obs_annotations_groups,
                           obs_annotations_names=obs_annotations_names,
-                          grouping_key_coln=grouping_key_coln,
+                          grouping_key_coln=grouping_key_coln[1],
                           cluster_by_groups=cluster_by_groups,
                           cnv_title=title,
                           cnv_obs_title=obs_title,
@@ -1202,6 +1215,8 @@ plot_cnv <- function(plot_data,
     if(!is.null(ref_idx)){
         plot_cnv_references(ref_data=ref_data_t,
                             ref_groups=ref_groups,
+                            name_ref_groups=name_ref_groups,
+                            grouping_key_coln=grouping_key_coln[2],
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=out_dir,
@@ -1496,28 +1511,30 @@ plot_observations_layout_original <- function()
 plot_observations_layout <- function(grouping_key_height)
 {
     ## Plot observational samples
-    obs_lmat <- c(0,  0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-                  8, 10, 0, 0, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-                  0,  0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5,  2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  6,  6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    obs_lmat <- c(0,  0,  0,  0,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
+                  # 8,  0, 10,  0,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
+                  8, 11, 10,  0,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
+                  0,  0,  0,  0,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+                 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+                  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,  6,
+                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0)
     obs_lmat <- matrix(obs_lmat,ncol=14,byrow=TRUE)
 
     obs_lhei <- c(1.125, 2.215, .15,
                    .5, .5, .5,
                    .5, .5, .5,
                    .5, .5, .5,
-                  0.03, grouping_key_height+0.04, 0.03)
+                  0.03, grouping_key_height[1]+0.04, grouping_key_height[2]+0.04, 0.03)
 
     return(list(lmat=obs_lmat,
            lhei=obs_lhei,
@@ -1544,6 +1561,8 @@ plot_observations_layout <- function(grouping_key_height)
 # Void
 plot_cnv_references <- function(ref_data,
                                 ref_groups,
+                                name_ref_groups,
+                                grouping_key_coln,
                                 col_pal,
                                 contig_seps,
                                 file_base_name,
@@ -1593,6 +1612,14 @@ plot_cnv_references <- function(ref_data,
         ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
         ref_data <- ref_data[, order_idx, drop=FALSE]
     }
+
+    split_groups <- c()
+    i_cur_idx <- 1
+    for (ref_grp in ref_groups){
+        split_groups <- c(split_groups, rep(i_cur_idx, length(ref_grp)))
+        i_cur_idx <- i_cur_idx + 1
+    }
+
     # Make row color column colors from groupings
     logging::loginfo(paste("plot_cnv_references:Number reference groups=",
                            length(ref_groups)),
@@ -1608,6 +1635,10 @@ plot_cnv_references <- function(ref_data,
         reference_ylab <- cnv_ref_title
         row.names(ref_data) <- rep("", number_references)
     }
+
+
+    row_groupings <- as.matrix(get_group_color_palette()(length(table(split_groups)))[split_groups])
+    annotations_legend <- cbind(name_ref_groups, get_group_color_palette()(length(name_ref_groups)))
 
     # Generate the Sep list for heatmap.3
     contigSepList <- create_sep_list(row_count=nrow(ref_data),
@@ -1634,6 +1665,10 @@ plot_cnv_references <- function(ref_data,
                                    x.center=x.center,
                                    color.FUN=col_pal,
                                    sepList=contigSepList,
+                                   # Row colors and legend
+                                   RowIndividualColors=row_groupings,
+                                   annotations_legend=annotations_legend,
+                                   grouping_key_coln=grouping_key_coln,
                                    # Seperate by contigs
                                    sep.color=c("black","black"),
                                    sep.lty=1,
@@ -1679,7 +1714,7 @@ above_min_mean_expr_cutoff <- function(data, cutoff){
 
 
 #' indicate which genes (rows) have at least specified min_cells_per_gene
-#' 
+#'
 #' Args
 #' @param data Data (expression) matrix
 #' @param min_cells_per_gene int indicating number of cells required per gene for both obs and ref data
@@ -1687,26 +1722,26 @@ above_min_mean_expr_cutoff <- function(data, cutoff){
 #' @param ref_idx vector containing the column indices for teh reference (normal) cells
 
 above_min_cells_obs_and_ref = function(data, min_cells_per_gene, obs_idx, ref_idx) {
-    
+
     ref_data = data[,ref_idx]
-    
+
     ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
 
     #### chromosomes lost in the observed (tumor) may have no expression and don't want to lose those cells via filtering!
 
-    ## require expression in reference, needed for determining gain / loss.  
-    
+    ## require expression in reference, needed for determining gain / loss.
+
     #obs_data = data[,obs_idx]
-    
+
     #obs_genes_passed = which(apply(obs_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
-    
+
     #both_passed = intersect(ref_genes_passed, obs_genes_passed)
 
     #return(both_passed)
 
     return(ref_genes_passed)
-    
+
 }
 
 
@@ -1811,12 +1846,12 @@ clear_noise <- function(smooth_matrix, threshold){
 }
 
 # clear_noise_via_ref_quantiles: define noise levels based on quantiles within the ref (normal cell) distribution.
-# Any data points within this defined quantile are set to zero. 
+# Any data points within this defined quantile are set to zero.
 
 clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.025, 0.975) ) {
-   
+
     vals = smooth_matrix[,ref_idx]
-        
+
     vals[vals==0] = NA  # use remaining ref vals that weren't already turned to zeros
 
     lower_quantile = quantiles[1]
@@ -1824,22 +1859,22 @@ clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.
 
     logging::loginfo(paste("::clear_noise_via_ref_quantiles: using noise quantiles set at: ",
                            lower_quantile, "-", upper_quantile, sep=""))
-    
+
     lower_bound <- mean(apply(vals, 2,
                               function(x) quantile(x, probs=lower_quantile, na.rm=TRUE)))
-    
+
     upper_bound <- mean(apply(vals, 2,
                               function(x) quantile(x, probs=upper_quantile, na.rm=TRUE)))
 
     logging::loginfo(paste("::clear_noise_via_ref_quantiles: removing noise between bounds: ",
                            lower_bound, "-", upper_bound, sep=" "))
-    
+
     smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = 0
-    
+
     return(smooth_matrix)
 }
 
-    
+
 # Remove the tails of values of a specific chromosome.
 # The smooth_matrix values are expected to be in genomic order.
 # If the tail is too large and no contig will be left 1/3 of the
@@ -1905,14 +1940,14 @@ smooth_window <- function(data, window_length, smooth_ends=TRUE, re_center=TRUE)
                          2,
                          smooth_ends_helper,
                          tail_length=tail_length)
-        
+
     }
     if (re_center) {
-        
+
         # re-center genes now after the smoothing:
         data_sm = sweep(data_sm, 1, rowMeans(data_sm, na.rm=TRUE))
     }
-    
+
     # Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
@@ -1931,18 +1966,18 @@ smooth_ends_helper <- function(obs_data, tail_length) {
 
     # strip NAs out and replace after smoothing
     orig_obs_data = obs_data
-    
+
     nas = is.na(obs_data)
 
     obs_data = obs_data[!nas]
 
     obs_length <- length(obs_data)
     end_data <- obs_data
-    
+
     # end_data will have the end positions replaced with mean values, smoothing just at the ends.
-    
+
     obs_count <- length(obs_data)
-    
+
     for (tail_end in 1:tail_length) {
 
         # algorithm generates smoothing windows from the end like so:
@@ -1952,7 +1987,7 @@ smooth_ends_helper <- function(obs_data, tail_length) {
         # <   |   >
         # <    |    >
         # where | is the central position assigned the mean of observations in the window.
-        
+
         bounds <- tail_end - 1
         end_tail <- obs_count - bounds
 
@@ -1964,11 +1999,11 @@ smooth_ends_helper <- function(obs_data, tail_length) {
                                     "|", tail_end, "|",
                                     tail_end + bounds,">", sep=" "))
         }
-        
+
         end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
                                             (tail_end + bounds)],
                                    na.rm=TRUE)
-        
+
 
         if (show_debug_logging_here) {
             logging::logdebug(paste("::smooth_ends_helper: tail range <",
@@ -1976,14 +2011,14 @@ smooth_ends_helper <- function(obs_data, tail_length) {
                                     "|", end_tail, "|",
                                     end_tail + bounds, ">", sep=" "))
         }
-        
+
         end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
                                             (end_tail + bounds)],
                                    na.rm=TRUE)
     }
-    
+
     orig_obs_data[! nas] = end_data  # replace original data with end-smoothed data
-    
+
     return(orig_obs_data)
 }
 
@@ -2000,14 +2035,14 @@ smooth_window_helper <- function(obs_data, window_length){
 
     nas = is.na(obs_data)
     vals = obs_data[! nas]
-    
+
     smoothed = filter(vals, rep(1 / window_length, window_length), sides=2)
-    
+
     ind = which(! is.na(smoothed))
     vals[ind] = smoothed[ind]
 
     obs_data[! nas] = vals
-    
+
     return(obs_data)
 }
 
@@ -3281,12 +3316,13 @@ heatmap.cnv <-
     ## 4) draw the side color bars - for row
     if(!.invalid(RowIndividualColors)) {
       par(mar=c(margins[1],0,0,0.5))
-      image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=force_add)
-    }
+      # image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=force_add)
+      image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=FALSE)
 
-    if(!.invalid(RowIndividualColors)) {
+        if (dim(RowIndividualColors)[2] > 1) {
         par(mar=c(margins[1],0,0,0.5))
-        image(rbind(1:nr),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
+            image(rbind(1:nr),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
+        }
     }
 
     ## 5) draw the side color bars - for col
@@ -3307,14 +3343,13 @@ heatmap.cnv <-
       }
     }
 
-    if(key) {
-        par(mar=c(0,0,0,0))
-        plot(1, type="n", axes=FALSE, xlab="", ylab="")
-        legend(x=0.6,y=1.2 ,legend=annotations_legend[,1],
-            cex=1.2,
-            fill=annotations_legend[,2],
-            ncol=grouping_key_coln)
-    }
+
+    par(mar=c(0,0,0,0))
+    plot(1, type="n", axes=FALSE, xlab="", ylab="")
+    legend(x=0.6,y=1.2 ,legend=annotations_legend[,1],
+        cex=1.2,
+        fill=annotations_legend[,2],
+        ncol=grouping_key_coln)
 
 
     ## 7) col-dend and title
@@ -3529,7 +3564,8 @@ gdist <-
       "manhattan","canberra",
       "binary","minkowski"
       )
-  if(method %in% COMMON_METHODS){    
+
+  if(method %in% COMMON_METHODS){
     d <- dist(x=x,method=method,diag=diag,upper=upper,p=MoreArgs$p)
   } else if (method %in% c("correlation","correlation.of.observations","correlation.of.variables")){
     ##d <- .call.FUN(FUN,x,MoreArgs)
@@ -3671,7 +3707,7 @@ get.sep <-
 #' @param min_cells_per_gene Minimum number of cells to be expressed for a gene in the reference set to be retained.
 #' @param use_zscores Whether to calculate z scores from expression values for analysis or not.
 #' @param make_zero_NA Replaces 0 values in the matrix by NA.
-#' 
+#'
 #' @return
 #' No return, void.
 #' @export
@@ -3778,7 +3814,7 @@ infercnv <-
             name_ref_groups <- unlist(strsplit(name_ref_groups,","))  ## TOCHECK Could maybe require a list directly instead of a string with comas in between names?
         }
     }
-    
+
     if (ngchm == TRUE){ ## check if required java application ShaidyMapGen.jar exists.
         if (!is.null(path_to_shaidyMapGen)) {
             shaidy.path <- unlist(strsplit(path_to_shaidyMapGen, split = .Platform$file.sep))
@@ -3788,22 +3824,22 @@ infercnv <-
                 logging::logerror(error_message)
                 stop(error_message)
             }
-        } else { 
+        } else {
             path_to_shaidyMapGen <- Sys.getenv("SHAIDYMAPGEN")
             if (!file.exists(path_to_shaidyMapGen)){ ## check if envionrmental variable is passed
-                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
+                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.",
                                        "Check that the correct pathway is being used.")
                 logging::logerror(error_message)
                 stop(error_message)
-            } 
+            }
         }
     }
-    
+
     bounds_viz <- c(NA,NA)
     if (! (is.null(bound_threshold_vis) || is.na(bound_threshold_vis) ) ) {
         bounds_viz <- as.numeric(unlist(strsplit(bound_threshold_vis,",")))  ## TOCHECK maybe require a list directly instead of a string to split?
     }
-    
+
     # do_work = 0
 
     passed_args <- list(x=x, gene_order=gene_order, annotations=annotations, cutoff=cutoff,
@@ -3992,9 +4028,14 @@ infercnv <-
         obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format and to remove references indexes
         obs_annotations_groups <- as.integer(obs_annotations_groups)  ## they should already all be integers because they are based on "counter"
 
-        grouping_key_coln <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
-        if (grouping_key_coln < 1) {
-            grouping_key_coln <- 1
+        grouping_key_coln <- c()
+        grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
+        if (grouping_key_coln[1] < 1) {
+            grouping_key_coln[1] <- 1
+        }
+        grouping_key_coln[2] <- floor(123/(max(nchar(name_ref_groups)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
+        if (grouping_key_coln[2] < 1) {
+            grouping_key_coln[2] <- 1
         }
 
         logging::loginfo("Saving workspace")
@@ -4005,15 +4046,15 @@ infercnv <-
     }
 
 
-    
+
     #if (all.equal(bounds_viz, c(NA,NA))) {
-        
+
         # determine viz bounds in a data-driven way.
     #    d = as.numeric(as.matrix(expression_data))
     #    q = quantile(d[d>0], c(0.9))
     #    bounds_viz=c(-1*q, q)
-        
-        
+
+
         #if (length(bounds_viz) != 2){
         #stop(paste("Please use the correct format for the argument",
         #                   "bound_threshold_vis . Two numbers seperated",
@@ -4023,9 +4064,9 @@ infercnv <-
         #                   "vis_bound_threshold=\"-1,1\""))
     #}
 
-    
 
-    
+
+
     if (load_workspace < 2) {  # 0 or 1
         ret_list = process_data(data=expression_data,
                                gene_order=input_gene_order,
@@ -4052,7 +4093,7 @@ infercnv <-
                                min_cells_per_gene=min_cells_per_gene,
                                use_zscores=use_zscores,
                                make_zero_NA=make_zero_NA)
-        
+
 
         to_save_processed <- c("ret_list", "num_obs_groups", "obs_annotations_groups", "obs_annotations_names", "grouping_key_coln", "hclust_method", "input_gene_order", "name_ref_groups_indices")  # only save what will be needed for plotting and can not be changed without the processing having to be changed too
 
@@ -4081,6 +4122,7 @@ infercnv <-
              ref_contig=clustering_contig,
              contig_cex=contig_label_size,
              ref_groups=ret_list[["REF_GROUPS"]],
+             name_ref_groups=name_ref_groups,
              out_dir=output_dir,
              color_safe_pal=use_color_safe,
              hclust_method=hclust_method,
@@ -4112,7 +4154,7 @@ infercnv <-
 
 
 get_average_bounds = function (data) {
-    
+
     lower_bound <- mean(apply(data, 2,
                               function(x) quantile(x, na.rm=TRUE)[[1]]))
     upper_bound <- mean(apply(data, 2,
