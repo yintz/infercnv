@@ -11,7 +11,7 @@ Description: Using single-cell RNA-Seq expression to visualize CNV in cells.
 Depends: R(>= 3.2.1)
 License: BSD_3_clause + file LICENSE
 LazyData: TRUE
-VignetteBuilder: knitr
+VignetteBuilder: rmarkdown
 Suggests: BiocStyle, knitr, rmarkdown, testthat
 Enhances: fastcluster, NGCHM
 RoxygenNote: 6.0.1
