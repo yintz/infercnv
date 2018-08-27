@@ -3660,6 +3660,7 @@ gdist <-
       "manhattan","canberra",
       "binary","minkowski"
       )
+
   if(method %in% COMMON_METHODS){
     d <- dist(x=x,method=method,diag=diag,upper=upper,p=MoreArgs$p)
   } else if (method %in% c("correlation","correlation.of.observations","correlation.of.variables")){
