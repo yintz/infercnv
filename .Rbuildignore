@@ -5,6 +5,7 @@
 ^infercnv.Rdata
 ^inferCNV.Rproj
 ^Rstudio_helpers
+^example/full_dataset
 ^example/test_data
 ^example/before_downsize
 ^example_output
