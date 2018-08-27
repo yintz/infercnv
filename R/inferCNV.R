@@ -459,6 +459,7 @@ process_data <- function(data,
                       obs_annotations_groups,
                       obs_annotations_names,
                       grouping_key_coln,
+                      cluster_by_groups,
                       k_obs_groups=1,
                       plot_steps=FALSE,
                       contig_tail= (window_length - 1) / 2,
@@ -510,6 +511,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -546,6 +548,7 @@ process_data <- function(data,
                      obs_annotations_groups=obs_annotations_groups,
                      obs_annotations_names=obs_annotations_names,
                      grouping_key_coln=grouping_key_coln,
+                     cluster_by_groups=cluster_by_groups,
                      reference_idx=ret_list[["REF_OBS_IDX"]],
                      ref_contig=NULL,
                      contig_cex=1,
@@ -616,6 +619,7 @@ process_data <- function(data,
                      obs_annotations_groups=obs_annotations_groups,
                      obs_annotations_names=obs_annotations_names,
                      grouping_key_coln=grouping_key_coln,
+                     cluster_by_groups=cluster_by_groups,
                      reference_idx=ret_list[["REF_OBS_IDX"]],
                      ref_contig=NULL,
                      contig_cex=1,
@@ -645,11 +649,25 @@ process_data <- function(data,
     gene_order <- NULL
 
 
+
+    ##########################################################################################
+    ## Step 3: Centering data (w/ or w/o z-score transform) and max-centered threshold applied
+    
     if (use_zscores) {
 
         # center and convert to z-scores
         logging::loginfo(paste("::center_and_Zscore_conversion", sep=""))
-        data = t(scale(t(data), center=T, scale=T))
+
+        # remember, genes are rows, cells are cols
+        data = t(scale(t(data), center=T, scale=F)) # just center data
+
+        # ref data represent the null distribution
+        ref_idx=unlist(ret_list[["REF_GROUPS"]])
+        ref_data = data[,ref_idx]
+        gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=T)})
+
+        data = sweep(data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
+        
     }
     else {
         # just center
@@ -699,6 +717,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -715,11 +734,14 @@ process_data <- function(data,
     }
 
 
-    # Smooth the data with gene windows
-    data_smoothed <- smooth_window(data, window_length)
+    ###########################################################################
+    # Step 5: For each cell, smooth the data along chromosome with gene windows
 
+    logging::loginfo(paste("::process_data:Step 5: Smoothing per cell data by chromosome.", sep=""))
+    data_smoothed <- smooth_window(data, window_length)
+    
     data <- NULL
-    logging::loginfo(paste("::process_data:Smoothed data.", sep=""))
+
     # Plot incremental steps.
     if (plot_steps){
         logging::loginfo(paste("\n\tSTEP 05: Smoothing data by chromosome\n\n"))
@@ -735,6 +757,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -749,10 +772,20 @@ process_data <- function(data,
                  output_filename="infercnv.05_smoothed")
     }
 
+
+
+    ## 
+    # Step 6: 
     # Center cells/observations after smoothing. This helps reduce the
-    # effect of complexity.
+                                        # effect of complexity.
+    logging::loginfo(paste("::Step 06: centering smoothed data by cell", sep=""))
     data_smoothed <- center_smoothed(data_smoothed)
 
+                                        # recenter by gene now, so all genes centered at zero.
+    logging::loginfo(paste("::Step 06: recentering by gene", sep=""))
+    data_smoothed <- sweep(data_smoothed, 1, rowMeans(data_smoothed, na.rm=T), FUN="-")
+    
+    
     # Plot incremental steps.
     if (plot_steps){
 
@@ -769,6 +802,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -813,6 +847,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -829,6 +864,7 @@ process_data <- function(data,
     }
 
 
+    ## Step 08:
     # Remove Ends
     #logging::logdebug(c("chr_order: ", chr_order))
     #logging::logdebug(chr_order)
@@ -865,6 +901,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -887,20 +924,38 @@ process_data <- function(data,
                            " Max=", max(data_smoothed, na.rm=TRUE),
                            ".", sep=""))
 
+
+    ########################################
+    # return to regular space from log space
+    data_smoothed = 2^data_smoothed - 1
+
+    
+    ################################
     # Clear noise: set values to zero that are in the defined noise range
 
-    if ( (! is.na(noise_filter)) && noise_filter > 0) {
-        logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
-        data_smoothed <- clear_noise(smooth_matrix=data_smoothed,
-                                      threshold=noise_filter)
+    if (! is.na(noise_filter)) {
+
+        if (noise_filter > 0) {
+            logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
+            data_smoothed <- clear_noise(smooth_matrix=data_smoothed,
+                                         threshold=noise_filter,
+                                         adjust_towards_zero=TRUE)
+        }
+        else {
+                                        # noise == 0 or negative...
+                                        # don't remove noise.
+        }
+        
     }
     else {
+        # default, use quantiles, if NA 
         logging::loginfo(paste("::process_data:Remove noise, noise threshold defined via quantiles: ", noise_quantiles))
         data_smoothed <- clear_noise_via_ref_quantiles(smooth_matrix=data_smoothed,
                                                         ref_idx=unlist(ret_list[["REF_GROUPS"]]),
-                                                        quantiles=noise_quantiles)
+                                                       quantiles=noise_quantiles,
+                                                       adjust_towards_zero=TRUE)
     }
-
+    
 
     logging::loginfo(paste("::process_data:Remove noise, ",
                            "new dimensions (r,c) = ",
@@ -928,6 +983,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -962,6 +1018,7 @@ process_data <- function(data,
                                          plot_step=remove_outlier_viz_pdf)
     ret_list[["VIZ"]] <- data_smoothed
 
+    
     # Plot incremental steps.
     if (plot_steps){
 
@@ -979,6 +1036,7 @@ process_data <- function(data,
                  obs_annotations_groups=obs_annotations_groups,
                  obs_annotations_names=obs_annotations_names,
                  grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
                  reference_idx=ret_list[["REF_OBS_IDX"]],
                  ref_contig=NULL,
                  contig_cex=1,
@@ -1836,11 +1894,26 @@ order_reduce <- function(data, genomic_position){
 #                      removed as noise.
 # Returns:
 # Denoised matrix
-clear_noise <- function(smooth_matrix, threshold){
-
-    logging::loginfo(paste("********* ::clear_noise:Start. threshold: ", threshold,  sep=""))
+clear_noise <- function(smooth_matrix, threshold, adjust_towards_zero){
+        
+    logging::loginfo(paste("********* ::clear_noise:Start. threshold: ", threshold,  " adj_towards_zero: ", adjust_towards_zero, sep=""))
+        
     if (threshold > 0){
-        smooth_matrix[abs(smooth_matrix) < threshold] <- 0
+
+        if (adjust_towards_zero) {
+            
+            upper_noise_flags = (smooth_matrix > 0 & smooth_matrix <= threshold)
+            smooth_matrix[upper_noise_flags] = smooth_matrix[upper_noise_flags] - threshold
+            smooth_matrix[ smooth_matrix[upper_noise_flags] < 0 ] = 0
+
+            lower_noise_flags = (smooth_matrix < 0 & smooth_matrix >= -1*threshold)
+            smooth_matrix[lower_noise_flags] = smooth_matrix[lower_noise_flags] + threshold
+            smooth_matrix[ smooth_matrix[lower_noise_flags] > 0 ] = 0
+                        
+        }
+        else {
+            smooth_matrix[abs(smooth_matrix) < threshold] <- 0
+        }
     }
     return(smooth_matrix)
 }
@@ -1848,8 +1921,10 @@ clear_noise <- function(smooth_matrix, threshold){
 # clear_noise_via_ref_quantiles: define noise levels based on quantiles within the ref (normal cell) distribution.
 # Any data points within this defined quantile are set to zero.
 
-clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.025, 0.975) ) {
+clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.025, 0.975), adjust_towards_zero=TRUE) {
 
+    #save(list=c('smooth_matrix', 'ref_idx'), file='ladeda.rdata')
+    
     vals = smooth_matrix[,ref_idx]
 
     vals[vals==0] = NA  # use remaining ref vals that weren't already turned to zeros
@@ -1857,20 +1932,41 @@ clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.
     lower_quantile = quantiles[1]
     upper_quantile = quantiles[2]
 
-    logging::loginfo(paste("::clear_noise_via_ref_quantiles: using noise quantiles set at: ",
-                           lower_quantile, "-", upper_quantile, sep=""))
+    #logging::loginfo(paste("::clear_noise_via_ref_quantiles: using noise quantiles set at: ",
+    #                       lower_quantile, "-", upper_quantile, sep=""))
 
-    lower_bound <- mean(apply(vals, 2,
-                              function(x) quantile(x, probs=lower_quantile, na.rm=TRUE)))
+    #lower_bound <- mean(apply(vals, 2,
+    #                          function(x) quantile(x, probs=lower_quantile, na.rm=TRUE)))
 
-    upper_bound <- mean(apply(vals, 2,
-                              function(x) quantile(x, probs=upper_quantile, na.rm=TRUE)))
+    #upper_bound <- mean(apply(vals, 2,
+    #                          function(x) quantile(x, probs=upper_quantile, na.rm=TRUE)))
 
-    logging::loginfo(paste("::clear_noise_via_ref_quantiles: removing noise between bounds: ",
+    upper_bound <- mean(apply(vals, 2, function(x) sd(x, na.rm=T)))
+    
+    lower_bound <- -1 * upper_bound
+    
+    
+    logging::loginfo(paste(":: **** clear_noise_via_ref_quantiles **** : removing noise between bounds: ",
                            lower_bound, "-", upper_bound, sep=" "))
 
-    smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = 0
 
+    if (adjust_towards_zero) {
+        if (upper_bound > 0) {
+            upper_noise_flags = (smooth_matrix > 0 & smooth_matrix <= upper_bound)
+            smooth_matrix[upper_noise_flags] = smooth_matrix[upper_noise_flags] - upper_bound
+            smooth_matrix[ upper_noise_flags & smooth_matrix < 0 ] = 0 # dealing w/ over-correction
+        }
+        
+        if (lower_bound < 0) {
+            lower_noise_flags = (smooth_matrix < 0 & smooth_matrix > lower_bound)
+            smooth_matrix[lower_noise_flags] = smooth_matrix[lower_noise_flags] - lower_bound # subtracting a negative val, so making more pos
+            smooth_matrix[ lower_noise_flags & smooth_matrix > 0 ] = 0 # dealing w/ over-correction
+        }
+        
+    }
+    else {
+        smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = 0
+    }
     return(smooth_matrix)
 }
 
@@ -4080,6 +4176,7 @@ infercnv <-
                                obs_annotations_groups=obs_annotations_groups,
                                obs_annotations_names=obs_annotations_names,
                                grouping_key_coln=grouping_key_coln,
+                               cluster_by_groups=cluster_by_groups,
                                out_path=output_dir,
                                k_obs_groups=num_obs_groups,
                                plot_steps=plot_steps,

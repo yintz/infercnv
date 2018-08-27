@@ -23,7 +23,6 @@ main = function() {
 
 }
 
-
 load_data = function(matrix_filename) {
 
     message(paste("loading:", matrix_filename))
@@ -137,11 +136,39 @@ plot_ref_obs_comparison = function(data_bundle, gene_name) {
 }
 
 
-plot_chr_expr_lineplot = function(data_bundle, num_random_cells=5, ylim=NA, xlim=NA, plot_separate=F) {
+plot_mean_chr_expr_lineplot = function(data_bundle,
+                                       num_random_cells=0,
+                                       ylim=NA, xlim=NA,
+                                       plot_separate=F,
+                                       sep_obs_types=F,
+                                       incl_sd=F) {
+    
 
-    mean_expr_ref = rowMeans(data_bundle$ref_matrix, na.rm=T)
-    mean_expr_obs = rowMeans(data_bundle$obs_matrix, na.rm=T)
+    ref_data= data_bundle$ref_matrix
+    obs_data = data_bundle$obs_matrix
+    
+    if (num_random_cells > 0) {
+        ref_rand_cells = sample(x=colnames(ref_data), size=num_random_cells)
+        ref_data = ref_data[,ref_rand_cells]
 
+        obs_rand_cells = sample(x=colnames(obs_data), size=num_random_cells)
+        obs_data = obs_data[,obs_rand_cells]
+    }
+    
+    mean_expr_ref = rowMeans(ref_data, na.rm=T)
+    mean_expr_obs = rowMeans(obs_data, na.rm=T)
+
+    sd_expr_ref = NULL
+    sd_expr_obs = NULL
+    
+    if (incl_sd) {
+        sd_expr_ref = apply(ref_data, 1, sd)
+        sd_expr_obs = apply(obs_data, 1, sd)
+
+    }
+
+    
+    
     num_features = length(mean_expr_ref)
     idx = seq(1, num_features)
 
@@ -152,29 +179,89 @@ plot_chr_expr_lineplot = function(data_bundle, num_random_cells=5, ylim=NA, xlim
     
     
     if (length(ylim)==1 && is.na(ylim)) {
-        ylim = range(mean_expr_ref, mean_expr_obs, na.rm=T)
-    }
+        ylim = range(mean_expr_ref, mean_expr_obs)
 
+        if (incl_sd) {
+            ylim = range(ylim,
+                         mean_expr_ref + sd_expr_ref,
+                         mean_expr_ref - sd_expr_ref,
+                         sd_expr_obs + sd_expr_obs,
+                         sd_expr_obs - sd_expr_obs)            
+        }
+
+    }
+    
+    
+    plot_chr_expr_line_by_type = function(data) {
+
+        cells = colnames(data)
+        types = sapply(cells, function(x) { vals = strsplit(x, "_"); vals[[1]][1]})
+        df = data.frame(types=types, name=names(types))
+        by_types = split(df, df$types)
+        colors = rainbow(length(by_types))
+        col_idx = 1
+        for (type in names(by_types)) {
+            data_for_type = data[,colnames(data) %in% by_types[[type]]$name]
+            mean_expr = rowMeans(data_for_type, na.rm=T)
+            points(idx, mean_expr, col=colors[col_idx], t='l')
+            col_idx = col_idx + 1
+        }
+    }
     
     
     if (plot_separate) {
         prevpar = par(mfrow=c(2,1))
-        plot(idx, mean_expr_ref, col='gray', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
-        plot(idx, mean_expr_obs, col='blue', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
+
         
+        plot(idx, mean_expr_ref, col='gray', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
+
+        plot(idx, mean_expr_obs, col='salmon', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
+
+        if (incl_sd) {
+            points(idx, mean_expr_ref + sd_expr_ref, col='gray', t='l', lty=3)
+            points(idx, mean_expr_ref + -1*sd_expr_ref, col='gray', t='l', lty=3)
+            
+            points(idx, mean_expr_obs + sd_expr_obs, col='salmon', t='l', lty=3)
+            points(idx, mean_expr_obs + -1*sd_expr_obs, col='salmon', t='l', lty=3)
+
+        }
+        
+
+        if (sep_obs_types) {
+            plot_chr_expr_line_by_type(obs_data)
+        }
+
         par(prevpar)
 
     }
     else {
     
         plot(idx, mean_expr_ref, col='gray', t='l', ylim=ylim, xlim=xlim, main=data_bundle$filename)
-        points(idx, mean_expr_obs, col='blue', t='l')
+
+        points(idx, mean_expr_obs, col='salmon', t='l')
+
+        if (incl_sd) {
+            points(idx, mean_expr_ref + sd_expr_ref, col='gray', t='l', lty=3)
+            points(idx, mean_expr_ref + -1*sd_expr_ref, col='gray', t='l', lty=3)
+            
+            points(idx, mean_expr_obs + sd_expr_obs, col='salmon', t='l', lty=3)
+            points(idx, mean_expr_obs + -1*sd_expr_obs, col='salmon', t='l', lty=3)
+            
+        }
+        
+
+
+        if (sep_obs_types) {
+            plot_chr_expr_line_by_type(obs_data)
+        }
         
     }
 }
 
 
 
+
+# plot number of gene-expressing cells by chr
 plot_chr_num_cells_lineplot = function(data_bundle) {
 
     ref_num_cells_expr = apply(data_bundle$ref_matrix, 1, function(x) { x[is.na(x)] = 0; sum(x!=0)} )
