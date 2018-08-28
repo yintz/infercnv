@@ -494,9 +494,10 @@ process_data <- function(data,
     ret_list[["REF_GROUPS"]] = groups_ref
     ret_list[["REF_OBS_IDX"]] = reference_obs
     chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])))
-
+        
     # Plot incremental steps.
     if (plot_steps){
+        
         logging::loginfo(paste("\n\tSTEP 01: incoming data\n\n"))
 
         save(list=ls(), file=file.path(out_path, "01_incoming_data.Rdata"))
@@ -570,7 +571,9 @@ process_data <- function(data,
         data[data==0] = NA
     }
 
-
+    ###################################################
+    ## Step 03: removing insufficiently expressed genes
+    
     # Remove genes that aren't sufficiently expressed, according to min mean count cutoff.
     # Examines the original (non-log-transformed) data, gets mean for each gene, and removes genes
     #  with mean values below cutoff.
@@ -651,7 +654,7 @@ process_data <- function(data,
 
 
     ##########################################################################################
-    ## Step 3: Centering data (w/ or w/o z-score transform) and max-centered threshold applied
+    ## Step 4: Centering data (w/ or w/o z-score transform) and max-centered threshold applied
     
     if (use_zscores) {
 
@@ -659,13 +662,20 @@ process_data <- function(data,
         logging::loginfo(paste("::center_and_Zscore_conversion", sep=""))
 
         # remember, genes are rows, cells are cols
-        data = t(scale(t(data), center=T, scale=F)) # just center data
 
+        # centering and z-scores based on the reference (normal) cells:
+        
         # ref data represent the null distribution
         ref_idx=unlist(ret_list[["REF_GROUPS"]])
         ref_data = data[,ref_idx]
+
+        gene_ref_mean = apply(ref_data, 1, function(x) {mean(x, na.rm=T)})
         gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=T)})
 
+        # center all genes at the ref (normal) center:
+        data = sweep(data, 1, gene_ref_mean, FUN="-")
+
+        # convert to z-scores based on the ref (normal) distribution
         data = sweep(data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
         
     }
@@ -739,6 +749,7 @@ process_data <- function(data,
 
     logging::loginfo(paste("::process_data:Step 5: Smoothing per cell data by chromosome.", sep=""))
     data_smoothed <- smooth_window(data, window_length)
+    #data_smoothed = data
     
     data <- NULL
 
@@ -781,9 +792,9 @@ process_data <- function(data,
     logging::loginfo(paste("::Step 06: centering smoothed data by cell", sep=""))
     data_smoothed <- center_smoothed(data_smoothed)
 
-                                        # recenter by gene now, so all genes centered at zero.
-    logging::loginfo(paste("::Step 06: recentering by gene", sep=""))
-    data_smoothed <- sweep(data_smoothed, 1, rowMeans(data_smoothed, na.rm=T), FUN="-")
+    #                                    # recenter by gene now, so all genes centered at zero.
+    #logging::loginfo(paste("::Step 06: recentering by gene", sep=""))
+    #data_smoothed <- sweep(data_smoothed, 1, rowMeans(data_smoothed, na.rm=T), FUN="-")
     
     
     # Plot incremental steps.
@@ -926,12 +937,46 @@ process_data <- function(data,
 
 
     ########################################
-    # return to regular space from log space
+    # Step 08B: return to regular space from log space
+    
     data_smoothed = 2^data_smoothed - 1
 
+    # Plot incremental steps.
+    if (plot_steps){
+
+        logging::loginfo(paste("\n\tSTEP 08B: inverting log transform\n\n"))
+
+        save(list=ls(), file=file.path(out_path, "08B_inv_log_transform.Rdata"))
+
+        plot_step(data=data_smoothed,
+                            plot_name=file.path(out_path,
+                                                "08B_inv_log_transform.pdf"))
+
+        plot_cnv(plot_data=data_smoothed,
+                 contigs=chr_order_for_plotting,
+                 k_obs_groups=k_obs_groups,
+                 obs_annotations_groups=obs_annotations_groups,
+                 obs_annotations_names=obs_annotations_names,
+                 grouping_key_coln=grouping_key_coln,
+                 cluster_by_groups=cluster_by_groups,
+                 reference_idx=ret_list[["REF_OBS_IDX"]],
+                 ref_contig=NULL,
+                 contig_cex=1,
+                 ref_groups=ret_list[["REF_GROUPS"]],
+                 name_ref_groups=name_ref_groups,
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="08B_invert_log_transform",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.08B_invert_log_transform")
+
+    }
+    
     
     ################################
-    # Clear noise: set values to zero that are in the defined noise range
+    # Step 09: de-noising 
 
     if (! is.na(noise_filter)) {
 
@@ -1941,7 +1986,7 @@ clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.
     #upper_bound <- mean(apply(vals, 2,
     #                          function(x) quantile(x, probs=upper_quantile, na.rm=TRUE)))
 
-    upper_bound <- mean(apply(vals, 2, function(x) sd(x, na.rm=T)))
+    upper_bound <- mean(apply(vals, 2, function(x) sd(x, na.rm=T))) * 1.5
     
     lower_bound <- -1 * upper_bound
     
@@ -2012,7 +2057,7 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 #
 # Returns:
 # Matrix with columns smoothed with a simple moving average.
-smooth_window <- function(data, window_length, smooth_ends=TRUE, re_center=TRUE){
+smooth_window <- function(data, window_length, smooth_ends=TRUE){
 
     logging::loginfo(paste("::smooth_window:Start.", sep=""))
     if (window_length < 2){
@@ -2038,12 +2083,7 @@ smooth_window <- function(data, window_length, smooth_ends=TRUE, re_center=TRUE)
                          tail_length=tail_length)
 
     }
-    if (re_center) {
-
-        # re-center genes now after the smoothing:
-        data_sm = sweep(data_sm, 1, rowMeans(data_sm, na.rm=TRUE))
-    }
-
+    
     # Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)

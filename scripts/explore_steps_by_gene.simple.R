@@ -102,18 +102,22 @@ load_all_data = function() {
     S07 = load_data("07_remove_average.pdf.txt")
     
     S08 = load_data("08_remove_ends.pdf.txt")
+    S08B = load_data("08B_inv_log_transform.pdf.txt")
+    
     S09 = load_data("09_denoise.pdf.txt")
     S10B = load_data("10B_remove_outlier.pdf.txt")
 
 
     retlist = list(S01, S03, S04,
                    S05, S06, S07,
-                   S08, S09, S10B)
+                   S08, S08B,
+                   S09, S10B)
 
     names(retlist) = c(
         'S01', 'S03', 'S04',
         'S05', 'S06', 'S07',
-        'S08', 'S09', 'S10B')
+        'S08', 'S08B',
+        'S09', 'S10B')
     
     return(retlist)
 }
