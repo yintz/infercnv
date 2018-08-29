@@ -12,3 +12,4 @@ importFrom("gplots", "bluered")
 importFrom("ape", "write.tree", "as.phylo")
 import(RColorBrewer)
 export(infercnv)
+

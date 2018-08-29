@@ -10,9 +10,6 @@ get_group_color_palette <- function(){
 }
 
 
-
-
-
 # Not testing, params ok
 # Log intermediate step with a plot and text file of the steps.
 #
@@ -60,40 +57,38 @@ plot_step <- function(data, plot_name){
 #' @return
 #' No return, void.
 #'
-plot_cnv <- function(plot_data,
-                     contigs,
-                     reference_idx,
-                     ref_contig,
-                     ref_groups,
-                     name_ref_groups,
-                     out_dir,
-                     title,
-                     obs_title,
-                     ref_title,
-                     obs_annotations_groups,
-                     obs_annotations_names,
-                     grouping_key_coln,
-                     cluster_by_groups=FALSE,
+
+
+plot_cnv <- function(infercnv_obj,
+                     out_dir=".",
+                     title="inferCNV",
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     cluster_by_groups=TRUE,
+                     k_obs_groups = 3,
                      contig_cex=1,
-                     k_obs_groups=1,
                      x.center=0,
                      hclust_method='average',
                      color_safe_pal=TRUE,
                      output_filename="infercnv",
-                     output_format="png"){
+                     output_format="png",
+                     ref_contig = NULL) {
 
+    plot_data = infercnv_obj@processed.data
+    
     logging::loginfo(paste("::plot_cnv:Start", sep=""))
     logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
-                            paste(dim(plot_data), collapse=","),
-                            " Total=", sum(plot_data, na.rm=T),
-                            " Min=", min(plot_data, na.rm=T),
-                            " Max=", max(plot_data, na.rm=T),
-                            ".", sep=""))
+                           paste(dim(plot_data), collapse=","),
+                           " Total=", sum(plot_data, na.rm=T),
+                           " Min=", min(plot_data, na.rm=T),
+                           " Max=", max(plot_data, na.rm=T),
+                           ".", sep=""))
     logging::loginfo(paste("::plot_cnv:Depending on the size of the matrix",
                            " this may take a moment.",
                            sep=""))
-
+    
     # Contigs
+    contigs = infercnv_obj@gene_order[[C_CHR]]
     unique_contigs <- unique(contigs)
     n_contig <- length(unique_contigs)
     ct.colors <- get_group_color_palette()(n_contig)
@@ -106,15 +101,9 @@ plot_cnv <- function(plot_data,
         custom_pal <- color.palette(c("darkblue", "white", "darkred"),
                                     c(2, 2))
     }
-
-    # Row seperation based on reference
-    ref_idx <- NULL
-    if (!is.null(reference_idx) && length(reference_idx) < ncol(plot_data)){
-        reference_idx <- which(colnames(plot_data) %in% reference_idx)
-        if(length(reference_idx) > 0){
-            ref_idx <- reference_idx
-        }
-    }
+    
+    # Row separation based on reference
+    ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
 
     # Column seperation by contig and label axes with only one instance of name
     contig_tbl <- table(contigs)[unique_contigs]
@@ -132,6 +121,18 @@ plot_cnv <- function(plot_data,
     }
 
     # Calculate how many rows will be made for the number of columns in the grouping key
+    grouping_key_coln <- c()
+    obs_annotations_names <- names(infercnv_obj@observation_grouped_cell_indices)
+    grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
+    if (grouping_key_coln[1] < 1) {
+        grouping_key_coln[1] <- 1
+    }
+    name_ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
+    grouping_key_coln[2] <- floor(123/(max(nchar(name_ref_groups)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
+    if (grouping_key_coln[2] < 1) {
+        grouping_key_coln[2] <- 1
+    }
+    
     grouping_key_rown <- c()
     grouping_key_rown[1] <- ceiling(length(obs_annotations_names)/grouping_key_coln[1])
     grouping_key_rown[2] <- ceiling(length(name_ref_groups)/grouping_key_coln[2])
@@ -159,15 +160,16 @@ plot_cnv <- function(plot_data,
     ## Remove observation col names, too many to plot
     ## Will try and keep the reference names
     ## They are more informative anyway
-    obs_data <- plot_data
+    obs_data <- infercnv_obj@processed.data
     if (!is.null(ref_idx)){
         obs_data <- plot_data[, -1 * ref_idx, drop=FALSE]
-        if (ncol(obs_data) == 1){
-                plot_data <- cbind(obs_data, obs_data)
-                names(obs_data) <- c("", names(obs_data)[1])
+        if (ncol(obs_data) == 1) {
+            # hack for dealing with single entries
+            plot_data <- cbind(obs_data, obs_data)
+            names(obs_data) <- c("", names(obs_data)[1])
         }
     }
-
+    
     obs_data_t <- t(obs_data)
 
     # Subsample the data to only the references and update the ref_group indexes to match their new indexes
@@ -176,7 +178,8 @@ plot_cnv <- function(plot_data,
     updated_ref_groups <- list()
     current_ref_count <- 1
     current_grp_idx <- 1
-    plot_data <- as.matrix(plot_data)
+    plot_data <-infercnv_obj@processed.data
+    ref_groups = infercnv_obj@reference_grouped_cell_indices
     for (ref_grp in ref_groups) {
         ref_data_t <- cbind(ref_data_t, plot_data[, ref_grp, drop=FALSE])
         updated_ref_groups[[current_grp_idx]] = seq(current_ref_count, current_ref_count + length(ref_grp) - 1)
