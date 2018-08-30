@@ -82,7 +82,7 @@ process_data <- function(infercnv_obj,
                       use_zscores=FALSE,
                       make_zero_NA=FALSE) {
 
-    logging::loginfo(paste("::process_data:Start", sep=""))
+    flog.info(paste("::process_data:Start", sep=""))
 
     # Split the reference data into groups if requested
     if (!is.null(num_ref_groups)) {
@@ -93,89 +93,67 @@ process_data <- function(infercnv_obj,
                                        hclust_method=hclust_method)
 
 
-        logging::loginfo(paste("::process_data:split_reference. ",
+        flog.info(paste("::process_data:split_reference. ",
                                "found ",length(groups_ref)," reference groups.",
                                sep=""))
         
     }
     
-            
+    
     # Plot incremental steps.
-    if (plot_steps){
+    if (plot_steps) {
         
-        logging::loginfo(paste("\n\tSTEP 01: incoming data\n\n"))
+        flog.info(paste("\n\tSTEP 01: incoming data\n\n"))
 
-        save(list=ls(), file=file.path(out_path, "01_incoming_data.Rdata"))
-
-        plot_step(data=data,
-                  plot_name=file.path(out_path,
-                                      "01_incoming_data.pdf"))
-
-        plot_cnv(plot_data=data,
-                 contigs=chr_order_for_plotting,
+        save('infercnv_obj', file=file.path(out_path, "01_incoming_data.infercnv_obj"))
+        
+        plot_cnv(infercnv_obj=infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title="01_incoming_data",
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
-                 output_filename="infercnv.01_incoming_data")
+                 output_filename="infercnv.01_incoming_data",
+                 write_expr_matrix=TRUE)
     }
-
-
+    
+    
     # Make sure data is log transformed + 1
     if (transform_data){
-        data <- log2(data + 1)
+        infercnv_obj <- log2xplus1(infercnv_obj)
+        
 
-
-                                        # Plot incremental steps.
+        # Plot incremental steps.
         if (plot_steps){
-            logging::loginfo(paste("\n\tSTEP 02: log transformation of data\n\n"))
+            flog.info(paste("\n\tSTEP 02: log transformation of data\n\n"))
+            
+            save('infercnv_obj', file=file.path(out_path, "02_logtransformed.infercnv_obj"))
 
-            save(list=ls(), file=file.path(out_path, "02_transformed.Rdata"))
+        
 
-            plot_step(data=data,
-                      plot_name=file.path(out_path,
-                                          "02_transformed.pdf"))
-
-            plot_cnv(plot_data=data,
-                     contigs=chr_order_for_plotting,
+            plot_cnv(infercnv_obj=infercnv_obj,
                      k_obs_groups=k_obs_groups,
-                     obs_annotations_groups=obs_annotations_groups,
-                     obs_annotations_names=obs_annotations_names,
-                     grouping_key_coln=grouping_key_coln,
                      cluster_by_groups=cluster_by_groups,
-                     reference_idx=ret_list[["REF_OBS_IDX"]],
-                     ref_contig=NULL,
-                     contig_cex=1,
-                     ref_groups=ret_list[["REF_GROUPS"]],
-                     ref_group_names=ref_group_names,
                      out_dir=out_path,
                      color_safe_pal=FALSE,
                      x.center=0,
                      title="02_log_transformed_data",
                      obs_title="Observations (Cells)",
                      ref_title="References (Cells)",
-                     output_filename="infercnv.02_log_transformed"
+                     output_filename="infercnv.02_log_transformed",
+                     write_expr_matrix=TRUE
                      )
         }
     }
-
+    
 
     if (make_zero_NA) {
-        data[data==0] = NA
+        infercnv_obj <- make_zero_NA(infercnv_obj)
     }
-
+    
     ###################################################
     ## Step 03: removing insufficiently expressed genes
     
@@ -183,247 +161,136 @@ process_data <- function(infercnv_obj,
     # Examines the original (non-log-transformed) data, gets mean for each gene, and removes genes
     #  with mean values below cutoff.
 
-    genes_min_expr_cutoff <- above_min_mean_expr_cutoff(data, cutoff)
+    infercnv_obj <- require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
+    
+    ## require each gene to be present in a min number of cells for ref sets
 
-    ## require each gene to be present in a min number of cells for both obs and ref sets
-
-    ## note, changed to just using the reference cells and not the observed here. See method for more details.
-    genes_min_cells_obs_and_ref <- above_min_cells_obs_and_ref(data, min_cells_per_gene=min_cells_per_gene,
-                                                               obs_idx=ret_list[["REF_OBS_IDX"]], ref_idx=unlist(ret_list[["REF_GROUPS"]]))
-
-    # require both critiera:  min expression and min cell occupancy
-    keep_gene_indices <- intersect(genes_min_expr_cutoff, genes_min_cells_obs_and_ref)
+    infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
 
 
-
-    if (!is.null(keep_gene_indices)){
-        data <- data[keep_gene_indices, , drop=FALSE]
-        gene_order <- gene_order[keep_gene_indices, , drop=FALSE]
-        logging::loginfo(paste("::process_data:Reduce by removing genes below mean threshold, ",
-                      "new dimensions (r,c) = ",
-                      paste(dim(data), collapse=","),
-                           " Total=", sum(data),
-                           " Min=", min(data),
-                           " Max=", max(data),
-                           ".", sep=""))
-        logging::logdebug(paste("::process_data:Keeping gene indices.", sep=""))
-
-
-        # Plot incremental steps.
-        chr_order_for_plotting <- paste(as.vector(as.matrix(gene_order[1])))
-        if (plot_steps){
-
-            logging::loginfo(paste("\n\tSTEP 03: Removing lowly expressed genes\n\n"))
-
-            save(list=ls(), file=file.path(out_path, "03_reduced_by_cutoff.Rdata"))
-
-            plot_step(data=data,
-                      plot_name=file.path(out_path,
-                                          "03_reduced_by_cutoff.pdf"))
-
-            plot_cnv(plot_data=data,
-                     contigs=chr_order_for_plotting,
-                     k_obs_groups=k_obs_groups,
-                     obs_annotations_groups=obs_annotations_groups,
-                     obs_annotations_names=obs_annotations_names,
-                     grouping_key_coln=grouping_key_coln,
-                     cluster_by_groups=cluster_by_groups,
-                     reference_idx=ret_list[["REF_OBS_IDX"]],
-                     ref_contig=NULL,
-                     contig_cex=1,
-                     ref_groups=ret_list[["REF_GROUPS"]],
-                     ref_group_names=ref_group_names,
-                     out_dir=out_path,
-                     color_safe_pal=FALSE,
-                     x.center=0,
-                     title="03_reduced_by_cutoff",
-                     obs_title="Observations (Cells)",
-                     ref_title="References (Cells)",
-                     output_filename="infercnv.03_reduced_by_cutoff")
-
-        }
-
-    } else {
-        logging::loginfo(paste("::process_data:Reduce by cutoff.", sep=""))
-        logging::logwarn(paste("::No indicies left to keep.",
-                               " Stoping."))
-        stop(998)
+    if (plot_steps){
+        
+        flog.info(paste("\n\tSTEP 03: Removing lowly expressed genes\n\n"))
+        
+        save('infercnv_obj', file=file.path(out_path, "03_reduced_by_cutoff.infercnv_obj"))
+        
+        plot_cnv(infercnv_obj=infercnv_obj,
+                 k_obs_groups=k_obs_groups,
+                 cluster_by_groups=cluster_by_groups,
+                 out_dir=out_path,
+                 color_safe_pal=FALSE,
+                 x.center=0,
+                 title="03_reduced_by_cutoff",
+                 obs_title="Observations (Cells)",
+                 ref_title="References (Cells)",
+                 output_filename="infercnv.03_reduced_by_cutoff",
+                 write_expr_matrix=TRUE)
+        
     }
-
-
-    # Reduce contig info
-    chr_order <- gene_order[1]  # resetting
-    chr_order_for_plotting = paste(as.vector(as.matrix(chr_order)))
-    gene_order <- NULL
-
-
+    
 
     ##########################################################################################
     ## Step 4: Centering data (w/ or w/o z-score transform) and max-centered threshold applied
     
     if (use_zscores) {
 
-        # center and convert to z-scores
-        logging::loginfo(paste("::center_and_Zscore_conversion", sep=""))
-
-        # remember, genes are rows, cells are cols
-
-        # centering and z-scores based on the reference (normal) cells:
-        
-        # ref data represent the null distribution
-        ref_idx=unlist(ret_list[["REF_GROUPS"]])
-        ref_data = data[,ref_idx]
-
-        gene_ref_mean = apply(ref_data, 1, function(x) {mean(x, na.rm=T)})
-        gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=T)})
-
-        # center all genes at the ref (normal) center:
-        data = sweep(data, 1, gene_ref_mean, FUN="-")
-
-        # convert to z-scores based on the ref (normal) distribution
-        data = sweep(data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
+        infercnv_obj <- transform_to_reference_based_Zscores(infercnv_obj)
         
     }
     else {
         # just center
-        logging::loginfo(paste("::centering", sep=""))
-        data <- sweep(data, 1, rowMeans(data, na.rm=T), FUN="-")
+        infercnv_obj <- mean_center_gene_expr(infercnv_obj)
     }
-
-    logging::loginfo(paste("::process_data:Outlier removal, ",
-                           "new dimensions (r,c) = ",
-                           paste(dim(data), collapse=","),
-                           " Total=", sum(data, na.rm=TRUE),
-                           " Min=", min(data, na.rm=TRUE),
-                           " Max=", max(data, na.rm=TRUE),
-                           ".", sep=""))
-
+    
+    flog.info(paste("::process_data:Outlier removal, ",
+                    "new dimensions (r,c) = ",
+                    paste(dim(data), collapse=","),
+                    " Total=", sum(data, na.rm=TRUE),
+                    " Min=", min(data, na.rm=TRUE),
+                    " Max=", max(data, na.rm=TRUE),
+                    ".", sep=""))
+    
     #######################################################
     ## Apply maximum centered expression thresholds to data
+    # Cap values between threshold and -threshold, retaining earlier center
     threshold = max_centered_threshold
     if (is.na(max_centered_threshold)) {
 
-        threshold = mean(abs(get_average_bounds(data)))
-
-        logging::loginfo(paste("::process_data:setting max centered expr threshold using quantiles, set to: +/-: ", threshold))
-    }
-    else {
-        logging::loginfo(paste("::process_data:setting max centered expr threshold using specified settings of +/-: ", threshold))
+        threshold = mean(abs(get_average_bounds(infercnv_obj)))
+        
+        flog.info(paste("::process_data:setting max centered expr threshold using quantiles, set to: +/-: ", threshold))
     }
 
-    # Cap values between threshold and -threshold, retaining earlier center
-    data[data > threshold] <- threshold
-    data[data < (-1 * threshold)] <- -1 * threshold
+    infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
+        
 
     # Plot incremental steps.
     if (plot_steps){
 
-        logging::loginfo(paste("\n\tSTEP 04: centering with max expression threshold\n\n"))
+        flog.info(paste("\n\tSTEP 04: centering with max expression threshold\n\n"))
 
-        save(list=ls(), file=file.path(out_path, "04_center_with_threshold.Rdata"))
+        save('infercnv_obj', file=file.path(out_path, "04_center_with_threshold.infercnv_obj"))
 
-        plot_step(data=data,
-                  plot_name=file.path(out_path,
-                                      "04_center_with_threshold.pdf"))
-
-        plot_cnv(plot_data=data,
-                 contigs=chr_order_for_plotting,
+        plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title="04_center_with_threshold",
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
-                 output_filename="infercnv.04_center_with_threshold")
-
+                 output_filename="infercnv.04_center_with_threshold",
+                 write_expr_matrix=TRUE)
+        
     }
-
+    
 
     ###########################################################################
     # Step 5: For each cell, smooth the data along chromosome with gene windows
 
-    logging::loginfo(paste("::process_data:Step 5: Smoothing per cell data by chromosome.", sep=""))
-    data_smoothed <- smooth_window(data, window_length)
-    #data_smoothed = data
+    flog.info(paste("::process_data:Step 5: Smoothing per cell data by chromosome.", sep=""))
+    infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
     
-    data <- NULL
-
+    
     # Plot incremental steps.
     if (plot_steps){
-        logging::loginfo(paste("\n\tSTEP 05: Smoothing data by chromosome\n\n"))
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(out_path,
-                                                "05_smoothed.pdf"))
-
-        save(list=ls(), file=file.path(out_path, "05_smoothed.Rdata"))
-
-        plot_cnv(plot_data=data_smoothed,
-                 contigs=chr_order_for_plotting,
+        flog.info(paste("\n\tSTEP 05: Smoothing data by chromosome\n\n"))
+        
+        save('infercnv_obj', file=file.path(out_path, "05_smoothed_by_chr.infercnv_obj"))
+        
+        plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
-                 title="05_smoothed",
+                 title="05_smoothed_by_chr",
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
-                 output_filename="infercnv.05_smoothed")
+                 output_filename="infercnv.05_smoothed_by_chr")
     }
-
+    
 
 
     ## 
     # Step 6: 
     # Center cells/observations after smoothing. This helps reduce the
                                         # effect of complexity.
-    logging::loginfo(paste("::Step 06: centering smoothed data by cell", sep=""))
-    data_smoothed <- center_smoothed(data_smoothed)
-
-    #                                    # recenter by gene now, so all genes centered at zero.
-    #logging::loginfo(paste("::Step 06: recentering by gene", sep=""))
-    #data_smoothed <- sweep(data_smoothed, 1, rowMeans(data_smoothed, na.rm=T), FUN="-")
+    flog.info(paste("::Step 06: centering smoothed data by cell across chromosome", sep=""))
+    infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj)
     
-    
+       
     # Plot incremental steps.
     if (plot_steps){
 
-        logging::loginfo(paste("\n\tSTEP 06: re-centering data after smoothing\n\n"))
+        flog.info(paste("\n\tSTEP 06: re-centering data after smoothing\n\n"))
 
-        save(list=ls(), file=file.path(out_path, "06_recentered.Rdata"))
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(out_path,
-                                                "06_recentered.pdf"))
-
-        plot_cnv(plot_data=data_smoothed,
-                 contigs=chr_order_for_plotting,
+        save('infercnv_obj', file=file.path(out_path, "06_recentered_cells_by_chr.infercnv_obj"))
+        
+        plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -431,44 +298,27 @@ process_data <- function(infercnv_obj,
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
                  output_filename="infercnv.06_centering_of_smoothed")
-
+        
     }
 
 
-    # Remove average reference
-    i_ref_obs <- which(colnames(data_smoothed) %in% reference_obs)
-    data_smoothed <- subtract_ref(average_data=data_smoothed,
-                                  ref_groups=groups_ref,
-                                  ref_subtract_method=ref_subtract_method)
-    logging::loginfo(paste("::process_data:Remove average, ",
-                           "new dimensions (r,c) = ",
-                           paste(dim(data_smoothed), collapse=","),
-                           " Total=", sum(data_smoothed),
-                           " Min=", min(data_smoothed),
-                           " Max=", max(data_smoothed),
-                           ".", sep=""))
+    ####################################
+    ## Step 07: Remove average reference
+    
+    infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj,
+                                               method=ref_subtract_method)
+    
+    
     # Plot incremental steps.
     if (plot_steps){
+                
+        flog.info(paste("\n\tSTEP 07: removing average of reference data\n\n"))
 
+        save('infercnv_obj', file=file.path(out_path, "07_remove_ref_avg_from_obs.infercnv_obj"))
 
-        logging::loginfo(paste("\n\tSTEP 07: removing average of reference data\n\n"))
-
-        save(list=ls(), file=file.path(out_path, "07_remove_average.Rdata"))
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(out_path,
-                                                "07_remove_average.pdf"))
-        plot_cnv(plot_data=data_smoothed,
-                 contigs=chr_order_for_plotting,
+        plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -479,96 +329,50 @@ process_data <- function(infercnv_obj,
 
     }
 
-
+    
     ## Step 08:
     # Remove Ends
-    #logging::logdebug(c("chr_order: ", chr_order))
-    #logging::logdebug(chr_order)
-    remove_indices <- c()
-    for (chr in unlist(unique(chr_order))){
-        #logging::loginfo(paste("::process_data:Remove tail contig ",chr, ".", sep=""))
-        remove_chr <- remove_tails(data_smoothed,
-                                             which(chr_order == chr),
-                                             contig_tail)
-        #logging::logdebug(paste("::process_data:Remove tail - removing indices for chr: ", chr, ", count: ", length(remove_chr), sep=""))
-        remove_indices <- c(remove_indices, remove_chr)
 
-    }
-    if (length(remove_indices) > 0){
-        chr_order <- chr_order[remove_indices,]
-        chr_order_for_plotting = paste(as.vector(as.matrix(chr_order)))
-        data_smoothed <- data_smoothed[remove_indices, , drop=FALSE]
-    }
-
+    infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
+    
                                         # Plot incremental steps.
     if (plot_steps){
 
-        logging::loginfo(paste("\n\tSTEP 08: removing genes at chr ends\n\n"))
-
-        save(list=ls(), file=file.path(out_path, "08_remove_ends.Rdata"))
-
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(out_path,
-                                                "08_remove_ends.pdf"))
-
-        plot_cnv(plot_data=data_smoothed,
-                 contigs=chr_order_for_plotting,
+        flog.info(paste("\n\tSTEP 08: removing genes at chr ends\n\n"))
+        
+        save('infercnv_obj', file=file.path(out_path, "08_remove_gene_at_chr_ends.infercnv_obj"))
+        
+        plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
-                 title="08_remove_Ends",
+                 title="08_remove_genes_at_chr_ends",
                  obs_title="Observations (Cells)",
                  ref_title="References (Cells)",
-                 output_filename="infercnv.08_remove_ends")
-
+                 output_filename="infercnv.08_remove_genes_at_chr_ends",
+                 write_expr_matrix=TRUE)
+        
     }
-    logging::loginfo(paste("::process_data:Remove ends, ",
-                           "new dimensions (r,c) = ",
-                           paste(dim(data_smoothed), collapse=","),
-                           " Total=", sum(data_smoothed, na.rm=TRUE),
-                           " Min=", min(data_smoothed, na.rm=TRUE),
-                           " Max=", max(data_smoothed, na.rm=TRUE),
-                           ".", sep=""))
-
-
+    
+    
     ########################################
     # Step 08B: return to regular space from log space
     
-    data_smoothed = 2^data_smoothed - 1
-
+    infercnv_obj <- invert_log2xplus1(infercnv_obj)
+    
     # Plot incremental steps.
     if (plot_steps){
 
-        logging::loginfo(paste("\n\tSTEP 08B: inverting log transform\n\n"))
-
-        save(list=ls(), file=file.path(out_path, "08B_inv_log_transform.Rdata"))
-
-        plot_step(data=data_smoothed,
-                            plot_name=file.path(out_path,
-                                                "08B_inv_log_transform.pdf"))
-
-        plot_cnv(plot_data=data_smoothed,
-                 contigs=chr_order_for_plotting,
+        flog.info(paste("\n\tSTEP 08B: inverting log transform\n\n"))
+        
+        save('infercnv_obj', file=file.path(out_path, "08B_inv_log_transform.infercnv_obj"))
+        
+        
+        plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
-                 obs_annotations_groups=obs_annotations_groups,
-                 obs_annotations_names=obs_annotations_names,
-                 grouping_key_coln=grouping_key_coln,
                  cluster_by_groups=cluster_by_groups,
-                 reference_idx=ret_list[["REF_OBS_IDX"]],
-                 ref_contig=NULL,
-                 contig_cex=1,
-                 ref_groups=ret_list[["REF_GROUPS"]],
-                 ref_group_names=ref_group_names,
                  out_dir=out_path,
                  color_safe_pal=FALSE,
                  x.center=0,
@@ -586,10 +390,10 @@ process_data <- function(infercnv_obj,
     if (! is.na(noise_filter)) {
 
         if (noise_filter > 0) {
-            logging::loginfo(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
-            data_smoothed <- clear_noise(smooth_matrix=data_smoothed,
-                                         threshold=noise_filter,
-                                         adjust_towards_zero=TRUE)
+            flog.info(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
+            infercnv_obj <- clear_noise(infercnv_obj,
+                                        threshold=noise_filter,
+                                        adjust_towards_zero=TRUE)
         }
         else {
                                         # noise == 0 or negative...
@@ -599,15 +403,14 @@ process_data <- function(infercnv_obj,
     }
     else {
         # default, use quantiles, if NA 
-        logging::loginfo(paste("::process_data:Remove noise, noise threshold defined via quantiles: ", noise_quantiles))
-        data_smoothed <- clear_noise_via_ref_quantiles(smooth_matrix=data_smoothed,
-                                                        ref_idx=unlist(ret_list[["REF_GROUPS"]]),
-                                                       quantiles=noise_quantiles,
-                                                       adjust_towards_zero=TRUE)
+        flog.info(paste("::process_data:Remove noise, noise threshold defined via ref mean sd_amplifier: ", sd_amplifier))
+        data_smoothed <- clear_noise_via_ref_mean_sd(infercnv_obj,
+                                                     sd_amplifier = 1.5,
+                                                     adjust_towards_zero=TRUE)
     }
     
 
-    logging::loginfo(paste("::process_data:Remove noise, ",
+    flog.info(paste("::process_data:Remove noise, ",
                            "new dimensions (r,c) = ",
                            paste(dim(data_smoothed), collapse=","),
                            " Total=", sum(data_smoothed, na.rm=TRUE),
@@ -619,7 +422,7 @@ process_data <- function(infercnv_obj,
                                         # Plot incremental steps.
     if (plot_steps){
 
-        logging::loginfo(paste("\n\tSTEP 09: Denoising\n\n"))
+        flog.info(paste("\n\tSTEP 09: Denoising\n\n"))
 
         save(list=ls(), file=file.path(out_path, "09_denoise.Rdata"))
 
@@ -672,7 +475,7 @@ process_data <- function(infercnv_obj,
     # Plot incremental steps.
     if (plot_steps){
 
-        logging::loginfo(paste("\n\tSTEP 10: Removing outliers\n\n"))
+        flog.info(paste("\n\tSTEP 10: Removing outliers\n\n"))
 
         save(list=ls(), file=file.path(out_path, "10B_remove_outlier.Rdata"))
 
@@ -701,7 +504,7 @@ process_data <- function(infercnv_obj,
                  output_filename="infercnv.10_removed_outliers")
     }
 
-    logging::loginfo(paste("::process_data:remove outliers, ",
+    flog.info(paste("::process_data:remove outliers, ",
                            "new dimensions (r,c) = ",
                            paste(dim(ret_list[["VIZ"]]), collapse=","),
                            " Total=", sum(ret_list[["VIZ"]]),
@@ -743,7 +546,7 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
         stop("The \"NGCHM\" library is required to use \"-ngchm=TRUE\" but it is not available.", .call=FALSE)
     }
     
-    logging::loginfo("Creating NGCHM as infercnv.ngchm")
+    flog.info("Creating NGCHM as infercnv.ngchm")
     Create_NGCHM(infercnv_obj,
                  path_to_shaidyMapGen = path_to_shaidyMapGen,
                  out_dir = output_dir,
@@ -775,25 +578,30 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 # Returns:
 # Expression with the average gene expression in the reference
 #          observations removed.
-subtract_ref <- function(average_data,
-                         ref_groups,
-                         ref_subtract_method="by_mean",
-                         quantiles=c(0.25, 0.75)
-                         ) {
-
+subtract_ref_expr_from_obs <- function(infercnv_obj,
+                                       method="by_mean"
+                                       ) {
+    
                                         # r = genes, c = cells
-    logging::loginfo(paste("::subtract_ref:Start", sep=""))
+    flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
+
+
+
+
     # Max and min mean gene expression within reference groups.
     average_max <- NULL
     average_min <- NULL
     # average_reference_obs <- average_data[,ref_observations, drop=FALSE]
     # Reference gene within reference groups
     # now reference indexes of ref_groups are relative to the full average_data matrix and not the average_reference_obs references submatrix
-    for (ref_group in ref_groups) {
 
+    ref_groups = infercnv_obj@reference_grouped_cell_indices
+
+    for (ref_group in ref_groups) {
+        
         if (ref_subtract_method == "by_mean") {
 
-            grp_average <- rowMeans(average_data[,ref_group, drop=FALSE], na.rm=TRUE)
+            grp_average <- rowMeans(infercnv_obj@processed.data[ , ref_group, drop=FALSE], na.rm=TRUE)
             if(is.null(average_max)){
                 average_max <- grp_average
             }
@@ -805,7 +613,7 @@ subtract_ref <- function(average_data,
 
         } else if (ref_subtract_method == "by_quantiles") {
 
-            grp_expression_data = average_data[,ref_group, drop=FALSE, na.rm=TRUE]
+            grp_expression_data = infercnv_obj@processed.data[, ref_group, drop=FALSE, na.rm=TRUE]
             quants = x = apply(grp_expression_data, 1, function(x) { quantile(x, quantiles, na.rm=TRUE);})
             quants = t(x)
             q_low_bound = quants[,1]
@@ -833,8 +641,8 @@ subtract_ref <- function(average_data,
     #write.table(ref_gene_group_means, file.path(out_path, "ref_gene_group_means.dat"), quote=F, sep="\t")
 
 
-    for(gene_i in 1:nrow(average_data)){
-        current_col <- average_data[gene_i, ]
+    for(gene_i in 1:nrow(infercnv_obj@processed.data)){
+        current_col <- infercnv_obj@processed.data[gene_i, ]
 
         # original code
         i_max <- which(current_col > average_max[gene_i])
@@ -847,10 +655,20 @@ subtract_ref <- function(average_data,
         if(length(i_min) > 0){
             row_init[i_min] <- current_col[i_min] - average_min[gene_i]
         }
-        average_data[gene_i, ] <- row_init
+        infercnv_obj@processed.data[gene_i, ] <- row_init
     }
 
-    return(average_data)
+    flog.info(paste("::process_data:Remove average, ",
+                    "new dimensions (r,c) = ",
+                    paste(dim(infercnv_obj@processed.data), collapse=","),
+                    " Total=", sum(infercnv_obj@processed.data),
+                    " Min=", min(infercnv_obj@processed.data),
+                    " Max=", max(infercnv_obj@processed.data),
+                    ".", sep=""))
+    
+        
+    return(infercnv_obj)
+
 }
 
 
@@ -969,7 +787,7 @@ split_references <- function(average_data,
                              ref_obs,
                              num_groups,
                              hclust_method='complete') {
-    logging::loginfo(paste("::split_references:Start", sep=""))
+    flog.info(paste("::split_references:Start", sep=""))
     ret_groups <- list()
     split_groups <- NULL
     if(is.null(average_data)){
@@ -1040,7 +858,7 @@ remove_outliers_norm <- function(data,
                                  lower_bound=NA,
                                  upper_bound=NA,
                                  plot_step=NA) {
-    logging::loginfo(paste("::remove_outlier_norm:Start",
+    flog.info(paste("::remove_outlier_norm:Start",
                            "out_method:", out_method,
                            "lower_bound:" , lower_bound,
                            "upper_bound:", upper_bound,
@@ -1051,9 +869,9 @@ remove_outliers_norm <- function(data,
     }
     if (is.na(lower_bound) || is.na(upper_bound)){
                                         # using out_method instead of specified bounds.
-        logging::loginfo(paste("::remove_outlier_norm using method:", out_method, "for defining outliers."))
+        flog.info(paste("::remove_outlier_norm using method:", out_method, "for defining outliers."))
         if(is.na(out_method)){
-            logging::loginfo("::remove_outlier_norm:WARNING outlier removal was not performed.")
+            flog.info("::remove_outlier_norm:WARNING outlier removal was not performed.")
             return(data)
         }
         if (out_method == "average_bound"){
@@ -1082,7 +900,7 @@ remove_outliers_norm <- function(data,
     }
     else {
         # Hard threshold given bounds
-        logging::loginfo(paste("::remove_outlier_norm:",
+        flog.info(paste("::remove_outlier_norm:",
                                "lower_bound:" , lower_bound,
                                "upper_bound:", upper_bound) )
 
@@ -1114,16 +932,17 @@ remove_outliers_norm <- function(data,
 # Returns:
 # Matrix that is median centered.
 #             Row = Genes, Col = cells.
-center_smoothed <- function(data_smoothed){
+center_cell_expr_across_chromosome <- function(infercnv_obj) {
 
-    logging::loginfo(paste("::center_smoothed:Start"))
+    flog.info(paste("::center_smooth across chromosomes per cell"))
 
     # Center within columns (cells)
-    row_median <- apply(data_smoothed, 2, function(x) { median(x, na.rm=T) } )
-
-    return(t(apply(data_smoothed, 1, "-", row_median)))
+    row_median <- apply(infercnv_obj@processed.data, 2, function(x) { median(x, na.rm=T) } )
+    
+    infercnv_obj@processed.data <- t(apply(infercnv_obj@processed.data, 1, "-", row_median))
+    
+    return(infercnv_obj)
 }
-
 
 
 # Return the indices of the rows that average above the cut off
@@ -1132,21 +951,34 @@ center_smoothed <- function(data_smoothed){
 # data Data to measure the average row and evaluate
 #                 against the cutoff. Row = Genes, Col = Cells.
 # cutoff Threshold to be above to be kept.
-#
+                                        #
+                                        # assumes infercnv_obj@processed.data are log2(x+1) transformed.
+                                        # considers the log2(mean(inv_log(data))) < threshold to be removed.
+
 # Returns:
 # Returns a vector of row indicies to keep (are above the cutoff).
-above_min_mean_expr_cutoff <- function(data, cutoff){
+require_above_min_mean_expr_cutoff <- function(obj=infercnv_obj, min_mean_expr_cutoff){
 
-    logging::loginfo(paste("::above_min_mean_expr_cutoff:Start", sep=""))
-    average_gene <- log2(rowMeans( ( (2 ^ data) - 1), na.rm=TRUE) + 1 )
-    logging::loginfo(paste("::process_data:Averages (counts).", sep=""))
+    flog.info(paste("::above_min_mean_expr_cutoff:Start", sep=""))
+    average_gene <- log2(rowMeans( ( (2 ^ infercnv_obj@processed.data) - 1), na.rm=TRUE) + 1 )
+    flog.info(paste("::process_data:Averages (counts).", sep=""))
     # Find averages above a certain threshold
-    indicies <- which(average_gene > cutoff)
-    if (length(indicies) > 0){
-        return(indicies)
-    } else {
-        return(NULL)
+    indicies <- which(average_gene < cutoff)
+    if (length(indicies) > 0) {
+        flog.info(paste("Removing ", length(indicies),
+                        " genes from matrix as below mean expr threshold: ",
+                        min_mean_expr_cutoff), sep="")
+
+        infercnv_obj@processed.data = infercnv_obj@processed.data[ -1 * indices, ]
+
+                                        # match w/ gene_order info
+        infercnv_obj@gene_order = infercnv_obj@gene_order[ -1 * indices, ]
+
+        validate_infercnv_obj(infercnv_obj)
     }
+    
+    return(infercnv_obj)
+        
 }
 
 
@@ -1158,27 +990,37 @@ above_min_mean_expr_cutoff <- function(data, cutoff){
 #' @param obs_idx vector containing the column indices for the observed (tumor) cells
 #' @param ref_idx vector containing the column indices for teh reference (normal) cells
 
-above_min_cells_obs_and_ref = function(data, min_cells_per_gene, obs_idx, ref_idx) {
+require_above_min_cells_ref <- function(obj=infercnv_obj, min_cells_per_gene) {
 
-    ref_data = data[,ref_idx]
+    ref_cell_indices = get_reference_grouped_cell_indices(infercnv_obj)
+    
+    ref_data = data[,ref_cell_indices]
 
     ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
+    num_genes_total = length(ref_cell_indices)
+    num_removed = num_genes_total - ref_genes_passed
+    if (num_removed > 0) {
+        flog.info(paste("Removed ", num_removed, " genes having fewer than ",
+                        min_cells_per_gene, " min cells per gene. = ",
+                        num_removed / num_genes_total * 100, " % genes removed here."), sep="")
 
-    #### chromosomes lost in the observed (tumor) may have no expression and don't want to lose those cells via filtering!
+        infercnv_obj@processed.data <- infercnv_obj@processed.data[ref_genes_passed, ]
 
-    ## require expression in reference, needed for determining gain / loss.
+                                        # match w/ gene_order
+        infercnv_obj@gene_order <- infercnv_obj@gene_order[ref_genes_passed, ]
 
-    #obs_data = data[,obs_idx]
+        validate_infercnv_obj(infercnv_obj)
+        
+    }
+    else if (num_removed == num_genes_total) {
 
-    #obs_genes_passed = which(apply(obs_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
-
-    #both_passed = intersect(ref_genes_passed, obs_genes_passed)
-
-    #return(both_passed)
-
-    return(ref_genes_passed)
-
+        flog.warn(paste("::All genes removed! Must revisit your data..., cannot continue here."))
+        stop(998)
+    }
+    
+    return(infercnv_obj)
+    
 }
 
 
@@ -1195,7 +1037,7 @@ above_min_cells_obs_and_ref = function(data, min_cells_per_gene, obs_idx, ref_id
 #'            data parameters do not match.
 #'
 order_reduce <- function(data, genomic_position){
-    logging::loginfo(paste("::order_reduce:Start.", sep=""))
+    flog.info(paste("::order_reduce:Start.", sep=""))
     ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)
     if (is.null(data) || is.null(genomic_position)){
         return(ret_results)
@@ -1229,7 +1071,7 @@ order_reduce <- function(data, genomic_position){
         ret_results$expr <- data[keep_genes, , drop=FALSE]
         ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
     } else {
-        logging::loginfo(paste("::process_data:order_reduce:The position file ",
+        flog.info(paste("::process_data:order_reduce:The position file ",
                                "and the expression file row (gene) names do not match."))
         return(list(expr=NULL, order=NULL, chr_order=NULL))
     }
@@ -1252,7 +1094,7 @@ order_reduce <- function(data, genomic_position){
     # Remove any gene without position information
     # Genes may be sorted correctly by not have position information
     # Here they are removed.
-    logging::loginfo(paste("::process_data:order_reduce:Reduction from positional ",
+    flog.info(paste("::process_data:order_reduce:Reduction from positional ",
                            "data, new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
                            " Total=", sum(data),
@@ -1273,62 +1115,60 @@ order_reduce <- function(data, genomic_position){
 #                      removed as noise.
 # Returns:
 # Denoised matrix
-clear_noise <- function(smooth_matrix, threshold, adjust_towards_zero){
-        
-    logging::loginfo(paste("********* ::clear_noise:Start. threshold: ", threshold,  " adj_towards_zero: ", adjust_towards_zero, sep=""))
-        
-    if (threshold > 0){
+clear_noise <- function(infercnv_obj, threshold, adjust_towards_zero) {
+    
+    flog.info(paste("********* ::clear_noise:Start. threshold: ", threshold,  " adj_towards_zero: ", adjust_towards_zero, sep=""))
 
-        if (adjust_towards_zero) {
-            
-            upper_noise_flags = (smooth_matrix > 0 & smooth_matrix <= threshold)
-            smooth_matrix[upper_noise_flags] = smooth_matrix[upper_noise_flags] - threshold
-            smooth_matrix[ smooth_matrix[upper_noise_flags] < 0 ] = 0
-
-            lower_noise_flags = (smooth_matrix < 0 & smooth_matrix >= -1*threshold)
-            smooth_matrix[lower_noise_flags] = smooth_matrix[lower_noise_flags] + threshold
-            smooth_matrix[ smooth_matrix[lower_noise_flags] > 0 ] = 0
-                        
-        }
-        else {
-            smooth_matrix[abs(smooth_matrix) < threshold] <- 0
-        }
+    if (threshold == 0) {
+        return(infercnv_obj); # nothing to do
     }
+
+    smooth_matrix = infercnv_obj@processed.data
+    
+    if (adjust_towards_zero) {
+        
+        upper_noise_flags = (smooth_matrix > 0 & smooth_matrix <= threshold)
+        smooth_matrix[upper_noise_flags] = smooth_matrix[upper_noise_flags] - threshold
+        smooth_matrix[ smooth_matrix[upper_noise_flags] < 0 ] = 0
+        
+        lower_noise_flags = (smooth_matrix < 0 & smooth_matrix >= -1*threshold)
+        smooth_matrix[lower_noise_flags] = smooth_matrix[lower_noise_flags] + threshold
+        smooth_matrix[ smooth_matrix[lower_noise_flags] > 0 ] = 0
+        
+    }
+    else {
+        smooth_matrix[abs(smooth_matrix) < threshold] <- 0
+    }
+
+    infercnv_obj@processed.data <- smooth_matrix
+    
     return(smooth_matrix)
 }
+
 
 # clear_noise_via_ref_quantiles: define noise levels based on quantiles within the ref (normal cell) distribution.
 # Any data points within this defined quantile are set to zero.
 
-clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.025, 0.975), adjust_towards_zero=TRUE) {
+clear_noise_via_ref_mean_sd <- function(smooth_matrix, sd_amplifier=1.5, adjust_towards_zero=TRUE) {
 
-    #save(list=c('smooth_matrix', 'ref_idx'), file='ladeda.rdata')
+    ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
+    vals = infercnv_obj@processed.data[,ref_idx]
     
-    vals = smooth_matrix[,ref_idx]
-
     vals[vals==0] = NA  # use remaining ref vals that weren't already turned to zeros
 
     lower_quantile = quantiles[1]
     upper_quantile = quantiles[2]
 
-    #logging::loginfo(paste("::clear_noise_via_ref_quantiles: using noise quantiles set at: ",
-    #                       lower_quantile, "-", upper_quantile, sep=""))
-
-    #lower_bound <- mean(apply(vals, 2,
-    #                          function(x) quantile(x, probs=lower_quantile, na.rm=TRUE)))
-
-    #upper_bound <- mean(apply(vals, 2,
-    #                          function(x) quantile(x, probs=upper_quantile, na.rm=TRUE)))
-
-    upper_bound <- mean(apply(vals, 2, function(x) sd(x, na.rm=T))) * 1.5
+    upper_bound <- mean(apply(vals, 2, function(x) sd(x, na.rm=T))) * sd_amplifier
     
     lower_bound <- -1 * upper_bound
-    
-    
-    logging::loginfo(paste(":: **** clear_noise_via_ref_quantiles **** : removing noise between bounds: ",
+        
+    flog.info(paste(":: **** clear_noise_via_ref_quantiles **** : removing noise between bounds: ",
                            lower_bound, "-", upper_bound, sep=" "))
 
 
+    smooth_matrix <- infercnv_obj@processed.data
+    
     if (adjust_towards_zero) {
         if (upper_bound > 0) {
             upper_noise_flags = (smooth_matrix > 0 & smooth_matrix <= upper_bound)
@@ -1346,7 +1186,10 @@ clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.
     else {
         smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = 0
     }
-    return(smooth_matrix)
+
+    infercnv_obj@processed.data <- smooth_matrix
+    
+    return(infercnv_obj)
 }
 
 
@@ -1363,9 +1206,9 @@ clear_noise_via_ref_quantiles <- function(smooth_matrix, ref_idx, quantiles=c(0.
 #                        chr indices.
 # Returns:
 # Indices to remove.
-remove_tails <- function(smooth_matrix, chr, tail_length){
+.remove_tails <- function(smooth_matrix, chr, tail_length){
 
-    #logging::loginfo(paste("::remove_tails:Start.", sep=""))
+    #flog.info(paste("::remove_tails:Start.", sep=""))
     chr_length <- length(chr)
     if ((tail_length < 3) || (chr_length < 3)){
         return(c())
@@ -1373,10 +1216,11 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
     if (chr_length < (tail_length * 2)){
          tail_length <- floor(chr_length / 3)
     }
-    remove_indices <- -1 * chr[1:tail_length]
+    remove_indices <- chr[1:tail_length]
     remove_indices <- c(remove_indices,
-                        -1 * (chr[ ( (chr_length + 1) - tail_length):
-                                   chr_length]))
+                        chr[ ( (chr_length + 1) - tail_length):
+                             chr_length])
+    
     return(remove_indices)
 }
 
@@ -1391,21 +1235,25 @@ remove_tails <- function(smooth_matrix, chr, tail_length){
 #
 # Returns:
 # Matrix with columns smoothed with a simple moving average.
-smooth_window <- function(data, window_length, smooth_ends=TRUE){
+smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
 
-    logging::loginfo(paste("::smooth_window:Start.", sep=""))
+    data = infercnv_obj@processed.data
+    
+    flog.info(paste("::smooth_window:Start.", sep=""))
     if (window_length < 2){
-        return(data)
+        flog.warn("window length < 2, returning original unmodified data")
+        return(infercnv_obj)
     }
     if (window_length > nrow(data)){
-        return(data)
+        flog.warn("window length exceeds number of rows in data, returning original unmodified data")
+        return(infercnv_obj)
     }
-
+    
     tail_length <- (window_length - 1) / 2
     num_genes <- nrow(data)
     data_sm <- apply(data,
                      2,
-                     smooth_window_helper,
+                     .smooth_window_helper,
                      window_length=window_length)
     logging::logdebug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
 
@@ -1413,7 +1261,7 @@ smooth_window <- function(data, window_length, smooth_ends=TRUE){
         # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
         data_sm <- apply(data_sm,
                          2,
-                         smooth_ends_helper,
+                         .smooth_ends_helper,
                          tail_length=tail_length)
 
     }
@@ -1421,7 +1269,10 @@ smooth_window <- function(data, window_length, smooth_ends=TRUE){
     # Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
-    return(data_sm)
+
+    infercnv_obj@processed.data <- data_sm
+
+    return(infercnv_obj)
 }
 
 # Helper function for smoothing the ends of a moving average.
@@ -1432,7 +1283,7 @@ smooth_window <- function(data, window_length, smooth_ends=TRUE){
 #
 # Returns:
 # Data smoothed.
-smooth_ends_helper <- function(obs_data, tail_length) {
+.smooth_ends_helper <- function(obs_data, tail_length) {
 
     # strip NAs out and replace after smoothing
     orig_obs_data = obs_data
@@ -1501,7 +1352,7 @@ smooth_ends_helper <- function(obs_data, tail_length) {
 #
 # Returns:
 # Vector of values smoothed with a moving average.
-smooth_window_helper <- function(obs_data, window_length){
+.smooth_window_helper <- function(obs_data, window_length){
 
     nas = is.na(obs_data)
     vals = obs_data[! nas]
@@ -1519,13 +1370,165 @@ smooth_window_helper <- function(obs_data, window_length){
 
 
 
-get_average_bounds = function (data) {
+get_average_bounds <- function (infercnv_obj) {
 
-    lower_bound <- mean(apply(data, 2,
+    lower_bound <- mean(apply(infercnv_obj@processed.data, 2,
                               function(x) quantile(x, na.rm=TRUE)[[1]]))
-    upper_bound <- mean(apply(data, 2,
+    upper_bound <- mean(apply(infercnv_obj@processed.data, 2,
                               function(x) quantile(x, na.rm=TRUE)[[5]]))
-
+    
     return(c(lower_bound, upper_bound))
 
+}
+
+
+log2xplus1 <- function(invercnv_obj) {
+
+    infercnv_obj@processed.data <- log2(infercnv_obj@raw.data + 1)
+
+    return(infercnv_obj)
+        
+}
+
+invert_log2xplus1 <- function(infercnv_obj) {
+
+    infercnv_obj@processed.data <- 2^infercnv_obj@processed.data - 1
+
+    return(infercnv_obj)
+}
+
+
+make_zero_NA <- function(infercnv_obj) {
+
+    infercnv_obj@processed.data <- infercnv_obj@processed.data[infercnv_obj@processed.data == 0] <- NA
+    
+    return(infercnv_obj)
+
+}
+
+transform_to_reference_based_Zscores <- function(infercnv_obj) {
+
+    # center and convert to z-scores
+    flog.info(paste("::center_and_Zscore_conversion", sep=""))
+    
+    # remember, genes are rows, cells are cols
+    
+    # centering and z-scores based on the reference (normal) cells:
+    
+    # ref data represent the null distribution
+    ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
+    
+    ref_data = infercnv_obj@processed.data[,ref_idx]
+    
+    gene_ref_mean = apply(ref_data, 1, function(x) {mean(x, na.rm=T)})
+    gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=T)})
+    
+    # center all genes at the ref (normal) center:
+    infercnv_obj@processed.data = sweep(infercnv@processed.data, 1, gene_ref_mean, FUN="-")
+    
+    # convert to z-scores based on the ref (normal) distribution
+    infercnv_obj@processed.data = sweep(infercnv@processed.data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
+    
+    
+    return(infercnv_obj)
+    
+}
+
+
+mean_center_gene_expr <- function(infercnv_obj) {
+
+    flog.info(paste("::centering", sep=""))
+    infercnv_obj@processed.data <- sweep(infercnv_obj@processed.data, 1, rowMeans(infercnv_obj@processed.data, na.rm=T), FUN="-")
+    
+    return(infercnv_obj)
+}
+
+
+get_reference_grouped_cell_indices <- function(infercnv_obj) {
+
+    return( unlist(infercnv_obj@reference_grouped_cell_indices) )
+
+}
+
+apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
+
+    flog.info(paste("::process_data:setting max centered expr threshold using quantiles, set to: +/-: ", threshold))
+
+    infercnv_obj@processed.data[infercnv_obj@processed.data > threshold] <- threshold
+    infercnv_obj@processed.data[infercnv_obj@processed.data < (-1 * threshold)] <- -1 * threshold
+
+    return(infercnv_obj)
+}
+
+
+remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
+
+    contig_tail= (window_length - 1) / 2
+    
+    remove_indices <- c()
+    gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
+    chrs = unlist(unique(gene_chr_listing))
+    for (chr in chrs){
+        #flog.info(paste("::process_data:Remove tail contig ",chr, ".", sep=""))
+        remove_chr <- .remove_tails(infercnv_obj@processed.data,
+                                    which(gene_chr_listing == chr),
+                                    contig_tail)
+        
+        #logging::logdebug(paste("::process_data:Remove tail - removing indices for chr: ", chr, ", count: ", length(remove_chr), sep=""))
+
+        remove_indices <- c(remove_indices, remove_chr)
+
+    }
+    if (length(remove_indices) > 0){
+
+        infercnv_obj@processed.data <- infercnv_obj@processed.data[ -1 * remove_indices, ]
+        infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * remove_indices, ]
+
+        validate_infercnv_obj(infercnv_obj)
+
+        flog.info(paste("::process_data:Remove genes at chr ends, ",
+                        "new dimensions (r,c) = ",
+                        paste(dim(infercnv_obj@processed.data), collapse=","),
+                        " Total=", sum(infercnv_obj@processed.data, na.rm=TRUE),
+                        " Min=", min(infercnv_obj@processed.data, na.rm=TRUE),
+                        " Max=", max(infercnv_obj@processed.data, na.rm=TRUE),
+                        ".", sep=""))
+        
+    }
+    else {
+        flog.error("No genes removed at chr ends.... something wrong here")
+        stop(1234)
+    }
+    
+    return(infercnv_obj)
+
+}
+
+    
+
+validate_infercnv_obj <- function(infercnv_obj) {
+
+
+    if (all.equal(rownames(infercnv_obj@processed.data), rownames(infercnv_obj@gene_order))) {
+        # all good.
+        return;
+    }
+    
+    
+    genes = setdiff(rownames(infercnv_obj@processed.data), rownames(infercnv_obj@gene_order))
+    if (length(genes) != 0) {
+        flog.error(paste("The following genes are in infercnv_obj@processed.data and not @gene_order:", paste(genes, collapse=","),
+                         sep=" "))
+        
+    }
+
+    genes = setdiff(rownames(infercnv_obj@gene_order), rownames(infercnv_obj@processed.data))
+    if (length(genes) != 0) {
+        flog.error(paste("The following genes are in @gene_order and not infercnv_obj@processed.data:", paste(genes, collapse=","),
+                         sep=" "))
+        
+    }
+
+    stop("Problem detected w/ infercnv_obj")
+    
 }

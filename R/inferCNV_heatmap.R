@@ -10,27 +10,6 @@ get_group_color_palette <- function(){
 }
 
 
-# Not testing, params ok
-# Log intermediate step with a plot and text file of the steps.
-#
-# Args:
-# data: The data frame to plot.
-# plot_name: The absolute path to the pdf to be plotted.
-#
-# Returns:
-# No return
-plot_step <- function(data, plot_name){
-    text_file <- unlist(strsplit(plot_name, "\\."))
-    text_file <- paste(c(text_file[1:length(text_file)], "txt"),
-                       collapse=".", sep=".")
-    pdf(plot_name, useDingbats=FALSE)
-    image(as.matrix(data),
-          col=colorRampPalette(c("cyan","white","white","magenta"))(n=100))
-    dev.off()
-    write.table(data, file=text_file, quote=F, sep="\t")
-}
-
-
 #' Formats the data and sends it for plotting.
 #'
 #' @title Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.
@@ -72,20 +51,27 @@ plot_cnv <- function(infercnv_obj,
                      color_safe_pal=TRUE,
                      output_filename="infercnv",
                      output_format="png",
-                     ref_contig = NULL) {
+                     ref_contig = NULL,
+                     write_expr_matrix=FALSE) {
 
     plot_data = infercnv_obj@processed.data
     
-    logging::loginfo(paste("::plot_cnv:Start", sep=""))
-    logging::loginfo(paste("::plot_cnv:Current data dimensions (r,c)=",
+    flog.info(paste("::plot_cnv:Start", sep=""))
+    flog.info(paste("::plot_cnv:Current data dimensions (r,c)=",
                            paste(dim(plot_data), collapse=","),
                            " Total=", sum(plot_data, na.rm=T),
                            " Min=", min(plot_data, na.rm=T),
                            " Max=", max(plot_data, na.rm=T),
                            ".", sep=""))
-    logging::loginfo(paste("::plot_cnv:Depending on the size of the matrix",
+    flog.info(paste("::plot_cnv:Depending on the size of the matrix",
                            " this may take a moment.",
                            sep=""))
+
+
+    if (write_expr_matrix) {
+        expr_dat_file <- paste(out_dir, paste(output_filename, ".expr.dat", sep=""), sep="/")
+        write.table(data, file=expr_dat_file, quote=F, sep="\t")
+    }
     
     # Contigs
     contigs = infercnv_obj@gene_order[[C_CHR]]
@@ -289,8 +275,8 @@ plot_cnv_observations <- function(obs_data,
                                   layout_lhei=NULL,
                                   layout_lwid=NULL){
 
-    logging::loginfo("plot_cnv_observation:Start")
-    logging::loginfo(paste("Observation data size: Cells=",
+    flog.info("plot_cnv_observation:Start")
+    flog.info(paste("Observation data size: Cells=",
                            nrow(obs_data),
                            "Genes=",
                            ncol(obs_data),
@@ -308,7 +294,7 @@ plot_cnv_observations <- function(obs_data,
         if(length(hcl_group_indices)>0){
             hcl_group_indices <- hcl_contig_indices
             hcl_desc <- cluster_contig
-            logging::loginfo(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
+            flog.info(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
         } else {
            logging::logwarn(paste("plot_cnv_observations: Not able to cluster by",
                                      cluster_contig,
@@ -321,7 +307,7 @@ plot_cnv_observations <- function(obs_data,
         }
     }
                                         # HCL with a inversely weighted euclidean distance.
-    logging::loginfo(paste("clustering observations via method: ", hclust_method, sep=""))
+    flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
     # obs_hcl <- NULL
     obs_dendrogram <- list()
     ordered_names <- NULL
@@ -365,7 +351,7 @@ plot_cnv_observations <- function(obs_data,
         hcl_obs_annotations_groups <- obs_annotations_groups[obs_hcl$order]
 
         # Make a file of members of each group
-        logging::loginfo("plot_cnv_observation:Writing observations by grouping.")
+        flog.info("plot_cnv_observation:Writing observations by grouping.")
         for (cut_group in unique(split_groups)){
           group_memb <- names(split_groups)[which(split_groups == cut_group)]
           # Write group to file
@@ -398,7 +384,7 @@ plot_cnv_observations <- function(obs_data,
     annotations_legend <- cbind(obs_annotations_names, get_group_color_palette()(length(table(hcl_obs_annotations_groups))))
 
     # Make a file of coloring and groupings
-    logging::loginfo("plot_cnv_observation:Writing observation groupings/color.")
+    flog.info("plot_cnv_observation:Writing observation groupings/color.")
     groups_file_name <- file.path(file_base_name, "observation_groupings.txt")
     # file_groups <- rbind(split_groups,row_groupings)
     file_groups <- cbind(split_groups, row_groupings[,1], hcl_obs_annotations_groups, row_groupings[,2])
@@ -469,7 +455,7 @@ plot_cnv_observations <- function(obs_data,
                                         force_lhei=layout_lhei)
 
     # Write data to file.
-    logging::loginfo(paste("plot_cnv_references:Writing observation data to",
+    flog.info(paste("plot_cnv_references:Writing observation data to",
                            observation_file_base,
                            sep=" "))
     row.names(obs_data) <- orig_row_names
@@ -584,8 +570,8 @@ plot_cnv_references <- function(ref_data,
                                 layout_add=FALSE,
                                 testing=FALSE){
 
-    logging::loginfo("plot_cnv_references:Start")
-    logging::loginfo(paste("Reference data size: Cells=",
+    flog.info("plot_cnv_references:Start")
+    flog.info(paste("Reference data size: Cells=",
                            ncol(ref_data),
                            "Genes=",
                            nrow(ref_data),
@@ -630,7 +616,7 @@ plot_cnv_references <- function(ref_data,
     }
 
     # Make row color column colors from groupings
-    logging::loginfo(paste("plot_cnv_references:Number reference groups=",
+    flog.info(paste("plot_cnv_references:Number reference groups=",
                            length(ref_groups)),
                            sep=" ")
 
@@ -656,7 +642,7 @@ plot_cnv_references <- function(ref_data,
                                      col_seps=contig_seps)
 
     # Print controls
-    logging::loginfo("plot_cnv_references:Plotting heatmap.")
+    flog.info("plot_cnv_references:Plotting heatmap.")
     data_references <- heatmap.cnv(ref_data,
                                    main=NULL, #NA,
                                    ylab=reference_ylab,
@@ -691,7 +677,7 @@ plot_cnv_references <- function(ref_data,
 
     # Write data to file
     row.names(ref_data) <- ref_orig_names
-    logging::loginfo(paste("plot_cnv_references:Writing reference data to",
+    flog.info(paste("plot_cnv_references:Writing reference data to",
                            reference_data_file,
                            sep=" "))
     write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
