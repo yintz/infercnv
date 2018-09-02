@@ -9,8 +9,10 @@ importFrom("stats", "as.dendrogram", "as.dist", "cutree", "density",
 importFrom("utils", "flush.console", "read.table", "write.table", "tail")
 import(logging)
 import(futile.logger)
+import("methods")
 importFrom("gplots", "bluered")
 importFrom("ape", "write.tree", "as.phylo")
 import(RColorBrewer)
 export(infercnv)
-
+export(CreateInfercnvObject)
+export(run)

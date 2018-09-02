@@ -54,6 +54,11 @@ plot_cnv <- function(infercnv_obj,
                      ref_contig = NULL,
                      write_expr_matrix=FALSE) {
 
+
+    if(!file.exists(out_dir)){
+        dir.create(out_dir)
+    }
+    
     plot_data = infercnv_obj@processed.data
     
     flog.info(paste("::plot_cnv:Start", sep=""))
@@ -67,10 +72,10 @@ plot_cnv <- function(infercnv_obj,
                            " this may take a moment.",
                            sep=""))
 
-
+    
     if (write_expr_matrix) {
         expr_dat_file <- paste(out_dir, paste(output_filename, ".expr.dat", sep=""), sep="/")
-        write.table(data, file=expr_dat_file, quote=F, sep="\t")
+        write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
     }
     
     # Contigs
@@ -109,6 +114,22 @@ plot_cnv <- function(infercnv_obj,
     # Calculate how many rows will be made for the number of columns in the grouping key
     grouping_key_coln <- c()
     obs_annotations_names <- names(infercnv_obj@observation_grouped_cell_indices)
+
+    
+    # obs_annotations_groups: integer vec named by cells, set to index according to category name vec above.
+    obs_annotations_groups = colnames(infercnv_obj@processed.data)
+    names(obs_annotations_groups) = obs_annotations_groups
+    obs_index_groupings = infercnv_obj@observation_grouped_cell_indices
+    counter <- 1
+    for (obs_index_group in obs_index_groupings) {
+        obs_annotations_groups[ obs_index_group ] <- counter
+        counter <- counter + 1
+    }
+    # restrict to just the obs indices
+    obs_annotations_groups <- obs_annotations_groups[ unlist(obs_index_groupings) ]
+
+    
+
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
     if (grouping_key_coln[1] < 1) {
         grouping_key_coln[1] <- 1
@@ -132,8 +153,7 @@ plot_cnv <- function(infercnv_obj,
             width=10,
             height=(8.13 + sum(grouping_key_height)),
             paper="USr")
-    }
-    else if (output_format == "png") {
+    } else if (output_format == "png") {
         png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
             width=10,
             height=(8.13 + sum(grouping_key_height)),
