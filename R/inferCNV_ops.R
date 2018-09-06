@@ -76,7 +76,8 @@ run <- function(infercnv_obj,
                 min_cells_per_gene=3,
                 sd_amplifier = 1.5,
                 use_zscores=FALSE,
-                make_zero_NA=FALSE) {
+                make_zero_NA=FALSE,
+                remove_genes_at_chr_ends=FALSE) {
     
     flog.info(paste("::process_data:Start", sep=""))
 
@@ -359,31 +360,33 @@ run <- function(infercnv_obj,
     ## Step 08:
     # Remove Ends
 
-    flog.info("\n\n\tSTEP 08: removing genes at chr ends\n")
+    if (remove_genes_at_chr_ends == TRUE) {
         
-    infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
-    
+        flog.info("\n\n\tSTEP 08: removing genes at chr ends\n")
+        
+        infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
+        
                                         # Plot incremental steps.
-    if (plot_steps){
-
-        infercnv_obj_08 <- infercnv_obj
-        
-        save('infercnv_obj_08', file=file.path(out_path, "08_remove_gene_at_chr_ends.infercnv_obj"))
-        
-        plot_cnv(infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
-                 color_safe_pal=FALSE,
-                 x.center=0,
-                 title="08_remove_genes_at_chr_ends",
-                 obs_title="Observations (Cells)",
-                 ref_title="References (Cells)",
-                 output_filename="infercnv.08_remove_genes_at_chr_ends",
-                 write_expr_matrix=TRUE)
-        
+        if (plot_steps){
+            
+            infercnv_obj_08 <- infercnv_obj
+            
+            save('infercnv_obj_08', file=file.path(out_path, "08_remove_gene_at_chr_ends.infercnv_obj"))
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_path,
+                     color_safe_pal=FALSE,
+                     x.center=0,
+                     title="08_remove_genes_at_chr_ends",
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename="infercnv.08_remove_genes_at_chr_ends",
+                     write_expr_matrix=TRUE)
+            
+        }
     }
-    
     
     ################################
     # Step 10: de-noising 
@@ -1410,7 +1413,7 @@ apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
 
 remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 
-    contig_tail= (window_length - 1) / 2
+    contig_tail = (window_length - 1) / 2
     
     remove_indices <- c()
     gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
