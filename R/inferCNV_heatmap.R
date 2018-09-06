@@ -50,7 +50,7 @@ plot_cnv <- function(infercnv_obj,
                      hclust_method='average',
                      color_safe_pal=TRUE,
                      output_filename="infercnv",
-                     output_format="png",
+                     output_format="png", #pdf, png, NA
                      ref_contig = NULL,
                      write_expr_matrix=FALSE) {
 
@@ -74,7 +74,7 @@ plot_cnv <- function(infercnv_obj,
 
     
     if (write_expr_matrix) {
-        expr_dat_file <- paste(out_dir, paste(output_filename, ".expr.dat", sep=""), sep="/")
+        expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
         write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
     }
     
@@ -146,21 +146,23 @@ plot_cnv <- function(infercnv_obj,
     # Calculate how much bigger the output needs to be to accodomate for the grouping key
     grouping_key_height <- c((grouping_key_rown[2] + 2) * 0.175, (grouping_key_rown[1] + 3) * 0.175)
 
-    # Rows observations, Columns CHR
-    if (output_format == "pdf") {
-        pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
-            useDingbats=FALSE,
-            width=10,
-            height=(8.13 + sum(grouping_key_height)),
-            paper="USr")
-    } else if (output_format == "png") {
-        png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
-            width=10,
-            height=(8.13 + sum(grouping_key_height)),
-            units="in",
-            res=600)
+                                        # Rows observations, Columns CHR
+    if (! is.na(output_format)) {
+        if (output_format == "pdf") {
+            pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
+                useDingbats=FALSE,
+                width=10,
+                height=(8.13 + sum(grouping_key_height)),
+                paper="USr")
+        } else if (output_format == "png") {
+            png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
+                width=10,
+                height=(8.13 + sum(grouping_key_height)),
+                units="in",
+                res=600)
+        }
     }
-
+    
     # Plot observations
     ## Make Observation Samples
     ## Remove observation col names, too many to plot

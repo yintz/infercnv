@@ -23,35 +23,6 @@ main = function() {
 
 }
 
-load_data = function(matrix_filename) {
-
-    message(paste("loading:", matrix_filename))
-    
-    data = read.table(matrix_filename, header=T, row.names=1, sep='\t')
-    
-    ref = read.table("references.txt")
-    ref_cells = colnames(ref)
-    
-    obs = read.table("observations.txt")
-    obs_cells = rownames(obs)
-    
-    ref_matrix = data[,colnames(data) %in% ref_cells]
-    obs_matrix = data[,colnames(data) %in% obs_cells]
-    
-
-    data_bundle = list()
-
-    data_bundle[['filename']] = matrix_filename
-    
-    data_bundle[['ref_cells']] = ref_cells
-    data_bundle[['obs_cells']] = obs_cells
-
-    data_bundle[['ref_matrix']] = ref_matrix
-    data_bundle[['obs_matrix']] = obs_matrix
-
-    return(data_bundle)
-       
-}
 
 plot_gene_dist = function(gene_name, data_bundle, drop_zeros=F) {
 
@@ -93,33 +64,17 @@ make_plots = function(gene_name, data_bundles) {
 
 load_all_data = function() {
     
-    S01 = load_data("01_incoming_data.pdf.txt")
-    S03 = load_data("03_reduced_by_cutoff.pdf.txt")
-    S04 = load_data("04_center_with_threshold.pdf.txt")
-    
-    S05 = load_data("05_smoothed.pdf.txt")
-    S06 = load_data("06_recentered.pdf.txt")
-    S07 = load_data("07_remove_average.pdf.txt")
-    
-    S08 = load_data("08_remove_ends.pdf.txt")
-    S08B = load_data("08B_inv_log_transform.pdf.txt")
-    
-    S09 = load_data("09_denoise.pdf.txt")
-    S10B = load_data("10B_remove_outlier.pdf.txt")
-
-
-    retlist = list(S01, S03, S04,
-                   S05, S06, S07,
-                   S08, S08B,
-                   S09, S10B)
-
-    names(retlist) = c(
-        'S01', 'S03', 'S04',
-        'S05', 'S06', 'S07',
-        'S08', 'S08B',
-        'S09', 'S10B')
-    
-    return(retlist)
+    obj_files = list.files(".", "*.infercnv_obj")
+    for (obj_file in obj_files) {
+        message(paste("loading file:", obj_file))
+        load(obj_file)
+    }
+    # put variables into the global environment.
+    # https://stackoverflow.com/questions/41193543/r-set-all-variables-to-global-environment
+    vars <- ls(all = TRUE)
+    for (i in 1:length(vars)){
+        assign(vars[i], get(vars[i]), envir = .GlobalEnv)
+    }
 }
 
 
@@ -140,14 +95,17 @@ plot_ref_obs_comparison = function(data_bundle, gene_name) {
 }
 
 
-plot_mean_chr_expr_lineplot = function(data_bundle,
+plot_mean_chr_expr_lineplot = function(infercnv_obj,
                                        num_random_cells=0,
                                        ylim=NA, xlim=NA,
                                        plot_separate=F,
                                        sep_obs_types=F,
-                                       incl_sd=F) {
+                                       incl_sd=F,
+                                       incl_combined=F) {
     
-
+    
+    data_bundle <- make_data_bundle(infercnv_obj)
+    
     ref_data= data_bundle$ref_matrix
     obs_data = data_bundle$obs_matrix
     
@@ -244,6 +202,10 @@ plot_mean_chr_expr_lineplot = function(data_bundle,
 
         points(idx, mean_expr_obs, col='salmon', t='l')
 
+        if (incl_combined) {
+            points(idx, rowMeans(infercnv_obj@processed.data), col='magenta', t='l')
+        }
+        
         if (incl_sd) {
             points(idx, mean_expr_ref + sd_expr_ref, col='gray', t='l', lty=3)
             points(idx, mean_expr_ref + -1*sd_expr_ref, col='gray', t='l', lty=3)
@@ -266,8 +228,10 @@ plot_mean_chr_expr_lineplot = function(data_bundle,
 
 
 # plot number of gene-expressing cells by chr
-plot_chr_num_cells_lineplot = function(data_bundle) {
+plot_chr_num_cells_lineplot = function(infercnv_obj) {
 
+    data_bundle <- make_data_bundle(infercnv_obj)
+    
     ref_num_cells_expr = apply(data_bundle$ref_matrix, 1, function(x) { x[is.na(x)] = 0; sum(x!=0)} )
     obs_num_cells_expr = apply(data_bundle$obs_matrix, 1, function(x) { x[is.na(x)] = 0; sum(x!=0)} )
 
@@ -283,6 +247,31 @@ plot_chr_num_cells_lineplot = function(data_bundle) {
 
 }
 
+make_data_bundle <- function(infercnv_obj) {
+
+    ref_indices <- unlist(infercnv_obj@reference_grouped_cell_indices)
+    obs_indices <- unlist(infercnv_obj@observation_grouped_cell_indices)
+
+    data_bundle <- list()
+    data_bundle$ref_matrix <- infercnv_obj@processed.data[,ref_indices]
+    data_bundle$obs_matrix <- infercnv_obj@processed.data[,obs_indices]
+
+    return(data_bundle)
+    
+}
+
+
+boxplot_mean_expr_distr <- function(infercnv_obj, by="gene" ) { # or cell
+    db = make_data_bundle(infercnv_obj)
+
+    if (by == "gene") {
+        boxplot(rowMeans(db$ref_matrix), rowMeans(db$obs_matrix), outline=F, names=c('ref', 'obs'))
+    }
+    else {
+        # by 'cell'
+        boxplot(colMeans(db$ref_matrix), colMeans(db$obs_matrix), outline=F, names=c('ref', 'obs'))
+    }
+}
 
 
 if (!interactive()) {
