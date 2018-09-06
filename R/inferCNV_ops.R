@@ -902,6 +902,9 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
     # restrict to reference cells:
     ref_cells_data <- infercnv_obj@processed.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
     
+    # inverse the log transform:
+    ref_cells_data <- 2^ref_cells_data - 1
+    
     average_gene <- rowMeans(ref_cells_data)
 
     flog.info(paste("::process_data:Averages (counts).", sep=""))

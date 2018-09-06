@@ -1,19 +1,22 @@
 #!/usr/bin/env Rscript
 
+
+options(error = function() traceback(2))
+
 library("infercnv")
 
-infercnv::infercnv(x="oligodendrocytoma_expression_downsampled.txt", 
-                   gene_order="gencode_downsampled.txt", 
-                   annotations="oligodendrocytoma_annotations_downsampled.txt",
-                   cutoff=1, 
-                   #noise_filter=0.2,
-                   #max_centered_expression=3,
-                   output_dir="outdir", 
-                   hclust_method="ward.D",
-                   name_ref_groups="Microglia/Macrophage,Oligodendrocytes (non-malignant)", 
-                   cluster_by_groups=T, 
-                   plot_steps=F,
-                   use_zscores=T,
-                   log_level="DEBUG"
-                   )
+infercnv_obj = CreateInfercnvObject(data_file="oligodendrocytoma_expression_downsampled.txt",
+                                    annotations_file="oligodendrocytoma_annotations_downsampled.txt",
+                                    delim="\t",
+                                    gene_order_file="gencode_downsampled.txt",
+                                    ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
+
+ret = infercnv::run(infercnv_obj,
+              cutoff=1, 
+              out_path="output_dir", 
+              cluster_by_groups=T, 
+              plot_steps=F,
+              use_zscores=T,
+              )
+
 
