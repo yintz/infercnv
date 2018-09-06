@@ -446,8 +446,7 @@ run <- function(infercnv_obj,
     
         
     # Plot incremental steps.
-    if (TRUE) { #plot_steps){
-
+    if (plot_steps) {
 
         infercnv_obj_11 <- infercnv_obj
 
@@ -794,7 +793,7 @@ split_references <- function(average_data,
 # plot_step: True will plot this analysis step.
 #
 # Returns:
-                                        # Return data matrix with outliers removed
+# Return data matrix with outliers removed
 
 remove_outliers_norm <- function(infercnv_obj,
                                  out_method="average_bound",
