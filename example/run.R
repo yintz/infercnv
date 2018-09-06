@@ -6,8 +6,8 @@ options(error = function() traceback(2))
 library("infercnv")
 
 # create the infercnv object
-infercnv_obj = CreateInfercnvObject(data_file="oligodendrocytoma_expression_downsampled.txt",
-                                    annotations_file="oligodendrocytoma_annotations_downsampled.txt",
+infercnv_obj = CreateInfercnvObject(data_file="oligodendroglioma_expression_downsampled.txt",
+                                    annotations_file="oligodendroglioma_annotations_downsampled.txt",
                                     delim="\t",
                                     gene_order_file="gencode_downsampled.txt",
                                     ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
