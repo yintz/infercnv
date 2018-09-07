@@ -1,0 +1,152 @@
+---
+title: "infercnv_run"
+author: "Brian Haas"
+date: "9/5/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(infercnv)
+
+source("~/GITHUB/bhaas_forks/inferCNV/scripts/explore_steps_by_gene.simple.R")
+```
+
+## Create the InferCNV Object
+
+```{r}
+infercnv_obj = CreateInfercnvObject(
+  raw_counts_matrix="oligodendroglioma_expression_downsampled.counts.matrix",
+  annotations_file="oligodendroglioma_annotations_downsampled.txt",
+  delim="\t",
+  gene_order_file="gencode_downsampled.txt",
+  ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
+
+```
+
+## Normalize each cell's counts for sequencing depth
+
+```{r}
+infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
+```
+
+
+
+```{r}
+# filter out low expressed genes
+cutoff=1
+infercnv_obj <- infercnv:::require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
+```
+
+
+```{r}
+# filter out bad cells
+min_cells_per_gene=3
+infercnv_obj <- infercnv:::require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
+```
+
+
+```{r}
+## for safe keeping
+infercnv_orig_filtered = infercnv_obj
+save('infercnv_orig_filtered', file = 'infercnv_orig_filtered.obj')
+```
+
+## log transform the normalized counts:
+
+```{r}
+infercnv_obj <- infercnv:::log2xplus1(infercnv_obj)
+```
+
+
+
+## bound the data according to thresholds
+
+
+```{r}
+
+threshold = mean(abs(infercnv:::get_average_bounds(infercnv_obj)))
+message(paste("Threshold set to: ", threshold))
+infercnv_obj = infercnv:::apply_max_threshold_bounds(infercnv_obj, threshold)
+plot_mean_chr_expr_lineplot(infercnv_obj)
+```
+
+
+
+
+
+## perform smoothing across chromosomes
+
+```{r}
+infercnv_obj = infercnv:::smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE) 
+plot_mean_chr_expr_lineplot(infercnv_obj)
+```
+
+
+
+```{r}
+# re-center each cell
+infercnv_obj <- infercnv:::center_cell_expr_across_chromosome(infercnv_obj) 
+plot_mean_chr_expr_lineplot(infercnv_obj)
+```
+
+##  use z-scores based on log cell expr distribution
+
+```{r}
+USE_ZSCORES=FALSE
+if (USE_ZSCORES) {
+    infercnv_obj = infercnv:::transform_to_reference_based_Zscores(infercnv_obj)
+    plot_mean_chr_expr_lineplot(infercnv_obj)
+}
+```
+
+
+
+
+
+
+```{r}
+# subtract the reference values from observations
+infercnv_obj <- infercnv:::subtract_ref_expr_from_obs(infercnv_obj)
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted')
+```
+
+```{r}
+knitr::include_graphics("infercnv.ref_subtracted.png")
+```
+
+
+```{r}
+# remove noise
+infercnv_obj <- infercnv:::clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.denoised')
+```
+
+```{r}
+knitr::include_graphics("infercnv.denoised.png")
+```
+
+## Remove outlier data points
+
+```{r}
+infercnv_obj = infercnv:::remove_outliers_norm(infercnv_obj)
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_pal = FALSE)
+```
+                                  
+
+```{r}
+knitr::include_graphics("infercnv.outliers_removed.png")
+```
+
+## Invert the log space symmetrically:
+
+```{r}
+infercnv_obj = infercnv:::invert_symmetrical_logxplus1(infercnv_obj)
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.final', color_safe_pal = FALSE, x.range="auto")
+```
+
+```{r}
+knitr::include_graphics("infercnv.final.png")
+```
