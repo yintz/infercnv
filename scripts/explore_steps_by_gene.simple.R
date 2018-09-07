@@ -274,7 +274,7 @@ boxplot_mean_expr_distr <- function(infercnv_obj, by="gene" ) { # or cell
 }
 
 
-if (!interactive()) {
-    main()
-}
+#if (!interactive()) {
+#    main()
+#}
 

@@ -47,6 +47,7 @@ plot_cnv <- function(infercnv_obj,
                      k_obs_groups = 3,
                      contig_cex=1,
                      x.center=0,
+                     x.range=NA,
                      hclust_method='average',
                      color_safe_pal=TRUE,
                      output_filename="infercnv",
@@ -72,11 +73,39 @@ plot_cnv <- function(infercnv_obj,
                            " this may take a moment.",
                            sep=""))
 
+
     
     if (write_expr_matrix) {
         expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
         write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
     }
+    
+    if (! any(is.na(x.range))) {
+
+
+        if (length(x.range) == 1 & x.range == "auto") {
+            
+            high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
+            low_threshold = -1 * high_threshold
+            
+        } else {
+        
+            # use defined values
+            low_threshold = x.range[1]
+            high_threshold = x.range[2]
+            
+            if (low_threshold > x.center | high_threshold < x.center | low_threshold >= high_threshold) {
+                stop(paste("Error, problem with relative values of x.range: ", x.range, ", and x.center: ", x.center))
+            }
+        }
+
+        plot_data[plot_data < low_threshold] <- low_threshold
+        plot_data[plot_data > high_threshold] <- high_threshold
+        
+        infercnv_obj@processed.data <- plot_data  #because used again below...
+        
+    }
+    
     
     # Contigs
     contigs = infercnv_obj@gene_order[[C_CHR]]

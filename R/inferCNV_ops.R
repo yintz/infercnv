@@ -60,7 +60,9 @@
 run <- function(infercnv_obj,
                 cutoff=1,
                 out_path=".",
-                transform_data=FALSE,
+                normalize_counts=TRUE,
+                normalize_factor=NA,
+                log2_transform_data=TRUE,
                 window_length=101,
                 num_ref_groups=NULL,
                 max_centered_threshold=NA,
@@ -85,8 +87,9 @@ run <- function(infercnv_obj,
         dir.create(out_path)
     }
 
+    step_count = 1
 
-
+    
     flog.info(paste("\n\n\tSTEP 01: incoming data\n"))
 
     # Split the reference data into groups if requested
@@ -122,6 +125,12 @@ run <- function(infercnv_obj,
                  ref_title="References (Cells)",
                  output_filename="infercnv.01_incoming_data",
                  write_expr_matrix=TRUE)
+    }
+    
+    if (normalize_counts) {
+
+        infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj, normalize_factor=normalize_factor)
+
     }
     
     
@@ -900,10 +909,8 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 
     # restrict to reference cells:
     ref_cells_data <- infercnv_obj@processed.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
-    
-    # inverse the log transform:
-    ref_cells_data <- 2^ref_cells_data - 1
-    
+
+        
     average_gene <- rowMeans(ref_cells_data)
 
     flog.info(paste("::process_data:Averages (counts).", sep=""))
@@ -1330,13 +1337,14 @@ get_average_bounds <- function (infercnv_obj) {
 }
 
 
-log2xplus1 <- function(invercnv_obj) {
+log2xplus1 <- function(infercnv_obj) {
 
-    infercnv_obj@processed.data <- log2(infercnv_obj@raw.data + 1)
+    infercnv_obj@processed.data <- log2(infercnv_obj@processed.data + 1)
 
     return(infercnv_obj)
         
 }
+
 
 invert_log2xplus1 <- function(infercnv_obj) {
 
@@ -1522,5 +1530,44 @@ symmetrical_logxplus1 <- function(infercnv_obj) {
     infercnv_obj@processed.data = data
 
     return(infercnv_obj)
+}
+
+invert_symmetrical_logxplus1 <- function(infercnv_obj) {
+
+    data = infercnv_obj@processed.data
+
+    data[data>0] = 2^data[data>0] - 1
+
+    data[data<0] = -1 * (2^(-1 * data[data<0]) - 1)
+    
+    infercnv_obj@processed.data <- data
+
+    return(infercnv_obj)
+    
+}
+
+
+normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
+
+    data <- infercnv_obj@processed.data
+    
+    cs = colSums(data)
+
+    # make fraction of total counts:
+    data <- sweep(data, STATS=cs, MARGIN=2, FUN="/")
+
+    
+    if (is.na(normalize_factor)) {
+        
+        normalize_factor = 10^round(log10(mean(cs)))
+    
+    }
+
+    data <- data * normalize_factor
+
+    infercnv_obj@processed.data <- data
+
+    return(infercnv_obj)
+        
 }
 

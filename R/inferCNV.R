@@ -24,10 +24,10 @@ infercnv <- methods::setClass(
 #' ref_group_names: vector of names to be used as a reference.
 #' 
 
-CreateInfercnvObject <- function(data_file, gene_order_file, annotations_file, ref_group_names, delim="\t") {
-
+CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations_file, ref_group_names, delim="\t") {
+    
     # input expression data
-    raw.data <- read.table(data_file, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
+    raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
 
     # get gene order info
     gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
