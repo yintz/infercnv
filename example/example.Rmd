@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(infercnv)
 
 source("~/GITHUB/bhaas_forks/inferCNV/scripts/explore_steps_by_gene.simple.R")
+
+
 ```
 
 ## Create the InferCNV Object
@@ -36,7 +38,7 @@ infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
 
 ```{r}
 # filter out low expressed genes
-cutoff=1
+cutoff=2
 infercnv_obj <- infercnv:::require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
 ```
 
@@ -51,28 +53,27 @@ infercnv_obj <- infercnv:::require_above_min_cells_ref(infercnv_obj, min_cells_p
 ```{r}
 ## for safe keeping
 infercnv_orig_filtered = infercnv_obj
-save('infercnv_orig_filtered', file = 'infercnv_orig_filtered.obj')
+plot_mean_chr_expr_lineplot(infercnv_obj)
+save('infercnv_obj', file = 'infercnv_obj.orig_filtered')
 ```
+
+
+## perform anscombe normalization
+```{r}
+infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
+save('infercnv_obj', file='infercnv_obj.anscombe')
+plot_mean_chr_expr_lineplot(infercnv_obj)
+
+```
+
+
 
 ## log transform the normalized counts:
 
 ```{r}
 infercnv_obj <- infercnv:::log2xplus1(infercnv_obj)
+save('infercnv_obj', file='infercnv_obj.log_transformed')
 ```
-
-
-
-## bound the data according to thresholds
-
-
-```{r}
-
-threshold = mean(abs(infercnv:::get_average_bounds(infercnv_obj)))
-message(paste("Threshold set to: ", threshold))
-infercnv_obj = infercnv:::apply_max_threshold_bounds(infercnv_obj, threshold)
-plot_mean_chr_expr_lineplot(infercnv_obj)
-```
-
 
 
 
@@ -80,7 +81,8 @@ plot_mean_chr_expr_lineplot(infercnv_obj)
 ## perform smoothing across chromosomes
 
 ```{r}
-infercnv_obj = infercnv:::smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE) 
+infercnv_obj = infercnv:::smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
+save('infercnv_obj', file='infercnv_obj.smooth_by_chr')
 plot_mean_chr_expr_lineplot(infercnv_obj)
 ```
 
@@ -88,29 +90,31 @@ plot_mean_chr_expr_lineplot(infercnv_obj)
 
 ```{r}
 # re-center each cell
-infercnv_obj <- infercnv:::center_cell_expr_across_chromosome(infercnv_obj) 
+infercnv_obj <- infercnv:::center_cell_expr_across_chromosome(infercnv_obj, method = "median")
+save('infercnv_obj', file='infercnv_obj.cells_recentered')
 plot_mean_chr_expr_lineplot(infercnv_obj)
 ```
 
-##  use z-scores based on log cell expr distribution
 
 ```{r}
-USE_ZSCORES=FALSE
-if (USE_ZSCORES) {
-    infercnv_obj = infercnv:::transform_to_reference_based_Zscores(infercnv_obj)
-    plot_mean_chr_expr_lineplot(infercnv_obj)
-}
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed")
+```
+```{r}
+knitr::include_graphics("infercnv.chr_smoothed.png")
 ```
 
 
 
-
-
+# subtract the reference values from observations, NOW HAVE LOG (FOLD CHANGE) VALUES
 
 ```{r}
-# subtract the reference values from observations
 infercnv_obj <- infercnv:::subtract_ref_expr_from_obs(infercnv_obj)
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted')
+save('infercnv_obj', file='infercnv_obj.ref_subtracted')
+plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
+```
+
+```{r}
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted', x.range="auto", title="ref subtracted")
 ```
 
 ```{r}
@@ -118,10 +122,30 @@ knitr::include_graphics("infercnv.ref_subtracted.png")
 ```
 
 
+
+
+## invert log values
+```{r}
+
+infercnv_obj@processed.data <- 2^infercnv_obj@processed.data
+save('infercnv_obj', file='infercnv_obj.inverted_log')
+plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.inverted', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "inverted log FC to FC")
+
+
+```
+
+
+```{r}
+knitr::include_graphics("infercnv.inverted.png")
+```
+
 ```{r}
 # remove noise
 infercnv_obj <- infercnv:::clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.denoised')
+save('infercnv_obj', file='infercnv_obj.denoised')
+plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.denoised', x.range="auto", x.center=1, title="denoised")
 ```
 
 ```{r}
@@ -132,21 +156,22 @@ knitr::include_graphics("infercnv.denoised.png")
 
 ```{r}
 infercnv_obj = infercnv:::remove_outliers_norm(infercnv_obj)
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_pal = FALSE)
+save('infercnv_obj', file="infercnv_obj.outliers_removed")
+infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "outliers removed")
 ```
-                                  
+
 
 ```{r}
 knitr::include_graphics("infercnv.outliers_removed.png")
 ```
 
-## Invert the log space symmetrically:
 
 ```{r}
-infercnv_obj = infercnv:::invert_symmetrical_logxplus1(infercnv_obj)
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.final', color_safe_pal = FALSE, x.range="auto")
+plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 ```
 
-```{r}
-knitr::include_graphics("infercnv.final.png")
-```
+
+
+
+
+

@@ -7,6 +7,7 @@ importFrom("stats", "as.dendrogram", "as.dist", "cutree", "density",
            "dist", "filter", "hclust", "median", "order.dendrogram",
            "quantile", "reorder", "sd", "complete.cases", "cor")
 importFrom("utils", "flush.console", "read.table", "write.table", "tail")
+importFrom("binhf", "ansc")
 import(logging)
 import(futile.logger)
 import("methods")

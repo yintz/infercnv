@@ -6,7 +6,7 @@ options(error = function() traceback(2))
 library("infercnv")
 
 # create the infercnv object
-infercnv_obj = CreateInfercnvObject(data_file="oligodendroglioma_expression_downsampled.txt",
+infercnv_obj = CreateInfercnvObject(raw_counts_matrix="oligodendroglioma_expression_downsampled.counts.matrix",
                                     annotations_file="oligodendroglioma_annotations_downsampled.txt",
                                     delim="\t",
                                     gene_order_file="gencode_downsampled.txt",
@@ -17,8 +17,8 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              cutoff=1, 
                              out_path="output_dir", 
                              cluster_by_groups=T, 
-                             plot_steps=F,
-                             use_zscores=T,
+                             plot_steps=T,
+                             use_zscores=F,
                              )
 
 # generate final plot
@@ -26,7 +26,7 @@ plot_cnv(infercnv_obj,
          out_dir="output_dir", 
          cluster_by_groups=T,
          color_safe_pal=FALSE,
-         x.center=0,
+         x.center=1,
          title="inferCNV",
          obs_title="Observations (Cells)",
          ref_title="References (Cells)",

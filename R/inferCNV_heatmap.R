@@ -271,7 +271,9 @@ plot_cnv <- function(infercnv_obj,
                             x.center=x.center,
                             layout_add=TRUE)
     }
-    dev.off()
+    if (! is.na(output_format)) {
+        dev.off()
+    }
 }
 
 # TODO Tested, test make files so turned off but can turn on and should pass.
