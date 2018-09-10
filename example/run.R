@@ -15,9 +15,9 @@ infercnv_obj = CreateInfercnvObject(raw_counts_matrix="oligodendroglioma_express
 # perform infercnv operations to reveal cnv signal
 infercnv_obj = infercnv::run(infercnv_obj,
                              cutoff=1, 
-                             out_path="output_dir", 
+                             out_dir="output_dir", 
                              cluster_by_groups=T, 
-                             plot_steps=T,
+                             plot_steps=F,
                              use_zscores=F,
                              )
 

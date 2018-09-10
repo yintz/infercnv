@@ -1,88 +1,104 @@
-#!/usr/bin/env Rscript
-
 
 #' Function doing the actual analysis before calling the plotting functions.
 #'
-#' @title Infer CNV changes given a matrix of RNASeq counts. Output a pdf and matrix of final values.
+#' @title run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts. 
 #'
-#' @param data Expression matrix (genes X samples),
-#'                 assumed to be log2(TPM+1) .
-#' @param gene_order Ordering of the genes (data's rows)
-#'                       according to their genomic location
-#'                       To include all genes use 0.
-#' @param cutoff Cut-off for the average expression of genes to be
-#'                   used for CNV inference.
-#' @param reference_obs Column names of the subset of samples (data's columns)
-#'                          that should be used as references.
-#'                          If not given, the average of all samples will
-#'                          be the reference.
-#' @param transform_data Indicator to log2 + 1 transform
+#' @param infercnv_obj An infercnv object populated with raw count data
+#' 
+#' @param cutoff Cut-off for the min average read counts per gene among reference cells. (default: 1)
+#'
+#' @param min_cells_per_gene minimum number of reference cells requiring expression measurements to include the corresponding gene. 
+#'                           default: 3     
+#' 
+#' @param out_dir path to directory to deposit outputs (default: '.')
+#'
+#' @param normalize_factor scaling factor for total sum of counts (default: NA, in which case
+#'                         will be set = 10^round(log10(mean(colSums))), typically setting to 1e5
+#'
 #' @param window_length Length of the window for the moving average
-#'                          (smoothing). Should be an odd integer.
-#' @param max_centered_threshold The maximum value a a value can have after
-#'                                   centering. Also sets a lower bound of
-#'                                   -1 * this value.
-#' @param noise_filter The minimum difference a value can be from the
-#'                            average reference in order for it not to be
-#'                            cleared (zeroed out as noise).
-#' @param noise_quantiles quantile range within the residual reference
-#'                            distribution to be cleared (zeroed out as noise). Alternative
-#'                            to param noise_filter.
-#' @param ref_group_names Names of groups from the "annotations" table whose cells
-#' are to be used as reference groups.
+#'                          (smoothing). Should be an odd integer. (default: 101)#'
+#'
 #' @param num_ref_groups The number of reference groups or a list of
 #'                           indices for each group of reference indices in
-#'                           relation to reference_obs.
-#' @param out_path The path to what to save the pdf as. The raw data is
-#'                     also written to this path but with the extension .txt .
-#' @param obs_annotations_groups Vector with group index of observations cells,
-#' based on the annotation ot the cells.
-#' @param k_obs_groups Number of groups in which to break the observations.
-#' @param plot_steps If true turns on plotting intermediate steps.
-#' @param contig_tail Length of the tail removed from the ends of contigs.
-#' @param method_bound_vis Method to use for bounding values in the visualization.
-#' @param lower_bound_vis Lower bound to normalize data to for visualization.
-#' @param upper_bound_vis Upper bound to normalize data to for visualization.
-#' @param ref_subtract_method Method used to subtract the reference values from the observations.
-#' Valid choices are: "by_mean", "by_quantiles".
+#'                           relation to reference_obs. (default: NULL)
+#'
+#' @param max_centered_threshold The maximum value a value can have after
+#'                                   centering. Also sets a lower bound of
+#'                                   -1 * this value.
+#'
+#' @param noise_filter  Values +- from the reference cell mean will be set to zero (whitening effect)
+#'                      default(NA, instead will use sd_amplifier below.
+#'
+#' @param sd_amplifier  Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
+#'                      default: 1.5
+#' 
+#' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
+#'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
+#' 
+#'
+#' @param k_obs_groups Number of groups in which to break the observations. (default: 1)
+#'
+#' @param outlier_method_bound Method to use for bounding outlier values. (default: "average_bound")
+#'                             Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.
+#' @param outlier_lower_bound  Outliers below this lower bound will be set to this value. 
+#' @param outlier_upper_bound  Outliers above this upper bound will be set to this value.
+#'
+#'
 #' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
-#' @param use_zscores If true, converts log(expression) data to zscores
 #'
-#' @return
-#' Returns a list including:
-#'     CNV matrix before visualization.
-#'     CNV matrix after outlier removal for visualization.
-#'     Contig order
-#'     Column names of the subset of samples that should be used as references.
-#'     Names of samples in reference groups.
+#' @param anscombe_normalize  Perform anscombe normalization on normalized counts before log transformation.
+#' 
+#' @param use_zscores If true, converts log(expression) data to zscores based on reference cell expr distribution.
 #'
+#' 
+#' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
+#' 
+#' @return infercnv_obj containing filtered and transformed data
+#'
+#' 
 run <- function(infercnv_obj,
+
+                # gene filtering settings
                 cutoff=1,
-                out_path=".",
+                min_cells_per_gene=3,
+                
+                out_dir=".",
                 normalize_factor=NA,
                 window_length=101,
+                
                 num_ref_groups=NULL,
+
                 max_centered_threshold=NA,
+
+                # noise settings
                 noise_filter=NA,
+                sd_amplifier = 1.5,
+
+                # observation cell clustering settings
                 cluster_by_groups=FALSE,
                 k_obs_groups=1,
-                plot_steps=FALSE,
-                method_bound_vis="average_bound",
-                lower_bound_vis=NA,
-                upper_bound_vis=NA,
-                ref_subtract_method="by_mean",
+
+
+                # outlier adjustment settings
+                outlier_method_bound="average_bound",
+                outlier_lower_bound=NA,
+                outlier_upper_bound=NA,
+
                 hclust_method='complete',
-                min_cells_per_gene=3,
-                sd_amplifier = 1.5,
-                use_zscores=FALSE,
+
                 anscombe_normalize=TRUE,
-                remove_genes_at_chr_ends=FALSE) {
+                use_zscores=FALSE,
+                remove_genes_at_chr_ends=FALSE,
+
+                plot_steps=FALSE
+                
+                ) {
     
     flog.info(paste("::process_data:Start", sep=""))
 
-    if(out_path != "." & !file.exists(out_path)){
-        dir.create(out_path)
+    if(out_dir != "." & !file.exists(out_dir)){
+        dir.create(out_dir)
     }
 
     step_count = 0; 
@@ -110,12 +126,12 @@ run <- function(infercnv_obj,
     if (plot_steps) {        
 
         infercnv_obj_incoming_data <- infercnv_obj
-        save('infercnv_obj_incoming_data', file=file.path(out_path, sprintf("%02d_incoming_data.infercnv_obj", step_count)))
+        save('infercnv_obj_incoming_data', file=file.path(out_dir, sprintf("%02d_incoming_data.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj=infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_incoming_data", step_count),
@@ -146,12 +162,12 @@ run <- function(infercnv_obj,
         
         infercnv_obj_low_expr_genes_pruned <- infercnv_obj
         
-        save('infercnv_obj_low_expr_genes_pruned', file=file.path(out_path, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count)))
+        save('infercnv_obj_low_expr_genes_pruned', file=file.path(out_dir, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count)))
         
         plot_cnv(infercnv_obj=infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_reduced_by_cutoff", step_count),
@@ -172,12 +188,12 @@ run <- function(infercnv_obj,
     if (plot_steps){
         
         infercnv_obj_normalize_by_depth <- infercnv_obj
-        save('infercnv_obj_normalize_by_depth', file=file.path(out_path, sprintf("%02d_normalized_by_depth.infercnv_obj", step_count)))
+        save('infercnv_obj_normalize_by_depth', file=file.path(out_dir, sprintf("%02d_normalized_by_depth.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj=infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_normalized_by_depth", step_count),
@@ -198,12 +214,12 @@ run <- function(infercnv_obj,
         infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
         
         infercnv_obj_anscombe_norm <- infercnv_obj
-        save('infercnv_obj_anscombe_norm', file=file.path(out_path, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count)))
+        save('infercnv_obj_anscombe_norm', file=file.path(out_dir, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count)))
 
         plot_cnv(infercnv_obj=infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_anscombe_normalized", step_count),
@@ -224,12 +240,12 @@ run <- function(infercnv_obj,
     if (plot_steps){
         
         infercnv_obj_log_transformed <- infercnv_obj
-        save('infercnv_obj_log_transformed', file=file.path(out_path, sprintf("%02d_logtransformed.infercnv_obj", step_count)))
+        save('infercnv_obj_log_transformed', file=file.path(out_dir, sprintf("%02d_logtransformed.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj=infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_log_transformed_data",step_count),
@@ -255,12 +271,12 @@ run <- function(infercnv_obj,
             
             infercnv_obj_zscores <- infercnv_obj
             
-            save('infercnv_obj_zscores', file=file.path(out_path, sprintf("%02d_Z-scores.infercnv_obj", step_count)))
+            save('infercnv_obj_zscores', file=file.path(out_dir, sprintf("%02d_Z-scores.infercnv_obj", step_count)))
             
             plot_cnv(infercnv_obj=infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
-                     out_dir=out_path,
+                     out_dir=out_dir,
                      color_safe_pal=FALSE,
                      x.center=0,
                      title=sprintf("%02d_centering_gene_expr",step_count),
@@ -292,12 +308,12 @@ run <- function(infercnv_obj,
 
         infercnv_obj_max_centered_expr <- infercnv_obj
         
-        save('infercnv_obj_max_centered_expr', file=file.path(out_path, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count)))
+        save('infercnv_obj_max_centered_expr', file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count)))
 
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
@@ -322,12 +338,12 @@ run <- function(infercnv_obj,
     if (plot_steps){
 
         infercnv_obj_smoothed_by_chr <- infercnv_obj
-        save('infercnv_obj_smoothed_by_chr', file=file.path(out_path, sprintf("%02d_smoothed_by_chr.infercnv_obj", step_count)))
+        save('infercnv_obj_smoothed_by_chr', file=file.path(out_dir, sprintf("%02d_smoothed_by_chr.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_smoothed_by_chr",step_count),
@@ -353,12 +369,12 @@ run <- function(infercnv_obj,
 
         infercnv_obj_cell_centered <- infercnv_obj
         
-        save('infercnv_obj_cell_centered', file=file.path(out_path, sprintf("%02d_recentered_cells_by_chr.infercnv_obj", step_count)))
+        save('infercnv_obj_cell_centered', file=file.path(out_dir, sprintf("%02d_recentered_cells_by_chr.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_centering_of_smoothed",step_count),
@@ -375,8 +391,8 @@ run <- function(infercnv_obj,
 
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
-        
-    infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, method=ref_subtract_method)
+    
+    infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj)
     
     
     # Plot incremental steps.
@@ -384,12 +400,12 @@ run <- function(infercnv_obj,
                 
         infercnv_obj_subtract_ref <- infercnv_obj
         
-        save('infercnv_obj_subtract_ref', file=file.path(out_path, sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count)))
+        save('infercnv_obj_subtract_ref', file=file.path(out_dir, sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count)))
 
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_remove_average",step_count),
@@ -415,12 +431,12 @@ run <- function(infercnv_obj,
             
             infercnv_obj_remove_chr_end_genes <- infercnv_obj
             
-            save('infercnv_obj_remove_chr_end_genes', file=file.path(out_path, sprintf("%02d_remove_gene_at_chr_ends.infercnv_obj", step_count)))
+            save('infercnv_obj_remove_chr_end_genes', file=file.path(out_dir, sprintf("%02d_remove_gene_at_chr_ends.infercnv_obj", step_count)))
             
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
-                     out_dir=out_path,
+                     out_dir=out_dir,
                      color_safe_pal=FALSE,
                      x.center=0,
                      title=sprintf("%02d_remove_genes_at_chr_ends",step_count),
@@ -446,12 +462,12 @@ run <- function(infercnv_obj,
         
         infercnv_obj_invert_log_transform <- infercnv_obj
         
-        save('infercnv_obj_invert_log_transform', file=file.path(out_path, sprintf("%02d_invert_log_transform.infercnv_obj", step_count)))
+        save('infercnv_obj_invert_log_transform', file=file.path(out_dir, sprintf("%02d_invert_log_transform.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_remove_genes_at_chr_ends",step_count),
@@ -496,12 +512,12 @@ run <- function(infercnv_obj,
         
         infercnv_obj_denoised <- infercnv_obj
         
-        save('infercnv_obj_denoised', file=file.path(out_path, sprintf("%02d_denoise.infercnv_obj", step_count)))
+        save('infercnv_obj_denoised', file=file.path(out_dir, sprintf("%02d_denoise.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_denoised", step_count),
@@ -515,24 +531,25 @@ run <- function(infercnv_obj,
     # STEP 10: Remove outliers for viz
 
     flog.info(sprintf("\n\n\tSTEP %02d: Removing outliers\n", step_count))
+
     
     infercnv_obj = remove_outliers_norm(infercnv_obj,
-                                        out_method=method_bound_vis,
-                                        lower_bound=lower_bound_vis,
-                                        upper_bound=upper_bound_vis)
+                                        out_method=outlier_method_bound,
+                                        lower_bound=outlier_lower_bound,
+                                        upper_bound=outlier_upper_bound)
     
-        
+    
     # Plot incremental steps.
     if (plot_steps) {
 
         infercnv_obj_remove_outliers <- infercnv_obj
 
-        save('infercnv_obj_remove_outliers', file=file.path(out_path, sprintf("%02d_remove_outlier.infercnv_obj", step_count)))
+        save('infercnv_obj_remove_outliers', file=file.path(out_dir, sprintf("%02d_remove_outlier.infercnv_obj", step_count)))
         
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
-                 out_dir=out_path,
+                 out_dir=out_dir,
                  color_safe_pal=FALSE,
                  x.center=0,
                  title=sprintf("%02d_removed_outliers",step_count),
@@ -604,14 +621,10 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 # Returns:
 # Expression with the average gene expression in the reference
 #          observations removed.
-subtract_ref_expr_from_obs <- function(infercnv_obj,
-                                       method="by_mean"
-                                       ) {
+subtract_ref_expr_from_obs <- function(infercnv_obj) {
     
                                         # r = genes, c = cells
     flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
-
-
 
 
     # Max and min mean gene expression within reference groups.
@@ -621,46 +634,19 @@ subtract_ref_expr_from_obs <- function(infercnv_obj,
     # Reference gene within reference groups
     # now reference indexes of ref_groups are relative to the full average_data matrix and not the average_reference_obs references submatrix
     
-    #infercnv_obj <- invert_log2xplus1(infercnv_obj) 
-
-    
     ref_groups = infercnv_obj@reference_grouped_cell_indices
 
     for (ref_group in ref_groups) {
         
-        if (method == "by_mean") {
-
-            grp_average <- rowMeans(infercnv_obj@processed.data[ , ref_group, drop=FALSE], na.rm=TRUE)
-            if(is.null(average_max)){
-                average_max <- grp_average
-            }
-            if(is.null(average_min)){
-                average_min <- grp_average
-            }
-            average_max <- pmax(average_max, grp_average)
-            average_min <- pmin(average_min, grp_average)
-
-        } else if (method == "by_quantiles") {
-
-            grp_expression_data = infercnv_obj@processed.data[, ref_group, drop=FALSE, na.rm=TRUE]
-            quants = x = apply(grp_expression_data, 1, function(x) { quantile(x, quantiles, na.rm=TRUE);})
-            quants = t(x)
-            q_low_bound = quants[,1]
-            q_high_bound = quants[,2]
-            if (is.null(average_min)) {
-                average_min = q_low_bound
-            } else {
-                average_min = pmin(average_min, q_low_bound)
-            }
-
-            if (is.null(average_max)) {
-                average_max = q_high_bound
-            } else {
-                average_max = pmax(average_max, q_high_bound)
-            }
-        } else {
-            stop(paste("Error, unsupported ref_subtract_method specified: ", ref_subtract_method, sep=""))
+        grp_average <- rowMeans(infercnv_obj@processed.data[ , ref_group, drop=FALSE], na.rm=TRUE)
+        if(is.null(average_max)){
+            average_max <- grp_average
         }
+        if(is.null(average_min)){
+            average_min <- grp_average
+        }
+        average_max <- pmax(average_max, grp_average)
+        average_min <- pmin(average_min, grp_average)
     }
 
     # Remove the Max and min averages (or quantiles) of the reference groups for each gene
@@ -683,7 +669,6 @@ subtract_ref_expr_from_obs <- function(infercnv_obj,
         infercnv_obj@processed.data[gene_i, ] <- row_init
     }
 
-   # infercnv_obj <- log2xplus1(infercnv_obj)    
     
     return(infercnv_obj)
 
