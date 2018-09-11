@@ -1,7 +1,4 @@
-#!/usr/bin/env Rscript
 
-
-options(error = function() traceback(2))
 
 #' The infercnv Class
 #'

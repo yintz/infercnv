@@ -203,7 +203,7 @@ plot_mean_chr_expr_lineplot = function(infercnv_obj,
         points(idx, mean_expr_obs, col='salmon', t='l')
 
         if (incl_combined) {
-            points(idx, rowMeans(infercnv_obj@processed.data), col='magenta', t='l')
+            points(idx, rowMeans(infercnv_obj@expr.data), col='magenta', t='l')
         }
         
         if (incl_sd) {
@@ -253,8 +253,8 @@ make_data_bundle <- function(infercnv_obj) {
     obs_indices <- unlist(infercnv_obj@observation_grouped_cell_indices)
 
     data_bundle <- list()
-    data_bundle$ref_matrix <- infercnv_obj@processed.data[,ref_indices]
-    data_bundle$obs_matrix <- infercnv_obj@processed.data[,obs_indices]
+    data_bundle$ref_matrix <- infercnv_obj@expr.data[,ref_indices]
+    data_bundle$obs_matrix <- infercnv_obj@expr.data[,obs_indices]
 
     return(data_bundle)
     

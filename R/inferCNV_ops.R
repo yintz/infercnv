@@ -481,7 +481,7 @@ run <- function(infercnv_obj,
     
     
     ################################
-    # Step 10: de-noising 
+    # Step: de-noising 
 
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: Denoising\n", step_count))
@@ -529,7 +529,7 @@ run <- function(infercnv_obj,
     }
     
     ##################################
-    # STEP 10: Remove outliers for viz
+    # STEP: Remove outliers for viz
 
     flog.info(sprintf("\n\n\tSTEP %02d: Removing outliers\n", step_count))
 

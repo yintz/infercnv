@@ -57,6 +57,14 @@ plot_cnv <- function(infercnv_obj,
                      write_expr_matrix=FALSE) {
 
 
+    # arg validations
+    if (! hclust_method %in% C_HCLUST_METHODS) {
+        stop(sprintf("Error, hclust_method: %s is not supported", hclust_method))
+    }
+    if ( (! is.na(output_format) ) & (!  output_format %in% C_OUTPUT_FORMAT) )  {
+        stop(sprintf("Error, output_format: %s is not supported", output_format) )
+    }
+    
     if(!file.exists(out_dir)){
         dir.create(out_dir)
     }

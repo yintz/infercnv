@@ -1,7 +1,7 @@
 ---
 title: "infercnv_run"
 author: "Brian Haas"
-date: "9/5/2018"
+date: "9/11/2018"
 output:
   html_document: default
   pdf_document: default
@@ -18,6 +18,8 @@ source("~/GITHUB/bhaas_forks/inferCNV/scripts/explore_steps_by_gene.simple.R")
 
 ## Create the InferCNV Object
 
+Reading in the raw counts matrix and meta data, populating the infercnv object
+
 ```{r}
 infercnv_obj = CreateInfercnvObject(
   raw_counts_matrix="oligodendroglioma_expression_downsampled.counts.matrix",
@@ -28,6 +30,29 @@ infercnv_obj = CreateInfercnvObject(
 
 ```
 
+
+## Filtering genes
+
+Removing those genes that are very lowly expressed or present in very few cells
+
+
+```{r}
+# filter out low expressed genes
+cutoff=2
+infercnv_obj <- require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
+
+# filter out bad cells
+min_cells_per_gene=3
+infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
+
+## for safe keeping
+infercnv_orig_filtered = infercnv_obj
+plot_mean_chr_expr_lineplot(infercnv_obj)
+save('infercnv_obj', file = 'infercnv_obj.orig_filtered')
+
+```
+
+
 ## Normalize each cell's counts for sequencing depth
 
 ```{r}
@@ -35,30 +60,10 @@ infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
 ```
 
 
+## perform Anscombe normalization
 
-```{r}
-# filter out low expressed genes
-cutoff=2
-infercnv_obj <- infercnv:::require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
-```
+Suggested by Matan for removing noisy variation at low counts
 
-
-```{r}
-# filter out bad cells
-min_cells_per_gene=3
-infercnv_obj <- infercnv:::require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
-```
-
-
-```{r}
-## for safe keeping
-infercnv_orig_filtered = infercnv_obj
-plot_mean_chr_expr_lineplot(infercnv_obj)
-save('infercnv_obj', file = 'infercnv_obj.orig_filtered')
-```
-
-
-## perform anscombe normalization
 ```{r}
 infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.anscombe')
@@ -67,38 +72,36 @@ plot_mean_chr_expr_lineplot(infercnv_obj)
 ```
 
 
-
 ## log transform the normalized counts:
 
 ```{r}
-infercnv_obj <- infercnv:::log2xplus1(infercnv_obj)
+infercnv_obj <- log2xplus1(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.log_transformed')
 ```
 
+## Apply maximum bounds to the expression data to reduce outlier effects
+```{r}
+threshold = mean(abs(get_average_bounds(infercnv_obj)))
+infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
+```
 
 
 
 ## perform smoothing across chromosomes
 
 ```{r}
-infercnv_obj = infercnv:::smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
+infercnv_obj = smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
 save('infercnv_obj', file='infercnv_obj.smooth_by_chr')
-plot_mean_chr_expr_lineplot(infercnv_obj)
-```
 
-
-
-```{r}
 # re-center each cell
-infercnv_obj <- infercnv:::center_cell_expr_across_chromosome(infercnv_obj, method = "median")
+infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "median")
 save('infercnv_obj', file='infercnv_obj.cells_recentered')
-plot_mean_chr_expr_lineplot(infercnv_obj)
+#plot_mean_chr_expr_lineplot(infercnv_obj)
+
+plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed")
 ```
 
 
-```{r}
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed")
-```
 ```{r}
 knitr::include_graphics("infercnv.chr_smoothed.png")
 ```
@@ -108,13 +111,13 @@ knitr::include_graphics("infercnv.chr_smoothed.png")
 # subtract the reference values from observations, NOW HAVE LOG (FOLD CHANGE) VALUES
 
 ```{r}
-infercnv_obj <- infercnv:::subtract_ref_expr_from_obs(infercnv_obj)
+infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.ref_subtracted')
 plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 ```
 
 ```{r}
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted', x.range="auto", title="ref subtracted")
+plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted', x.range="auto", title="ref subtracted")
 ```
 
 ```{r}
@@ -125,12 +128,17 @@ knitr::include_graphics("infercnv.ref_subtracted.png")
 
 
 ## invert log values
+
+Converting the log(FC) values to regular fold change values, centered at 1 (no fold change)
+
+This is important because we want (1/2)x to be symmetrical to 1.5x, representing loss/gain of one chromosome region.
+
 ```{r}
 
-infercnv_obj@processed.data <- 2^infercnv_obj@processed.data
+infercnv_obj <- invert_log2(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.inverted_log')
 plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.inverted', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "inverted log FC to FC")
+plot_cnv(infercnv_obj, output_filename='infercnv.inverted', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "inverted log FC to FC")
 
 
 ```
@@ -140,12 +148,14 @@ infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.inverted', color_saf
 knitr::include_graphics("infercnv.inverted.png")
 ```
 
+
+## Removing noise
+
 ```{r}
-# remove noise
-infercnv_obj <- infercnv:::clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
+infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
 save('infercnv_obj', file='infercnv_obj.denoised')
-plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.denoised', x.range="auto", x.center=1, title="denoised")
+#plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
+plot_cnv(infercnv_obj, output_filename='infercnv.denoised', x.range="auto", x.center=1, title="denoised")
 ```
 
 ```{r}
@@ -154,20 +164,17 @@ knitr::include_graphics("infercnv.denoised.png")
 
 ## Remove outlier data points
 
+This generally improves on the visualization
+
 ```{r}
-infercnv_obj = infercnv:::remove_outliers_norm(infercnv_obj)
+infercnv_obj = remove_outliers_norm(infercnv_obj)
 save('infercnv_obj', file="infercnv_obj.outliers_removed")
-infercnv:::plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "outliers removed")
+plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "outliers removed")
 ```
 
 
 ```{r}
 knitr::include_graphics("infercnv.outliers_removed.png")
-```
-
-
-```{r}
-plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 ```
 
 
