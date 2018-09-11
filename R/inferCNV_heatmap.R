@@ -12,27 +12,28 @@ get_group_color_palette <- function(){
 
 #' Formats the data and sends it for plotting.
 #'
-#' @title Plot the matrix as a heatmap. Clustering is on observation only, gene position is preserved.
+#' @title Plot the matrix as a heatmap, with cells as rows and genes as columns, ordered according to chromosome
 #'
-#' @param plot_data Data matrix to plot (columns are observations).
-#' @param contigs The contigs the data is group in in order of rows.
-#' @param reference_idx Vector of reference indices.
-#' @param ref_contig If given, will focus cluster on only genes in this contig.
-#' @param ref_groups Groups of vector indices (as indices in reference_idx).
+#' @param infercnv_obj infercnv object
 #' @param out_dir Directory in which to save pdf and other output.
 #' @param title Plot title.
 #' @param obs_title Title for the observations matrix.
 #' @param ref_title Title for the reference matrix.
-#' @param obs_annotations_groups Vector of observations annotations group assignation (as indices).
 #' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.
-#' @param contig_cex Contig text size.
 #' @param k_obs_groups Number of groups to break observation into.
+#' @param contig_cex Contig text size. 
+#' @param plot_data Data matrix to plot (columns are observations).
+#' @param contigs The contigs the data is group in in order of rows.
 #' @param x.center Value on which to center expression.
+#' @param x.range vector containing the extreme values in the heatmap (ie. c(-3,4) )
 #' @param hclust_method Clustering method to use for hclust.
-#' @param color_safe_pal Logical indication of using a color blindness safe
-#'                          palette.
-#' @param pdf_filename Filename to save the figure to.
-#'
+#' @param color_safe_pal Logical indication of using a color blindness safe palette.
+#' @param output_filename Filename to save the figure to.
+#' @param output_format format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
+#'                      If set to NA, will print graphics natively
+#' @param ref_contig If given, will focus cluster on only genes in this contig.
+#' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
+#' 
 #' @return
 #' No return, void.
 #'
@@ -60,7 +61,7 @@ plot_cnv <- function(infercnv_obj,
         dir.create(out_dir)
     }
     
-    plot_data = infercnv_obj@processed.data
+    plot_data = infercnv_obj@expr.data
     
     flog.info(paste("::plot_cnv:Start", sep=""))
     flog.info(paste("::plot_cnv:Current data dimensions (r,c)=",
@@ -102,7 +103,7 @@ plot_cnv <- function(infercnv_obj,
         plot_data[plot_data < low_threshold] <- low_threshold
         plot_data[plot_data > high_threshold] <- high_threshold
         
-        infercnv_obj@processed.data <- plot_data  #because used again below...
+        infercnv_obj@expr.data <- plot_data  #because used again below...
         
     }
     
@@ -146,7 +147,7 @@ plot_cnv <- function(infercnv_obj,
 
     
     # obs_annotations_groups: integer vec named by cells, set to index according to category name vec above.
-    obs_annotations_groups = colnames(infercnv_obj@processed.data)
+    obs_annotations_groups = colnames(infercnv_obj@expr.data)
     names(obs_annotations_groups) = obs_annotations_groups
     obs_index_groupings = infercnv_obj@observation_grouped_cell_indices
     counter <- 1
@@ -197,7 +198,7 @@ plot_cnv <- function(infercnv_obj,
     ## Remove observation col names, too many to plot
     ## Will try and keep the reference names
     ## They are more informative anyway
-    obs_data <- infercnv_obj@processed.data
+    obs_data <- infercnv_obj@expr.data
     if (!is.null(ref_idx)){
         obs_data <- plot_data[, -1 * ref_idx, drop=FALSE]
         if (ncol(obs_data) == 1) {
@@ -215,7 +216,7 @@ plot_cnv <- function(infercnv_obj,
     updated_ref_groups <- list()
     current_ref_count <- 1
     current_grp_idx <- 1
-    plot_data <-infercnv_obj@processed.data
+    plot_data <-infercnv_obj@expr.data
     ref_groups = infercnv_obj@reference_grouped_cell_indices
     for (ref_grp in ref_groups) {
         ref_data_t <- cbind(ref_data_t, plot_data[, ref_grp, drop=FALSE])
@@ -233,8 +234,8 @@ plot_cnv <- function(infercnv_obj,
 
 
     # Create file base for plotting output
-    force_layout <- plot_observations_layout(grouping_key_height=grouping_key_height)
-    plot_cnv_observations(obs_data=obs_data_t,
+    force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height)
+    .plot_cnv_observations(obs_data=obs_data_t,
                           file_base_name=out_dir,
                           cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
@@ -259,7 +260,7 @@ plot_cnv <- function(infercnv_obj,
     obs_data <- NULL
 
     if(!is.null(ref_idx)){
-        plot_cnv_references(ref_data=ref_data_t,
+        .plot_cnv_references(ref_data=ref_data_t,
                             ref_groups=ref_groups,
                             name_ref_groups=name_ref_groups,
                             grouping_key_coln=grouping_key_coln[2],
@@ -304,7 +305,7 @@ plot_cnv <- function(infercnv_obj,
 #' @return Void.
 # Returns:
 # Void
-plot_cnv_observations <- function(obs_data,
+.plot_cnv_observations <- function(obs_data,
                                   col_pal,
                                   contig_colors,
                                   contig_labels,
@@ -525,7 +526,7 @@ plot_cnv_observations <- function(obs_data,
 # list with slots "lmat" (layout matrix),
 #                             "lhei" (height, numerix vector),
 #                             and "lwid" (widths, numeric vector)
-plot_observations_layout_original <- function()
+.plot_observations_layout_original <- function()
 {
     ## Plot observational samples
     obs_lmat <- c(0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
@@ -556,7 +557,7 @@ plot_observations_layout_original <- function()
            lwid=NULL))
 }
 
-plot_observations_layout <- function(grouping_key_height)
+.plot_observations_layout <- function(grouping_key_height)
 {
     ## Plot observational samples
     obs_lmat <- c(0,  0,  0,  0,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
@@ -607,7 +608,7 @@ plot_observations_layout <- function(grouping_key_height)
 #
 # Returns:
 # Void
-plot_cnv_references <- function(ref_data,
+.plot_cnv_references <- function(ref_data,
                                 ref_groups,
                                 name_ref_groups,
                                 grouping_key_coln,

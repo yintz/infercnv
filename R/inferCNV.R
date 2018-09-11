@@ -3,26 +3,85 @@
 
 options(error = function() traceback(2))
 
-
+#' The infercnv Class
+#'
+#' An infercnv object encapsulates the expression data and gene chromosome ordering information
+#' that is leveraged by infercnv for data exploration.  The infercnv object is passed among the
+#' infercnv data processing and plotting routines.
+#'
+#' Slots in the infercnv object include:
+#'
+#' @slot expr.data  <matrix>  the count or expression data matrix
+#'
+#' @slot gene_order  <data.frame> chromosomal gene order
+#'
+#' @slot reference_grouped_cell_indices <list>  mapping [['group_name']] to c(cell column indices) for reference (normal) cells
+#'
+#' @slot observation_grouped_cell_indices <list> mapping [['group_name']] to c(cell column indices) for observation (tumor) cells
+#' 
 
 infercnv <- methods::setClass(
                          "infercnv",
                          slots = c(
-                             raw.data = "matrix",
-                             processed.data = "matrix",
-                             gene_order= "vector",
-                             reference_grouped_cell_names = "list",
+                             expr.data = "matrix",
+                             gene_order= "data.frame",
                              reference_grouped_cell_indices = "list",
-                             observation_grouped_cell_names = "list",
                              observation_grouped_cell_indices = "list") )
 
 
 
-#' data_file: counts or expr matrix
-#' gene_order_file: gencode ordering file.
-#' annotations_file: annotations file tab-delim format
-#' ref_group_names: vector of names to be used as a reference.
+
+#' @title CreateInfercnvObject
+#'
+#' Creation of an infercnv object. This requires the following inputs:
+#'     raw_counts_matrix : the matrix file of genes (rows) vs. cells (columns) containing the raw counts
+#'     gene_order_file : data file containing the positions of each gene along each chromosome in the genome.
+#'     annotations_file : a description of the cells, indicating the cell type classifications
+#'     ref_group_names : a vector containing the classifications of the reference (normal) cells to use for infering cnv
+#'
+#' A more detailed description of each input is provided below:
+#'
+#' The raw_counts_matrix:
+#'
+#'           MGH54_P16_F12 MGH53_P5_C12 MGH54_P12_C10 MGH54_P16_F02 MGH54_P11_C11  ...
+#' DDX11L1     0.0000000     0.000000      0.000000      0.000000     0.0000000
+#' WASH7P      0.0000000     2.231939      7.186235      5.284944     0.9650009
+#' FAM138A     0.1709991     0.000000      0.000000      0.000000     0.0000000
+#' OR4F5       0.0000000     0.000000      0.000000      0.000000     0.0000000
+#' OR4F29      0.0000000     0.000000      0.000000      0.000000     0.0000000
+#' ...
+#'
+#' The gene_order_file, contains chromosome, start, and stop position for each gene, tab-delimited:
+#'
+#'          chr  start   stop
+#' DDX11L1 chr1  11869  14412
+#' WASH7P  chr1  14363  29806
+#' FAM138A chr1  34554  36081
+#' OR4F5   chr1  69091  70008
+#' OR4F29  chr1 367640 368634
+#' OR4F16  chr1 621059 622053
+#' ...
 #' 
+#' The annotations_file, containing the cell name and the cell type classification, tab-delimited.
+#'
+#'             V1                   V2
+#' 1 MGH54_P2_C12 Microglia/Macrophage
+#' 2 MGH36_P6_F03 Microglia/Macrophage
+#' 3 MGH53_P4_H08 Microglia/Macrophage
+#' 4 MGH53_P2_E09 Microglia/Macrophage
+#' 5 MGH36_P5_E12 Oligodendrocytes (non-malignant)
+#' 6 MGH54_P2_H07 Oligodendrocytes (non-malignant)
+#' ...
+#' 179  93_P9_H03 malignant
+#' 180 93_P10_D04 malignant
+#' 181  93_P8_G09 malignant
+#' 182 93_P10_B10 malignant
+#' 183  93_P9_C07 malignant
+#' 184  93_P8_A12 malignant
+#' ...
+#'
+#'
+#' and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
 
 CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations_file, ref_group_names, delim="\t") {
     
@@ -56,12 +115,10 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 
     
     # get indices for reference cells
-    ref_group_cell_names <- list()
     ref_group_cell_indices = list()
     for (name_group in ref_group_names) {
         cell_indices = which(input_classifications[,1] == name_group)
         cell_names =  rownames(input_classifications)[cell_indices]
-        ref_group_cell_names[[ name_group ]] <- cell_names
         ref_group_cell_indices[[ name_group ]] <- cell_indices
     }
     
@@ -94,12 +151,11 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     
     # define groupings according to the observation annotation names
     
-    obs_group_cell_names = list()
+
     obs_group_cell_indices = list()
     for (name_group in obs_group_names) {
         cell_indices = which(input_classifications[,1] == name_group)
         cell_names = rownames(input_classifications)[cell_indices]
-        obs_group_cell_names[[ name_group ]] <- cell_names
         obs_group_cell_indices[[ name_group ]] <- cell_indices
     }
 
@@ -107,29 +163,27 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     
     object <- new(
         Class = "infercnv",
-        raw.data = raw.data,
-        processed.data = raw.data, #simple copy for now
+        expr.data = raw.data, #simple copy for now
         gene_order = input_gene_order,
-        reference_grouped_cell_names = ref_group_cell_names,
         reference_grouped_cell_indices = ref_group_cell_indices,
-        observation_grouped_cell_names = obs_group_cell_names,
         observation_grouped_cell_indices = obs_group_cell_indices)
     
     return(object)
 }
 
 
-#' Order the data and subset the data to data in the genomic position file.
-#'
-#' Args:
-#' @param data Data (expression) matrix where the row names should be in
-#'                 the row names of the genomic_position file.
-#' @param genomic_position Data frame read in from the genomic position file
-#'
-#' @return Returns a matrix of expression in the order of the
-#'            genomic_position file. NULL is returned if the genes in both
-#'            data parameters do not match.
-#'
+# Order the data and subset the data to data in the genomic position file.
+#
+# Args:
+# @param data Data (expression) matrix where the row names should be in
+#                 the row names of the genomic_position file.
+# @param genomic_position Data frame read in from the genomic position file
+#
+# @return Returns a matrix of expression in the order of the
+#            genomic_position file. NULL is returned if the genes in both
+#            data parameters do not match.
+#
+
 .order_reduce <- function(data, genomic_position){
     logging::loginfo(paste("::order_reduce:Start.", sep=""))
     ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)

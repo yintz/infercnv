@@ -56,7 +56,8 @@
 #' 
 #' @return infercnv_obj containing filtered and transformed data
 #'
-#' 
+#'
+
 run <- function(infercnv_obj,
 
                 # gene filtering settings
@@ -559,11 +560,23 @@ run <- function(infercnv_obj,
     }
     
     return(infercnv_obj)
+
 }
 
-
-
-
+#' Function for Generating a next-generation heatmap
+#'
+#' @title make_ngchm() : generates next gen heatmap
+#'
+#' @param infercnv_obj An infercnv object
+#'
+#' @param out_dir  output directory (default: '.')
+#'
+#' @param title title of the interactive heatmap (default: "NGCHM")
+#'
+#' @param gene_symbol ##TODO  (default: NULL)
+#'
+#' @param path_to_shaidyMapGen path to the shaidyMapGen jar file (default: NULL)
+#' 
 
 make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NULL, path_to_shaidyMapGen=NULL) {
     
@@ -599,28 +612,21 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 
 
 
-# USE_MEANS_FLAG = FALSE
+#' Subtracting the mean of the reference expr distributions from the observed cells.
+#'
+#' @title subtract_ref_expr_from_obs()
+#'
+#' Remove the average of the genes of the reference observations from all
+#' observations' expression. In the case there are multiple reference groupings,
+#' the averages are computed separately for each reference grouping, and the min|max
+#' of the averages are subtracted from the observation expression levels. Any values within the range
+#' of the min,max of the group are set to zero.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @return infercnv_obj containing the reference subtracted values.
+#' 
 
-# Remove the average of the genes of the reference observations from all
-# observations' expression. Normalization by column.
-#
-# Args:
-# average_data Matrix containing the data to remove average
-#               from (this includes the reference observations).
-#               Row = Genes, Col = Cells.
-# ref_observations Indices of reference observations.
-#                   Only these are used in the average.
-# ref_groups A list of vectors of indices refering to the
-#             different groups of the reference indices.
-#
-# ref_subtract_method method used to subtract reference data from obs.
-#                      options are: "by_mean", "by_quantiles"  (default: "by_mean")
-#
-# quantiles reference quantiles to use if ref_subtract_method == 'by_quantiles'
-#
-# Returns:
-# Expression with the average gene expression in the reference
-#          observations removed.
 subtract_ref_expr_from_obs <- function(infercnv_obj) {
     
                                         # r = genes, c = cells
@@ -638,7 +644,7 @@ subtract_ref_expr_from_obs <- function(infercnv_obj) {
 
     for (ref_group in ref_groups) {
         
-        grp_average <- rowMeans(infercnv_obj@processed.data[ , ref_group, drop=FALSE], na.rm=TRUE)
+        grp_average <- rowMeans(infercnv_obj@expr.data[ , ref_group, drop=FALSE], na.rm=TRUE)
         if(is.null(average_max)){
             average_max <- grp_average
         }
@@ -652,8 +658,8 @@ subtract_ref_expr_from_obs <- function(infercnv_obj) {
     # Remove the Max and min averages (or quantiles) of the reference groups for each gene
     # TODO:  can we vectorize this?
     #     and if not, set up a progress bar?
-    for(gene_i in 1:nrow(infercnv_obj@processed.data)){
-        current_col <- infercnv_obj@processed.data[gene_i, ]
+    for(gene_i in 1:nrow(infercnv_obj@expr.data)){
+        current_col <- infercnv_obj@expr.data[gene_i, ]
 
         # original code
         i_max <- which(current_col > average_max[gene_i])
@@ -666,7 +672,7 @@ subtract_ref_expr_from_obs <- function(infercnv_obj) {
         if(length(i_min) > 0){
             row_init[i_min] <- current_col[i_min] - average_min[gene_i]
         }
-        infercnv_obj@processed.data[gene_i, ] <- row_init
+        infercnv_obj@expr.data[gene_i, ] <- row_init
     }
 
     
@@ -790,6 +796,9 @@ split_references <- function(average_data,
                              ref_obs,
                              num_groups,
                              hclust_method='complete') {
+
+    ##TODO: refactor to use infercnv_obj as parameter.
+
     flog.info(paste("::split_references:Start", sep=""))
     ret_groups <- list()
     split_groups <- NULL
@@ -842,20 +851,21 @@ split_references <- function(average_data,
     return(ret_groups)
 }
 
-# Set outliers to some upper or lower bound. Then normalize values to
-# approximately [-1, 1]. This is to prep the data for visualization.
-#
-# Args:
-# data: data to remove outliers. Outliers removed within columns.
-# out_method Method to remove outliers [(average_bound, NA (hard threshold))]
-# lower_bound Lower bound which identifies a measurement
-#                        as an outlier.
-# upper_bound Upper bound which identifies a measurement
-#                        as an outlier.
-# plot_step: True will plot this analysis step.
-#
-# Returns:
-# Return data matrix with outliers removed
+
+#' @title remove_outliers_norm()
+#' Set outliers to some upper or lower bound.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param out_method method for computing the outlier bounds (default: "average_bound", involving
+#'                   determining the range of values for each cell, and then taking the mean of those bounds.)
+#'
+#' @param lower_bound setting the lower bound for the data (default: NA, uses out_method above)
+#'
+#' @param upper_bound setting the upper bound for the data (default: NA, uses out_method above)
+#'
+#' @return infercnv_obj with data bounds set accordingly.
+#' 
 
 remove_outliers_norm <- function(infercnv_obj,
                                  out_method="average_bound",
@@ -867,7 +877,7 @@ remove_outliers_norm <- function(infercnv_obj,
                     "lower_bound:" , lower_bound,
                     "upper_bound:", upper_bound))
     
-    data <- infercnv_obj@processed.data
+    data <- infercnv_obj@expr.data
     
     if(is.null(data) || nrow(data) < 1 || ncol(data) < 1){
         logging::logerror("::remove_outlier_norm: Error, something is wrong with the data, either null or no rows or columns")
@@ -909,59 +919,63 @@ remove_outliers_norm <- function(infercnv_obj,
     data[data < lower_bound] <- lower_bound
     data[data > upper_bound] <- upper_bound
     
-    infercnv_obj@processed.data <- data
+    infercnv_obj@expr.data <- data
     
     return(infercnv_obj)
     
 }
 
-# Center data after smoothing. Center with in cells using median.
-#
-# Args:
-# data_smoothed Matrix to center.
-#                          Row = Genes, Col = cells.
-#
-# Returns:
-# Matrix that is median centered.
-#             Row = Genes, Col = cells.
+#' @title center_cell_expr_across_chromosome()
+#'
+#' Centers expression data across all genes for each cell, using the cell mean or median expression
+#' value as the center.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param method method to select the center of the cell expression value. (default: 'mean', options: 'mean,'median')
+#'
+#' @return infercnv_object
+#' 
+
 center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # or median
 
     flog.info(paste("::center_smooth across chromosomes per cell"))
 
     # Center within columns (cells)
     if (method == "median") {
-        row_median <- apply(infercnv_obj@processed.data, 2, function(x) { median(x, na.rm=T) } )
+        row_median <- apply(infercnv_obj@expr.data, 2, function(x) { median(x, na.rm=T) } )
         
-        infercnv_obj@processed.data <- t(apply(infercnv_obj@processed.data, 1, "-", row_median))
+        infercnv_obj@expr.data <- t(apply(infercnv_obj@expr.data, 1, "-", row_median))
     }
     else {
         # by mean
-        row_means <- apply(infercnv_obj@processed.data, 2, function(x) { mean(x, na.rm=T) } )
+        row_means <- apply(infercnv_obj@expr.data, 2, function(x) { mean(x, na.rm=T) } )
         
-        infercnv_obj@processed.data <- t(apply(infercnv_obj@processed.data, 1, "-", row_means))
+        infercnv_obj@expr.data <- t(apply(infercnv_obj@expr.data, 1, "-", row_means))
     }
     return(infercnv_obj)
 }
 
 
-# Return the indices of the rows that average above the cut off
-#
-# Args:
-# data Data to measure the average row and evaluate
-#                 against the cutoff. Row = Genes, Col = Cells.
-# cutoff Threshold to be above to be kept.
-                                        #
-                                        # assumes infercnv_obj@processed.data are log2(x+1) transformed.
-                                        # considers the log2(mean(inv_log(data))) < threshold to be removed.
 
-# Returns:
-# Returns a vector of row indices to keep (are above the cutoff).
+#' @title require_above_min_mean_expr_cutoff ()
+#'
+#' Filters out genes that have fewer than the corresponding mean value across the reference cell values.
+#'
+#' @param infercnv_obj  infercnv_object
+#'
+#' @param min_mean_expr_cutoff  the minimum mean value allowed for a gene to be retained in the expression matrix.
+#'
+#' @return infercnv_obj  the infercnv_object with lowly or unexpressed genes removed.
+#' 
+
+
 require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutoff) {
 
     flog.info(paste("::above_min_mean_expr_cutoff:Start", sep=""))
 
     # restrict to reference cells:
-    ref_cells_data <- infercnv_obj@processed.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
+    ref_cells_data <- infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
 
         
     average_gene <- rowMeans(ref_cells_data)
@@ -974,7 +988,7 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
                         " genes from matrix as below mean expr threshold: ",
                         min_mean_expr_cutoff), sep="")
 
-        infercnv_obj@processed.data = infercnv_obj@processed.data[ -1 * indices, ]
+        infercnv_obj@expr.data = infercnv_obj@expr.data[ -1 * indices, ]
 
                                         # match w/ gene_order info
         infercnv_obj@gene_order = infercnv_obj@gene_order[ -1 * indices, ]
@@ -987,19 +1001,23 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 }
 
 
-#' indicate which genes (rows) have at least specified min_cells_per_gene
+#' @title require_above_min_cells_ref()
 #'
-#' Args
-#' @param data Data (expression) matrix
+#' Filters out genes that have fewer than specified number of reference cells expressing them.
+#'
+#' @param infercnv_obj infercnv_object
+#' 
 #' @param min_cells_per_gene int indicating number of cells required per gene for both obs and ref data
-#' @param obs_idx vector containing the column indices for the observed (tumor) cells
-#' @param ref_idx vector containing the column indices for teh reference (normal) cells
+#'
+#' @return infercnv_obj infercnv_object with corresponding genes removed.
+#' 
+
 
 require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
 
     ref_cell_indices = get_reference_grouped_cell_indices(infercnv_obj)
     
-    ref_data = infercnv_obj@processed.data[,ref_cell_indices]
+    ref_data = infercnv_obj@expr.data[,ref_cell_indices]
     
     ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
@@ -1016,7 +1034,7 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
             stop(998)
         }
         
-        infercnv_obj@processed.data <- infercnv_obj@processed.data[ref_genes_passed, ]
+        infercnv_obj@expr.data <- infercnv_obj@expr.data[ref_genes_passed, ]
 
                                         # match w/ gene_order
         infercnv_obj@gene_order <- infercnv_obj@gene_order[ref_genes_passed, ]
@@ -1035,97 +1053,17 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
 }
 
 
-
-#' Order the data and subset the data to data in the genomic position file.
+#' @title clear_noise()
 #'
-#' Args:
-#' @param data Data (expression) matrix where the row names should be in
-#'                 the row names of the genomic_position file.
-#' @param genomic_position Data frame read in from the genomic position file
+#' # Remove values that are too close to the reference cell expr average and are considered noise.
+#' 
+#' @param infercnv_obj infercnv_object
 #'
-#' @return Returns a matrix of expression in the order of the
-#'            genomic_position file. NULL is returned if the genes in both
-#'            data parameters do not match.
+#' @param threshold values within reference mean +- threshold are set to zero. 
 #'
-order_reduce <- function(data, genomic_position){
-    flog.info(paste("::order_reduce:Start.", sep=""))
-    ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)
-    if (is.null(data) || is.null(genomic_position)){
-        return(ret_results)
-    }
-
-    # Drop pos_gen entries that are position 0
-    remove_by_position <- -1 * which(genomic_position[2] + genomic_position[3] == 0)
-    if (length(remove_by_position)){
-        logging::logdebug(paste("::process_data:order_reduce: removing genes specified by pos == 0, count: ",
-                                length(remove_by_position), sep=""))
-
-        genomic_position <- genomic_position[remove_by_position, , drop=FALSE]
-    }
-
-    # Reduce to genes in pos file
-
-    logging::logdebug(paste("::process_data:order_reduce: gene identifers in expression matrix: ",
-                            row.names(data), collapse="\n", sep=""))
-    logging::logdebug(paste("::process_data:order_reduce: gene identifers in genomic position table: ",
-                            row.names(data), collapse="\n", sep=""))
+#' @return infercnv_obj 
 
 
-
-    keep_genes <- row.names(data)[which(row.names(data)
-                                  %in% row.names(genomic_position))]
-    logging::logdebug(paste("::process_data:order_reduce: keep_genes size: ", length(keep_genes),
-                            sep=""))
-
-    # Keep genes found in position file
-    if(length(keep_genes)){
-        ret_results$expr <- data[keep_genes, , drop=FALSE]
-        ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
-    } else {
-        flog.info(paste("::process_data:order_reduce:The position file ",
-                               "and the expression file row (gene) names do not match."))
-        return(list(expr=NULL, order=NULL, chr_order=NULL))
-    }
-
-    # Set the chr to factor so the order can be arbitrarily set and sorted.
-    chr_levels <- unique(genomic_position[[CHR]])
-    ret_results$order[[CHR]] <- factor(ret_results$order[[CHR]],
-                                   levels=chr_levels)
-
-    # Sort genomic position file and expression file to genomic position file
-    # Order genes by genomic region
-    order_names <- row.names(ret_results$order)[with(ret_results$order, order(chr,start,stop))]
-    ret_results$expr <- ret_results$expr[order_names, , drop=FALSE]
-
-    # This is the contig order, will be used in visualization.
-    # Get the contig order in the same order as the genes.
-    ret_results$order <- ret_results$order[order_names, , drop=FALSE]
-    ret_results$chr_order <- ret_results$order[1]
-
-    # Remove any gene without position information
-    # Genes may be sorted correctly by not have position information
-    # Here they are removed.
-    flog.info(paste("::process_data:order_reduce:Reduction from positional ",
-                           "data, new dimensions (r,c) = ",
-                           paste(dim(data), collapse=","),
-                           " Total=", sum(data),
-                           " Min=", min(data),
-                           " Max=", max(data),
-                           ".", sep=""))
-    logging::logdebug(paste("::process_data:order_reduce end."))
-    return(ret_results)
-}
-
-# Remove values that are too close to the average and are considered noise.
-#
-# Args:
-# smooth_matrix A matrix of values, smoothed, and with average
-#                          reference removed. Row = Genes, Col = Cells.
-# threshold The amount of difference a value must be from the
-#                      reference before the value can be kept and not
-#                      removed as noise.
-# Returns:
-# Denoised matrix
 clear_noise <- function(infercnv_obj, threshold) {
     
     flog.info(paste("********* ::clear_noise:Start. threshold: ", threshold, sep=""))
@@ -1134,46 +1072,65 @@ clear_noise <- function(infercnv_obj, threshold) {
         return(infercnv_obj); # nothing to do
     }
 
-    smooth_matrix = infercnv_obj@processed.data
-
-    smooth_matrix[abs(smooth_matrix) < threshold] <- 0
+    ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
+    vals = infercnv_obj@expr.data[,ref_idx]
     
-    infercnv_obj@processed.data <- smooth_matrix
+    mean_ref_vals = mean(vals)
+
+    upper_bound = mean_ref_vals + threshold
+    lower_bound = mean_ref_vals - threshold
+    
+    smooth_matrix <- infercnv_obj@expr.data
+        
+    smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
+    
+    
+    infercnv_obj@expr.data <- smooth_matrix
+    
     
     return(infercnv_obj)
 }
 
 
-# clear_noise_via_ref_quantiles: define noise levels based on quantiles within the ref (normal cell) distribution.
-# Any data points within this defined quantile are set to zero.
+#' @title clear_noise_via_ref_mean_sd()
+#'
+#' Define noise based on the standard deviation of the reference cell expression data.
+#' The range to remove noise would be mean +- sdev * sd_amplifier
+#' where sd_amplifier expands the range around the mean to be removed as noise.
+#' Data points defined as noise are set to zero.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param sd_amplifier multiplicative factor applied to the standard deviation to alter the noise
+#'                     range (default: 1.5)
+#' 
 
 clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5) {
 
     ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
-    vals = infercnv_obj@processed.data[,ref_idx]
+    vals = infercnv_obj@expr.data[,ref_idx]
     
     mean_ref_vals = mean(vals)
     
     mean_ref_sd <- mean(apply(vals, 2, function(x) sd(x, na.rm=T))) * sd_amplifier
-    
 
     upper_bound = mean_ref_vals + mean_ref_sd
     lower_bound = mean_ref_vals - mean_ref_sd
-    
     
     flog.info(paste(":: **** clear_noise_via_ref_quantiles **** : removing noise between bounds: ",
                            lower_bound, "-", upper_bound, sep=" "))
 
 
-    smooth_matrix <- infercnv_obj@processed.data
+    smooth_matrix <- infercnv_obj@expr.data
         
     smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
     
-    
-    infercnv_obj@processed.data <- smooth_matrix
+    infercnv_obj@expr.data <- smooth_matrix
     
     return(infercnv_obj)
 }
+
+
 
 
 # Remove the tails of values of a specific chromosome.
@@ -1207,20 +1164,25 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5) {
     return(remove_indices)
 }
 
-# Smooth a matrix by column using a simple moving average.
-# Tails of the averages use a window length that is truncated to
-# available data.
-#
-# Args:
-# data Data matrix to smooth. Row = Genes, Col = Cells.
-# window_length Length of window to use for the moving average.
-#        Should be a positive, odd integer.
-#
-# Returns:
-# Matrix with columns smoothed with a simple moving average.
+
+#' smooth_by_chromosome()
+#' 
+#' Smooth expression values for each cell across each chromosome by using a
+#' moving average with a window of specified length.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param window_length length of window (number of genes) for the moving average
+#'
+#' @param smooth_ends perform smoothing at the ends of the chromosomes (default: TRUE)
+#'
+#' @return infercnv_obj
+#' 
+
+
 smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
 
-    data = infercnv_obj@processed.data
+    data = infercnv_obj@expr.data
     
     flog.info(paste("::smooth_window:Start.", sep=""))
     if (window_length < 2){
@@ -1253,7 +1215,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
 
-    infercnv_obj@processed.data <- data_sm
+    infercnv_obj@expr.data <- data_sm
 
     return(infercnv_obj)
 }
@@ -1351,13 +1313,20 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
 }
 
 
-
+#' @title get_average_bounds()
+#'
+#' Computes the mean of the upper and lower bound for the data across all cells.
+#'
+#' @param infercnv_obj
+#'
+#' @return (lower_bound, upper_bound)
+#' 
 
 get_average_bounds <- function (infercnv_obj) {
 
-    lower_bound <- mean(apply(infercnv_obj@processed.data, 2,
+    lower_bound <- mean(apply(infercnv_obj@expr.data, 2,
                               function(x) quantile(x, na.rm=TRUE)[[1]]))
-    upper_bound <- mean(apply(infercnv_obj@processed.data, 2,
+    upper_bound <- mean(apply(infercnv_obj@expr.data, 2,
                               function(x) quantile(x, na.rm=TRUE)[[5]]))
     
     return(c(lower_bound, upper_bound))
@@ -1365,39 +1334,91 @@ get_average_bounds <- function (infercnv_obj) {
 }
 
 
+#' @title log2xplus1()
+#'
+#' Computes log(x+1), updates infercnv_obj@expr.data
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
+
 log2xplus1 <- function(infercnv_obj) {
 
-    infercnv_obj@processed.data <- log2(infercnv_obj@processed.data + 1)
+    infercnv_obj@expr.data <- log2(infercnv_obj@expr.data + 1)
 
     return(infercnv_obj)
         
 }
 
 
+
+#' @title invert_log2xplus1()
+#'
+#' Computes 2^x - 1
+#' Updates infercnv_obj@expr.data
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
+
 invert_log2xplus1 <- function(infercnv_obj) {
 
-    infercnv_obj@processed.data <- 2^infercnv_obj@processed.data - 1
+    infercnv_obj@expr.data <- 2^infercnv_obj@expr.data - 1
 
     return(infercnv_obj)
 }
 
+
+#' @title invert_log2xplus1()
+#'
+#' Computes 2^x
+#' Updates infercnv_obj@expr.data
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
 
 invert_log2 <- function(infercnv_obj) {
     
-    infercnv_obj@processed.data <- 2^infercnv_obj@processed.data
+    infercnv_obj@expr.data <- 2^infercnv_obj@expr.data
 
     return(infercnv_obj)
 }
 
 
+#' @title make_zero_NA()
+#'
+#' Converts zero to NA
+#' Updates infercnv_obj@expr.data
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
 
 make_zero_NA <- function(infercnv_obj) {
 
-    infercnv_obj@processed.data <- infercnv_obj@processed.data[infercnv_obj@processed.data == 0] <- NA
+    infercnv_obj@expr.data <- infercnv_obj@expr.data[infercnv_obj@expr.data == 0] <- NA
     
     return(infercnv_obj)
 
 }
+
+
+#' @title transform_to_reference_based_Zscores()
+#'
+#' Computes mean and standard deviation for the reference cells, then uses these values
+#' to compute gene Z-scores for both the reference and observation cells.
+#'
+#' Note, reference cell gene expression values will be centered at zero after this operation.
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
 
 transform_to_reference_based_Zscores <- function(infercnv_obj) {
 
@@ -1411,7 +1432,7 @@ transform_to_reference_based_Zscores <- function(infercnv_obj) {
     # ref data represent the null distribution
     ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
     
-    ref_data = infercnv_obj@processed.data[,ref_idx]
+    ref_data = infercnv_obj@expr.data[,ref_idx]
     
     gene_ref_mean = apply(ref_data, 1, function(x) {mean(x, na.rm=T)})
     gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=T)})
@@ -1420,26 +1441,44 @@ transform_to_reference_based_Zscores <- function(infercnv_obj) {
     gene_ref_sd = pmax(gene_ref_sd, gene_ref_mean)
     
     # center all genes at the ref (normal) center:
-    infercnv_obj@processed.data = sweep(infercnv_obj@processed.data, 1, gene_ref_mean, FUN="-")
+    infercnv_obj@expr.data = sweep(infercnv_obj@expr.data, 1, gene_ref_mean, FUN="-")
     
     # convert to z-scores based on the ref (normal) distribution
-    infercnv_obj@processed.data = sweep(infercnv_obj@processed.data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
+    infercnv_obj@expr.data = sweep(infercnv_obj@expr.data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
     
     
     return(infercnv_obj)
     
 }
 
+
+#' @title mean_center_gene_expr()
+#'
+#' mean-center all gene expression values across all cells
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
 
 mean_center_gene_expr <- function(infercnv_obj) {
 
     flog.info(paste("::centering", sep=""))
 
-    infercnv_obj@processed.data <- sweep(infercnv_obj@processed.data, 1, rowMeans(infercnv_obj@processed.data, na.rm=T), FUN="-")
+    infercnv_obj@expr.data <- sweep(infercnv_obj@expr.data, 1, rowMeans(infercnv_obj@expr.data, na.rm=T), FUN="-")
         
     return(infercnv_obj)
 }
 
+
+#' @title get_reference_grouped_cell_indices()
+#'
+#' Retrieves the matrix indices for the columns correspoinding to the reference cells.
+#'
+#' @param infercnv_obj
+#'
+#' @return vector of column indices
+#' 
 
 get_reference_grouped_cell_indices <- function(infercnv_obj) {
 
@@ -1447,16 +1486,35 @@ get_reference_grouped_cell_indices <- function(infercnv_obj) {
 
 }
 
+
+#' @title apply_max_threshold_bounds()
+#'
+#' Assumes centered at zero and sets bounds to +- threshold value.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param threshold value to threshold the data
+#'
+
 apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
 
     flog.info(paste("::process_data:setting max centered expr, threshold set to: +/-: ", threshold))
 
-    infercnv_obj@processed.data[infercnv_obj@processed.data > threshold] <- threshold
-    infercnv_obj@processed.data[infercnv_obj@processed.data < (-1 * threshold)] <- -1 * threshold
+    infercnv_obj@expr.data[infercnv_obj@expr.data > threshold] <- threshold
+    infercnv_obj@expr.data[infercnv_obj@expr.data < (-1 * threshold)] <- -1 * threshold
 
     return(infercnv_obj)
 }
 
+
+#' @title remove_genes_at_ends_of_chromosomes()
+#'
+#' Removes genes that are within window_length/2 of the ends of each chromosome.
+#' 
+#' @param infercnv_obj infercnv_object
+#'
+#' @param window_length length of the window to use.
+#' 
 
 remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 
@@ -1467,7 +1525,7 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
     chrs = unlist(unique(gene_chr_listing))
     for (chr in chrs){
         #flog.info(paste("::process_data:Remove tail contig ",chr, ".", sep=""))
-        remove_chr <- .remove_tails(infercnv_obj@processed.data,
+        remove_chr <- .remove_tails(infercnv_obj@expr.data,
                                     which(gene_chr_listing == chr),
                                     contig_tail)
         
@@ -1478,17 +1536,17 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
     }
     if (length(remove_indices) > 0){
 
-        infercnv_obj@processed.data <- infercnv_obj@processed.data[ -1 * remove_indices, ]
+        infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * remove_indices, ]
         infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * remove_indices, ]
 
         validate_infercnv_obj(infercnv_obj)
 
         flog.info(paste("::process_data:Remove genes at chr ends, ",
                         "new dimensions (r,c) = ",
-                        paste(dim(infercnv_obj@processed.data), collapse=","),
-                        " Total=", sum(infercnv_obj@processed.data, na.rm=TRUE),
-                        " Min=", min(infercnv_obj@processed.data, na.rm=TRUE),
-                        " Max=", max(infercnv_obj@processed.data, na.rm=TRUE),
+                        paste(dim(infercnv_obj@expr.data), collapse=","),
+                        " Total=", sum(infercnv_obj@expr.data, na.rm=TRUE),
+                        " Min=", min(infercnv_obj@expr.data, na.rm=TRUE),
+                        " Max=", max(infercnv_obj@expr.data, na.rm=TRUE),
                         ".", sep=""))
         
     }
@@ -1503,36 +1561,45 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 
 }
 
-    
+#' @title validate_infercnv_obj()
+#'
+#' validate an infercnv_obj
+#' ensures that order of genes in the @gene_order slot match up perfectly with the gene rows in the @expr.data matrix.
+#' Otherwise, throws an error and stops execution.
+#'
+#' @param infercnv_obj
+#'
+#' @return none
+#' 
 
 validate_infercnv_obj <- function(infercnv_obj) {
 
     flog.info("validating infercnv_obj")
     
-    if (all.equal(rownames(infercnv_obj@processed.data), rownames(infercnv_obj@gene_order))) {
+    if (all.equal(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))) {
         # all good.
         return();
         
     }
     else {
 
-        flog.error("hmm.... rownames(infercnv_obj@processed.data != rownames(infercnv_obj@gene_order))")
+        flog.error("hmm.... rownames(infercnv_obj@expr.data != rownames(infercnv_obj@gene_order))")
         broken.infercnv_obj = infercnv_obj
         save('broken.infercnv_obj', file="broken.infercnv_obj")
         
     }
     
     
-    genes = setdiff(rownames(infercnv_obj@processed.data), rownames(infercnv_obj@gene_order))
+    genes = setdiff(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))
     if (length(genes) != 0) {
-        flog.error(paste("The following genes are in infercnv_obj@processed.data and not @gene_order:", paste(genes, collapse=","),
+        flog.error(paste("The following genes are in infercnv_obj@expr.data and not @gene_order:", paste(genes, collapse=","),
                          sep=" "))
         
     }
 
-    genes = setdiff(rownames(infercnv_obj@gene_order), rownames(infercnv_obj@processed.data))
+    genes = setdiff(rownames(infercnv_obj@gene_order), rownames(infercnv_obj@expr.data))
     if (length(genes) != 0) {
-        flog.error(paste("The following genes are in @gene_order and not infercnv_obj@processed.data:", paste(genes, collapse=","),
+        flog.error(paste("The following genes are in @gene_order and not infercnv_obj@expr.data:", paste(genes, collapse=","),
                          sep=" "))
         
     }
@@ -1542,51 +1609,23 @@ validate_infercnv_obj <- function(infercnv_obj) {
 }
 
 
-reinit_infercnv <- function(infercnv_obj) {
-    
-    # restore the processed.data with the original raw.data
-
-    infercnv_obj@processed.data <- infercnv_obj@raw.data
-
-    return(infercnv_obj)
-
-}
-
-symmetrical_logxplus1 <- function(infercnv_obj) {
-
-    data = infercnv_obj@processed.data
-
-    zero_val_pos = (data == 0)
-
-    data[data>0] = log2(data[data>0] + 1)
-
-    data[data<0] = -1 * log2(-1 * data[data<0] + 1)
-
-    data[zero_val_pos] = NA
-
-    infercnv_obj@processed.data = data
-
-    return(infercnv_obj)
-}
-
-invert_symmetrical_logxplus1 <- function(infercnv_obj) {
-
-    data = infercnv_obj@processed.data
-
-    data[data>0] = 2^data[data>0] - 1
-
-    data[data<0] = -1 * (2^(-1 * data[data<0]) - 1)
-    
-    infercnv_obj@processed.data <- data
-
-    return(infercnv_obj)
-    
-}
+#' @title normalize_counts_by_seq_depth()
+#'
+#' Normalizes count data by total sum scaling
+#'
+#' For single cell data, a typical normalization factor is 1e5, providing counts per 100k total counts.
+#' If a normalization factor is not provided, one is estimated based on:
+#'     10^round(log10(mean(column_sums))) 
+#' 
+#' @param infercnv_obj infercnv_object
+#'
+#' @param normalize_factor  total counts to scale the normalization to (default: NA, computed as described above)
+#' 
 
 
 normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
-    data <- infercnv_obj@processed.data
+    data <- infercnv_obj@expr.data
     
     cs = colSums(data)
 
@@ -1602,17 +1641,24 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
     data <- data * normalize_factor
 
-    infercnv_obj@processed.data <- data
+    infercnv_obj@expr.data <- data
 
     return(infercnv_obj)
         
 }
 
+
+#' @title anscombe_transform()
+#'
+#' Performs Anscombe's transformation:
+#'    y = 2 * sqrt(x + 3/8)
+#' as per
+#' https://en.wikipedia.org/wiki/Anscombe_transform
+#' 
+
 anscombe_transform <- function(infercnv_obj) {
 
-    # https://en.wikipedia.org/wiki/Anscombe_transform
-    
-    infercnv_obj@processed.data <- 2 * sqrt(infercnv_obj@processed.data + 3/8)
+    infercnv_obj@expr.data <- 2 * sqrt(infercnv_obj@expr.data + 3/8)
     
     return(infercnv_obj)
     
