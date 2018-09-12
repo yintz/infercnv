@@ -177,7 +177,9 @@ plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_p
 knitr::include_graphics("infercnv.outliers_removed.png")
 ```
 
-
+```{r}
+save('infercnv_obj', file='infercnv_obj.final')
+```
 
 
 

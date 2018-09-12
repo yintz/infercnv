@@ -8,8 +8,10 @@
 #'
 #' Slots in the infercnv object include:
 #'
-#' @slot expr.data  <matrix>  the count or expression data matrix
+#' @slot expr.data  <matrix>  the count or expression data matrix, manipulated throughout infercnv ops
 #'
+#' @slot count.data <matrix>  retains the original count data, but shrinks along with expr.data when genes are removed.
+#' 
 #' @slot gene_order  <data.frame> chromosomal gene order
 #'
 #' @slot reference_grouped_cell_indices <list>  mapping [['group_name']] to c(cell column indices) for reference (normal) cells
@@ -21,6 +23,7 @@ infercnv <- methods::setClass(
                          "infercnv",
                          slots = c(
                              expr.data = "matrix",
+                             count.data = "matrix",
                              gene_order= "data.frame",
                              reference_grouped_cell_indices = "list",
                              observation_grouped_cell_indices = "list") )
@@ -160,7 +163,8 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     
     object <- new(
         Class = "infercnv",
-        expr.data = raw.data, #simple copy for now
+        expr.data = raw.data, 
+        count.data = raw.data,
         gene_order = input_gene_order,
         reference_grouped_cell_indices = ref_group_cell_indices,
         observation_grouped_cell_indices = obs_group_cell_indices)
@@ -250,4 +254,74 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     return(ret_results)
 }
 
+
+#' @title remove_genes()
+#'
+#' infercnv obj accessor method to remove genes from the matrices
+#'
+#' @param infercnv_obj
+#' 
+#' @param gene_indices_to_remove matrix indices for genes to remove
+#'
+#' @return infercnv_obj
+#'
+
+remove_genes <- function(infercnv_obj, gene_indices_to_remove) {
+
+    infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, ]
+    
+    infercnv_obj@count.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, ]
+
+    infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * gene_indices_to_remove, ] 
+
+    return(infercnv_obj)
+}
+
+
+#' @title validate_infercnv_obj()
+#'
+#' validate an infercnv_obj
+#' ensures that order of genes in the @gene_order slot match up perfectly with the gene rows in the @expr.data matrix.
+#' Otherwise, throws an error and stops execution.
+#'
+#' @param infercnv_obj
+#'
+#' @return none
+#'
+
+validate_infercnv_obj <- function(infercnv_obj) {
+
+    flog.info("validating infercnv_obj")
+
+    if (all.equal(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))) {
+            # all good.
+                    return();
+
+    }
+        else {
+
+        flog.error("hmm.... rownames(infercnv_obj@expr.data != rownames(infercnv_obj@gene_order))")
+                broken.infercnv_obj = infercnv_obj
+                        save('broken.infercnv_obj', file="broken.infercnv_obj")
+
+    }
+
+
+    genes = setdiff(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))
+        if (length(genes) != 0) {
+                flog.error(paste("The following genes are in infercnv_obj@expr.data and not @gene_order:", paste(genes, collapse=","),
+                                         sep=" "))
+
+    }
+
+    genes = setdiff(rownames(infercnv_obj@gene_order), rownames(infercnv_obj@expr.data))
+        if (length(genes) != 0) {
+                flog.error(paste("The following genes are in @gene_order and not infercnv_obj@expr.data:", paste(genes, collapse=","),
+                                         sep=" "))
+
+    }
+
+    stop("Problem detected w/ infercnv_obj")
+
+}
 

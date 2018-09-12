@@ -14,6 +14,7 @@ import("methods")
 importFrom("gplots", "bluered")
 importFrom("ape", "write.tree", "as.phylo")
 import(RColorBrewer)
+import(Seurat)
 
 export(infercnv)
 export(CreateInfercnvObject)
@@ -41,6 +42,9 @@ export(remove_genes_at_ends_of_chromosomes)
 export(validate_infercnv_obj)
 export(normalize_counts_by_seq_depth)
 export(anscombe_transform)
+
+export(mask_non_DE_genes)
+export(seurat_from_infercnv_obj)
 
 export(plot_cnv)
 

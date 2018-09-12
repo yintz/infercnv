@@ -988,12 +988,8 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
                         " genes from matrix as below mean expr threshold: ",
                         min_mean_expr_cutoff), sep="")
 
-        infercnv_obj@expr.data = infercnv_obj@expr.data[ -1 * indices, ]
-
-                                        # match w/ gene_order info
-        infercnv_obj@gene_order = infercnv_obj@gene_order[ -1 * indices, ]
-
-        validate_infercnv_obj(infercnv_obj)
+        infercnv_obj <- remove_genes(infercnv_obj, indices)
+        
     }
     
     return(infercnv_obj)
@@ -1033,14 +1029,11 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
             flog.warn(paste("::All genes removed! Must revisit your data..., cannot continue here."))
             stop(998)
         }
-        
-        infercnv_obj@expr.data <- infercnv_obj@expr.data[ref_genes_passed, ]
 
-                                        # match w/ gene_order
-        infercnv_obj@gene_order <- infercnv_obj@gene_order[ref_genes_passed, ]
 
-        validate_infercnv_obj(infercnv_obj)
+        infercnv_obj <- remove_genes(infercnv_obu, -1 * ref_genes_passed)
         
+                
     }
     else {
 
@@ -1536,10 +1529,7 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
     }
     if (length(remove_indices) > 0){
 
-        infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * remove_indices, ]
-        infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * remove_indices, ]
-
-        validate_infercnv_obj(infercnv_obj)
+        infercnv_obj = remove_genes(infercnv_obj, remove_indices)
 
         flog.info(paste("::process_data:Remove genes at chr ends, ",
                         "new dimensions (r,c) = ",
@@ -1555,8 +1545,7 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
         stop(1234)
     }
 
-    validate_infercnv_obj(infercnv_obj)
-    
+        
     return(infercnv_obj)
 
 }
@@ -1647,6 +1636,29 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
         
 }
 
+#' @title compute_normalization_factor()
+#'
+#' computes norm factor as:
+#'    normalize_factor = 10^round(log10(mean(cs)))
+#'
+#' @param infercnv_obj
+#'
+#' @return normalization_factor
+#'
+#'
+
+compute_normalization_factor <- function(infercnv_obj) {
+
+    data <- infercnv_obj@expr.data
+    
+    cs = colSums(data)
+    
+    normalize_factor = 10^round(log10(mean(cs)))
+
+    return(normalize_factor)
+
+}
+    
 
 #' @title anscombe_transform()
 #'
