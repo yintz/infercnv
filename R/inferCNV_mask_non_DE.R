@@ -1,5 +1,5 @@
 
-#' @title mask_non_DE_genes
+#' @title mask_non_DE_genes_via_Seurat
 #'
 #' Masks expression data values for those genes defined as *not* differentially expressed.
 #' Seurat FindMarkers() is used to define differentially expressed genes.
@@ -23,59 +23,61 @@
 #' 
 
 
-mask_non_DE_genes <- function(infercnv_obj,
-                              thresh.use=0.25,
-                              min.pct=0.50,
-                              p_val_thresh = 0.05,
-                              test.use='bimod',
-                              center_val = mean(infercnv_obj@expr.data),
-                              normalize_factor=compute_normalization_factor(infercnv_obj) ) {
-
-
-    seurat_obj = seurat_from_infercnv_obj(infercnv_obj, normalize_factor)
+mask_non_DE_genes_via_Seurat <- function(infercnv_obj,
+                                         thresh.use=0.25,
+                                         min.pct=0.50,
+                                         p_val_thresh = 0.05,
+                                         test.use='bimod',
+                                         center_val = mean(infercnv_obj@expr.data),
+                                         normalize_factor=compute_normalization_factor(infercnv_obj) ) {
     
-    ## Find DE genes by comparing the mutant types to normal types
+    
+  
 
+    all_DE_results = get_DE_genes_via_Seurat(infercnv_obj,
+                                             thresh.use=thresh.use,
+                                             min.pct=min.pct,
+                                             p_val_thresh=p_val_thresh,
+                                             test.use=test.use,
+                                             normalize_factor=normalize_factor)
+
+
+    infercnv_obj <- .mask_DE_genes(infercnv_obj, all_DE_results, mask_val=center_val)
+
+    return(infercnv_obj)
+
+}
+
+
+.mask_DE_genes <- function(infercnv_obj, all_DE_results, mask_val) {
+
+    
     all_DE_genes_matrix = matrix(data=FALSE, nrow=nrow(infercnv_obj@expr.data),
                                  ncol=ncol(infercnv_obj@expr.data),
                                  dimnames = list(rownames(infercnv_obj@expr.data),
                                                  colnames(infercnv_obj@expr.data) ) )
 
-    normal_types = names(infercnv_obj@reference_grouped_cell_indices)
-    tumor_types = names(infercnv_obj@observation_grouped_cell_indices)
 
+
+    all_DE_genes_matrix[,] = FALSE
+    
     ## turn on all normal genes
     all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = TRUE
-
-    all_DE_results = list()
-
-    ## turn on only DE genes in tumors
-    for (tumor_type in tumor_types) {
-        for (normal_type in normal_types) {
-            flog.info(sprintf("Finding DE genes between %s and %s", tumor_type, normal_type))
-            markers = FindMarkers(seurat_obj,
-                                  ident.1=tumor_type,
-                                  ident.2=normal_type,
-                                  thresh.use=thresh.use,
-                                  min.pct=min.pct,
-                                  only.pos=FALSE,
-                                  test.use=test.use)
-            condition_pair = paste(tumor_type, normal_type, sep=",")
-            all_DE_results[[condition_pair]] = markers
-
-
-            genes = rownames(markers[markers$p_val<0.05,])
-            flog.info(sprintf("Found %d genes as DE", length(genes)))
-            all_DE_genes_matrix[rownames(all_DE_genes_matrix) %in% genes,
-                                all_cell_classes[[tumor_type]] ] = TRUE
-        }
-    }
-
     
-    infercnv_obj@expr.data[ ! all_DE_genes_matrix ] = center_val
-
+    for (DE_results in all_DE_results) {
+        tumor_type = DE_results$tumor
+        genes = DE_results$de_genes
+        
+    
+        all_DE_genes_matrix[rownames(all_DE_genes_matrix) %in% genes,
+                            infercnv_obj@observation_grouped_cell_indices[[ tumor_type ]] ] = TRUE
+    
+    }
+        
+    infercnv_obj@expr.data[ ! all_DE_genes_matrix ] = mask_val
+    
     return(infercnv_obj)
-
+    
 
 }
 
@@ -122,6 +124,55 @@ seurat_from_infercnv_obj <- function(infercnv_obj, normalize_factor) {
 
     return(seurat_obj)
 
+
+}
+
+
+get_DE_genes_via_Seurat <- function(infercnv_obj,
+                                    thresh.use=0.25,
+                                    min.pct=0.50,
+                                    p_val_thresh = 0.05,
+                                    test.use='bimod',
+                                    normalize_factor=1e5 ) {
+    
+
+    seurat_obj = seurat_from_infercnv_obj(infercnv_obj, normalize_factor)
+    
+    ## Find DE genes by comparing the mutant types to normal types
+    normal_types = names(infercnv_obj@reference_grouped_cell_indices)
+    tumor_types = names(infercnv_obj@observation_grouped_cell_indices)
+
+    all_DE_results = list()
+    
+    ## turn on only DE genes in tumors
+    for (tumor_type in tumor_types) {
+        for (normal_type in normal_types) {
+            flog.info(sprintf("Finding DE genes between %s and %s", tumor_type, normal_type))
+            markers = FindMarkers(seurat_obj,
+                                  ident.1=tumor_type,
+                                  ident.2=normal_type,
+                                  thresh.use=thresh.use,
+                                  min.pct=min.pct,
+                                  only.pos=FALSE,
+                                  test.use=test.use)
+            
+
+            
+            genes = rownames(markers[markers$p_val<0.05,])
+            flog.info(sprintf("Found %d genes as DE", length(genes)))
+
+            condition_pair = paste(tumor_type, normal_type, sep=",")
+            
+            all_DE_results[[condition_pair]] = list(tumor=tumor_type,
+                                                    normal=normal_type,
+                                                    markers=markers,
+                                                    de_genes=genes)
+            
+            
+        }
+    }
+    
+    return(all_DE_results)
 
 }
 

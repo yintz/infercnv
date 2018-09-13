@@ -8,7 +8,6 @@ importFrom("stats", "as.dendrogram", "as.dist", "cutree", "density",
            "quantile", "reorder", "sd", "complete.cases", "cor")
 importFrom("utils", "flush.console", "read.table", "write.table", "tail")
 importFrom("binhf", "ansc")
-import(logging)
 import(futile.logger)
 import("methods")
 importFrom("gplots", "bluered")
@@ -43,7 +42,9 @@ export(validate_infercnv_obj)
 export(normalize_counts_by_seq_depth)
 export(anscombe_transform)
 
-export(mask_non_DE_genes)
+# inferCNV_mask_non_DE.R
+export(mask_non_DE_genes_via_Seurat)
+export(get_DE_genes_via_Seurat)
 export(seurat_from_infercnv_obj)
 
 export(plot_cnv)

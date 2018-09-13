@@ -96,6 +96,7 @@ plot_cnv <- function(infercnv_obj,
             
             high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
             low_threshold = -1 * high_threshold
+            flog.info(sprintf("plot_cnv(): auto thresholding at: (%f , %f)", low_threshold, high_threshold))
             
         } else {
         
@@ -339,21 +340,23 @@ plot_cnv <- function(infercnv_obj,
 
     flog.info("plot_cnv_observation:Start")
     flog.info(paste("Observation data size: Cells=",
-                           nrow(obs_data),
-                           "Genes=",
-                           ncol(obs_data),
-                           sep=" "))
+                    nrow(obs_data),
+                    "Genes=",
+                    ncol(obs_data),
+                    sep=" "))
     observation_file_base <- paste(file_base_name, "observations.txt", sep=.Platform$file.sep)
-
+    
     # Output dendrogram representation as Newick
     # Need to precompute the dendrogram so we can manipulate
     # it before the heatmap plot
     ## Optionally cluster by a specific contig
     hcl_desc <- "General"
     hcl_group_indices <- 1:ncol(obs_data)
+    
     if(!is.null(cluster_contig)){
+        # restricting to single contig
         hcl_contig_indices <- which(contig_names == cluster_contig)
-        if(length(hcl_group_indices)>0){
+        if(length(hcl_group_indices) > 0 ) {
             hcl_group_indices <- hcl_contig_indices
             hcl_desc <- cluster_contig
             flog.info(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
@@ -368,7 +371,8 @@ plot_cnv <- function(infercnv_obj,
                                      sep=" "))
         }
     }
-                                        # HCL with a inversely weighted euclidean distance.
+    
+    # HCL with a inversely weighted euclidean distance.
     flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
     # obs_hcl <- NULL
     obs_dendrogram <- list()
@@ -376,7 +380,12 @@ plot_cnv <- function(infercnv_obj,
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
     obs_seps <- c()
+
+    
     if (cluster_by_groups) {
+
+        ## Clustering separately by groups (ie. patients)
+
         for (i in seq(1, max(obs_annotations_groups))) {
             group_obs_hcl <- hclust(dist(obs_data[which(obs_annotations_groups == i), hcl_group_indices]), method=hclust_method)
             ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
@@ -395,6 +404,7 @@ plot_cnv <- function(infercnv_obj,
             obs_seps <- c(obs_seps, length(ordered_names))
         }
         if (length(obs_dendrogram) > 1) {
+            # merge separate dendrograms into a single dendrogram
             obs_dendrogram <- do.call(merge, obs_dendrogram)
         } else {
             obs_dendrogram <- obs_dendrogram[[1]]
@@ -403,6 +413,7 @@ plot_cnv <- function(infercnv_obj,
         names(split_groups) <- ordered_names
     }
     else {
+        # clustering all groups together
         obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
         write.tree(as.phylo(obs_hcl),
                    file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
@@ -411,7 +422,7 @@ plot_cnv <- function(infercnv_obj,
         split_groups <- cutree(obs_hcl, k=num_obs_groups)
         split_groups <- split_groups[ordered_names]
         hcl_obs_annotations_groups <- obs_annotations_groups[obs_hcl$order]
-
+        
         # Make a file of members of each group
         flog.info("plot_cnv_observation:Writing observations by grouping.")
         for (cut_group in unique(split_groups)){
@@ -466,6 +477,7 @@ plot_cnv <- function(infercnv_obj,
                                      row_seps=obs_seps,
                                      col_seps=contig_seps)
 
+    # reorder expression matrix based on dendrogram ordering
     obs_data <- obs_data[ordered_names, ]
 
     # Remove row/col labels, too cluttered
@@ -570,11 +582,11 @@ plot_cnv <- function(infercnv_obj,
     ## Plot observational samples
     obs_lmat <- c(0,  0,  0,  0,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
                   # 8,  0, 10,  0,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
-                  8, 11, 10,  0,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
+                  8, 11, 10,  0,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  # 9 = reference heatmap
                   0,  0,  0,  0,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
                   5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
                   5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
-                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
+                  5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  # 1 observations heatmap
                   5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
                   5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
                   5,  2,  3,  0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
@@ -587,6 +599,7 @@ plot_cnv <- function(infercnv_obj,
                   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0)
     obs_lmat <- matrix(obs_lmat,ncol=14,byrow=TRUE)
 
+    # vector of heights for each of the above rows.
     obs_lhei <- c(1.125, 2.215, .15,
                    .5, .5, .5,
                    .5, .5, .5,
@@ -692,7 +705,6 @@ plot_cnv <- function(infercnv_obj,
         reference_ylab <- cnv_ref_title
         row.names(ref_data) <- rep("", number_references)
     }
-
 
     row_groupings <- as.matrix(get_group_color_palette()(length(table(split_groups)))[split_groups])
     annotations_legend <- cbind(name_ref_groups, get_group_color_palette()(length(name_ref_groups)))
@@ -1606,7 +1618,10 @@ heatmap.cnv <-
       sr <- sc/mapratio
     }
 
+    ###############################
     ## calculate the plot layout ##
+    ###############################
+
     ## 1) for heatmap
     lmat <- matrix(1,nrow=sr,ncol=sc)
     lwid <- c(rep(mapsize/sc,sc))
@@ -1660,7 +1675,7 @@ heatmap.cnv <-
                   )
     lwid <- c(keysize,lwid)
 
-    ## 7) for col-dend, 8) for kay
+    ## 7) for col-dend, 8) for key
     lmat <- rbind(c(
                     max(lmat,na.rm=TRUE)+2,
                     rep(NA,ncol(lmat)-sc-1),
@@ -1766,6 +1781,7 @@ heatmap.cnv <-
     if (any(lmat==999)) flag.text <- TRUE else flag.text <- FALSE
     lmat[lmat==999] <- max(lmat[lmat!=999])+1
 
+    ##-------------------------------  Overriding the lmat settings if already given.
     ## Graphics `output' ##
     ## layout
     if(!is.null(force_lmat)){
@@ -1780,7 +1796,8 @@ heatmap.cnv <-
     if(!force_add){
         layout(lmat,widths=lwid,heights=lhei,respect=FALSE)
     }
-
+    ##---------------------------------
+      
     ## reverse columns
     if(revC){ ## x columns reversed
       iy <- nr:1
@@ -1816,8 +1833,9 @@ heatmap.cnv <-
           xlim=0.5+c(0,nc),ylim=0.5+c(0,nr),
           axes=FALSE,xlab="",ylab="",col=colors,breaks=breaks,
           ...)
-
-
+    flog.info(paste("Colors for breaks: ", paste(colors, collapse=","), sep=" "))
+    flog.info(paste("Quantiles of plotted data range:", paste(quantile(x), collapse=","), sep=" "))
+    
     ## plot/color NAs
     if(!.invalid(na.color) & any(is.na(x))){
       mmat <- ifelse(is.na(x),1,NA)
