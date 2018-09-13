@@ -149,6 +149,28 @@ knitr::include_graphics("infercnv.inverted.png")
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Removing noise
 
 ```{r}
@@ -181,6 +203,29 @@ knitr::include_graphics("infercnv.outliers_removed.png")
 save('infercnv_obj', file='infercnv_obj.final')
 ```
 
+## Find DE genes by comparing the mutant types to normal types, BASIC
+
+```{r}
+
+load('infercnv_obj.final')
+plot_data = infercnv_obj@expr.data
+high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))  
+
+low_threshold = -1 * high_threshold 
+
+infercnv_obj2 <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=1)
+
+```
 
 
+```{r}
 
+plot_cnv(infercnv_obj2, output_filename='infercnv.non-DE-genes-masked', color_safe_pal = TRUE, x.range=c(low_threshold, high_threshold), x.center=1, title = "non-DE-genes-masked")
+
+```
+
+
+```{r}
+knitr::include_graphics("infercnv.non-DE-genes-masked.png")
+
+```

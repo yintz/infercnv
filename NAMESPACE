@@ -15,9 +15,11 @@ importFrom("ape", "write.tree", "as.phylo")
 import(RColorBrewer)
 import(Seurat)
 
+# inferCNV.R
 export(infercnv)
 export(CreateInfercnvObject)
 
+# inferCNV_ops.R
 export(run)
 export(make_ngchm)
 export(subtract_ref_expr_from_obs)
@@ -46,6 +48,9 @@ export(anscombe_transform)
 export(mask_non_DE_genes_via_Seurat)
 export(get_DE_genes_via_Seurat)
 export(seurat_from_infercnv_obj)
+export(mask_non_DE_genes_basic)
+export(get_DE_genes_basic)
 
+# inferCNV_heatmap.R
 export(plot_cnv)
 
