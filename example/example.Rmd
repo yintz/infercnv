@@ -47,7 +47,7 @@ infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min
 
 ## for safe keeping
 infercnv_orig_filtered = infercnv_obj
-plot_mean_chr_expr_lineplot(infercnv_obj)
+#plot_mean_chr_expr_lineplot(infercnv_obj)
 save('infercnv_obj', file = 'infercnv_obj.orig_filtered')
 
 ```
@@ -67,7 +67,7 @@ Suggested by Matan for removing noisy variation at low counts
 ```{r}
 infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.anscombe')
-plot_mean_chr_expr_lineplot(infercnv_obj)
+#plot_mean_chr_expr_lineplot(infercnv_obj)
 
 ```
 
@@ -85,6 +85,17 @@ threshold = mean(abs(get_average_bounds(infercnv_obj)))
 infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
 ```
 
+## Initial view, before inferCNV operations:
+
+```{r}
+plot_cnv(infercnv_obj, output_filename='infercnv.logtransf', x.range="auto", title = "Before InferCNV (filtered & log2 transformed)", color_safe_pal = FALSE, x.center = mean(infercnv_obj@expr.data))
+```
+
+
+```{r}
+knitr::include_graphics("infercnv.logtransf.png")
+```
+
 
 
 ## perform smoothing across chromosomes
@@ -98,7 +109,7 @@ infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "media
 save('infercnv_obj', file='infercnv_obj.cells_recentered')
 #plot_mean_chr_expr_lineplot(infercnv_obj)
 
-plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed")
+plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed", color_safe_pal = FALSE)
 ```
 
 
@@ -113,11 +124,11 @@ knitr::include_graphics("infercnv.chr_smoothed.png")
 ```{r}
 infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.ref_subtracted')
-plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
+#plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 ```
 
 ```{r}
-plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted', x.range="auto", title="ref subtracted")
+plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted', x.range="auto", title="ref subtracted", color_safe_pal = FALSE)
 ```
 
 ```{r}
@@ -137,7 +148,7 @@ This is important because we want (1/2)x to be symmetrical to 1.5x, representing
 
 infercnv_obj <- invert_log2(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.inverted_log')
-plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
+#plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 plot_cnv(infercnv_obj, output_filename='infercnv.inverted', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "inverted log FC to FC")
 
 
@@ -149,35 +160,13 @@ knitr::include_graphics("infercnv.inverted.png")
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Removing noise
 
 ```{r}
 infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
 save('infercnv_obj', file='infercnv_obj.denoised')
 #plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
-plot_cnv(infercnv_obj, output_filename='infercnv.denoised', x.range="auto", x.center=1, title="denoised")
+plot_cnv(infercnv_obj, output_filename='infercnv.denoised', x.range="auto", x.center=1, title="denoised", color_safe_pal = FALSE)
 ```
 
 ```{r}
@@ -205,6 +194,8 @@ save('infercnv_obj', file='infercnv_obj.final')
 
 ## Find DE genes by comparing the mutant types to normal types, BASIC
 
+Runs a t-Test comparing tumor/normal for each patient and normal sample, and masks out those genes that are not significantly DE.
+
 ```{r}
 
 load('infercnv_obj.final')
@@ -220,7 +211,7 @@ infercnv_obj2 <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't'
 
 ```{r}
 
-plot_cnv(infercnv_obj2, output_filename='infercnv.non-DE-genes-masked', color_safe_pal = TRUE, x.range=c(low_threshold, high_threshold), x.center=1, title = "non-DE-genes-masked")
+plot_cnv(infercnv_obj2, output_filename='infercnv.non-DE-genes-masked', color_safe_pal = FALSE, x.range=c(low_threshold, high_threshold), x.center=1, title = "non-DE-genes-masked")
 
 ```
 

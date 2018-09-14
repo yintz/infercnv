@@ -92,7 +92,7 @@ plot_cnv <- function(infercnv_obj,
     if (! any(is.na(x.range))) {
 
 
-        if (length(x.range) == 1 & x.range == "auto") {
+        if ( (length(x.range) == 1) & (x.range[1] == "auto") ) {
             
             high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
             low_threshold = -1 * high_threshold

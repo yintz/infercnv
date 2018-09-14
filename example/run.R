@@ -1,8 +1,5 @@
 #!/usr/bin/env Rscript
 
-
-options(error = function() traceback(2))
-
 library("infercnv")
 
 # create the infercnv object
@@ -17,7 +14,7 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              cutoff=1, 
                              out_dir="output_dir", 
                              cluster_by_groups=T, 
-                             plot_steps=F,
+                             plot_steps=T,
                              use_zscores=F,
                              )
 
@@ -27,6 +24,7 @@ plot_cnv(infercnv_obj,
          cluster_by_groups=T,
          color_safe_pal=FALSE,
          x.center=1,
+         x.range=c(0.6,1.4),
          title="inferCNV",
          obs_title="Observations (Cells)",
          ref_title="References (Cells)",
