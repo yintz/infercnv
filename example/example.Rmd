@@ -11,9 +11,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 library(infercnv)
 
-source("~/GITHUB/bhaas_forks/inferCNV/scripts/explore_steps_by_gene.simple.R")
-
-
 ```
 
 ## Create the InferCNV Object
@@ -38,7 +35,7 @@ Removing those genes that are very lowly expressed or present in very few cells
 
 ```{r}
 # filter out low expressed genes
-cutoff=2
+cutoff=1
 infercnv_obj <- require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
 
 # filter out bad cells
@@ -67,8 +64,6 @@ Suggested by Matan for removing noisy variation at low counts
 ```{r}
 infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.anscombe')
-#plot_mean_chr_expr_lineplot(infercnv_obj)
-
 ```
 
 
@@ -87,8 +82,13 @@ infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
 
 ## Initial view, before inferCNV operations:
 
-```{r}
-plot_cnv(infercnv_obj, output_filename='infercnv.logtransf', x.range="auto", title = "Before InferCNV (filtered & log2 transformed)", color_safe_pal = FALSE, x.center = mean(infercnv_obj@expr.data))
+```{r, results="hide"}
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.logtransf', 
+         x.range="auto", 
+         title = "Before InferCNV (filtered & log2 transformed)", 
+         color_safe_pal = FALSE, 
+         x.center = mean(infercnv_obj@expr.data))
 ```
 
 
@@ -107,9 +107,16 @@ save('infercnv_obj', file='infercnv_obj.smooth_by_chr')
 # re-center each cell
 infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "median")
 save('infercnv_obj', file='infercnv_obj.cells_recentered')
-#plot_mean_chr_expr_lineplot(infercnv_obj)
 
-plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed and recentered", color_safe_pal = FALSE)
+```
+
+
+```{r, results='hide' }
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.chr_smoothed', 
+         x.range="auto", 
+         title = "chr smoothed and cells re-centered", 
+         color_safe_pal = FALSE)
 ```
 
 
@@ -119,23 +126,24 @@ knitr::include_graphics("infercnv.chr_smoothed.png")
 
 
 
-# subtract the reference values from observations, NOW HAVE LOG (FOLD CHANGE) VALUES
+# subtract the reference values from observations, now have log(fold change) values
 
 ```{r}
 infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
 save('infercnv_obj', file='infercnv_obj.ref_subtracted')
-#plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 ```
 
-```{r}
-plot_cnv(infercnv_obj, output_filename='infercnv.ref_subtracted', x.range="auto", title="ref subtracted", color_safe_pal = FALSE)
+```{r, results="hide"}
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.ref_subtracted', 
+         x.range="auto", 
+         title="ref subtracted", 
+         color_safe_pal = FALSE)
 ```
 
 ```{r}
 knitr::include_graphics("infercnv.ref_subtracted.png")
 ```
-
-
 
 
 ## invert log values
@@ -148,10 +156,16 @@ This is important because we want (1/2)x to be symmetrical to 1.5x, representing
 
 infercnv_obj <- invert_log2(infercnv_obj)
 save('infercnv_obj', file='infercnv_obj.inverted_log')
-#plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
-plot_cnv(infercnv_obj, output_filename='infercnv.inverted', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "inverted log FC to FC")
+```
 
 
+```{r, results="hide"}
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.inverted', 
+         color_safe_pal = FALSE, 
+         x.range="auto", 
+         x.center=1, 
+         title = "inverted log FC to FC")
 ```
 
 
@@ -165,8 +179,16 @@ knitr::include_graphics("infercnv.inverted.png")
 ```{r}
 infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
 save('infercnv_obj', file='infercnv_obj.denoised')
-#plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
-plot_cnv(infercnv_obj, output_filename='infercnv.denoised', x.range="auto", x.center=1, title="denoised", color_safe_pal = FALSE)
+```
+
+
+```{r, results="hide"}
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.denoised', 
+         x.range="auto", 
+         x.center=1, 
+         title="denoised", 
+         color_safe_pal = FALSE)
 ```
 
 ```{r}
@@ -180,7 +202,16 @@ This generally improves on the visualization
 ```{r}
 infercnv_obj = remove_outliers_norm(infercnv_obj)
 save('infercnv_obj', file="infercnv_obj.outliers_removed")
-plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_pal = FALSE, x.range="auto", x.center=1, title = "outliers removed")
+```
+
+
+```{r, results="hide"}
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.outliers_removed', 
+         color_safe_pal = FALSE, 
+         x.range="auto", 
+         x.center=1, 
+         title = "outliers removed")
 ```
 
 
@@ -188,9 +219,7 @@ plot_cnv(infercnv_obj, output_filename='infercnv.outliers_removed', color_safe_p
 knitr::include_graphics("infercnv.outliers_removed.png")
 ```
 
-```{r}
-save('infercnv_obj', file='infercnv_obj.final')
-```
+
 
 ## Find DE genes by comparing the mutant types to normal types, BASIC
 
@@ -209,10 +238,13 @@ infercnv_obj2 <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't'
 ```
 
 
-```{r}
-
-plot_cnv(infercnv_obj2, output_filename='infercnv.non-DE-genes-masked', color_safe_pal = FALSE, x.range=c(low_threshold, high_threshold), x.center=1, title = "non-DE-genes-masked")
-
+```{r, results="hide"}
+plot_cnv(infercnv_obj2, 
+         output_filename='infercnv.non-DE-genes-masked', 
+         color_safe_pal = FALSE, 
+         x.range=c(low_threshold, high_threshold), 
+         x.center=1, 
+         title = "non-DE-genes-masked")
 ```
 
 
@@ -220,3 +252,5 @@ plot_cnv(infercnv_obj2, output_filename='infercnv.non-DE-genes-masked', color_sa
 knitr::include_graphics("infercnv.non-DE-genes-masked.png")
 
 ```
+
+
