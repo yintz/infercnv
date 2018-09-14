@@ -109,7 +109,7 @@ infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "media
 save('infercnv_obj', file='infercnv_obj.cells_recentered')
 #plot_mean_chr_expr_lineplot(infercnv_obj)
 
-plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed", color_safe_pal = FALSE)
+plot_cnv(infercnv_obj, output_filename='infercnv.chr_smoothed', x.range="auto", title = "chr smoothed and recentered", color_safe_pal = FALSE)
 ```
 
 
@@ -122,7 +122,7 @@ knitr::include_graphics("infercnv.chr_smoothed.png")
 # subtract the reference values from observations, NOW HAVE LOG (FOLD CHANGE) VALUES
 
 ```{r}
-infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj)
+infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
 save('infercnv_obj', file='infercnv_obj.ref_subtracted')
 #plot_mean_chr_expr_lineplot(infercnv_obj, sep_obs_types = TRUE)
 ```

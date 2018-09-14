@@ -646,8 +646,11 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 #'
 #' @param infercnv_obj infercnv_object
 #'
+#' @param inv_log invert log-transformed data before subtracting mean, then convert back to log space.
+#'
 #' @return infercnv_obj containing the reference subtracted values.
-#' 
+#'
+
 
 subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
     
@@ -681,6 +684,8 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
         average_min <- pmin(average_min, grp_average)
     }
 
+    flog.info("subtracting mean(normal) per gene per cell across all data")
+    
     # Remove the Max and min averages (or quantiles) of the reference groups for each gene
     # TODO:  can we vectorize this?
     #     and if not, set up a progress bar?
@@ -1369,6 +1374,8 @@ get_average_bounds <- function (infercnv_obj) {
 
 log2xplus1 <- function(infercnv_obj) {
 
+    flog.info("transforming log2xplus1()")
+    
     infercnv_obj@expr.data <- log2(infercnv_obj@expr.data + 1)
 
     return(infercnv_obj)
@@ -1389,13 +1396,15 @@ log2xplus1 <- function(infercnv_obj) {
 
 invert_log2xplus1 <- function(infercnv_obj) {
 
+    flog.info("inverting log2xplus1()")
+    
     infercnv_obj@expr.data <- 2^infercnv_obj@expr.data - 1
 
     return(infercnv_obj)
 }
 
 
-#' @title invert_log2xplus1()
+#' @title invert_log2()
 #'
 #' Computes 2^x
 #' Updates infercnv_obj@expr.data
@@ -1406,6 +1415,8 @@ invert_log2xplus1 <- function(infercnv_obj) {
 #' 
 
 invert_log2 <- function(infercnv_obj) {
+
+    flog.info("invert_log2(), computing 2^x")
     
     infercnv_obj@expr.data <- 2^infercnv_obj@expr.data
 
@@ -1425,6 +1436,8 @@ invert_log2 <- function(infercnv_obj) {
 
 make_zero_NA <- function(infercnv_obj) {
 
+    flog.info("make_zero_NA()")
+    
     infercnv_obj@expr.data <- infercnv_obj@expr.data[infercnv_obj@expr.data == 0] <- NA
     
     return(infercnv_obj)
