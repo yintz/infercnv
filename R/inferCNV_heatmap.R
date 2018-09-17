@@ -156,8 +156,8 @@ plot_cnv <- function(infercnv_obj,
 
     
     # obs_annotations_groups: integer vec named by cells, set to index according to category name vec above.
-    obs_annotations_groups = colnames(infercnv_obj@expr.data)
-    names(obs_annotations_groups) = obs_annotations_groups
+    obs_annotations_groups = rep(-1, length(colnames(infercnv_obj@expr.data))) # init
+    names(obs_annotations_groups) = colnames(infercnv_obj@expr.data)
     obs_index_groupings = infercnv_obj@observation_grouped_cell_indices
     counter <- 1
     for (obs_index_group in obs_index_groupings) {
@@ -166,7 +166,6 @@ plot_cnv <- function(infercnv_obj,
     }
     # restrict to just the obs indices
     obs_annotations_groups <- obs_annotations_groups[ unlist(obs_index_groupings) ]
-
     
 
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
