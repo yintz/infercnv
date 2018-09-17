@@ -92,7 +92,7 @@ run <- function(infercnv_obj,
                 outlier_lower_bound=NA,
                 outlier_upper_bound=NA,
 
-                hclust_method='complete',
+                hclust_method='ward.D',
 
                 anscombe_normalize=TRUE,
                 use_zscores=FALSE,

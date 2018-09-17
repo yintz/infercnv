@@ -84,6 +84,19 @@ infercnv <- methods::setClass(
 #' and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
 
 CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations_file, ref_group_names, delim="\t") {
+
+
+    options(expressions=100000)
+    
+    #if (requireNamespace("fastcluster", quietly=FALSE)) {
+    #                                    #because we'll need it later.
+    #    hclust = fastcluster::hclust
+    #    assign('hclust', 'hclust', envir = .GlobalEnv)
+    #    
+    #} else {
+    #    warning("fastcluster library not available, using the default hclust method instead.")
+    #}
+    
     
     # input expression data
     raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
