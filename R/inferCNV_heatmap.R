@@ -49,7 +49,7 @@ plot_cnv <- function(infercnv_obj,
                      contig_cex=1,
                      x.center=0,
                      x.range=NA,
-                     hclust_method='average',
+                     hclust_method='ward.D',
                      color_safe_pal=TRUE,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
@@ -163,8 +163,8 @@ plot_cnv <- function(infercnv_obj,
 
     
     # obs_annotations_groups: integer vec named by cells, set to index according to category name vec above.
-    obs_annotations_groups = colnames(infercnv_obj@expr.data)
-    names(obs_annotations_groups) = obs_annotations_groups
+    obs_annotations_groups = rep(-1, length(colnames(infercnv_obj@expr.data))) # init
+    names(obs_annotations_groups) = colnames(infercnv_obj@expr.data)
     obs_index_groupings = infercnv_obj@observation_grouped_cell_indices
     counter <- 1
     for (obs_index_group in obs_index_groupings) {
@@ -173,7 +173,6 @@ plot_cnv <- function(infercnv_obj,
     }
     # restrict to just the obs indices
     obs_annotations_groups <- obs_annotations_groups[ unlist(obs_index_groupings) ]
-
     
 
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
@@ -339,7 +338,7 @@ plot_cnv <- function(infercnv_obj,
                                   cluster_by_groups,
                                   breaksList,
                                   x.center,
-                                  hclust_method="average",
+                                  hclust_method="ward.D",
                                   testing=FALSE,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
@@ -394,16 +393,33 @@ plot_cnv <- function(infercnv_obj,
         ## Clustering separately by groups (ie. patients)
 
         for (i in seq(1, max(obs_annotations_groups))) {
-            group_obs_hcl <- hclust(dist(obs_data[which(obs_annotations_groups == i), hcl_group_indices]), method=hclust_method)
-            ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
-            if (isfirst) {
-                write.tree(as.phylo(group_obs_hcl),
-                   file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
-                isfirst <- FALSE
+            gene_indices_in_group <- which(obs_annotations_groups == i)
+            num_genes_in_group <- length(gene_indices_in_group)
+            flog.info(sprintf("Number of genes in group(%d) is %d", i, num_genes_in_group))
+
+            if (num_genes_in_group < 2) {
+                flog.info(sprintf("Skipping group: %d, since less than 2 entries", i))
+                next
             }
-            else {
-                write.tree(as.phylo(group_obs_hcl),
-                   file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep), append=TRUE)
+            
+            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=F]
+            flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
+            group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
+            ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
+
+            if (FALSE) {
+                # turning this off for now, as causing error:
+                # Error: node stack overflow
+                
+                if (isfirst) {
+                    write.tree(as.phylo(group_obs_hcl),
+                               file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
+                    isfirst <- FALSE
+                }
+                else {
+                    write.tree(as.phylo(group_obs_hcl),
+                               file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep), append=TRUE)
+                }
             }
             group_obs_dend <- as.dendrogram(group_obs_hcl)
             obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
@@ -422,8 +438,11 @@ plot_cnv <- function(infercnv_obj,
     else {
         # clustering all groups together
         obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
-        write.tree(as.phylo(obs_hcl),
-                   file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
+        if (FALSE) {
+            # temporarily turning this off to avoid stack error (see above)
+            write.tree(as.phylo(obs_hcl),
+                       file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
+        }
         obs_dendrogram <- as.dendrogram(obs_hcl)
         ordered_names <- row.names(obs_data)[obs_hcl$order]
         split_groups <- cutree(obs_hcl, k=num_obs_groups)
