@@ -93,9 +93,16 @@ plot_cnv <- function(infercnv_obj,
 
 
         if ( (length(x.range) == 1) & (x.range[1] == "auto") ) {
+
+            # examine distribution of data that's off-center, since much of the center could
+            # correspond to a mass of data that has been wiped out during noise reduction
+            quantiles = quantile(plot_data[plot_data != x.center], c(0.05, 0.95))
+
+            # determine max distance from the center.
+            delta = max( abs( c(x.center - quantiles[1],  quantiles[2] - x.center) ) )
+            low_threshold = x.center - delta
+            high_threshold = x.center + delta
             
-            high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
-            low_threshold = -1 * high_threshold
             flog.info(sprintf("plot_cnv(): auto thresholding at: (%f , %f)", low_threshold, high_threshold))
             
         } else {
