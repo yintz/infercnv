@@ -656,8 +656,8 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
     
                                         # r = genes, c = cells
     flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
-
-
+    
+    
     if (inv_log) {
         infercnv_obj <- invert_log2xplus1(infercnv_obj)
     }
@@ -670,43 +670,80 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
     # now reference indexes of ref_groups are relative to the full average_data matrix and not the average_reference_obs references submatrix
     
     ref_groups = infercnv_obj@reference_grouped_cell_indices
-
-    for (ref_group in ref_groups) {
-        
-        grp_average <- rowMeans(infercnv_obj@expr.data[ , ref_group, drop=FALSE], na.rm=TRUE)
-        if(is.null(average_max)){
-            average_max <- grp_average
-        }
-        if(is.null(average_min)){
-            average_min <- grp_average
-        }
-        average_max <- pmax(average_max, grp_average)
-        average_min <- pmin(average_min, grp_average)
-    }
-
-    flog.info("subtracting mean(normal) per gene per cell across all data")
     
-    # Remove the Max and min averages (or quantiles) of the reference groups for each gene
-    # TODO:  can we vectorize this?
-    #     and if not, set up a progress bar?
-    for(gene_i in 1:nrow(infercnv_obj@expr.data)){
-        current_col <- infercnv_obj@expr.data[gene_i, ]
+    
+    VECTORIZED_SUBTRACT = TRUE
+    if (VECTORIZED_SUBTRACT) {
+        
+        subtract_normal_expr_fun <- function(x) {
 
-        # original code
-        i_max <- which(current_col > average_max[gene_i])
-        i_min <- which(current_col < average_min[gene_i])
+            grp_min = NA
+            grp_max = NA
+            
+            for (ref_group in ref_groups) {
 
-        row_init <- rep(0, length(current_col))
-        if(length(i_max) > 0){
-            row_init[i_max] <- current_col[i_max] - average_max[gene_i]
+                ref_grp_mean = mean(x[ref_group])
+                grp_min = min(grp_min, ref_grp_mean, na.rm=T)
+                grp_max = max(grp_max, ref_grp_mean, na.rm=T)
+
+            }
+
+            row_init = rep(0, length(x))
+
+            above_max = which(x>grp_max)
+            below_min = which(x<grp_min)
+
+            row_init[above_max] <- x[above_max] - grp_max
+            row_init[below_min] <- x[below_min] - grp_min
+
+            return(row_init)
         }
-        if(length(i_min) > 0){
-            row_init[i_min] <- current_col[i_min] - average_min[gene_i]
+
+        subtr_data <- t(apply(infercnv_obj@expr.data, 1, subtract_normal_expr_fun))
+        colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
+        infercnv_obj@expr.data <- subtr_data
+                
+                
+    } else {
+        # original code for doing this.
+        for (ref_group in ref_groups) {
+            
+            grp_average <- rowMeans(infercnv_obj@expr.data[ , ref_group, drop=FALSE], na.rm=TRUE)
+            if(is.null(average_max)){
+                average_max <- grp_average
+            }
+            if(is.null(average_min)){
+                average_min <- grp_average
+            }
+            average_max <- pmax(average_max, grp_average)
+            average_min <- pmin(average_min, grp_average)
         }
-        infercnv_obj@expr.data[gene_i, ] <- row_init
+        
+        flog.info("subtracting mean(normal) per gene per cell across all data")
+        
+                                        # Remove the Max and min averages (or quantiles) of the reference groups for each gene
+                                        # TODO:  can we vectorize this?
+                                        #     and if not, set up a progress bar?
+        
+        for(gene_i in 1:nrow(infercnv_obj@expr.data)){
+            current_col <- infercnv_obj@expr.data[gene_i, ]
+            
+                                        # original code
+            i_max <- which(current_col > average_max[gene_i])
+            i_min <- which(current_col < average_min[gene_i])
+            
+            row_init <- rep(0, length(current_col))
+            if(length(i_max) > 0){
+                row_init[i_max] <- current_col[i_max] - average_max[gene_i]
+            }
+            if(length(i_min) > 0){
+                row_init[i_min] <- current_col[i_min] - average_min[gene_i]
+            }
+            infercnv_obj@expr.data[gene_i, ] <- row_init
+        }
+        
     }
-
-
+        
     if (inv_log) {
         # turn back to log space
         infercnv_obj <- log2xplus1(infercnv_obj)
