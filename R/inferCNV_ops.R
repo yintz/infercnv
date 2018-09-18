@@ -1664,12 +1664,15 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
     # make fraction of total counts:
     data <- sweep(data, STATS=cs, MARGIN=2, FUN="/")
-
     
     if (is.na(normalize_factor)) {
         
-        normalize_factor = 10^round(log10(mean(cs)))
-    
+        normalize_factor = .compute_normalization_factor_from_column_sums(cs)
+        
+        flog.info(sprintf("Computed total sum normalization factor as: %f", normalize_factor))
+                
+    } else {
+        flog.info(sprintf("Using specified normalization factor: %f", normalize_factor))
     }
 
     data <- data * normalize_factor
@@ -1697,12 +1700,21 @@ compute_normalization_factor <- function(infercnv_obj) {
     
     cs = colSums(data)
     
-    normalize_factor = 10^round(log10(mean(cs)))
+    normalize_factor = .compute_normalization_factor_from_column_sums(cs)
 
     return(normalize_factor)
 
 }
     
+
+.compute_normalization_factor_from_column_sums <- function(cs) {
+
+    normalize_factor = 10^round(log10(mean(cs)))
+
+    return(normalize_factor)
+}
+
+
 
 #' @title anscombe_transform()
 #'
