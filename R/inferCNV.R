@@ -131,6 +131,9 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     ref_group_cell_indices = list()
     for (name_group in ref_group_names) {
         cell_indices = which(input_classifications[,1] == name_group)
+        if (length(cell_indices) == 0 ) {
+            stop(sprintf("Error, not identifying cells with classification %s", name_group))
+        }
         cell_names =  rownames(input_classifications)[cell_indices]
         ref_group_cell_indices[[ name_group ]] <- cell_indices
     }
