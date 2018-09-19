@@ -351,15 +351,16 @@ run <- function(infercnv_obj,
     # Step: Split the reference data into groups if requested
     
     if (!is.null(num_ref_groups)) {
-        ##TODO: update to use infercnv_obj
-        groups_ref <- split_references(infercnv_obj,
-                                       num_groups=num_ref_groups,
-                                       hclust_method=hclust_method)
 
-
-        flog.info(paste("::process_data:split_reference. ",
-                               "found ",length(groups_ref)," reference groups.",
-                               sep=""))
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: splitting reference data into %d clusters\n", step_count, num_ref_groups))
+        
+        infercnv_obj <- split_references(infercnv_obj,
+                                         num_groups=num_ref_groups,
+                                         hclust_method=hclust_method)
+        
+        
+        
         
     }
     
