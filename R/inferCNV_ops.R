@@ -92,7 +92,7 @@ run <- function(infercnv_obj,
                 outlier_lower_bound=NA,
                 outlier_upper_bound=NA,
 
-                hclust_method='ward.D',
+                hclust_method='complete',
 
                 anscombe_normalize=TRUE,
                 use_zscores=FALSE,
@@ -116,22 +116,6 @@ run <- function(infercnv_obj,
 
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %d: incoming data\n", step_count))
-    
-    # Split the reference data into groups if requested
-    if (!is.null(num_ref_groups)) {
-        ##TODO: update to use infercnv_obj
-        groups_ref <- split_references(average_data=data, #data_smoothed,
-                                       ref_obs=reference_obs,
-                                       num_groups=num_ref_groups,
-                                       hclust_method=hclust_method)
-
-
-        flog.info(paste("::process_data:split_reference. ",
-                               "found ",length(groups_ref)," reference groups.",
-                               sep=""))
-        
-    }
-    
     
     # Plot incremental steps.
     if (plot_steps) {        
@@ -363,7 +347,23 @@ run <- function(infercnv_obj,
         
     }
     
+    ###################################################
+    # Step: Split the reference data into groups if requested
+    
+    if (!is.null(num_ref_groups)) {
+        ##TODO: update to use infercnv_obj
+        groups_ref <- split_references(infercnv_obj,
+                                       num_groups=num_ref_groups,
+                                       hclust_method=hclust_method)
 
+
+        flog.info(paste("::process_data:split_reference. ",
+                               "found ",length(groups_ref)," reference groups.",
+                               sep=""))
+        
+    }
+    
+    
     ####################################
     ## Step: Subtract average reference
     ## Since we're in log space, this now becomes log(fold_change)
@@ -851,77 +851,47 @@ create_sep_list <- function(row_count,
     return(sepList)
 }
 
-# Split up reference observations in to k groups and return indices
-# for the different groups.
-#
-# Args:
-# average_data Matrix containing data. Row = Genes, Col = Cells.
-# ref_obs Indices of reference obervations.
-# num_groups The number of groups to partition nodes in or a list
-#                       of already partitioned indices.
-#
-# Returns:
-# Returns a list of grouped reference observations given as
-#             vectors of groups. These are indices relative to the reference
-#             observations only, so a return 1 indicates the first reference
-#             row, not the first row.
-split_references <- function(average_data,
-                             ref_obs,
-                             num_groups,
+
+#' @title split_references()
+#' 
+#' Split up reference observations in to k groups based on hierarchical clustering.
+#'
+#' 
+#' @param infercnv_obj
+#'
+#' @param num_groups (default: 2)
+#'
+#' @param hclust_method clustering method to use (default: 'complete')
+#'
+#' @return infercnv_obj
+#' 
+
+split_references <- function(infercnv_obj,
+                             num_groups=2,
                              hclust_method='complete') {
 
-    ##TODO: refactor to use infercnv_obj as parameter.
-
+        
     flog.info(paste("::split_references:Start", sep=""))
-    ret_groups <- list()
-    split_groups <- NULL
-    if(is.null(average_data)){
-        return(ret_groups)
+    
+    ref_expr_matrix = infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
+    
+    hc <- hclust(dist(t(ref_expr_matrix)), method=hclust_method)
+    
+    split_groups <- cutree(hc, k=num_groups)
+        
+    ref_groups <- list()
+        
+    grp_counter = 0
+    for (cut_group in unique(split_groups)) {
+        grp_counter = grp_counter + 1
+        grp_name = sprintf("refgrp-%d", grp_counter)
+        cell_names <- names(split_groups[split_groups == cut_group])
+        ref_groups[[grp_name]] <- which(colnames(ref_expr_matrix) %in% cell_names)
     }
-    if(is.null(num_groups)){
-        num_groups <- 1
-    }
-    if(is.null(ref_obs)){
-        ref_obs <- 1:ncol(average_data)
-    }
-
-    # If a supervised grouping is given as a commandline argument
-    # num_groups will be a list of length of more than 1.
-    # Otherwise do this.
-    if (!is.list(num_groups)){
-        # num_groups <- unlist(num_groups)
-        if (num_groups > ncol(average_data)){
-            num_groups <- ncol(average_data)
-        }
-
-        # If only one group is needed, short-circuit and
-        # return all indices immediately
-        # If only one group is asked for or only one reference is
-        # available to give.
-        if ((num_groups < 2) ||
-           (length(ref_obs) < 2)){
-            ret_groups[[1]] <- ref_obs
-            return(ret_groups)
-        }
-
-        # Get HCLUST
-        # Get reference observations only.
-        average_reference_obs <- t(average_data[, ref_obs, drop=FALSE])
-
-        hc <- hclust(dist(average_reference_obs), method=hclust_method)
-
-        split_groups <- cutree(hc, k=num_groups)
-        split_groups <- split_groups[hc$order]
-        # Keep the sort of the hclust
-        for(cut_group in unique(split_groups)){
-            group_idx <- which(split_groups == cut_group)
-            ret_groups[[cut_group]] <- ref_obs[hc$order[group_idx]]
-            # ret_groups[[cut_group]] <- which(colnames(average_data) %in% names(group_idx))
-        }
-    } else {
-        ret_groups <- num_groups
-    }
-    return(ret_groups)
+    
+    infercnv_obj@reference_grouped_cell_indices <- ref_groups
+    
+    return(infercnv_obj)
 }
 
 
