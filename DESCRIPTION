@@ -13,7 +13,7 @@ License: BSD_3_clause + file LICENSE
 LazyData: TRUE
 VignetteBuilder: rmarkdown
 Suggests: BiocStyle, knitr, rmarkdown, testthat
-Enhances: fastcluster, NGCHM
+Enhances: NGCHM
 RoxygenNote: 6.0.1
 NeedsCompilation: no
-Imports: RColorBrewer, gplots, logging, stats, utils, ape
+Imports: RColorBrewer, gplots, futile.logger, stats, utils, ape, Seurat, binhf, fastcluster
