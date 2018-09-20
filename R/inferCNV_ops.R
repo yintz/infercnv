@@ -62,6 +62,7 @@
 #' 
 #' @return infercnv_obj containing filtered and transformed data
 #'
+#' @export
 #'
 
 run <- function(infercnv_obj,
@@ -600,6 +601,8 @@ run <- function(infercnv_obj,
 #'
 #' @param path_to_shaidyMapGen path to the shaidyMapGen jar file (default: NULL)
 #' 
+#' @export
+#'
 
 make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NULL, path_to_shaidyMapGen=NULL) {
     
@@ -651,7 +654,8 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 #'
 #' @return infercnv_obj containing the reference subtracted values.
 #'
-
+#' @export
+#'
 
 subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
     
@@ -866,6 +870,8 @@ create_sep_list <- function(row_count,
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 split_references <- function(infercnv_obj,
                              num_groups=2,
@@ -910,6 +916,8 @@ split_references <- function(infercnv_obj,
 #'
 #' @return infercnv_obj with data bounds set accordingly.
 #' 
+#' @export
+#'
 
 remove_outliers_norm <- function(infercnv_obj,
                                  out_method="average_bound",
@@ -980,6 +988,8 @@ remove_outliers_norm <- function(infercnv_obj,
 #'
 #' @return infercnv_object
 #' 
+#' @export
+#'
 
 center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # or median
 
@@ -1012,7 +1022,8 @@ center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # 
 #'
 #' @return infercnv_obj  the infercnv_object with lowly or unexpressed genes removed.
 #' 
-
+#' @export
+#'
 
 require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutoff) {
 
@@ -1051,7 +1062,8 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 #'
 #' @return infercnv_obj infercnv_object with corresponding genes removed.
 #' 
-
+#' @export
+#'
 
 require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
 
@@ -1099,7 +1111,9 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
 #' @param threshold values within reference mean +- threshold are set to zero. 
 #'
 #' @return infercnv_obj 
-
+#'
+#' @export
+#'
 
 clear_noise <- function(infercnv_obj, threshold) {
     
@@ -1141,6 +1155,8 @@ clear_noise <- function(infercnv_obj, threshold) {
 #' @param sd_amplifier multiplicative factor applied to the standard deviation to alter the noise
 #'                     range (default: 1.5)
 #' 
+#' @export
+#'
 
 clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5) {
 
@@ -1215,7 +1231,8 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5) {
 #'
 #' @return infercnv_obj
 #' 
-
+#' @export
+#'
 
 smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
 
@@ -1358,6 +1375,8 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
 #'
 #' @return (lower_bound, upper_bound)
 #' 
+#' @export
+#'
 
 get_average_bounds <- function (infercnv_obj) {
 
@@ -1379,6 +1398,8 @@ get_average_bounds <- function (infercnv_obj) {
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 log2xplus1 <- function(infercnv_obj) {
 
@@ -1401,6 +1422,8 @@ log2xplus1 <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 invert_log2xplus1 <- function(infercnv_obj) {
 
@@ -1421,6 +1444,8 @@ invert_log2xplus1 <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 invert_log2 <- function(infercnv_obj) {
 
@@ -1441,6 +1466,8 @@ invert_log2 <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 make_zero_NA <- function(infercnv_obj) {
 
@@ -1464,6 +1491,8 @@ make_zero_NA <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 transform_to_reference_based_Zscores <- function(infercnv_obj) {
 
@@ -1505,6 +1534,8 @@ transform_to_reference_based_Zscores <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #' 
+#' @export
+#'
 
 mean_center_gene_expr <- function(infercnv_obj) {
 
@@ -1524,6 +1555,8 @@ mean_center_gene_expr <- function(infercnv_obj) {
 #'
 #' @return vector of column indices
 #' 
+#' @export
+#'
 
 get_reference_grouped_cell_indices <- function(infercnv_obj) {
 
@@ -1539,6 +1572,8 @@ get_reference_grouped_cell_indices <- function(infercnv_obj) {
 #' @param infercnv_obj infercnv_object
 #'
 #' @param threshold value to threshold the data
+#'
+#' @export
 #'
 
 apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
@@ -1560,6 +1595,8 @@ apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
 #'
 #' @param window_length length of the window to use.
 #' 
+#' @export
+#'
 
 remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 
@@ -1602,53 +1639,6 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 
 }
 
-#' @title validate_infercnv_obj()
-#'
-#' validate an infercnv_obj
-#' ensures that order of genes in the @gene_order slot match up perfectly with the gene rows in the @expr.data matrix.
-#' Otherwise, throws an error and stops execution.
-#'
-#' @param infercnv_obj
-#'
-#' @return none
-#' 
-
-validate_infercnv_obj <- function(infercnv_obj) {
-
-    flog.info("validating infercnv_obj")
-    
-    if (all.equal(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))) {
-        # all good.
-        return();
-        
-    }
-    else {
-
-        flog.error("hmm.... rownames(infercnv_obj@expr.data != rownames(infercnv_obj@gene_order))")
-        broken.infercnv_obj = infercnv_obj
-        save('broken.infercnv_obj', file="broken.infercnv_obj")
-        
-    }
-    
-    
-    genes = setdiff(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))
-    if (length(genes) != 0) {
-        flog.error(paste("The following genes are in infercnv_obj@expr.data and not @gene_order:", paste(genes, collapse=","),
-                         sep=" "))
-        
-    }
-
-    genes = setdiff(rownames(infercnv_obj@gene_order), rownames(infercnv_obj@expr.data))
-    if (length(genes) != 0) {
-        flog.error(paste("The following genes are in @gene_order and not infercnv_obj@expr.data:", paste(genes, collapse=","),
-                         sep=" "))
-        
-    }
-
-    stop("Problem detected w/ infercnv_obj")
-    
-}
-
 
 #' @title normalize_counts_by_seq_depth()
 #'
@@ -1662,7 +1652,8 @@ validate_infercnv_obj <- function(infercnv_obj) {
 #'
 #' @param normalize_factor  total counts to scale the normalization to (default: NA, computed as described above)
 #' 
-
+#' @export
+#'
 
 normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
@@ -1700,6 +1691,7 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 #'
 #' @return normalization_factor
 #'
+#' @export
 #'
 
 compute_normalization_factor <- function(infercnv_obj) {
@@ -1714,7 +1706,9 @@ compute_normalization_factor <- function(infercnv_obj) {
 
 }
     
-
+#' @keywords internal
+#' @noRd
+#'
 .compute_normalization_factor_from_column_sums <- function(cs) {
 
     normalize_factor = 10^round(log10(mean(cs)))
@@ -1730,7 +1724,11 @@ compute_normalization_factor <- function(infercnv_obj) {
 #'    y = 2 * sqrt(x + 3/8)
 #' as per
 #' https://en.wikipedia.org/wiki/Anscombe_transform
-#' 
+#'
+#' @param infercnv_obj
+#'
+#' @export
+#'
 
 anscombe_transform <- function(infercnv_obj) {
 

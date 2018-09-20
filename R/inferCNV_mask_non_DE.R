@@ -1,3 +1,5 @@
+#' @include inferCNV.R
+NULL
 
 #' @title mask_non_DE_genes_via_Seurat
 #'
@@ -21,7 +23,8 @@
 #'
 #' @param normalize_factor normalization factor used by Seurat in total sum count scaling. Typically set to 1e4 or 1e5. Default: estimates from the input data.
 #' 
-
+#' @export
+#'
 
 mask_non_DE_genes_via_Seurat <- function(infercnv_obj,
                                          thresh.use=0.25,
@@ -62,6 +65,9 @@ mask_non_DE_genes_via_Seurat <- function(infercnv_obj,
 #'
 #' @return infercnv_obj
 #' 
+#' @keywords internal
+#' @noRd
+#'
 
 .mask_DE_genes <- function(infercnv_obj, all_DE_results, mask_val) {
 
@@ -105,7 +111,8 @@ mask_non_DE_genes_via_Seurat <- function(infercnv_obj,
 #'
 #' @param normalize_factor
 #'
-#' 
+#' @export
+#'
 
 
 seurat_from_infercnv_obj <- function(infercnv_obj, normalize_factor) {
@@ -169,8 +176,9 @@ seurat_from_infercnv_obj <- function(infercnv_obj, normalize_factor) {
 #'                                                     normal=normal_type,
 #'                                                     markers=markers,
 #'                                                     de_genes=genes)
-#' 
- 
+#'
+#' @export
+#'
 
 get_DE_genes_via_Seurat <- function(infercnv_obj,
                                     thresh.use=0.25,
@@ -222,7 +230,6 @@ get_DE_genes_via_Seurat <- function(infercnv_obj,
 
 
 
-#'
 #' @title mask_non_DE_genes_basic()
 #'
 #' Mask gene expression in infercnv_obj based on expression values that are found
@@ -241,7 +248,8 @@ get_DE_genes_via_Seurat <- function(infercnv_obj,
 #'
 #' @return infercnv_obj
 #' 
-
+#' @export
+#'
 
 mask_non_DE_genes_basic <- function(infercnv_obj,
                                     p_val_thresh = 0.05,
@@ -262,7 +270,6 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 
 
 
-#'
 #' @title get_DE_genes_basic
 #'
 #' Retrieves genes identified as significantly DE based on the corresponding statistical test as applied
@@ -277,7 +284,8 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 #'                                                                   pvals=pvals,
 #'                                                                   de_genes=genes)
 #'
-
+#' @export
+#'
 
 get_DE_genes_basic <- function(infercnv_obj,
                                p_val_thresh = 0.05,

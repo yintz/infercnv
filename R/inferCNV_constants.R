@@ -9,3 +9,17 @@ C_STOP <- "stop"
 C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")
 C_OUTPUT_FORMAT <- c("pdf", "png")
 
+#' @importFrom grDevices col2rgb colorRampPalette dev.off pdf png rgb
+#' @importFrom graphics abline axis boxplot hist image layout lines mtext par plot points rect text title legend
+#' @importFrom stats as.dendrogram as.dist cutree density dist filter median order.dendrogram quantile reorder sd complete.cases cor
+#' @importFrom utils flush.console read.table write.table tail
+#' @importFrom binhf ansc
+#' @import futile.logger
+#' @importFrom methods setClass new
+#' @importFrom gplots bluered
+#' @importFrom ape write.tree as.phylo
+#' @importFrom fastcluster hclust
+#' @import RColorBrewer
+#' @import Seurat
+NULL
+

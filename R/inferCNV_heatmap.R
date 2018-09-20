@@ -37,6 +37,8 @@ get_group_color_palette <- function(){
 #' @return
 #' No return, void.
 #'
+#' @export
+#'
 
 
 plot_cnv <- function(infercnv_obj,
@@ -318,8 +320,11 @@ plot_cnv <- function(infercnv_obj,
 #' @param layout_lwid lwid values to use in layout.
 #
 #' @return Void.
-# Returns:
-# Void
+#'
+#' @keywords internal
+#' @noRd
+#'
+
 .plot_cnv_observations <- function(obs_data,
                                   col_pal,
                                   contig_colors,
@@ -563,46 +568,19 @@ plot_cnv <- function(infercnv_obj,
                 file=observation_file_base)
 }
 
-# Not Testing, params ok.
-# Create the layout for the plot
-# This is a modification of the original
-# layout from the GMD heatmap.3 function
-#
-# Returns:
-# list with slots "lmat" (layout matrix),
-#                             "lhei" (height, numerix vector),
-#                             and "lwid" (widths, numeric vector)
-.plot_observations_layout_original <- function()
-{
-    ## Plot observational samples
-    obs_lmat <- c(0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-                  7, 9, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
-                  0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  5, 2, 3, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    obs_lmat <- matrix(obs_lmat,ncol=14,byrow=TRUE)
-
-    obs_lhei <- c(1.125, 2.215, .15,
-                   .5, .5, .5,
-                   .5, .5, .5,
-                   .5, .5, .5,
-                  0.0075, 0.0075, 0.0075)
-
-    return(list(lmat=obs_lmat,
-           lhei=obs_lhei,
-           lwid=NULL))
-}
-
+#' Not Testing, params ok.
+#' Create the layout for the plot
+#' This is a modification of the original
+#' layout from the GMD heatmap.3 function
+#'
+#' Returns:
+#' list with slots "lmat" (layout matrix),
+#'                             "lhei" (height, numerix vector),
+#'                             and "lwid" (widths, numeric vector)
+#'
+#' @keywords internal
+#' @noRd
+#'
 .plot_observations_layout <- function(grouping_key_height)
 {
     ## Plot observational samples
@@ -640,21 +618,25 @@ plot_cnv <- function(infercnv_obj,
 # TODO Tested, test make files so turned off but can turn on and should pass.
 # Plot the reference samples
 #
-# Args:
-# ref_data Data to plot as references. Rows = Cells, Col = Genes
-# ref_groups Groups of references to plot together.
-# col_pal The color palette to use.
-# contig_seps Indices for line seperators of contigs.
-# file_base_name Base of the file to used to make output file names.
-# cnv_ref_title Title for reference matrix.
-# layout_lmat lmat values to use in the layout.
-# layout_lwid lwid values to use in the layout.
-# layout_lhei lhei values to use in the layout.
-# layout_add Indicates the ref image shoudl be added to the previous plot.
-# testing: Turns off plotting when true.
-#
-# Returns:
-# Void
+#' Args:
+#' ref_data Data to plot as references. Rows = Cells, Col = Genes
+#' ref_groups Groups of references to plot together.
+#' col_pal The color palette to use.
+#' contig_seps Indices for line seperators of contigs.
+#' file_base_name Base of the file to used to make output file names.
+#' cnv_ref_title Title for reference matrix.
+#' layout_lmat lmat values to use in the layout.
+#' layout_lwid lwid values to use in the layout.
+#' layout_lhei lhei values to use in the layout.
+#' layout_add Indicates the ref image shoudl be added to the previous plot.
+#' testing: Turns off plotting when true.
+#'
+#' Returns:
+#' Void
+#'
+#' @keywords internal
+#' @noRd
+#'
 .plot_cnv_references <- function(ref_data,
                                 ref_groups,
                                 name_ref_groups,
