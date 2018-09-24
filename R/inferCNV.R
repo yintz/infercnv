@@ -24,7 +24,9 @@
 #' @slot reference_grouped_cell_indices <list>  mapping [['group_name']] to c(cell column indices) for reference (normal) cells
 #'
 #' @slot observation_grouped_cell_indices <list> mapping [['group_name']] to c(cell column indices) for observation (tumor) cells
-#' 
+#'
+#' @export
+#'
 
 infercnv <- methods::setClass(
                          "infercnv",
@@ -92,6 +94,8 @@ infercnv <- methods::setClass(
 #' and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
 #'
 #' @return infercnv
+#'
+#' @export
 #'
 
 CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations_file, ref_group_names, delim="\t") {
@@ -291,6 +295,8 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 #' @param gene_indices_to_remove matrix indices for genes to remove
 #'
 #' @return infercnv_obj
+#'
+#' @export
 #'
 
 remove_genes <- function(infercnv_obj, gene_indices_to_remove) {
