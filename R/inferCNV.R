@@ -1,5 +1,11 @@
 
 
+#' @details
+#' The main functions you will need to use are CreateInfercnvObject() and run(infercnv_object).
+#' For additional details on running the analysis step by step, please refer to the example vignette.
+"_PACKAGE"
+
+
 #' The infercnv Class
 #'
 #' An infercnv object encapsulates the expression data and gene chromosome ordering information
