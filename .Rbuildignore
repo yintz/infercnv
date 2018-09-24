@@ -8,6 +8,7 @@
 ^__simulations
 ^example/full_precision
 ^example/example.html
+^example/oligodendroglioma_expression_downsampled.txt
 ^example_output
 ^.*\.Rproj$
 ^\.Rproj\.user$
