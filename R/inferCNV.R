@@ -3,6 +3,7 @@
 #' @details
 #' The main functions you will need to use are CreateInfercnvObject() and run(infercnv_object).
 #' For additional details on running the analysis step by step, please refer to the example vignette.
+#' @aliases infercnv-package
 "_PACKAGE"
 
 

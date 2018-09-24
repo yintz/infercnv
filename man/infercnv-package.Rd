@@ -2,8 +2,8 @@
 % Please edit documentation in R/inferCNV.R
 \docType{package}
 \name{infercnv-package}
-\alias{infercnv}
 \alias{infercnv-package}
+\alias{_PACKAGE}
 \title{infercnv: Infer Copy Number Variation from Single-Cell RNA-Seq Data}
 \description{
 Using single-cell RNA-Seq expression to visualize CNV in cells.
