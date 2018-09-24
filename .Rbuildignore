@@ -6,9 +6,8 @@
 ^inferCNV.Rproj
 ^Rstudio_helpers
 ^__simulations
-^example/full_dataset
-^example/test_data
-^example/before_downsize
+^example/full_precision
+^example/example.html
 ^example_output
 ^.*\.Rproj$
 ^\.Rproj\.user$
