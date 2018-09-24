@@ -2,17 +2,18 @@
 % Please edit documentation in R/inferCNV.R
 \name{validate_infercnv_obj}
 \alias{validate_infercnv_obj}
-\title{validate_infercnv_obj()
-
-validate an infercnv_obj
-ensures that order of genes in the @gene_order slot match up perfectly with the gene rows in the @expr.data matrix.
-Otherwise, throws an error and stops execution.}
+\title{validate_infercnv_obj()}
 \usage{
 validate_infercnv_obj(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 none
+}
+\description{
+validate an infercnv_obj
+ensures that order of genes in the @gene_order slot match up perfectly with the gene rows in the @expr.data matrix.
+Otherwise, throws an error and stops execution.
 }

@@ -33,12 +33,13 @@ infercnv <- methods::setClass(
 
 #' @title CreateInfercnvObject
 #'
-#' Creation of an infercnv object. This requires the following inputs:
-#'     raw_counts_matrix : the matrix file of genes (rows) vs. cells (columns) containing the raw counts
-#'     gene_order_file : data file containing the positions of each gene along each chromosome in the genome.
-#'     annotations_file : a description of the cells, indicating the cell type classifications
-#'     ref_group_names : a vector containing the classifications of the reference (normal) cells to use for infering cnv
+#' @param raw_counts_matrix  the matrix file of genes (rows) vs. cells (columns) containing the raw counts
+#' @param gene_order_file data file containing the positions of each gene along each chromosome in the genome.
+#' @param annotations_file a description of the cells, indicating the cell type classifications
+#' @param ref_group_names a vector containing the classifications of the reference (normal) cells to use for infering cnv
+#' @param delim delimiter used in the input files
 #'
+#' @description Creation of an infercnv object. This requires the following inputs:
 #' A more detailed description of each input is provided below:
 #'
 #' The raw_counts_matrix:
@@ -82,6 +83,9 @@ infercnv <- methods::setClass(
 #'
 #'
 #' and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
+#'
+#' @return infercnv
+#'
 
 CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations_file, ref_group_names, delim="\t") {
 
@@ -202,7 +206,7 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 #
 
 .order_reduce <- function(data, genomic_position){
-    logging::loginfo(paste("::order_reduce:Start.", sep=""))
+    flog.info(paste("::order_reduce:Start.", sep=""))
     ret_results <- list(expr=NULL, order=NULL, chr_order=NULL)
     if (is.null(data) || is.null(genomic_position)){
         return(ret_results)
@@ -211,7 +215,7 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     # Drop pos_gen entries that are position 0
     remove_by_position <- -1 * which(genomic_position[2] + genomic_position[3] == 0)
     if (length(remove_by_position)){
-        logging::logdebug(paste("::process_data:order_reduce: removing genes specified by pos == 0, count: ",
+        flog.debug(paste("::process_data:order_reduce: removing genes specified by pos == 0, count: ",
                                 length(remove_by_position), sep=""))
 
         genomic_position <- genomic_position[remove_by_position, , drop=FALSE]
@@ -219,16 +223,16 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 
     # Reduce to genes in pos file
 
-    logging::logdebug(paste("::process_data:order_reduce: gene identifers in expression matrix: ",
+    flog.debug(paste("::process_data:order_reduce: gene identifers in expression matrix: ",
                             row.names(data), collapse="\n", sep=""))
-    logging::logdebug(paste("::process_data:order_reduce: gene identifers in genomic position table: ",
+    flog.debug(paste("::process_data:order_reduce: gene identifers in genomic position table: ",
                             row.names(data), collapse="\n", sep=""))
 
 
 
     keep_genes <- row.names(data)[which(row.names(data)
                                   %in% row.names(genomic_position))]
-    logging::logdebug(paste("::process_data:order_reduce: keep_genes size: ", length(keep_genes),
+    flog.debug(paste("::process_data:order_reduce: keep_genes size: ", length(keep_genes),
                             sep=""))
 
     # Keep genes found in position file
@@ -236,7 +240,7 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
         ret_results$expr <- data[keep_genes, , drop=FALSE]
         ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
     } else {
-        logging::loginfo(paste("::process_data:order_reduce:The position file ",
+        flog.info(paste("::process_data:order_reduce:The position file ",
                                "and the expression file row (gene) names do not match."))
         return(list(expr=NULL, order=NULL, chr_order=NULL))
     }
@@ -259,23 +263,23 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     # Remove any gene without position information
     # Genes may be sorted correctly by not have position information
     # Here they are removed.
-    logging::loginfo(paste("::process_data:order_reduce:Reduction from positional ",
+    flog.info(paste("::process_data:order_reduce:Reduction from positional ",
                            "data, new dimensions (r,c) = ",
                            paste(dim(data), collapse=","),
                            " Total=", sum(data),
                            " Min=", min(data),
                            " Max=", max(data),
                            ".", sep=""))
-    logging::logdebug(paste("::process_data:order_reduce end."))
+    flog.debug(paste("::process_data:order_reduce end."))
     return(ret_results)
 }
 
 
 #' @title remove_genes()
 #'
-#' infercnv obj accessor method to remove genes from the matrices
+#' @description infercnv obj accessor method to remove genes from the matrices
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv object
 #' 
 #' @param gene_indices_to_remove matrix indices for genes to remove
 #'
@@ -296,11 +300,11 @@ remove_genes <- function(infercnv_obj, gene_indices_to_remove) {
 
 #' @title validate_infercnv_obj()
 #'
-#' validate an infercnv_obj
+#' @description validate an infercnv_obj
 #' ensures that order of genes in the @gene_order slot match up perfectly with the gene rows in the @expr.data matrix.
 #' Otherwise, throws an error and stops execution.
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv_object
 #'
 #' @return none
 #'

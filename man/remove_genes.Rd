@@ -2,17 +2,18 @@
 % Please edit documentation in R/inferCNV.R
 \name{remove_genes}
 \alias{remove_genes}
-\title{remove_genes()
-
-infercnv obj accessor method to remove genes from the matrices}
+\title{remove_genes()}
 \usage{
 remove_genes(infercnv_obj, gene_indices_to_remove)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv object}
 
 \item{gene_indices_to_remove}{matrix indices for genes to remove}
 }
 \value{
 infercnv_obj
+}
+\description{
+infercnv obj accessor method to remove genes from the matrices
 }

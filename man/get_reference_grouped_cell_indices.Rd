@@ -2,15 +2,16 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{get_reference_grouped_cell_indices}
 \alias{get_reference_grouped_cell_indices}
-\title{get_reference_grouped_cell_indices()
-
-Retrieves the matrix indices for the columns correspoinding to the reference cells.}
+\title{get_reference_grouped_cell_indices()}
 \usage{
 get_reference_grouped_cell_indices(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 vector of column indices
+}
+\description{
+Retrieves the matrix indices for the columns correspoinding to the reference cells.
 }

@@ -2,9 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{require_above_min_mean_expr_cutoff}
 \alias{require_above_min_mean_expr_cutoff}
-\title{require_above_min_mean_expr_cutoff ()
-
-Filters out genes that have fewer than the corresponding mean value across the reference cell values.}
+\title{require_above_min_mean_expr_cutoff ()}
 \usage{
 require_above_min_mean_expr_cutoff(infercnv_obj, min_mean_expr_cutoff)
 }
@@ -15,4 +13,7 @@ require_above_min_mean_expr_cutoff(infercnv_obj, min_mean_expr_cutoff)
 }
 \value{
 infercnv_obj  the infercnv_object with lowly or unexpressed genes removed.
+}
+\description{
+Filters out genes that have fewer than the corresponding mean value across the reference cell values.
 }

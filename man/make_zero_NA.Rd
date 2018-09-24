@@ -2,16 +2,17 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{make_zero_NA}
 \alias{make_zero_NA}
-\title{make_zero_NA()
-
-Converts zero to NA
-Updates infercnv_obj@expr.data}
+\title{make_zero_NA()}
 \usage{
 make_zero_NA(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 infercnv_obj
+}
+\description{
+Converts zero to NA
+Updates infercnv_obj@expr.data
 }

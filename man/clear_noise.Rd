@@ -2,9 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{clear_noise}
 \alias{clear_noise}
-\title{clear_noise()
-
-# Remove values that are too close to the reference cell expr average and are considered noise.}
+\title{clear_noise()}
 \usage{
 clear_noise(infercnv_obj, threshold)
 }
@@ -15,4 +13,7 @@ clear_noise(infercnv_obj, threshold)
 }
 \value{
 infercnv_obj
+}
+\description{
+Remove values that are too close to the reference cell expr average and are considered noise.
 }

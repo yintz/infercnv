@@ -2,15 +2,16 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{mean_center_gene_expr}
 \alias{mean_center_gene_expr}
-\title{mean_center_gene_expr()
-
-mean-center all gene expression values across all cells}
+\title{mean_center_gene_expr()}
 \usage{
 mean_center_gene_expr(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 infercnv_obj
+}
+\description{
+mean-center all gene expression values across all cells
 }

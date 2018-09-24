@@ -2,14 +2,15 @@
 % Please edit documentation in R/inferCNV_mask_non_DE.R
 \name{seurat_from_infercnv_obj}
 \alias{seurat_from_infercnv_obj}
-\title{seurat_from_infercnv_obj()
-
-Generate a Seurat object from an infercnv_obj}
+\title{seurat_from_infercnv_obj()}
 \usage{
 seurat_from_infercnv_obj(infercnv_obj, normalize_factor)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 
-\item{normalize_factor}{}
+\item{normalize_factor}{scale factor for Seurat}
+}
+\description{
+Generate a Seurat object from an infercnv_obj
 }

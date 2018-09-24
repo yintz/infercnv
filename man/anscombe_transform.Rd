@@ -2,15 +2,16 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{anscombe_transform}
 \alias{anscombe_transform}
-\title{anscombe_transform()
-
-Performs Anscombe's transformation:
-   y = 2 * sqrt(x + 3/8)
-as per
-https://en.wikipedia.org/wiki/Anscombe_transform}
+\title{anscombe_transform()}
 \usage{
 anscombe_transform(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
+}
+\description{
+Performs Anscombe's transformation:
+   y = 2 * sqrt(x + 3/8)
+as per
+https://en.wikipedia.org/wiki/Anscombe_transform
 }

@@ -2,15 +2,16 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{log2xplus1}
 \alias{log2xplus1}
-\title{log2xplus1()
-
-Computes log(x+1), updates infercnv_obj@expr.data}
+\title{log2xplus1()}
 \usage{
 log2xplus1(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 infercnv_obj
+}
+\description{
+Computes log(x+1), updates infercnv_obj@expr.data
 }

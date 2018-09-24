@@ -2,16 +2,17 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{invert_log2xplus1}
 \alias{invert_log2xplus1}
-\title{invert_log2xplus1()
-
-Computes 2^x - 1
-Updates infercnv_obj@expr.data}
+\title{invert_log2xplus1()}
 \usage{
 invert_log2xplus1(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 infercnv_obj
+}
+\description{
+Computes 2^x - 1
+Updates infercnv_obj@expr.data
 }

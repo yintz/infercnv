@@ -2,15 +2,16 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{get_average_bounds}
 \alias{get_average_bounds}
-\title{get_average_bounds()
-
-Computes the mean of the upper and lower bound for the data across all cells.}
+\title{get_average_bounds()}
 \usage{
 get_average_bounds(infercnv_obj)
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 }
 \value{
 (lower_bound, upper_bound)
+}
+\description{
+Computes the mean of the upper and lower bound for the data across all cells.
 }

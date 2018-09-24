@@ -2,14 +2,12 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{split_references}
 \alias{split_references}
-\title{split_references()
-
-Split up reference observations in to k groups based on hierarchical clustering.}
+\title{split_references()}
 \usage{
 split_references(infercnv_obj, num_groups = 2, hclust_method = "complete")
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv_object}
 
 \item{num_groups}{(default: 2)}
 
@@ -17,4 +15,7 @@ split_references(infercnv_obj, num_groups = 2, hclust_method = "complete")
 }
 \value{
 infercnv_obj
+}
+\description{
+Split up reference observations in to k groups based on hierarchical clustering.
 }

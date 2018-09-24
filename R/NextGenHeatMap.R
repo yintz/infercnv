@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 
 #' @title Create Next Generation Clustered Heat Map (NG-CHM)
+#'
 #' @description  Create highly interactive heat maps for single cell expression data using 
 #' Next Generation Clustered Heat Map (NG-CHM). NG-CHM was developed and 
 #' maintained by MD Anderson Department of Bioinformatics and Computational 
@@ -15,7 +16,7 @@
 #' @param out_dir (string) Path to where the infercnv.ngchm output file should be saved to 
 #' @param contigs (list) List of the chr in order 
 #' @param title (string) Title that will be used for the heatmap 
-#' @param gene_symbal (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
+#' @param gene_symbol (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
 #'
 #' @return
 #' Exports a NGCHM file named infercnv.ngchm and saves it to the output directory given to infercnv. 
@@ -260,7 +261,7 @@ Create_NGCHM <- function(plot_data,
     #hm@height <- as.integer(500)
     ## adjust label display size 
     #hm@rowDisplayLength <- as.integer(10) 
-    logging::loginfo(paste("Saving new NGCHM object"))
+    flog.info(paste("Saving new NGCHM object"))
     suppressMessages(NGCHM::chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen))
 }
 

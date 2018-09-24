@@ -2,13 +2,7 @@
 % Please edit documentation in R/inferCNV_mask_non_DE.R
 \name{mask_non_DE_genes_via_Seurat}
 \alias{mask_non_DE_genes_via_Seurat}
-\title{mask_non_DE_genes_via_Seurat
-
-Masks expression data values for those genes defined as *not* differentially expressed.
-Seurat FindMarkers() is used to define differentially expressed genes.
-All tumor types are each compared pairwise to the normal cell type groups.
-Any genes not found differentially expressed according to the defined parameters in any
-of the tumor/normal comparisons are set to the center_val, effectively masking them.}
+\title{mask_non_DE_genes_via_Seurat}
 \usage{
 mask_non_DE_genes_via_Seurat(infercnv_obj, thresh.use = 0.25, min.pct = 0.5,
   p_val_thresh = 0.05, test.use = "bimod",
@@ -16,17 +10,24 @@ mask_non_DE_genes_via_Seurat(infercnv_obj, thresh.use = 0.25, min.pct = 0.5,
   normalize_factor = compute_normalization_factor(infercnv_obj))
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv object}
 
 \item{thresh.use}{from Seurat::FindMarkers : "Limit testing to genes which show, on average, at least X-fold difference (log-scale) between the two groups of cells. Default is 0.25 Increasing thresh.use speeds up the function, but can miss weaker signals."}
 
 \item{min.pct}{from Seurat::FindMarkers : "only test genes that are detected in a minimum fraction of min.pct cells in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed."}
+
+\item{p_val_thresh}{maximum allowed p-value}
 
 \item{test.use}{from Seurat::FindMarkers : "Denotes which test to use. Seurat currently implements "bimod" (likelihood-ratio test for single cell gene expression, McDavid et al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t" (Students t-test), and "tobit" (Tobit-test for differential gene expression, as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. The latter two options should only be used on UMI datasets, and assume an underlying poisson or negative-binomial distribution"}
 
 \item{center_val}{value to set the non-DE gene expression values to in the matrix.  By default, sets to the mean of all input expression values.}
 
 \item{normalize_factor}{normalization factor used by Seurat in total sum count scaling. Typically set to 1e4 or 1e5. Default: estimates from the input data.}
-
-\item{p_val_threshold}{maximum allowed p-value}
+}
+\description{
+Masks expression data values for those genes defined as *not* differentially expressed.
+Seurat FindMarkers() is used to define differentially expressed genes.
+All tumor types are each compared pairwise to the normal cell type groups.
+Any genes not found differentially expressed according to the defined parameters in any
+of the tumor/normal comparisons are set to the center_val, effectively masking them.
 }

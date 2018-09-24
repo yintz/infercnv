@@ -2,9 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{apply_max_threshold_bounds}
 \alias{apply_max_threshold_bounds}
-\title{apply_max_threshold_bounds()
-
-Assumes centered at zero and sets bounds to +- threshold value.}
+\title{apply_max_threshold_bounds()}
 \usage{
 apply_max_threshold_bounds(infercnv_obj, threshold)
 }
@@ -12,4 +10,7 @@ apply_max_threshold_bounds(infercnv_obj, threshold)
 \item{infercnv_obj}{infercnv_object}
 
 \item{threshold}{value to threshold the data}
+}
+\description{
+Assumes centered at zero and sets bounds to +- threshold value.
 }

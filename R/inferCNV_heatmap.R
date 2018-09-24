@@ -10,7 +10,7 @@ get_group_color_palette <- function(){
 }
 
 
-#' Formats the data and sends it for plotting.
+#' @description Formats the data and sends it for plotting.
 #'
 #' @title Plot the matrix as a heatmap, with cells as rows and genes as columns, ordered according to chromosome
 #'
@@ -22,8 +22,6 @@ get_group_color_palette <- function(){
 #' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.
 #' @param k_obs_groups Number of groups to break observation into.
 #' @param contig_cex Contig text size. 
-#' @param plot_data Data matrix to plot (columns are observations).
-#' @param contigs The contigs the data is group in in order of rows.
 #' @param x.center Value on which to center expression.
 #' @param x.range vector containing the extreme values in the heatmap (ie. c(-3,4) )
 #' @param hclust_method Clustering method to use for hclust.
@@ -372,7 +370,7 @@ plot_cnv <- function(infercnv_obj,
             hcl_desc <- cluster_contig
             flog.info(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
         } else {
-           logging::logwarn(paste("plot_cnv_observations: Not able to cluster by",
+           flog.warn(paste("plot_cnv_observations: Not able to cluster by",
                                      cluster_contig,
                                      "Clustering by all genomic locations.",
                                      "To cluster by local genomic location next time",
@@ -1502,7 +1500,7 @@ heatmap.cnv <-
   if(.invalid(breaks)){
     breaks <- 16
   } else {
-      logging::logdebug(paste("inferCNV::heatmap.cnv, breaks parameter set to: [", paste(breaks, collapse=","), "]", sep=""))
+      flog.debug(paste("inferCNV::heatmap.cnv, breaks parameter set to: [", paste(breaks, collapse=","), "]", sep=""))
   }
 
   ## get x.range according to the value of x.center ##
@@ -1518,7 +1516,7 @@ heatmap.cnv <-
       if (length(breaks) > 1) {
           # re-set the breaks according to the new x.range
           breaks=seq(x.range[1], x.range[2], length=16)
-          logging::logdebug(paste("inferCNV::heatmap.cnv, resetting breaks to adjusted x.range: [",
+          flog.debug(paste("inferCNV::heatmap.cnv, resetting breaks to adjusted x.range: [",
                                   paste(breaks, collapse=","), "]", sep=""))
       }
 
@@ -1533,7 +1531,7 @@ heatmap.cnv <-
       }
 
   }
-  logging::logdebug( paste("inferCNV::heatmap.cnv x range set to: ",
+  flog.debug( paste("inferCNV::heatmap.cnv x range set to: ",
                           paste(x.range, collapse=",")), sep="" )
 
   ## set breaks for centering colors to the value of x.center ##
@@ -2110,9 +2108,9 @@ heatmap.cnv <-
 
       par(mar=c(2,1.5,0.75,1)*keysize,cex=cex.key,mgp=c(0.75,0,0),tcl=-0.05)
       z <- seq(x.range[1],x.range[2],length=length(colors))
-      logging::logdebug(paste("::inferCNV::heatmap.cnv colorkey z range: ", paste(z, collapse=","), sep=""))
-      logging::logdebug(paste("::inferCNV::heatmap.cnv colorkey breaks range: ", paste(breaks, collapse=","), sep=""))
-      logging::logdebug(paste("::inferCNV::heatmap.cnv colorkey colors range: ", paste(colors, collapse=","), sep=""))
+      flog.debug(paste("::inferCNV::heatmap.cnv colorkey z range: ", paste(z, collapse=","), sep=""))
+      flog.debug(paste("::inferCNV::heatmap.cnv colorkey breaks range: ", paste(breaks, collapse=","), sep=""))
+      flog.debug(paste("::inferCNV::heatmap.cnv colorkey colors range: ", paste(colors, collapse=","), sep=""))
 
       image(z=matrix(z,ncol=1),
             col=colors,

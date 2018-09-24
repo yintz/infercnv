@@ -2,12 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{clear_noise_via_ref_mean_sd}
 \alias{clear_noise_via_ref_mean_sd}
-\title{clear_noise_via_ref_mean_sd()
-
-Define noise based on the standard deviation of the reference cell expression data.
-The range to remove noise would be mean +- sdev * sd_amplifier
-where sd_amplifier expands the range around the mean to be removed as noise.
-Data points defined as noise are set to zero.}
+\title{clear_noise_via_ref_mean_sd()}
 \usage{
 clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
 }
@@ -16,4 +11,10 @@ clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
 
 \item{sd_amplifier}{multiplicative factor applied to the standard deviation to alter the noise
 range (default: 1.5)}
+}
+\description{
+Define noise based on the standard deviation of the reference cell expression data.
+The range to remove noise would be mean +- sdev * sd_amplifier
+where sd_amplifier expands the range around the mean to be removed as noise.
+Data points defined as noise are set to zero.
 }

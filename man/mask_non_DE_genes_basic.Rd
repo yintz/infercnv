@@ -2,19 +2,13 @@
 % Please edit documentation in R/inferCNV_mask_non_DE.R
 \name{mask_non_DE_genes_basic}
 \alias{mask_non_DE_genes_basic}
-\title{mask_non_DE_genes_basic()
-
-Mask gene expression in infercnv_obj based on expression values that are found
-statistically significantly different between tumor/normal based on specified
-statistical test.
-
-Uses the expression data stored in infercnv_obj@expr.data}
+\title{mask_non_DE_genes_basic()}
 \usage{
 mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05, test.use = "t",
   center_val = mean(infercnv_obj@expr.data))
 }
 \arguments{
-\item{infercnv_obj}{}
+\item{infercnv_obj}{infercnv object}
 
 \item{p_val_thresh}{p-value threshold for assigning DE statistically significant}
 
@@ -24,4 +18,11 @@ mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05, test.use = "t",
 }
 \value{
 infercnv_obj
+}
+\description{
+Mask gene expression in infercnv_obj based on expression values that are found
+statistically significantly different between tumor/normal based on specified
+statistical test.
+
+Uses the expression data stored in infercnv_obj@expr.data
 }

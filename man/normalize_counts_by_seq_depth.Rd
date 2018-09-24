@@ -2,13 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{normalize_counts_by_seq_depth}
 \alias{normalize_counts_by_seq_depth}
-\title{normalize_counts_by_seq_depth()
-
-Normalizes count data by total sum scaling
-
-For single cell data, a typical normalization factor is 1e5, providing counts per 100k total counts.
-If a normalization factor is not provided, one is estimated based on:
-    10^round(log10(mean(column_sums)))}
+\title{normalize_counts_by_seq_depth()}
 \usage{
 normalize_counts_by_seq_depth(infercnv_obj, normalize_factor = NA)
 }
@@ -16,4 +10,11 @@ normalize_counts_by_seq_depth(infercnv_obj, normalize_factor = NA)
 \item{infercnv_obj}{infercnv_object}
 
 \item{normalize_factor}{total counts to scale the normalization to (default: NA, computed as described above)}
+}
+\description{
+Normalizes count data by total sum scaling
+
+For single cell data, a typical normalization factor is 1e5, providing counts per 100k total counts.
+If a normalization factor is not provided, one is estimated based on:
+    10^round(log10(mean(column_sums)))
 }

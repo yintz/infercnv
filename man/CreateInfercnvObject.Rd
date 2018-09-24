@@ -2,14 +2,27 @@
 % Please edit documentation in R/inferCNV.R
 \name{CreateInfercnvObject}
 \alias{CreateInfercnvObject}
-\title{CreateInfercnvObject
+\title{CreateInfercnvObject}
+\usage{
+CreateInfercnvObject(raw_counts_matrix, gene_order_file, annotations_file,
+  ref_group_names, delim = "\\t")
+}
+\arguments{
+\item{raw_counts_matrix}{the matrix file of genes (rows) vs. cells (columns) containing the raw counts}
 
+\item{gene_order_file}{data file containing the positions of each gene along each chromosome in the genome.}
+
+\item{annotations_file}{a description of the cells, indicating the cell type classifications}
+
+\item{ref_group_names}{a vector containing the classifications of the reference (normal) cells to use for infering cnv}
+
+\item{delim}{delimiter used in the input files}
+}
+\value{
+infercnv
+}
+\description{
 Creation of an infercnv object. This requires the following inputs:
-    raw_counts_matrix : the matrix file of genes (rows) vs. cells (columns) containing the raw counts
-    gene_order_file : data file containing the positions of each gene along each chromosome in the genome.
-    annotations_file : a description of the cells, indicating the cell type classifications
-    ref_group_names : a vector containing the classifications of the reference (normal) cells to use for infering cnv
-
 A more detailed description of each input is provided below:
 
 The raw_counts_matrix:
@@ -52,8 +65,5 @@ The annotations_file, containing the cell name and the cell type classification,
 ...
 
 
-and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")}
-\usage{
-CreateInfercnvObject(raw_counts_matrix, gene_order_file, annotations_file,
-  ref_group_names, delim = "\\t")
+and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
 }

@@ -44,10 +44,6 @@ If set to NA, will print graphics natively}
 \item{ref_contig}{If given, will focus cluster on only genes in this contig.}
 
 \item{write_expr_matrix}{Includes writing a matrix file containing the expression data that is plotted in the heatmap.}
-
-\item{plot_data}{Data matrix to plot (columns are observations).}
-
-\item{contigs}{The contigs the data is group in in order of rows.}
 }
 \value{
 No return, void.

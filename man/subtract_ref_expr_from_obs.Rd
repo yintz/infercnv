@@ -2,13 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{subtract_ref_expr_from_obs}
 \alias{subtract_ref_expr_from_obs}
-\title{subtract_ref_expr_from_obs()
-
-Remove the average of the genes of the reference observations from all
-observations' expression. In the case there are multiple reference groupings,
-the averages are computed separately for each reference grouping, and the min|max
-of the averages are subtracted from the observation expression levels. Any values within the range
-of the min,max of the group are set to zero.}
+\title{subtract_ref_expr_from_obs()}
 \usage{
 subtract_ref_expr_from_obs(infercnv_obj, inv_log = FALSE)
 }
@@ -21,5 +15,12 @@ subtract_ref_expr_from_obs(infercnv_obj, inv_log = FALSE)
 infercnv_obj containing the reference subtracted values.
 }
 \description{
+Remove the average of the genes of the reference observations from all
+observations' expression. In the case there are multiple reference groupings,
+the averages are computed separately for each reference grouping, and the min|max
+of the averages are subtracted from the observation expression levels. Any values within the range
+of the min,max of the group are set to zero.
+}
+\details{
 Subtracting the mean of the reference expr distributions from the observed cells.
 }

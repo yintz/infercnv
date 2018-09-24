@@ -2,9 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{require_above_min_cells_ref}
 \alias{require_above_min_cells_ref}
-\title{require_above_min_cells_ref()
-
-Filters out genes that have fewer than specified number of reference cells expressing them.}
+\title{require_above_min_cells_ref()}
 \usage{
 require_above_min_cells_ref(infercnv_obj, min_cells_per_gene)
 }
@@ -15,4 +13,7 @@ require_above_min_cells_ref(infercnv_obj, min_cells_per_gene)
 }
 \value{
 infercnv_obj infercnv_object with corresponding genes removed.
+}
+\description{
+Filters out genes that have fewer than specified number of reference cells expressing them.
 }

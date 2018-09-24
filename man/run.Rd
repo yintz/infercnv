@@ -63,12 +63,14 @@ Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 
 \item{use_zscores}{If true, converts log(expression) data to zscores based on reference cell expr distribution.}
 
+\item{remove_genes_at_chr_ends}{If true, removes the window_length/2 genes at both ends of the chromosome.}
+
+\item{mask_nonDE_genes}{If true, sets genes not significantly differentially expressed between tumor/normal to
+the mean value for the complete data set}
+
 \item{mask_nonDE_pval}{p-value threshold for defining statistically significant DE genes between tumor/normal}
 
 \item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
-
-\item{mask_non_DE_genes}{If true, sets genes not significantly differentially expressed between tumor/normal to
-the mean value for the complete data set}
 }
 \value{
 infercnv_obj containing filtered and transformed data

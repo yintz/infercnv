@@ -2,10 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{center_cell_expr_across_chromosome}
 \alias{center_cell_expr_across_chromosome}
-\title{center_cell_expr_across_chromosome()
-
-Centers expression data across all genes for each cell, using the cell mean or median expression
-value as the center.}
+\title{center_cell_expr_across_chromosome()}
 \usage{
 center_cell_expr_across_chromosome(infercnv_obj, method = "mean")
 }
@@ -16,4 +13,8 @@ center_cell_expr_across_chromosome(infercnv_obj, method = "mean")
 }
 \value{
 infercnv_object
+}
+\description{
+Centers expression data across all genes for each cell, using the cell mean or median expression
+value as the center.
 }

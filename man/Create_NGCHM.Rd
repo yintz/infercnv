@@ -26,7 +26,7 @@ Create_NGCHM(plot_data, reference_idx, ref_index, ref_groups, location_data,
 
 \item{title}{(string) Title that will be used for the heatmap}
 
-\item{gene_symbal}{(string) Specify the label type that is given to the gene needed to create linkouts, default is NULL}
+\item{gene_symbol}{(string) Specify the label type that is given to the gene needed to create linkouts, default is NULL}
 }
 \value{
 Exports a NGCHM file named infercnv.ngchm and saves it to the output directory given to infercnv.

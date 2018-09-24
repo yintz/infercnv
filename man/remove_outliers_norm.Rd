@@ -2,8 +2,7 @@
 % Please edit documentation in R/inferCNV_ops.R
 \name{remove_outliers_norm}
 \alias{remove_outliers_norm}
-\title{remove_outliers_norm()
-Set outliers to some upper or lower bound.}
+\title{remove_outliers_norm()}
 \usage{
 remove_outliers_norm(infercnv_obj, out_method = "average_bound",
   lower_bound = NA, upper_bound = NA)
@@ -20,4 +19,7 @@ determining the range of values for each cell, and then taking the mean of those
 }
 \value{
 infercnv_obj with data bounds set accordingly.
+}
+\description{
+Set outliers to some upper or lower bound.
 }
