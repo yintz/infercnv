@@ -242,7 +242,7 @@ infercnv_obj <- invert_log2(infercnv_obj)
 ```{r, results="hide"}
 plot_cnv(infercnv_obj, 
          out_dir='../example_output/',
-         output_filename='../example_output/infercnv.inverted', 
+         output_filename='infercnv.inverted', 
          color_safe_pal = FALSE, 
          x.range="auto", 
          x.center=1, 
@@ -293,7 +293,7 @@ infercnv_obj = remove_outliers_norm(infercnv_obj)
 
     plot_cnv(infercnv_obj, 
          out_dir='../example_output/',
-         output_filename='../example_output/infercnv.outliers_removed', 
+         output_filename='infercnv.outliers_removed', 
          color_safe_pal = FALSE, 
          x.range="auto", 
          x.center=1, 
@@ -326,7 +326,7 @@ infercnv_obj2 <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't'
 ```{r, results="hide"}
 plot_cnv(infercnv_obj2, 
          out_dir='../example_output/',
-         output_filename='../example_output/infercnv.non-DE-genes-masked', 
+         output_filename='infercnv.non-DE-genes-masked', 
          color_safe_pal = FALSE, 
          x.range=c(low_threshold, high_threshold), 
          x.center=1, 
