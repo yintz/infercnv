@@ -13,6 +13,7 @@ author:
   affiliation: *kco
 - name: Brian Haas
   affiliation: *kco
+date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document: default
 package: inferCNV
