@@ -14,7 +14,7 @@ author:
 - name: Brian Haas
   affiliation: *kco
 output:
-  BiocStyle::pdf_document: default
+  BiocStyle::html_document: default
 package: inferCNV
 abstract: >
   InferCNV is used to explore tumor single cell RNA-Seq data to identify evidence for large-scale chromosomal copy number variations, such as gains or deletions of entire chromosomes or large segments of chromosomes. This is done by exploring expression intensity of genes across positions of the genome in comparison to the average or a set of reference 'normal' cells. A heatmap is generated illustrating the relative expression intensities across each chromosome, and it becomes readily apparent as to which regions of the genome are over-abundant or less-abundant as compared to normal cells (or the average, if reference normal cells are not provided).
@@ -81,6 +81,7 @@ library(infercnv)
 
 ```
 
+# Running InferCNV
 ## Create the InferCNV Object
 
 Reading in the raw counts matrix and meta data, populating the infercnv object
@@ -112,6 +113,7 @@ infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min
 
 ## for safe keeping
 infercnv_orig_filtered = infercnv_obj
+
 #plot_mean_chr_expr_lineplot(infercnv_obj)
 save('infercnv_obj', file = '../example_output/infercnv_obj.orig_filtered')
 
@@ -125,22 +127,24 @@ infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
 ```
 
 
-## perform Anscombe normalization
+## Perform Anscombe normalization
 
 Suggested by Matan for removing noisy variation at low counts
 
 ```{r}
 infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
-save('infercnv_obj', file='../example_output/infercnv_obj.anscombe')
 ```
+<!--save('infercnv_obj', file='../example_output/infercnv_obj.anscombe')
+```-->
 
 
-## log transform the normalized counts:
+## Log transform the normalized counts:
 
 ```{r}
 infercnv_obj <- log2xplus1(infercnv_obj)
-save('infercnv_obj', file='../example_output/infercnv_obj.log_transformed')
 ```
+<!--save('infercnv_obj', file='../example_output/infercnv_obj.log_transformed')
+```-->
 
 ## Apply maximum bounds to the expression data to reduce outlier effects
 ```{r}
@@ -161,23 +165,24 @@ plot_cnv(infercnv_obj,
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.logtransf.png")
 ```
 
 
 
-## perform smoothing across chromosomes
+## Perform smoothing across chromosomes
 
 ```{r}
 infercnv_obj = smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
-save('infercnv_obj', file='../example_output/infercnv_obj.smooth_by_chr')
+```
+<!--# save('infercnv_obj', file='../example_output/infercnv_obj.smooth_by_chr')-->
 
+```{r}
 # re-center each cell
 infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "median")
-save('infercnv_obj', file='../example_output/infercnv_obj.cells_recentered')
-
 ```
+<!--# save('infercnv_obj', file='../example_output/infercnv_obj.cells_recentered')-->
 
 
 ```{r, results='hide' }
@@ -190,18 +195,20 @@ plot_cnv(infercnv_obj,
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.chr_smoothed.png")
 ```
 
 
 
-# subtract the reference values from observations, now have log(fold change) values
+## Subtract the reference values from observations, now have log(fold change) values
 
 ```{r}
 infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
-save('infercnv_obj', file='../example_output/infercnv_obj.ref_subtracted')
 ```
+<!--
+save('infercnv_obj', file='../example_output/infercnv_obj.ref_subtracted')
+```-->
 
 ```{r, results="hide"}
 plot_cnv(infercnv_obj,
@@ -212,12 +219,12 @@ plot_cnv(infercnv_obj,
          color_safe_pal = FALSE)
 ```
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.ref_subtracted.png")
 ```
 
 
-## invert log values
+## Invert log values
 
 Converting the log(FC) values to regular fold change values, centered at 1 (no fold change)
 
@@ -226,8 +233,9 @@ This is important because we want (1/2)x to be symmetrical to 1.5x, representing
 ```{r}
 
 infercnv_obj <- invert_log2(infercnv_obj)
-save('infercnv_obj', file='../example_output/infercnv_obj.inverted_log')
 ```
+<!--save('infercnv_obj', file='../example_output/infercnv_obj.inverted_log')
+```-->
 
 
 ```{r, results="hide"}
@@ -241,7 +249,7 @@ plot_cnv(infercnv_obj,
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.inverted.png")
 ```
 
@@ -250,8 +258,9 @@ knitr::include_graphics("../example_output/infercnv.inverted.png")
 
 ```{r}
 infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
-save('infercnv_obj', file='../example_output/infercnv_obj.denoised')
 ```
+<!--save('infercnv_obj', file='../example_output/infercnv_obj.denoised')
+```-->
 
 
 ```{r, results="hide"}
@@ -264,7 +273,7 @@ plot_cnv(infercnv_obj,
          color_safe_pal = FALSE)
 ```
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.denoised.png")
 ```
 
@@ -274,8 +283,9 @@ This generally improves on the visualization
 
 ```{r}
 infercnv_obj = remove_outliers_norm(infercnv_obj)
-save('infercnv_obj', file="../example_output/infercnv_obj.outliers_removed")
 ```
+<!--save('infercnv_obj', file="../example_output/infercnv_obj.outliers_removed")
+```-->
 
 
 ```{r, results="hide"}
@@ -290,7 +300,7 @@ save('infercnv_obj', file="../example_output/infercnv_obj.outliers_removed")
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.outliers_removed.png")
 ```
 
@@ -323,12 +333,12 @@ plot_cnv(infercnv_obj2,
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 knitr::include_graphics("../example_output/infercnv.non-DE-genes-masked.png")
 
 ```
 
-
+# Additional Information
 ## Online Documentation
 
 For additional explanations on files, usage, and a tutorial please visit the [wiki](https://github.com/broadinstitute/inferCNV/wiki).
