@@ -86,7 +86,11 @@ plot_cnv <- function(infercnv_obj,
     
     if (write_expr_matrix) {
         expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
-        write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
+
+        if (class(plot_data) %in% c("matrix", "data.frame")) {
+            write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
+        }
+        
     }
     
     if (! any(is.na(x.range))) {

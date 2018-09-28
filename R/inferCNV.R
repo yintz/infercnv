@@ -31,8 +31,8 @@
 infercnv <- methods::setClass(
                          "infercnv",
                          slots = c(
-                             expr.data = "matrix",
-                             count.data = "matrix",
+                             expr.data = "ANY",
+                             count.data = "ANY",
                              gene_order= "data.frame",
                              reference_grouped_cell_indices = "list",
                              observation_grouped_cell_indices = "list") )
@@ -42,10 +42,16 @@ infercnv <- methods::setClass(
 
 #' @title CreateInfercnvObject
 #'
-#' @param raw_counts_matrix  the matrix file of genes (rows) vs. cells (columns) containing the raw counts
+#' @param raw_counts_matrix  the matrix of genes (rows) vs. cells (columns) containing the raw counts
+#'                           If a filename is given, it'll be read via read.table()
+#'                           otherwise, if matrix or Matrix, will use the data directly.
+#' 
 #' @param gene_order_file data file containing the positions of each gene along each chromosome in the genome.
+#'
 #' @param annotations_file a description of the cells, indicating the cell type classifications
+#'
 #' @param ref_group_names a vector containing the classifications of the reference (normal) cells to use for infering cnv
+#'
 #' @param delim delimiter used in the input files
 #'
 #' @description Creation of an infercnv object. This requires the following inputs:
@@ -100,22 +106,17 @@ infercnv <- methods::setClass(
 
 CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations_file, ref_group_names, delim="\t") {
 
-
-    options(expressions=100000)
-    
-    #if (requireNamespace("fastcluster", quietly=FALSE)) {
-    #                                    #because we'll need it later.
-    #    hclust = fastcluster::hclust
-    #    assign('hclust', 'hclust', envir = .GlobalEnv)
-    #    
-    #} else {
-    #    warning("fastcluster library not available, using the default hclust method instead.")
-    #}
-    
-    
     # input expression data
-    raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
-
+    if (class(raw_counts_matrix) == "character") {
+        raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
+        raw.data = as.matrix(raw.data)
+    } else if (class(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame")) {
+        # use as is:
+        raw.data <- raw_counts_matrix
+    } else {
+        stop("CreateInfercnvObject:: Error, raw_counts_matrix isn't recognized as a matrix, data.frame, or filename")
+    }
+    
     # get gene order info
     gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
     names(gene_order) <- c(C_CHR, C_START, C_STOP)
@@ -190,8 +191,7 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
         obs_group_cell_indices[[ name_group ]] <- cell_indices
     }
 
-    raw.data = as.matrix(raw.data)
-    
+        
     object <- new(
         Class = "infercnv",
         expr.data = raw.data, 
@@ -225,7 +225,7 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 
     # Drop pos_gen entries that are position 0
     remove_by_position <- -1 * which(genomic_position[2] + genomic_position[3] == 0)
-    if (length(remove_by_position)){
+    if (length(remove_by_position)) {
         flog.debug(paste("::process_data:order_reduce: removing genes specified by pos == 0, count: ",
                                 length(remove_by_position), sep=""))
 
@@ -245,10 +245,10 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
                                   %in% row.names(genomic_position))]
     flog.debug(paste("::process_data:order_reduce: keep_genes size: ", length(keep_genes),
                             sep=""))
-
+    
     # Keep genes found in position file
-    if(length(keep_genes)){
-        ret_results$expr <- data[keep_genes, , drop=FALSE]
+    if(length(keep_genes)) {
+        ret_results$expr <- data[rownames(data) %in% keep_genes, , drop=FALSE]
         ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
     } else {
         flog.info(paste("::process_data:order_reduce:The position file ",
@@ -264,8 +264,9 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     # Sort genomic position file and expression file to genomic position file
     # Order genes by genomic region
     order_names <- row.names(ret_results$order)[with(ret_results$order, order(chr,start,stop))]
-    ret_results$expr <- ret_results$expr[order_names, , drop=FALSE]
-
+    
+    ret_results$expr <- ret_results$expr[na.omit(match(order_names, rownames(ret_results$expr))), , drop=FALSE] #na.omit is to rid teh duplicate gene entries (ie. Y_RNA, snoU13, ...) if they should exist.
+    
     # This is the contig order, will be used in visualization.
     # Get the contig order in the same order as the genes.
     ret_results$order <- ret_results$order[order_names, , drop=FALSE]
