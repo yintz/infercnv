@@ -562,13 +562,16 @@ plot_cnv <- function(infercnv_obj,
                                         force_lhei=layout_lhei)
 
     # Write data to file.
-    flog.info(paste("plot_cnv_references:Writing observation data to",
-                           observation_file_base,
-                           sep=" "))
-    row.names(obs_data) <- orig_row_names
-    write.table(obs_data[data_observations$rowInd,data_observations$colInd],
-                file=observation_file_base)
+    if (class(obs_data) %in% c("matrix", "data.frame")) {
+        flog.info(paste("plot_cnv_references:Writing observation data to",
+                        observation_file_base,
+                        sep=" "))
+        row.names(obs_data) <- orig_row_names
+        write.table(obs_data[data_observations$rowInd,data_observations$colInd],
+                    file=observation_file_base)
+    }
 }
+
 
 #' Not Testing, params ok.
 #' Create the layout for the plot
@@ -759,13 +762,17 @@ plot_cnv <- function(infercnv_obj,
                                    force_lhei=layout_lhei,
                                    force_add=layout_add)
 
-    # Write data to file
-    row.names(ref_data) <- ref_orig_names
-    flog.info(paste("plot_cnv_references:Writing reference data to",
-                           reference_data_file,
-                           sep=" "))
-    write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
-                file=reference_data_file)
+                                        # Write data to file
+    if (class(ref_data) %in% c("matrix", "data.frame")) {
+
+        ## TODO: write files for dgcMatrix too.
+        row.names(ref_data) <- ref_orig_names
+        flog.info(paste("plot_cnv_references:Writing reference data to",
+                        reference_data_file,
+                        sep=" "))
+        write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
+                    file=reference_data_file)
+    }
 }
 
 
@@ -1101,7 +1108,7 @@ heatmap.cnv <-
            )
 {
   ## check input - take1 ##
-  if (is.data.frame(x)){
+  if (! is.matrix(x)) {
     x <- as.matrix(x)
   }
   x.ori <- x
