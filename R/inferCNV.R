@@ -204,6 +204,9 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
         gene_order = input_gene_order,
         reference_grouped_cell_indices = ref_group_cell_indices,
         observation_grouped_cell_indices = obs_group_cell_indices)
+
+
+    validate_infercnv_obj(object)
     
     return(object)
 }
@@ -246,37 +249,45 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 
 
 
-    keep_genes <- row.names(data)[which(row.names(data)
-                                  %in% row.names(genomic_position))]
+    keep_genes <- intersect(row.names(data), row.names(genomic_position))
+        
     flog.debug(paste("::process_data:order_reduce: keep_genes size: ", length(keep_genes),
-                            sep=""))
+                     sep=""))
     
     # Keep genes found in position file
-    if(length(keep_genes)) {
-        ret_results$expr <- data[rownames(data) %in% keep_genes, , drop=FALSE]
-        ret_results$order <- genomic_position[keep_genes, , drop=FALSE]
+    if (length(keep_genes)) {
+        ret_results$expr <- data[match(keep_genes, rownames(data)), , drop=FALSE]
+        ret_results$order <- genomic_position[match(keep_genes, rownames(genomic_position)), , drop=FALSE]
     } else {
         flog.info(paste("::process_data:order_reduce:The position file ",
-                               "and the expression file row (gene) names do not match."))
+                        "and the expression file row (gene) names do not match."))
         return(list(expr=NULL, order=NULL, chr_order=NULL))
     }
-
+    
+    ## ensure expr and order match up!
+    if (isTRUE(all.equal(rownames(ret_results$expr), rownames(ret_results$order)))) {
+        flog.info(".order_reduce(): expr and order match.")
+    }
+    else {
+        stop("Error, .order_reduce(): expr and order don't match! must debug")
+    }
+        
     # Set the chr to factor so the order can be arbitrarily set and sorted.
     chr_levels <- unique(genomic_position[[C_CHR]])
     ret_results$order[[C_CHR]] <- factor(ret_results$order[[C_CHR]],
                                    levels=chr_levels)
-
+    
     # Sort genomic position file and expression file to genomic position file
     # Order genes by genomic region
     order_names <- row.names(ret_results$order)[with(ret_results$order, order(chr,start,stop))]
     
-    ret_results$expr <- ret_results$expr[na.omit(match(order_names, rownames(ret_results$expr))), , drop=FALSE] #na.omit is to rid teh duplicate gene entries (ie. Y_RNA, snoU13, ...) if they should exist.
+    ret_results$expr <- ret_results$expr[match(order_names, rownames(ret_results$expr)), , drop=FALSE] #na.omit is to rid teh duplicate gene entries (ie. Y_RNA, snoU13, ...) if they should exist.
     
     # This is the contig order, will be used in visualization.
     # Get the contig order in the same order as the genes.
-    ret_results$order <- ret_results$order[order_names, , drop=FALSE]
+    ret_results$order <- ret_results$order[match(order_names, rownames(ret_results$order)), , drop=FALSE]
     ret_results$chr_order <- ret_results$order[1]
-
+    
     # Remove any gene without position information
     # Genes may be sorted correctly by not have position information
     # Here they are removed.
@@ -307,12 +318,14 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
 
 remove_genes <- function(infercnv_obj, gene_indices_to_remove) {
 
-    infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, ]
+    infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, , drop=F]
     
-    infercnv_obj@count.data <- infercnv_obj@count.data[ -1 * gene_indices_to_remove, ]
+    infercnv_obj@count.data <- infercnv_obj@count.data[ -1 * gene_indices_to_remove, , drop=F]
 
-    infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * gene_indices_to_remove, ] 
+    infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * gene_indices_to_remove, , drop=F] 
 
+    validate_infercnv_obj(infercnv_obj)
+    
     return(infercnv_obj)
 }
 
@@ -332,7 +345,7 @@ validate_infercnv_obj <- function(infercnv_obj) {
 
     flog.info("validating infercnv_obj")
 
-    if (all.equal(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order))) {
+    if (isTRUE(all.equal(rownames(infercnv_obj@expr.data), rownames(infercnv_obj@gene_order)))) {
             # all good.
                     return();
 
