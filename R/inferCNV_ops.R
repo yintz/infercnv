@@ -991,10 +991,9 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
     # Find averages above a certain threshold
     indices <- which(average_gene < min_mean_expr_cutoff)
     if (length(indices) > 0) {
-        flog.info(paste("Removing ", length(indices),
-                        " genes from matrix as below mean expr threshold: ",
-                        min_mean_expr_cutoff), sep="")
-
+        flog.info(sprintf("Removing %d genes from matrix as below mean expr threshold: %g",
+                          length(indices), min_mean_expr_cutoff))
+        
         infercnv_obj <- remove_genes(infercnv_obj, indices)
         
     }
@@ -1025,20 +1024,21 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
     
     ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
-    num_genes_total = length(ref_cell_indices)
+    num_genes_total = dim(ref_data)[1]
     num_removed = num_genes_total - length(ref_genes_passed)
     if (num_removed > 0) {
-        flog.info(paste("Removed ", num_removed, " genes having fewer than ",
-                        min_cells_per_gene, " min cells per gene. = ",
-                        num_removed / num_genes_total * 100, " % genes removed here."), sep="")
 
+        flog.info(sprintf("Removed %d genes having fewer than %d min cells per gene = %g %% genes removed here",
+                          num_removed, min_cells_per_gene, num_removed / num_genes_total * 100))
+        
+        
         if (num_removed == num_genes_total) {
 
             flog.warn(paste("::All genes removed! Must revisit your data..., cannot continue here."))
             stop(998)
         }
-
-
+        
+        
         infercnv_obj <- remove_genes(infercnv_obj, -1 * ref_genes_passed)
         
                 

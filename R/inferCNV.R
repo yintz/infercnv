@@ -124,6 +124,11 @@ CreateInfercnvObject <- function(raw_counts_matrix, gene_order_file, annotations
     # read annotations file
     input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE)
 
+    # just in case the first line is a default header, remove it:
+    if (rownames(input_classifications)[1] == "V1") {
+        input_classifications = input_classifications[-1, , drop=F]
+    }
+    
     # make sure all reference samples are accounted for:
     if (! all( rownames(input_classifications) %in% colnames(raw.data)) ) {
         
@@ -304,7 +309,7 @@ remove_genes <- function(infercnv_obj, gene_indices_to_remove) {
 
     infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, ]
     
-    infercnv_obj@count.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, ]
+    infercnv_obj@count.data <- infercnv_obj@count.data[ -1 * gene_indices_to_remove, ]
 
     infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * gene_indices_to_remove, ] 
 
