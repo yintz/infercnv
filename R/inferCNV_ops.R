@@ -651,7 +651,7 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 #'
 #' @param infercnv_obj infercnv_object
 #'
-#' @param inv_log invert log-transformed data before subtracting mean, then convert back to log space.
+#' @param inv_log mean values will be determined based on (2^x -1)
 #'
 #' @return infercnv_obj containing the reference subtracted values.
 #'
@@ -662,99 +662,49 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
     
                                         # r = genes, c = cells
     flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
-    
-    
-    if (inv_log) {
-        infercnv_obj <- invert_log2xplus1(infercnv_obj)
-    }
-        
-    # Max and min mean gene expression within reference groups.
-    average_max <- NULL
-    average_min <- NULL
-    # average_reference_obs <- average_data[,ref_observations, drop=FALSE]
-    # Reference gene within reference groups
-    # now reference indexes of ref_groups are relative to the full average_data matrix and not the average_reference_obs references submatrix
-    
+            
     ref_groups = infercnv_obj@reference_grouped_cell_indices
     
     
-    VECTORIZED_SUBTRACT = TRUE
-    if (VECTORIZED_SUBTRACT) {
+    subtract_normal_expr_fun <- function(x) {
+
         
-        subtract_normal_expr_fun <- function(x) {
-
-            grp_min = NA
-            grp_max = NA
-            
-            for (ref_group in ref_groups) {
-
-                ref_grp_mean = mean(x[ref_group])
-                grp_min = min(grp_min, ref_grp_mean, na.rm=T)
-                grp_max = max(grp_max, ref_grp_mean, na.rm=T)
-
-            }
-
-            row_init = rep(0, length(x))
-
-            above_max = which(x>grp_max)
-            below_min = which(x<grp_min)
-
-            row_init[above_max] <- x[above_max] - grp_max
-            row_init[below_min] <- x[below_min] - grp_min
-
-            return(row_init)
-        }
-
-        subtr_data <- t(apply(infercnv_obj@expr.data, 1, subtract_normal_expr_fun))
-        colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
-        infercnv_obj@expr.data <- subtr_data
-                
-                
-    } else {
-        # original code for doing this.
+        
+        grp_min = NA
+        grp_max = NA
+        
         for (ref_group in ref_groups) {
             
-            grp_average <- rowMeans(infercnv_obj@expr.data[ , ref_group, drop=FALSE], na.rm=TRUE)
-            if(is.null(average_max)){
-                average_max <- grp_average
+            if (inv_log) {
+                ref_grp_mean = log2(mean(2^x[ref_group] - 1) + 1)
+            } else {
+                ref_grp_mean = mean(x[ref_group])
             }
-            if(is.null(average_min)){
-                average_min <- grp_average
-            }
-            average_max <- pmax(average_max, grp_average)
-            average_min <- pmin(average_min, grp_average)
+
+            grp_min = min(grp_min, ref_grp_mean, na.rm=T)
+            grp_max = max(grp_max, ref_grp_mean, na.rm=T)
+            
         }
         
-        flog.info("subtracting mean(normal) per gene per cell across all data")
+        row_init = rep(0, length(x))
         
-                                        # Remove the Max and min averages (or quantiles) of the reference groups for each gene
-                                        # TODO:  can we vectorize this?
-                                        #     and if not, set up a progress bar?
+        above_max = which(x>grp_max)
+        below_min = which(x<grp_min)
         
-        for(gene_i in 1:nrow(infercnv_obj@expr.data)){
-            current_col <- infercnv_obj@expr.data[gene_i, ]
-            
-                                        # original code
-            i_max <- which(current_col > average_max[gene_i])
-            i_min <- which(current_col < average_min[gene_i])
-            
-            row_init <- rep(0, length(current_col))
-            if(length(i_max) > 0){
-                row_init[i_max] <- current_col[i_max] - average_max[gene_i]
-            }
-            if(length(i_min) > 0){
-                row_init[i_min] <- current_col[i_min] - average_min[gene_i]
-            }
-            infercnv_obj@expr.data[gene_i, ] <- row_init
-        }
+        row_init[above_max] <- x[above_max] - grp_max
+        row_init[below_min] <- x[below_min] - grp_min
         
+        return(row_init)
     }
-        
-    if (inv_log) {
-        # turn back to log space
-        infercnv_obj <- log2xplus1(infercnv_obj)
-    }
-        
+    
+    subtr_data <- t(apply(infercnv_obj@expr.data, 1, subtract_normal_expr_fun))
+    colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
+    infercnv_obj@expr.data <- subtr_data
+    
+    flog.info("subtracting mean(normal) per gene per cell across all data")
+    
+    
+            
     return(infercnv_obj)
 
 }
@@ -1041,11 +991,14 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
     # Find averages above a certain threshold
     indices <- which(average_gene < min_mean_expr_cutoff)
     if (length(indices) > 0) {
-        flog.info(paste("Removing ", length(indices),
-                        " genes from matrix as below mean expr threshold: ",
-                        min_mean_expr_cutoff), sep="")
-
+        flog.info(sprintf("Removing %d genes from matrix as below mean expr threshold: %g",
+                          length(indices), min_mean_expr_cutoff))
+        
         infercnv_obj <- remove_genes(infercnv_obj, indices)
+
+        expr_dim = dim(infercnv_obj@expr.data)
+        flog.info(sprintf("There are %d genes and %d cells remaining in the expr matrix.",
+                          expr_dim[1], expr_dim[2]))
         
     }
     
@@ -1075,20 +1028,21 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
     
     ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
-    num_genes_total = length(ref_cell_indices)
+    num_genes_total = dim(ref_data)[1]
     num_removed = num_genes_total - length(ref_genes_passed)
     if (num_removed > 0) {
-        flog.info(paste("Removed ", num_removed, " genes having fewer than ",
-                        min_cells_per_gene, " min cells per gene. = ",
-                        num_removed / num_genes_total * 100, " % genes removed here."), sep="")
 
+        flog.info(sprintf("Removed %d genes having fewer than %d min cells per gene = %g %% genes removed here",
+                          num_removed, min_cells_per_gene, num_removed / num_genes_total * 100))
+        
+        
         if (num_removed == num_genes_total) {
 
             flog.warn(paste("::All genes removed! Must revisit your data..., cannot continue here."))
             stop(998)
         }
-
-
+        
+        
         infercnv_obj <- remove_genes(infercnv_obj, -1 * ref_genes_passed)
         
                 

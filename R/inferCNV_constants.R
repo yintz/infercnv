@@ -21,5 +21,7 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom fastcluster hclust
 #' @import RColorBrewer
 #' @import Seurat
+#' @import Matrix
+
 NULL
 

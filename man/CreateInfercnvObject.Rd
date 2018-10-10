@@ -8,7 +8,9 @@ CreateInfercnvObject(raw_counts_matrix, gene_order_file, annotations_file,
   ref_group_names, delim = "\\t")
 }
 \arguments{
-\item{raw_counts_matrix}{the matrix file of genes (rows) vs. cells (columns) containing the raw counts}
+\item{raw_counts_matrix}{the matrix of genes (rows) vs. cells (columns) containing the raw counts
+If a filename is given, it'll be read via read.table()
+otherwise, if matrix or Matrix, will use the data directly.}
 
 \item{gene_order_file}{data file containing the positions of each gene along each chromosome in the genome.}
 
