@@ -659,17 +659,27 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
 #'
 
 subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
-    
-                                        # r = genes, c = cells
+                                            # r = genes, c = cells
     flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
             
     ref_groups = infercnv_obj@reference_grouped_cell_indices
     
+    subtr_data <- .subtract_expr(infercnv_obj@expr.data, ref_groups, inv_log)
+    
+    colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
+
+    infercnv_obj@expr.data <- subtr_data
+    
+    flog.info("subtracting mean(normal) per gene per cell across all data")
+                
+    return(infercnv_obj)
+
+}
+
+.subtract_expr <- function(expr_matrix, ref_groups, inv_log=FALSE) {
     
     subtract_normal_expr_fun <- function(x) {
-
-        
-        
+                
         grp_min = NA
         grp_max = NA
         
@@ -680,7 +690,7 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
             } else {
                 ref_grp_mean = mean(x[ref_group])
             }
-
+            
             grp_min = min(grp_min, ref_grp_mean, na.rm=T)
             grp_max = max(grp_max, ref_grp_mean, na.rm=T)
             
@@ -697,19 +707,13 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
         return(row_init)
     }
     
-    subtr_data <- t(apply(infercnv_obj@expr.data, 1, subtract_normal_expr_fun))
-    colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
-    infercnv_obj@expr.data <- subtr_data
-    
-    flog.info("subtracting mean(normal) per gene per cell across all data")
-    
-    
-            
-    return(infercnv_obj)
+    subtr_data <- t(apply(expr_matrix, 1, subtract_normal_expr_fun))
+
+    return(subtr_data)
 
 }
 
-
+    
 # Not testing, parameters ok.
 # Helper function allowing greater control over the steps in a color palette.
 # Source:http://menugget.blogspot.com/2011/11/define-color-steps-for-
@@ -880,9 +884,30 @@ remove_outliers_norm <- function(infercnv_obj,
                     "out_method:", out_method,
                     "lower_bound:" , lower_bound,
                     "upper_bound:", upper_bound))
+
+
+    infercnv_obj@expr.data <- .remove_outliers_norm(data=infercnv_obj@expr.data,
+                                                    out_method=out_method,
+                                                    lower_bound=lower_bound,
+                                                    upper_bound=upper_bound)
     
-    data <- infercnv_obj@expr.data
+    return(infercnv_obj)
     
+}
+
+
+.remove_outliers_norm <- function(data,
+                                  out_method="average_bound",
+                                  lower_bound=NA,
+                                  upper_bound=NA) {
+    
+    flog.info(paste("::remove_outlier_norm:Start",
+                    "out_method:", out_method,
+                    "lower_bound:" , lower_bound,
+                    "upper_bound:", upper_bound))
+
+    
+
     if(is.null(data) || nrow(data) < 1 || ncol(data) < 1){
         flog.error("::remove_outlier_norm: Error, something is wrong with the data, either null or no rows or columns")
         stop("Error, something is wrong with the data, either null or no rows or columns")
@@ -904,10 +929,12 @@ remove_outliers_norm <- function(infercnv_obj,
                 
         if (out_method == "average_bound"){
 
-            bounds = get_average_bounds(infercnv_obj)
+            bounds = .get_average_bounds(data)
             lower_bound = bounds[1]
             upper_bound = bounds[2]
 
+            flog.info(sprintf("outlier bounds defined between: %g - %g", lower_bound, upper_bound))
+            
         } else {
             flog.error(paste("::remove_outlier_norm:Error, please",
                                     "provide an approved method for outlier",
@@ -922,12 +949,13 @@ remove_outliers_norm <- function(infercnv_obj,
     # apply bounds
     data[data < lower_bound] <- lower_bound
     data[data > upper_bound] <- upper_bound
-    
-    infercnv_obj@expr.data <- data
-    
-    return(infercnv_obj)
-    
+
+
+    return(data)
 }
+
+
+
 
 #' @title center_cell_expr_across_chromosome()
 #'
@@ -946,21 +974,29 @@ remove_outliers_norm <- function(infercnv_obj,
 center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # or median
 
     flog.info(paste("::center_smooth across chromosomes per cell"))
+    
+    infercnv_obj@expr.data <- .center_columns(infercnv_obj@expr.data, method)
+    
+    return(infercnv_obj)
+}
+
+.center_columns <- function(expr_data, method) {
 
     # Center within columns (cells)
     if (method == "median") {
-        row_median <- apply(infercnv_obj@expr.data, 2, function(x) { median(x, na.rm=T) } )
+        row_median <- apply(expr_data, 2, function(x) { median(x, na.rm=T) } )
         
-        infercnv_obj@expr.data <- t(apply(infercnv_obj@expr.data, 1, "-", row_median))
+        expr_data <- t(apply(expr_data, 1, "-", row_median))
     }
     else {
         # by mean
-        row_means <- apply(infercnv_obj@expr.data, 2, function(x) { mean(x, na.rm=T) } )
+        row_means <- apply(expr_data, 2, function(x) { mean(x, na.rm=T) } )
         
-        infercnv_obj@expr.data <- t(apply(infercnv_obj@expr.data, 1, "-", row_means))
+        expr_data <- t(apply(expr_data, 1, "-", row_means))
     }
-    return(infercnv_obj)
+    return(expr_data)
 }
+
 
 
 
@@ -984,12 +1020,7 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
     # restrict to reference cells:
     ref_cells_data <- infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
 
-        
-    average_gene <- rowMeans(ref_cells_data)
-
-    flog.info(paste("::process_data:Averages (counts).", sep=""))
-    # Find averages above a certain threshold
-    indices <- which(average_gene < min_mean_expr_cutoff)
+    indices <-.below_min_mean_expr_cutoff(ref_cells_data, min_mean_expr_cutoff)
     if (length(indices) > 0) {
         flog.info(sprintf("Removing %d genes from matrix as below mean expr threshold: %g",
                           length(indices), min_mean_expr_cutoff))
@@ -1005,6 +1036,20 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
     return(infercnv_obj)
         
 }
+
+
+.below_min_mean_expr_cutoff <- function(expr_data, min_mean_expr) {
+
+    average_gene <- rowMeans(expr_data)
+
+    # Find averages above a certain threshold
+    indices <- which(average_gene < min_mean_expr)
+
+    return(indices)
+
+}
+    
+
 
 
 #' @title require_above_min_cells_ref()
@@ -1084,19 +1129,22 @@ clear_noise <- function(infercnv_obj, threshold) {
     
     mean_ref_vals = mean(vals)
 
-    upper_bound = mean_ref_vals + threshold
-    lower_bound = mean_ref_vals - threshold
-    
-    smooth_matrix <- infercnv_obj@expr.data
-        
-    smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
-    
-    
-    infercnv_obj@expr.data <- smooth_matrix
-    
-    
+    infercnv_obj@expr.data <- .clear_noise(infercnv_obj@expr.data, threshold, center_pos=mean_ref_vals)
+
     return(infercnv_obj)
 }
+
+
+.clear_noise <- function(expr_data, threshold, center_pos=0) {
+    
+    upper_bound = center_pos + threshold
+    lower_bound = center_pos - threshold
+    
+    expr_data[expr_data > lower_bound & expr_data < upper_bound] = center_pos
+
+    return(expr_data)
+}
+
 
 
 #' @title clear_noise_via_ref_mean_sd()
@@ -1190,18 +1238,24 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5) {
 #' @export
 #'
 
-smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
-
-    data = infercnv_obj@expr.data
+smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) {
     
+    infercnv_obj@expr.data <- .smooth_window(infercnv_obj@expr.data, window_length, smooth_ends)
+    
+    return(infercnv_obj)
+}
+
+
+.smooth_window <- function(data, window_length, smooth_ends=TRUE) {
+
     flog.info(paste("::smooth_window:Start.", sep=""))
     if (window_length < 2){
         flog.warn("window length < 2, returning original unmodified data")
-        return(infercnv_obj)
+        return(data)
     }
     if (window_length > nrow(data)){
         flog.warn("window length exceeds number of rows in data, returning original unmodified data")
-        return(infercnv_obj)
+        return(data)
     }
     
     tail_length <- (window_length - 1) / 2
@@ -1211,24 +1265,23 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
                      .smooth_window_helper,
                      window_length=window_length)
     flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
-
+    
     if (smooth_ends) {
-        # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
+                                        # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
         data_sm <- apply(data_sm,
                          2,
                          .smooth_ends_helper,
                          tail_length=tail_length)
-
+        
     }
     
-    # Set back row and column names
+                                        # Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
-
-    infercnv_obj@expr.data <- data_sm
-
-    return(infercnv_obj)
+    
+    return(data_sm)
 }
+
 
 # Helper function for smoothing the ends of a moving average.
 #
@@ -1335,16 +1388,20 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE){
 #'
 
 get_average_bounds <- function (infercnv_obj) {
+    
+    return(.get_average_bounds(infercnv_obj@expr.data))
+    
+}
 
-    lower_bound <- mean(apply(infercnv_obj@expr.data, 2,
+.get_average_bounds <- function(expr_matrix) {
+    
+    lower_bound <- mean(apply(expr_matrix, 2,
                               function(x) quantile(x, na.rm=TRUE)[[1]]))
-    upper_bound <- mean(apply(infercnv_obj@expr.data, 2,
+    upper_bound <- mean(apply(expr_matrix, 2,
                               function(x) quantile(x, na.rm=TRUE)[[5]]))
     
     return(c(lower_bound, upper_bound))
-
 }
-
 
 #' @title log2xplus1()
 #'
