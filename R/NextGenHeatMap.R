@@ -1,61 +1,52 @@
 #!/usr/bin/env Rscript
 
 #' @title Create Next Generation Clustered Heat Map (NG-CHM)
-#'
 #' @description  Create highly interactive heat maps for single cell expression data using 
 #' Next Generation Clustered Heat Map (NG-CHM). NG-CHM was developed and 
 #' maintained by MD Anderson Department of Bioinformatics and Computational 
 #' Biology in collaboration with In Silico Solutions. 
 #'
-#' @param plot_data Expression data
-#' @param reference_idx (vector) vector of all reference cell line ID's  
-#' @param ref_index (list) list of index values for each reference group  
-#' @param ref_groups (list) list of cell ID's for each reference groups
-#' @param location_data (data frame) Data frame with position information for each gene 
+#' @param infercnv_obj (S4) InferCNV S4 object holding expression data, gene location data, annotation information.
 #' @param path_to_shaidyMapGen (string) Path to the java application ShaidyMapGen.jar
 #' @param out_dir (string) Path to where the infercnv.ngchm output file should be saved to 
-#' @param contigs (list) List of the chr in order 
 #' @param title (string) Title that will be used for the heatmap 
-#' @param gene_symbol (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
+#' @param gene_symbal (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
 #'
 #' @return
 #' Exports a NGCHM file named infercnv.ngchm and saves it to the output directory given to infercnv. 
 # Requires:
-#	NGCHM, dplyr, ape, RcolorBrewer, tibble
+#	NGCHM, ape, RcolorBrewer
 
-Create_NGCHM <- function(plot_data,
-                         reference_idx, 
-                         ref_index, 
-                         ref_groups,
-                         location_data,
+Create_NGCHM <- function(infercnv_obj,
                          path_to_shaidyMapGen,
-                         out_dir, 
-                         contigs, 
-                         title, 
+                         out_dir,
+                         title = NULL, 
                          gene_symbol = NULL) {
     
-    # ----------------------Check Pathways----------------------------------------------------------------------------------------
-    # Error handling 
-    
-    
+    # ----------------------Check/create Pathways-----------------------------------------------------------------------------------------------
+    ## check out_dir
     if (file.exists(out_dir)){
         file_path <- paste(out_dir, "infercnv.ngchm", sep = .Platform$file.sep)
-    } else {
-        stop(paste0("Error: Cannot open file path: ", out_dir))
+    }else{
+        dir.create(file.path(out_dir))
+        paste("Creating the following Directory: ", out_dir)
     }
     
     #----------------------Initialize Next Generation Clustered Heat Map------------------------------------------------------------------
     # transpose the expression data so columns are the cell lines and rows are genes 
-    plot_data <- t(plot_data)
+    plot_data <- t(infercnv_obj@expr.data)
     # create color map for the heat map and save it as a new data layer 
     # cut_value is the value that represents cuts on the heatmap
     cut_value <- -2147483648.0 
     colMap <- NGCHM::chmNewColorMap(values        = c(cut_value, min(plot_data, na.rm=TRUE), 0, max(plot_data,na.rm=TRUE)),
-                             colors        = c("grey45","darkblue","white","darkred"),
-                             missing.color = "white", 
-                             type          = "linear") 
+                                    colors        = c("grey45","darkblue","white","darkred"),
+                                    missing.color = "white", 
+                                    type          = "linear") 
     layer <- NGCHM::chmNewDataLayer("DATA", as.matrix(plot_data), colMap, summarizationMethod = "average")
     # create the heat map object with the name "inferCNV"
+    if (is.null(title)){
+        title = "inferCNV"
+    }
     hm <- NGCHM::chmNew(title, layer)
     # set the column (gene) order 
     NGCHM::chmColOrder(hm) <- colnames(plot_data)
@@ -65,14 +56,27 @@ Create_NGCHM <- function(plot_data,
         hm <- NGCHM::chmAddAxisType(hm, 'col', gene_symbol)
     }
     
-
+    ## set variables 
+    reference_idx = row.names(plot_data[unlist(infercnv_obj@reference_grouped_cell_indices),])
+    ref_index = infercnv_obj@reference_grouped_cell_indices
+    ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
+    
     # ---------------------- Import Dendrogram & Order Rows -----------------------------------------------------------------------------------
+    # IF Cluster By Group is set to TRUE:
     # Get the order of the rows (cell lines) from the dendrogram created by infer_cnv 
     #
+    
     ## import and read the dendrogram for the observed data created using the ape library
     den_path <- paste(out_dir, "observations_dendrogram.txt", sep=.Platform$file.sep)
     phylo <- ape::read.tree(file = den_path)
-    obs_order <- rev(phylo$tip.label) # vector holding cell line order taken from the dendrogram
+    # if multiphylo trees, need to iterate to get to labels 
+    obs_order <- unlist(lapply(1:length(phylo), function(x) phylo[[x]]$tip.label)) # vector holding cell line order taken from the dendrogram
+    
+    
+    # read the file containing the groupings created by infer_cnv
+    row_groups_path <- paste(out_dir, "observation_groupings.txt", sep=.Platform$file.sep)
+    row_groups <- read.table(row_groups_path, header = TRUE, check.names = FALSE) # genes are the row names 
+    obs_order <- row.names(row_groups)
     row_order <- c(as.vector(reference_idx), obs_order) # put the reference cells above the observed cells 
     ## check for correct dimensions of new row order 
     if (length(row_order) != nrow(plot_data)) {
@@ -86,21 +90,23 @@ Create_NGCHM <- function(plot_data,
     # Column Separation: separation between the chromosomes 
     
     ## get the correct order of the chromosomes
-    ordering <- unique(contigs) 
+    ordering <- unique(infercnv_obj@gene_order[['chr']]) 
     ## get gene locations in correct order, then find frequency of each chromosome
     ## add locations to each gene 
-    location_data$Gene <- row.names(location_data)
+    location_data <- infercnv_obj@gene_order
+    location_data$Gene <- row.names(infercnv_obj@gene_order)
     gene_order = colnames(plot_data)
     gene_locations_merge <- merge(data.frame(Gene = colnames(plot_data), stringsAsFactors = FALSE), location_data, by.x = "Gene")
     gene_locations <- gene_locations_merge[match(gene_order,gene_locations_merge$Gene),]
-    ## check if the number of genes has changed 
+    # 
+    # ## check if the number of genes has changed 
     if (nrow(gene_locations) != length(colnames(plot_data))){
         warning(paste0("Number of similar genes between expression data and locations:", nrow(gene_locations),
-                       "\n Total number of genes in expression data: ", length(colnames(plot_data)), 
+                       "\n Total number of genes in expression data: ", length(colnames(plot_data)),
                        "\n Check to make sure all the genes are in the location file and the gene names are the same between files."))
     }
     ## put in order 
-    ordered_locations <- table(gene_locations$chr)[ordering] 
+    ordered_locations <- table(gene_locations[['chr']])[ordering] 
     cumulative_len <- cumsum(ordered_locations) #cumulative sum, separation locations
     sep_col_idx <- cumulative_len[-1 * length(cumulative_len)] # drop the last index because we do not want to add a break at the very end
     sep_col_idx <- rep(1,length(sep_col_idx)) + sep_col_idx # add one to each index, want to be to the right of the last gene in that chr
@@ -121,22 +127,19 @@ Create_NGCHM <- function(plot_data,
     get_group_color_palette <- function(){
         return(colorRampPalette(RColorBrewer::brewer.pal(12,"Set3")))
     }
-    # read the file containing the groupings created by infer_cnv
-    row_groups_path <- paste(out_dir, "observation_groupings.txt", sep=.Platform$file.sep)
-    row_groups <- read.table(row_groups_path, header = TRUE, check.names = FALSE) # genes are the row names 
-    # check to make sure all cell lines are included 
-    if (!(all(row_groups %in% row_order))) {
-        missing_ids <- row_groups[which(!(row_groups %in% row_order))]
+    # # check to make sure all cell lines are included 
+    if (!(all(obs_order %in% row_order))) {
+        missing_ids <- row_groups[which(!(obs_order %in% row_order))]
         error_message <- paste("Groupings of cell line ID's in observation_groupings.txt \n",
-                               "do not match the do not match the ID's in the expression data.\n",
-                               "Check the following cell line ID's: ", 
+                               "do not match the ID's in the expression data.\n",
+                               "Check the following cell line ID's: ",
                                paste(missing_ids, collapse = ","))
     }
     #---------------------COLUMN Covariate bar----------------------------------------------------------------------------------------------------------------------
     # COLUMN Covariate bar
     ## map the genes to their chromosome 
     ## gene_locations: created earlier, Genes and their locations 
-    chr_labels <- as.vector(unique(location_data$chr))
+    chr_labels <- as.vector(ordering)
     ## get the chromosomes 
     chr <- as.character(gene_locations$chr)
     ## get the gene ID's 
@@ -150,9 +153,9 @@ Create_NGCHM <- function(plot_data,
                                         colors        = chr_palette,
                                         missing.color = "white")
     chr_cov <- NGCHM::chmNewCovariate(fullname        = 'Chromosome', 
-                                     values           = chr, 
-                                     value.properties = colMap_chr,
-                                     type             = "discrete")
+                                      values           = chr, 
+                                      value.properties = colMap_chr,
+                                      type             = "discrete")
     hm <- NGCHM::chmAddCovariateBar(hm, "column", chr_cov, 
                                     display   = "visible", 
                                     thickness = as.integer(20))
@@ -201,37 +204,33 @@ Create_NGCHM <- function(plot_data,
                                     display   = "visible", 
                                     thickness = as.integer(20))
     # Covariate to identify Reference and Observed data
-    ## Seperate and identify observed and reference cells
-    if (typeof(unlist(ref_groups)) != "character"){
-        grouping_refs <- lapply(ref_groups, function(x){row.names(plot_data)[x]})
-        ref_index <- rev(lapply(grouping_refs, function(x) {which(reference_idx %in% x)})) ## rev because inferCNV swaps order of references 
-    } else {
-        ref_index <- ref_groups
-    }
-    cell_type <- replace(row_order, !(1:length(row_order) %in% unlist(ref_index)), paste("Observed"))
+    
+    cell_type <- replace(row_order, 1:length(row_order) %in% unlist(infercnv_obj@observation_grouped_cell_indices), paste("Observed"))
+    
+    ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
     
     ## Label the references based on index locations 
     if (length(ref_groups) > 1) {
         for(i in 1:length(ref_groups)){ 
-            cell_type <- replace(cell_type, ref_index[[i]], paste("Reference",toString(i),sep = "")) 
+            cell_type <- replace(cell_type, infercnv_obj@reference_grouped_cell_indices[[i]], paste("Reference",toString(i),sep = "")) 
         }
     } else {
         for(i in 1:length(ref_groups)){ 
-            cell_type <- replace(cell_type, 1:length(cell_type) %in% ref_index[[1]], paste("Reference"))
+            cell_type <- replace(cell_type, 1:length(cell_type) %in% infercnv_obj@reference_grouped_cell_indices[[1]], paste("Reference"))
         }
     }
     # make a new variable for later use that has the cell type and cell ID as the name 
     ## cell ID's need to map to cell types 
     names(cell_type) <- row_order
-
+    
     # check if all reference cells are in cell type 
     if (!(all(reference_idx %in% names(cell_type)))){
-       missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
-       error_message <- paste("Error: Not all references are accounted for.",
-                              "Make sure the reference names match the names in the data.\n",
-                              "Check the following reference cell lines: ", 
-                              paste(missing_refs, collapse = ","))
-       stop(error_message)
+        missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
+        error_message <- paste("Error: Not all references are accounted for.",
+                               "Make sure the reference names match the names in the data.\n",
+                               "Check the following reference cell lines: ", 
+                               paste(missing_refs, collapse = ","))
+        stop(error_message)
     }
     if (!is.null(cell_type)){
         ## unique group names    
@@ -261,7 +260,7 @@ Create_NGCHM <- function(plot_data,
     #hm@height <- as.integer(500)
     ## adjust label display size 
     #hm@rowDisplayLength <- as.integer(10) 
-    flog.info(paste("Saving new NGCHM object"))
-    suppressMessages(NGCHM::chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen))
-}
+    logging::loginfo(paste("Saving new NGCHM object"))
+    NGCHM::chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen)
+    }
 
