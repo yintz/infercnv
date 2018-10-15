@@ -12,11 +12,15 @@ infercnv_obj = CreateInfercnvObject(raw_counts_matrix="oligodendroglioma_express
 out_dir="output_dir"
 # perform infercnv operations to reveal cnv signal
 infercnv_obj = infercnv::run(infercnv_obj,
-                             cutoff=1, 
+                             cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
                              out_dir=out_dir, 
                              cluster_by_groups=T, 
                              plot_steps=T
                              )
+
+
+# save the final object in case we want to experiment with it later, replotting w/ diff thresholds, etc.
+save('infercnv_obj', file=file.path(out_dir, 'infercnv.final.obj'))
 
 # generate final plot
 plot_cnv(infercnv_obj,
