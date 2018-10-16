@@ -1240,7 +1240,12 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5) {
 
 smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) {
     
-    infercnv_obj@expr.data <- .smooth_window(infercnv_obj@expr.data, window_length, smooth_ends)
+    gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
+    chrs = unlist(unique(gene_chr_listing))
+
+    for (chr in chrs) {
+        infercnv_obj@expr.data[which(gene_chr_listing == chr),, drop=F] <- .smooth_window(infercnv_obj@expr.data[which(gene_chr_listing == chr),, drop=F], window_length, smooth_ends)
+    }
     
     return(infercnv_obj)
 }
@@ -1254,8 +1259,10 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         return(data)
     }
     if (window_length > nrow(data)){
-        flog.warn("window length exceeds number of rows in data, returning original unmodified data")
-        return(data)
+        flog.warn("window length exceeds number of rows in data") #, returning original unmodified data")
+        flog.warn("setting window length to nrows")
+        window_length = nrow(data)
+        # return(data)
     }
     
     tail_length <- (window_length - 1) / 2
