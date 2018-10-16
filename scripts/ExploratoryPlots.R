@@ -38,136 +38,74 @@ pull_legend<-function(plot){
     return(legend)
 }
 # ----------------------Select Gene & Add Cell Types-----------------------------------------------------------------------
-create_gene_eset <- function(plotting_data,
-                             reference_idx, 
-                             ref_groups,
+configure_data <- function(infercnv_obj,
                              cluster_by_groups,
-                             obs_annotations_groups,
-                             obs_annotations_names,
                              one_ref
-) {
-    cell_ids <- colnames(plotting_data)
-    cell_type <- colnames(plotting_data)
-    # label observed or Reference(s)
-    ## find what index values are not in ref_groups 
-    obs_idx <- c(1:length(cell_ids))[-unlist(ref_groups)]
-    if (cluster_by_groups == TRUE){
-        cell_type[obs_idx] <- sapply(obs_annotations_groups, function(x){ obs_annotations_names[x] })
-    } else {
-        cell_type <- replace(cell_ids, !(1:length(cell_ids) %in% unlist(ref_groups)), paste("Observed"))
-    }
+                             ) 
+    {
+    # get the cell ID names in order, (reference, observed)
+    row_order <- c(colnames(infercnv_obj@expr.data))
     
+    cell_type <- replace(row_order, 1:length(row_order) %in% unlist(infercnv_obj@observation_grouped_cell_indices), paste("Observed"))
     
-    #check
-    if (any(!(reference_idx %in% cell_type))){
-        stop("reference samples not in cell_type")
-    }
     ## Label the references based on index locations 
-    if (length(ref_groups) > 1 & one_ref == FALSE) {
-        for(i in 1:length(ref_groups)){ 
-            cell_type <- replace(cell_type, ref_groups[[i]], paste("Reference",toString(i),sep = "")) 
+    if (one_ref == FALSE || length(infercnv_obj@reference_grouped_cell_indices) > 1) {
+        for(i in 1:length(infercnv_obj@reference_grouped_cell_indices)){ 
+            cell_type <- replace(cell_type, infercnv_obj@reference_grouped_cell_indices[[i]], paste("Reference",toString(i),sep = "")) 
         }
     } else {
-        for(i in 1:length(ref_groups)){ 
-            cell_type <- replace(cell_type, unlist(ref_groups), paste("Reference"))
+        for(i in 1:length(infercnv_obj@reference_grouped_cell_indices)){ 
+            cell_type <- replace(cell_type, 1:length(cell_type) %in% unlist(infercnv_obj@reference_grouped_cell_indices), paste("Reference"))
         }
     }
-    # check if all reference cells are in cell type 
-    ref_cells <- which(!(cell_type %in% c(obs_annotations_names)))
-    if (!(all(reference_idx %in% cell_ids[ref_cells]))){
-        missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
-        error_message <- paste("Error: Not all references are accounted for.",
-                               "Make sure the reference names match the names in the data.\n",
-                               "Check the following reference cell lines: ", 
-                               paste(missing_refs, collapse = ","))
-        stop(error_message)
-    }
-    
-    filtered_plot_data_t <- t(plotting_data )
+    plotting_data <- t(infercnv_obj@expr.data)
     # add the labled cell annotation information
-    final_eset <- data.table(filtered_plot_data_t, cell_type = cell_type, check.names = FALSE, stringsAsFactors = FALSE)
-    return(final_eset)
+    final_data <- data.table(plotting_data, cell_type = cell_type, check.names = FALSE, stringsAsFactors = FALSE)
+    return(final_data)
 }
 
+
+# Function to generate the plots for the data:
 CreatePlots <- function(files_dir,
                         cluster_by_groups = TRUE,
                         one_reference = FALSE){
-    # ----------------------Load Environment and variables----------------------------------------------------------------------------------------
-    print(files_dir)
-    env <- list.files(files_dir, pattern="infercnv.*.Rdata", full.names=TRUE)
+    # ----------------------Load The InferCNV Object----------------------------------------------------------------------------------------
+    env <- list.files(files_dir, pattern="*.infercnv_obj", full.names=TRUE)
     if (all(!(file.exists(env)))){
         path_error <- c(env)[which(!file.exists(env))]
         error_message <- paste("Error in argument pathway.",
                                "Please make sure the enviorments created by inferCNV are in the following pathway: ")
         stop(error_message, paste(path_error, collapse = ", "))
     } else {
-        for (i in env) {
-            load(file = i)
-        }
+        infercnv_obj<- get(load(file = env[length(env)]))
     }
     # ----------------------Load Data----------------------------------------------------------------------------------------
-    reference_idx <- ret_list$REF_OBS_IDX
-    ref_groups <- ret_list$REF_GROUPS
-    filenames <- list.files(files_dir, pattern="*.pdf.txt", full.names=TRUE)
-    
-    if (length(filenames)>0){
-        if (file.exists(paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))) {
-            message("Loading Rdata file.")
-            load(paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
-        } else {
-            message("Reading data files.")
-            plot_data <- lapply(filenames , function(x) { 
-                read.table(file = x, header=TRUE, row.names=1, check.names = FALSE, stringsAsFactors = FALSE)
-            })
-            save(plot_data, file = paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
-        }
-        data_list <- list()
-        for (q in 1:length(plot_data)){
-            q<-q
-            obs_idx <- c(1:ncol(plot_data[[q]]))[-unlist(ref_groups)]
-            data_list[[q]] <- create_gene_eset(plotting_data = plot_data[[q]], 
-                                               reference_idx = reference_idx, 
-                                               ref_groups = ref_groups,
-                                               cluster_by_groups = cluster_by_groups,
-                                               obs_annotations_groups = obs_annotations_groups,
-                                               obs_annotations_names = obs_annotations_names,
-                                               one_ref = one_reference
-            )
-        }
-        dat <- data_list[[9]]
-    } else {
-        message("loading data from environmnet")
-        obs_idx <- c(1:ncol(data.frame(ret_list$VIZ)))[-unlist(ref_groups)]
-        data_list <- create_gene_eset(plotting_data = data.frame(ret_list$VIZ),
-                                      reference_idx = reference_idx, 
-                                      ref_groups = ref_groups,
-                                      cluster_by_groups = cluster_by_groups,
-                                      obs_annotations_groups = obs_annotations_groups,
-                                      obs_annotations_names = obs_annotations_names,
-                                      one_ref = one_reference
-        )
-        dat <- data_list
-    }
-    # create directory
+    dat <- configure_data(infercnv_obj = infercnv_obj,
+                                cluster_by_groups = cluster_by_groups,
+                                one_ref = one_reference)
+    # Create ouput directory
     dir.create(file.path(files_dir, "Plots"), showWarnings = FALSE) # will create directory if it doesnt exist 
     out_directory <- paste(files_dir, "Plots", sep = .Platform$file.sep)
+    
     # ----------------------Create the plots for each gene of interest -----------------------------------------------------------------------
     #### get chromosome seperator locations
-    contigOrder <- levels(input_gene_order$chr)
-    counts <- table(factor(ret_list$CONTIGS),useNA = "no")[contigOrder]
-    cumulativeCounts <- cumsum(c(1,counts[-which(is.na(names(counts)))]))
-    chrIdx <- head(cumulativeCounts,n=-1L)
-    geneOrder <- head(colnames(dat),n=-1)
+    ## get the correct order of the chromosomes
+    ordering <- unique(infercnv_obj@gene_order[['chr']]) 
+    ordered_locations <- table(infercnv_obj@gene_order[['chr']],useNA = "no")[ordering] 
+    cumulativeCounts <- cumsum(c(1,ordered_locations[which(!is.na(names(ordered_locations)))]))
+    chrIdx <- head(cumulativeCounts,n=-1L) # exclude the last number 
+    geneOrder <- colnames(t(infercnv_obj@expr.data))
     # create PDF 
     pdf(paste(out_directory,"ExploratoryPlots.pdf", sep =.Platform$file.sep ), onefile = TRUE, height = 6, width = 9)
+    
     # ----------------------plot 2 differnet cells  -----------------------------------------------------------------------
     message("Plotting a single reference cell against a observed cell.")
-    obs_dat <-  dat[obs_idx]
-    ref_dat <- dat[-obs_idx]
-    twoCells <- rbind(obs_dat[1,],ref_dat[1,])
-    singleData <- melt(twoCells, id = "cell_type")
-    colnames(singleData) <- c("cell_type", "Gene", "Expression")
-    singlePlot <- ggplot(singleData, aes(x = Gene, y = Expression, group = cell_type)) +
+    #get index for one cell from each cell type
+    single_idx <- sapply(unique(dat$cell_type), function(x){which(dat$cell_type==x)[1]})
+    singleData <- dat[single_idx,]
+    singleLongData <- melt(singleData, id = "cell_type")
+    colnames(singleLongData) <- c("cell_type", "Gene", "Expression")
+    singlePlot <- ggplot(singleLongData, aes(x = Gene, y = Expression, group = cell_type)) +
         geom_line(aes(color = cell_type)) +
         labs(title="Expression Of One Reference And One Observed Cell") + 
         theme(plot.title = element_text(hjust = 0.5, colour = "Black", size = 10),
@@ -180,40 +118,6 @@ CreatePlots <- function(files_dir,
                          labels = names(cumulativeCounts[-1]))
     print(singlePlot)
     
-    
-    # ----------------------plot all values  -----------------------------------------------------------------------
-    # message("Plotting all expression values.")
-    # #pdf(paste(out_directory,"ALL_VALUES.pdf", sep =.Platform$file.sep ), onefile = TRUE, height = 9, width = 9)
-    # allData <- melt(dat, id = "cell_type")
-    # colnames(allData) <- c("cell_type", "Gene", "Expression")
-    # allPlot <- ggplot(allData, aes(x = Gene, y = Expression, group = cell_type)) +
-    #     geom_line(aes(color = cell_type)) +
-    #     labs(title="Expression Levels For All Genes") + 
-    #     theme(plot.title = element_text(hjust = 0.5, colour = "Black", size = 15),
-    #           panel.background = element_blank(),
-    #           panel.grid.major.x = element_line(colour = "grey"),
-    #           legend.position = "bottom",
-    #           axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0)) +
-    #     scale_x_discrete(limits = geneOrder,
-    #                      breaks = geneOrder[chrIdx],
-    #                      labels = names(cumulativeCounts[-1]))
-    #print(allPlot)
-    #dev.off()
-    # ----------------------PLOT MAX VALUES-----------------------------------------------------------------------
-    # max_val <- dat[,lapply(.SD,max), by = cell_type]
-    # maxData <- melt(max_val, id = "cell_type")
-    # colnames(maxData) <- c("cell_type","Gene","Max_Value")
-    # ggplot(maxData, aes(x = Gene, y = Max_Value, group = cell_type)) +
-    #     geom_line(aes(color = cell_type)) +
-    #     labs(title="Max Expression") + 
-    #     theme(plot.title = element_text(hjust = 0.5, colour = "Black", size = 15),
-    #           panel.background = element_blank(),
-    #           panel.grid.major.x = element_line(colour = "grey"),
-    #           legend.position = "bottom",
-    #           axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0)) +
-    #     scale_x_discrete(limits = geneOrder,
-    #                      breaks = geneOrder[chrIdx],
-    #                      labels = names(cumulativeCounts[-1]))
     
     # ----------------------PLOT MEAN VALUES-----------------------------------------------------------------------
     message("Plotting mean expression values.")
@@ -291,8 +195,8 @@ CreatePlots <- function(files_dir,
     # ----------------------KS.test between genes -----------------------------------------------------------------------
     message("Plotting KS and P-values.")
     # seperate the observed and reference data 
-    obs_dat <-  dat[obs_idx]
-    ref_dat <- dat[-obs_idx]
+    obs_dat <-  dat[unlist(infercnv_obj@observation_grouped_cell_indices),]
+    ref_dat <- dat[-unlist(infercnv_obj@observation_grouped_cell_indices),]
     obs_dat <- as.data.frame(obs_dat)[,1:(ncol(obs_dat)-1)]
     ref_dat <- as.data.frame(ref_dat)[,1:(ncol(ref_dat)-1)] 
     
@@ -344,9 +248,9 @@ CreatePlots <- function(files_dir,
     message("Plotting t-test.")
     # seperate the observed and reference data 
     plotTtest <- function(dat){
-        obs_dat <- dat[obs_idx]
-        ref_dat <- dat[-obs_idx]
-        obs_dat <- as.data.frame(obs_dat)[,1:( ncol(obs_dat)-1)]
+        obs_dat <-  dat[unlist(infercnv_obj@observation_grouped_cell_indices),]
+        ref_dat <- dat[-unlist(infercnv_obj@observation_grouped_cell_indices),]
+        obs_dat <- as.data.frame(obs_dat)[,1:(ncol(obs_dat)-1)]
         ref_dat <- as.data.frame(ref_dat)[,1:(ncol(ref_dat)-1)] 
         
         ttestValues <- data.frame(t(sapply(geneOrder,function(i,d1,d2){
@@ -431,8 +335,10 @@ CreatePlots <- function(files_dir,
     # gridExtra::grid.arrange(TTESTPLOT, ncol = 1, heights = c(6))
     
     
-    linearTest <- function(dat, one_reference=one_reference){
-        plotting <- function(dat, one_reference){
+    linearTest <- function(dat, 
+                           one_reference=one_reference){
+        plotting <- function(dat, 
+                             one_reference){
             # run linear models
             test <- lapply(1:(ncol(dat)-1), function(i){
                 summary(lm(unlist(dat[,i,with =FALSE])~ dat$cell_type))
@@ -449,7 +355,7 @@ CreatePlots <- function(files_dir,
             coef$Gene <- colnames(dat)[-ncol(dat)]
             coefData <- melt(coef, id = "Gene")
             colnames(coefData) <- c("Gene", "cell_type", "Coefficient")
-            coefPlot <- ggplot(data = coefData, aes(x = Gene, y = Coefficient, colour = cell_type, fill = cell_type,  group = length(unique(dat$cell_type)))) +
+            coefPlot <- ggplot(data = coefData, aes(x = Gene, y = Coefficient, colour = cell_type, fill = cell_type, group = cell_type)) +
                 geom_line(alpha = .3) +
                 scale_x_discrete(limits = geneOrder,
                                  breaks = geneOrder[chrIdx],
@@ -464,7 +370,7 @@ CreatePlots <- function(files_dir,
             pval$Gene <- colnames(dat)[-ncol(dat)]
             pvalData <- melt(pval, id = "Gene")
             colnames(pvalData) <- c("Gene", "cell_type", "pVal")
-            lmPvalPlot <- ggplot(data = pvalData, aes(x = Gene, y = -10*log10(pVal), colour = cell_type, fill = cell_type, group = length(unique(dat$cell_type)))) +
+            lmPvalPlot <- ggplot(data = pvalData, aes(x = Gene, y = -10*log10(pVal), colour = cell_type, fill = cell_type, group = cell_type)) +
                 geom_line(alpha = .3) +
                 scale_x_discrete(limits = geneOrder,
                                  breaks = geneOrder[chrIdx],
@@ -479,16 +385,16 @@ CreatePlots <- function(files_dir,
             return(lmPlot_list)
         }
         lmPlots <- c()
-        if (length(ref_groups) > 1 & one_reference == FALSE){
+        if (length(infercnv_obj@reference_grouped_cell_indices) > 1 & one_reference == FALSE){
             dat$cell_type <- factor(dat$cell_type)
             types <- length(unique(dat$cell_type))
-            refs <- sapply(1:length(ref_groups), function(i){paste("Reference",toString(i),sep = "")}) 
+            refs <- sapply(1:length(infercnv_obj@reference_grouped_cell_indices), function(i){paste("Reference",toString(i),sep = "")}) 
             names(refs) <- refs
             
             plotrefs <- lapply(refs, function(i){
                 contr.treatment(types, base = which(sort(unique(dat$cell_type)) == i))})
             for (i in 1:length(plotrefs)){
-                contrasts(dat$cell_type) <- plotrefs[[i]] 
+                contrasts(dat$cell_type) <- plotrefs[[i]]
                 tempPlot <- plotting(dat, one_reference = one_reference)
                 lmPlots <- c(lmPlots, tempPlot)}
             LMPLOT <- gridExtra::arrangeGrob( 
@@ -499,6 +405,7 @@ CreatePlots <- function(files_dir,
                 bottom = grid::textGrob("Gene",
                                         gp = grid::gpar(fontsize=15)))
             plot_with_legend <- lmPlots[[1]] + theme(legend.position = "bottom") +
+                scale_colour_discrete(labels=c("Observed","Reference","Reference")) +
                 guides(fill = guide_legend(title = "Cell Type"), colour = guide_legend(title = "Cell Type"))
             plot_legend <- pull_legend(plot_with_legend)
             print(gridExtra::grid.arrange(LMPLOT,
@@ -523,9 +430,8 @@ CreatePlots <- function(files_dir,
             print(gridExtra::grid.arrange(LMPLOT, plot_legend, ncol = 1, heights = c(10,1)))
         }
     }
-    linearTest(dat, one_reference = one_reference)
-    
-    
+    linearTest(dat, 
+               one_reference = one_reference)
     dev.off()
 }
 
