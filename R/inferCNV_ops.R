@@ -30,7 +30,7 @@
 #'                      default(NA, instead will use sd_amplifier below.
 #'
 #' @param sd_amplifier  Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
-#'                      default: 1.5
+#'                      default: 1.0
 #' 
 #' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
 #'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
@@ -82,7 +82,7 @@ run <- function(infercnv_obj,
 
                 # noise settings
                 noise_filter=NA,
-                sd_amplifier = 1.5,
+                sd_amplifier = 1.0,
 
                 # observation cell clustering settings
                 cluster_by_groups=FALSE,
@@ -103,10 +103,16 @@ run <- function(infercnv_obj,
                 mask_nonDE_genes=TRUE,
                 mask_nonDE_pval=0.05,
                 
-                plot_steps=FALSE
+                plot_steps=FALSE,
 
+                debug=FALSE #for debug level logging
                 
                 ) {
+
+
+    if (debug) {
+        flog.threshold(DEBUG)
+    }
     
     flog.info(paste("::process_data:Start", sep=""))
 
@@ -1244,7 +1250,23 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     chrs = unlist(unique(gene_chr_listing))
 
     for (chr in chrs) {
-        infercnv_obj@expr.data[which(gene_chr_listing == chr),, drop=F] <- .smooth_window(infercnv_obj@expr.data[which(gene_chr_listing == chr),, drop=F], window_length, smooth_ends)
+        chr_genes_indices = which(gene_chr_listing == chr)
+        flog.debug(paste0("smooth_by_chromosome: chr: ",chr)) 
+        
+        input_data = data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
+        flog.debug(paste0("dim subset:", paste(dim(input_data), collapse=",")))
+        
+        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
+
+        if (nrow(chr_data) > 1) {
+            smoothed_chr_data = .smooth_window(data=chr_data,
+                                               window_length=window_length,
+                                               smooth_ends=smooth_ends)
+            
+            flog.debug(paste0("smoothed data: ", paste(dim(smoothed_chr_data), collapse=",")))
+            
+            infercnv_obj@expr.data[chr_genes_indices, ] <- smoothed_chr_data
+        }
     }
     
     return(infercnv_obj)
