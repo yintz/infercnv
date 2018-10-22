@@ -59,7 +59,7 @@ infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
 
 ## perform Anscombe normalization
 
-Suggested by Matan for removing noisy variation at low counts
+Suggested for removing noisy variation at low counts
 
 ```{r}
 infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
@@ -177,7 +177,7 @@ knitr::include_graphics("infercnv.inverted.png")
 ## Removing noise
 
 ```{r}
-infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
+infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.0)
 save('infercnv_obj', file='infercnv_obj.denoised')
 ```
 
@@ -227,19 +227,20 @@ Runs a t-Test comparing tumor/normal for each patient and normal sample, and mas
 
 ```{r}
 
-load('infercnv_obj.final')
 plot_data = infercnv_obj@expr.data
 high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))  
 
 low_threshold = -1 * high_threshold 
 
-infercnv_obj2 <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=1)
+infercnv_obj <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=1)
+
+save('infercnv_obj', file="infercnv_obj.non_DE_masked")
 
 ```
 
 
 ```{r, results="hide"}
-plot_cnv(infercnv_obj2, 
+plot_cnv(infercnv_obj, 
          output_filename='infercnv.non-DE-genes-masked', 
          color_safe_pal = FALSE, 
          x.range=c(low_threshold, high_threshold), 
@@ -253,4 +254,20 @@ knitr::include_graphics("infercnv.non-DE-genes-masked.png")
 
 ```
 
+## Brighten it up by changing the scale threshold to our liking:
 
+```{r}
+
+plot_cnv(infercnv_obj, 
+         output_filename='infercnv.finalized_view', 
+         color_safe_pal = FALSE, 
+         x.range=c(0.7, 1.3), 
+         x.center=1, 
+         title = "InferCNV")
+
+```
+
+```{r}
+knitr::include_graphics("infercnv.finalized_view.png")
+
+```
