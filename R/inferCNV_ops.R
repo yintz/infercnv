@@ -1276,31 +1276,39 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 .smooth_window <- function(data, window_length, smooth_ends=TRUE) {
 
     flog.info(paste("::smooth_window:Start.", sep=""))
+#    if (window_length > nrow(data)){
+#        flog.warn("window length exceeds number of rows in data") #, returning original unmodified data")
+#        flog.warn("setting window length to nrows")
+#        if ((nrow(data) %% 2 ) == 0) {
+#            window_length = nrow(data) - 1
+#        }
+#        else {
+#            window_length = nrow(data)
+#        }
+#        # return(data)
+#    }
+    
     if (window_length < 2){
         flog.warn("window length < 2, returning original unmodified data")
         return(data)
     }
-    if (window_length > nrow(data)){
-        flog.warn("window length exceeds number of rows in data") #, returning original unmodified data")
-        flog.warn("setting window length to nrows")
-        window_length = nrow(data)
-        # return(data)
-    }
-    
-    tail_length <- (window_length - 1) / 2
+
+#    tail_length <- (window_length - 1) / 2
     num_genes <- nrow(data)
-    data_sm <- apply(data,
-                     2,
-                     .smooth_window_helper,
-                     window_length=window_length)
+    #data_sm <- apply(data,
+    #                 2,
+    #                 .smooth_window_helper,
+    #                 window_length=window_length)
     flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
     
     if (smooth_ends) {
                                         # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
-        data_sm <- apply(data_sm,
+        # data_sm <- apply(data_sm,
+        data_sm <- apply(data,
                          2,
                          .smooth_ends_helper,
-                         tail_length=tail_length)
+                         window_length=window_length)
+#                         tail_length=tail_length)
         
     }
     
@@ -1320,8 +1328,9 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 #
 # Returns:
 # Data smoothed.
-.smooth_ends_helper <- function(obs_data, tail_length) {
+##.smooth_ends_helper <- function(obs_data, tail_length) {
 
+.smooth_ends_helper <- function(obs_data, window_length) {
     # strip NAs out and replace after smoothing
     orig_obs_data = obs_data
 
@@ -1332,11 +1341,43 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     obs_length <- length(obs_data)
     end_data <- obs_data
 
+    tail_length = (window_length - 1)/2
+#    window_length = (tail_length * 2) + 1
+#    #end_data <- .smooth_window_helper(obs_data, (tail_length*2) + 1)
+    if (obs_length >= window_length) {
+        end_data <- .smooth_window_helper(obs_data, window_length)
+    }
+    
     # end_data will have the end positions replaced with mean values, smoothing just at the ends.
 
     obs_count <- length(obs_data)
 
-    for (tail_end in 1:tail_length) {
+    numerator_counts_vector = c(c(1:tail_length), tail_length + 1, c(tail_length:1))
+    
+    # defining the iteration range in cases where the window size is larger than the number of genes. In that case we only iterate to the half since the process is applied from both ends.
+    iteration_range = ifelse(obs_count > window_length, tail_length, ceiling(obs_count/2))
+#    iteration_range = obs_count > window_length ? tail_length : ceiling(obs_count/2)
+
+    for (tail_end in 1:iteration_range) {
+        end_tail = obs_count - tail_end + 1
+
+        d_left = tail_end - 1
+        d_right = ifelse(obs_count > window_length, tail_length, obs_count - tail_end)
+#        d_right = obs_count > window_length ? tail_length : obs_count - tail_end
+
+        r_left = tail_length - d_left
+        r_right = tail_length - d_right
+
+        denominator = (((window_length - 1)/2)^2 + window_length) - ((r_left * (r_left + 1))/2) - ((r_right * (r_right + 1))/2)
+
+        left_input_vector_chunk = obs_data[1:(tail_end + d_right)]
+        right_input_vector_chunk = obs_data[(end_tail - d_right):obs_length]
+
+        numerator_range = numerator_counts_vector[(tail_length + 1 - d_left):(tail_length + 1 + d_right)]
+#        right_numerator_range = numerator_counts_vector[():()]
+
+        end_data[tail_end] = sum(left_input_vector_chunk * numerator_range)/denominator
+        end_data[end_tail] = sum(right_input_vector_chunk * rev(numerator_range))/denominator
 
         # algorithm generates smoothing windows from the end like so:
         # <|>
@@ -1346,33 +1387,35 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         # <    |    >
         # where | is the central position assigned the mean of observations in the window.
 
-        bounds <- tail_end - 1
-        end_tail <- obs_count - bounds
-
-        show_debug_logging_here = FALSE
-
-        if (show_debug_logging_here) {
-            flog.debug(paste("::smooth_ends_helper: tail range <",
-                                    tail_end - bounds,
-                                    "|", tail_end, "|",
-                                    tail_end + bounds,">", sep=" "))
-        }
-
-        end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
-                                            (tail_end + bounds)],
-                                   na.rm=TRUE)
-
-
-        if (show_debug_logging_here) {
-            flog.debug(paste("::smooth_ends_helper: tail range <",
-                                    end_tail - bounds,
-                                    "|", end_tail, "|",
-                                    end_tail + bounds, ">", sep=" "))
-        }
-
-        end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
-                                            (end_tail + bounds)],
-                                   na.rm=TRUE)
+#        bounds <- tail_end - 1
+#        end_tail <- obs_count - bounds
+#
+#        show_debug_logging_here = FALSE
+#
+#        if (show_debug_logging_here) {
+#            flog.debug(paste("::smooth_ends_helper: tail range <",
+#                                    tail_end - bounds,
+#                                    "|", tail_end, "|",
+#                                    tail_end + bounds,">", sep=" "))
+#        }
+#
+#        #end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
+#        #                                    (tail_end + bounds)],
+#        end_data[tail_end] <- mean(obs_data[1:(tail_end + tail_length)],
+#                                   na.rm=TRUE)
+#
+#
+#        if (show_debug_logging_here) {
+#            flog.debug(paste("::smooth_ends_helper: tail range <",
+#                                    end_tail - bounds,
+#                                    "|", end_tail, "|",
+#                                    end_tail + bounds, ">", sep=" "))
+#        }
+#
+#        #end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
+#        #                                    (end_tail + bounds)],
+#        end_data[end_tail] <- mean(obs_data[(end_tail - tail_length):obs_length],
+#                                   na.rm=TRUE)
     }
 
     orig_obs_data[! nas] = end_data  # replace original data with end-smoothed data
@@ -1394,7 +1437,15 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     nas = is.na(obs_data)
     vals = obs_data[! nas]
 
-    smoothed = filter(vals, rep(1 / window_length, window_length), sides=2)
+    custom_filter_denominator = ((window_length-1)/2)^2 + window_length
+    custom_filter_numerator = c(c(1:((window_length-1)/2)), ((window_length-1)/2)+1, c(((window_length-1)/2):1))
+
+    custom_filter = custom_filter_numerator/rep(custom_filter_denominator, window_length)
+
+#    flog.info(paste("custom filter = ", custom_filter, "\n and window_length =", window_length, "\n and nrow(data) = ", nrow(obs_data), sep=""))
+
+    #smoothed = filter(vals, rep(1 / window_length, window_length), sides=2)
+    smoothed = filter(vals, custom_filter, sides=2)
 
     ind = which(! is.na(smoothed))
     vals[ind] = smoothed[ind]
