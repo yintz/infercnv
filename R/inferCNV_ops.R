@@ -1362,7 +1362,9 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         end_tail = obs_count - tail_end + 1
 
         d_left = tail_end - 1
-        d_right = ifelse(obs_count > window_length, tail_length, obs_count - tail_end)
+        d_right = obs_count - tail_end
+        d_right = ifelse(d_right > tail_length, tail_length, d_right)
+#        d_right = ifelse(obs_count > window_length, tail_length, tail_length - tail_end)
 #        d_right = obs_count > window_length ? tail_length : obs_count - tail_end
 
         r_left = tail_length - d_left
