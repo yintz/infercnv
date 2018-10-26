@@ -82,7 +82,7 @@ run <- function(infercnv_obj,
 
                 # noise settings
                 noise_filter=NA,
-                sd_amplifier = 1.0,
+                sd_amplifier = 1.5,
 
                 # observation cell clustering settings
                 cluster_by_groups=FALSE,
