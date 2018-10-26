@@ -20,8 +20,8 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom ape write.tree as.phylo
 #' @importFrom fastcluster hclust
 #' @import RColorBrewer
-#' @import Seurat
 #' @import Matrix
+#' @import coin
 
 NULL
 
