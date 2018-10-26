@@ -243,7 +243,7 @@ get_DE_genes_via_Seurat <- function(infercnv_obj,
 #'
 #' @param p_val_thresh  p-value threshold for assigning DE statistically significant 
 #'
-#' @param test.use statistical test to use.  (default: "t" for t-test.) **note, other tests still need to be implemented here. basic plumbing provided.
+#' @param test.use statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.
 #'
 #' @param center_val value to assign to those genes that are not found to be statistically DE.
 #'
@@ -254,7 +254,7 @@ get_DE_genes_via_Seurat <- function(infercnv_obj,
 
 mask_non_DE_genes_basic <- function(infercnv_obj,
                                     p_val_thresh = 0.05,
-                                    test.use="t",
+                                    test.use="wilcoxon",
                                     center_val=mean(infercnv_obj@expr.data) ) {
     
 
@@ -262,6 +262,8 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
                                         p_val_thresh=p_val_thresh,
                                         test.use=test.use)
 
+    #save('all_DE_results', file='all_DE_results.obj')
+    
     infercnv_obj <- .mask_DE_genes(infercnv_obj,
                                    all_DE_results,
                                    mask_val=center_val)
@@ -292,10 +294,8 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 
 get_DE_genes_basic <- function(infercnv_obj,
                                p_val_thresh = 0.05,
-                               test.use="t" # other options:  (TBD)
+                               test.use="wilcoxon" # other options:  (wilcoxon, t, perm)
                                ) {
-    
-
     
     ## Find DE genes by comparing the mutant types to normal types
     normal_types = names(infercnv_obj@reference_grouped_cell_indices)
@@ -315,6 +315,30 @@ get_DE_genes_basic <- function(infercnv_obj,
         if (is(res, "try-error")) return(NA) else return(res$p.value)
         
     }
+
+    statfxns[[ "perm" ]] <- function(x, idx1, idx2) {
+
+        vals1 = x[idx1]
+        vals2 = x[idx2]
+
+        allvals = c(vals1, vals2)
+        facts = factor(rep(c("A","B"), c(length(vals1), length(vals2))))
+
+        perm = coin::oneway_test(allvals ~ facts)
+        pval = coin::pvalue(perm)
+        return(pval)
+    }
+
+    statfxns[[ "wilcoxon" ]] <- function(x, idx1, idx2) {
+
+        vals1 = x[idx1]
+        vals2 = x[idx2]
+                
+        w = wilcox.test(vals1, vals2)
+
+        return(w$p.value)
+    }
+    
     
     statfxn = statfxns[[ test.use ]]
     
@@ -331,13 +355,14 @@ get_DE_genes_basic <- function(infercnv_obj,
 
             pvals = apply(infercnv_obj@expr.data, 1, statfxn, idx1=normal_indices, idx2=tumor_indices)
             pvals = unlist(pvals)
+            pvals = p.adjust(pvals, method="BH")
             
             names(pvals) = rownames(infercnv_obj@expr.data)
 
             genes = names(pvals)[pvals<p_val_thresh]
             
-            flog.info(sprintf("Found %d genes as DE", length(genes)))
-
+            flog.info(sprintf("Found %d genes / %d total as DE", length(genes), length(pvals)))
+            
             condition_pair = paste(tumor_type, normal_type, sep=",")
             
             all_DE_results[[condition_pair]] = list(tumor=tumor_type,

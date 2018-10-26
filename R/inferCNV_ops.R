@@ -102,6 +102,7 @@ run <- function(infercnv_obj,
 
                 mask_nonDE_genes=TRUE,
                 mask_nonDE_pval=0.05,
+                test.use='wilcoxon',
                 
                 plot_steps=FALSE,
 
@@ -564,7 +565,7 @@ run <- function(infercnv_obj,
         high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
         low_threshold = -1 * high_threshold
 
-        infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=mean(plot_data))
+        infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj, test.use = test.use, center_val=mean(plot_data))
 
 
         # Plot incremental steps.

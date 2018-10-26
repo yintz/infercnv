@@ -22,6 +22,7 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @import RColorBrewer
 #' @import Seurat
 #' @import Matrix
+#' @import coin
 
 NULL
 
