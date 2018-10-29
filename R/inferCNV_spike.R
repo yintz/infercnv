@@ -1,0 +1,230 @@
+
+
+
+spike_in_variation_chrs <- function(infercnv_obj,
+                                    spike_in_chrs=c('chr2', 'chr4', 'chr7', 'chr9'),
+                                    spike_in_multiplier_vec=c(0.01, 0.5, 1.5, 2.0),
+                                    max_cells=100) {
+
+    min_genes_selected = 100
+    
+    ## get the gene ordering:
+    gene_selection_listing = list()
+    for (chr in spike_in_chrs) {
+        chr_genes = which(infercnv_obj@gene_order$chr == chr)
+        if (length(chr_genes) < min_genes_selected) {
+            flog.error(sprintf("Error, have %d genes found for chr %s, < min %d required",
+                               length(chr_genes),
+                               chr,
+                               min_genes_selected))
+            stop("error")
+        }
+        gene_selection_listing[[chr]] = chr_genes
+    }
+
+                                        #infercnv_obj <- spike_in_variation_genes(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
+    infercnv_obj <- spike_in_variation_genes_via_modeling(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
+    
+    return(infercnv_obj)
+}
+
+
+spike_in_variation_genes <- function(infercnv_obj, spike_in_genes_list, spike_in_multiplier_vec, max_cells) {
+
+    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
+
+    # sample among them
+    if (length(normal_cells_idx) > max_cells) {
+        normal_cells_idx = base::sample(x=normal_cells_idx, size=max_cells, replace=FALSE)
+    }
+
+    spike_expr_data = infercnv_obj@expr.data[,normal_cells_idx]
+    spike_count_data = infercnv_obj@count.data[,normal_cells_idx]
+    
+    colnames(spike_expr_data) = paste0("SPIKE_", colnames(spike_expr_data))
+    colnames(spike_count_data) = paste0("SPIKE_", colnames(spike_count_data))
+    
+    if (! all.equal(colnames(spike_expr_data), colnames(spike_count_data))) {
+        flog.error("Error, differences found among spiked in cell column namesw between expr and count matrices")
+        stop("error")
+    }
+    
+    if (length(spike_in_genes_list) != length(spike_in_multiplier_vec)) {
+        flog.error("Error, difference in lengths of spike_in_gene_list and spike_in_multiplier_vec")
+        stop("error")
+    }
+    
+    for (i in 1:length(spike_in_multiplier_vec)) {
+
+        gene_indices = spike_in_genes_list[[i]]
+        multiplier = spike_in_multiplier_vec[i]
+        
+        spike_expr_data[gene_indices, ] = spike_expr_data[gene_indices, ] * multiplier
+        spike_count_data[gene_indices, ] = spike_count_data[gene_indices, ] * multiplier
+        
+    }
+
+    ## integrate into expr data and count data matrices
+    ncol_begin = ncol(infercnv_obj@expr.data) + 1
+    ncol_end = ncol_begin + length(normal_cells_idx) - 1
+    
+    infercnv_obj@expr.data = cbind( infercnv_obj@expr.data, spike_expr_data )
+    infercnv_obj@count.data = cbind( infercnv_obj@count.data, spike_count_data )
+
+    infercnv_obj@observation_grouped_cell_indices[['SPIKE']] = ncol_begin:ncol_end
+
+    infercnv:::validate_infercnv_obj(infercnv_obj)
+    
+    return(infercnv_obj)
+}
+
+
+spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells) {
+
+    mvtable = .get_mean_var_table(infercnv_obj)
+    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
+    normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
+
+    ## apply spike-in multiplier vec
+    for (i in 1:length(spike_in_multiplier_vec)) {
+        
+        gene_indices = gene_selection_listing[[i]]
+        multiplier = spike_in_multiplier_vec[i]
+        
+        normal_cells_expr[gene_indices, ] = normal_cells_expr[gene_indices, ] * multiplier
+        
+    }
+
+    ## get simulated matrix
+    sim_matrix = get_simulated_cell_matrix(mvtable, normal_cells_expr, max_cells)
+
+    ## integrate into expr data and count data matrices
+    ncol_begin = ncol(infercnv_obj@expr.data) + 1
+    ncol_end = ncol_begin + max_cells - 1
+    
+    infercnv_obj@expr.data = cbind( infercnv_obj@expr.data, sim_matrix )
+    infercnv_obj@count.data = cbind( infercnv_obj@count.data, sim_matrix ) # just so it validates... not useful, otherwise
+    
+    infercnv_obj@observation_grouped_cell_indices[['SPIKE']] = ncol_begin:ncol_end
+
+    infercnv:::validate_infercnv_obj(infercnv_obj)
+
+    
+    return(infercnv_obj)
+}
+
+
+get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cells) {
+    
+                                        # should be working on the total sum count normalized data.
+                                        # model the mean variance relationship
+
+    s = smooth.spline(log2(mean_var_table$m+1), log2(mean_var_table$v+1))
+        
+    spike_cell_names = paste0("spike_", 1:num_cells)
+    
+    ngenes = nrow(normal_cell_expr)
+    
+    sim_expr_val <- function(gene_idx, rand_cell_idx) {
+        m = normal_cell_expr[gene_idx, rand_cell_idx]
+        v = predict(s, log2(m+1))$y
+        v = max(0, 2^v-1)
+        val = max(0, rnorm(n=1, mean=m, sd=sqrt(v)))
+        return(val)
+    }
+                  
+    sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
+    rownames(sim_cell_matrix) = rownames(normal_cell_expr)
+    colnames(sim_cell_matrix) = spike_cell_names
+    
+    for (i in 1:num_cells) {
+        rand_cell_idx = floor(runif(1) * ncol(normal_cell_expr)+1)
+        newvals = sapply(1:ngenes, FUN=sim_expr_val, rand_cell_idx)
+        sim_cell_matrix[,i] = newvals
+    }
+
+    return(sim_cell_matrix)
+}
+    
+
+.get_mean_var_table <- function(infercnv_obj) {
+
+    group_indices = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+
+    mean_var_table = NULL
+    
+    for (group_name in names(group_indices)) {
+        flog.info(sprintf("processing group: %s", group_name))
+        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
+        m = rowMeans(expr.data)
+        v = apply(expr.data, 1, var)
+        if (is.null(mean_var_table)) {
+            mean_var_table = data.frame(g=group_name, m=m, v=v)
+        } else {
+            mean_var_table = rbind(mean_var_table, data.frame(g=group_name, m=m, v=v))
+        }
+    }
+        
+    return(mean_var_table)
+}
+
+
+
+get_spike_in_average_bounds <- function(infercnv_obj) {
+
+    spike_in_cell_idx = infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]]
+    spike.expr.data = infercnv_obj@expr.data[,spike_in_cell_idx]
+
+    bounds = infercnv:::.get_average_bounds(spike.expr.data)
+
+    return(bounds)
+}
+
+
+remove_spike <- function(infercnv_obj) {
+
+    flog.info("Removing spike")
+    
+    spike_in_cell_idx = infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]]
+
+    infercnv_obj@expr.data = infercnv_obj@expr.data[, -spike_in_cell_idx]
+
+    infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]] <- NULL # deletes it.
+
+    return(infercnv_obj)
+
+}
+
+scale_cnv_by_spike <- function(infercnv_obj) {
+
+    # everything here should be centered at 1 (no change).
+    
+    spike_bounds = get_spike_in_average_bounds(infercnv_obj)
+
+    left_bound = spike_bounds[1]
+    right_bound = spike_bounds[2]
+
+                                        # zero gets set to left bound
+                                        # right bound gets set to 2x
+
+    scale_by_spike <- function(x) {
+        if (x < 1) {
+            x = 1 - ( (1-x)/(1-left_bound) )
+            if (x < 0) { x = 0 }
+        } else if (x > 1) {
+            x = 1 + ( (x-1) / (right_bound - 1) )
+        }
+        return(x)
+    }
+
+    infercnv_obj@expr.data <- apply(infercnv_obj@expr.data, 1:2, scale_by_spike)
+
+    return(infercnv_obj)
+}
+
+
+    
+        
+
+    
+    
