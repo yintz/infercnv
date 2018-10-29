@@ -106,7 +106,10 @@ run <- function(infercnv_obj,
                 
                 plot_steps=FALSE,
 
-                debug=FALSE #for debug level logging
+                debug=FALSE, #for debug level logging
+
+                include.spike = FALSE,
+                pseudocount = 0
                 
                 ) {
 
@@ -134,7 +137,7 @@ run <- function(infercnv_obj,
         
     }
 
-
+           
     ###################################################
     ## Step: removing insufficiently expressed genes
     step_count = step_count + 1
@@ -158,6 +161,16 @@ run <- function(infercnv_obj,
         save('infercnv_obj_low_expr_genes_pruned', file=file.path(out_dir, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count)))
         
     }
+
+
+    ####################################################
+    ##  Adding pseudocounts
+    
+    if (pseudocount != 0) {
+        flog.info(sprintf("Adding pseudocount: %g", pseudocount))
+        infercnv_obj <- add_pseudocount(infercnv_obj, pseudocount)
+    }
+        
     
     ###########################################
     ### STEP: normalization by sequencing depth
@@ -174,6 +187,39 @@ run <- function(infercnv_obj,
         
     }
     
+
+    ##################################################
+    ## spike-in
+    
+    if (include.spike) {
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
+        
+        infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+        
+                                        # Plot incremental steps.
+        if (plot_steps){
+
+            infercnv_obj_spiked <- infercnv_obj
+            save('infercnv_obj_spiked', file=file.path(out_dir, sprintf("%02d_spiked.infercnv_obj", step_count)))
+            
+            plot_cnv(infercnv_obj=infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     color_safe_pal=FALSE,
+                     x.center=mean(infercnv_obj@expr.data),
+                     x.range="auto",
+                     title=sprintf("%02d_spike_added",step_count),
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename=sprintf("infercnv.%02d_spike_added",step_count),
+                     write_expr_matrix=TRUE
+                     )
+        }
+        
+    }
+
     
     ##################################
     ##### STEP: anscombe normalization
@@ -187,6 +233,20 @@ run <- function(infercnv_obj,
         if (plot_steps) {
             infercnv_obj_anscombe_norm <- infercnv_obj
             save('infercnv_obj_anscombe_norm', file=file.path(out_dir, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count)))
+
+            plot_cnv(infercnv_obj=infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     color_safe_pal=FALSE,
+                     x.center=mean(infercnv_obj@expr.data),
+                     x.range="auto",
+                     title=sprintf("%02d_anscombe_norm",step_count),
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename=sprintf("infercnv.%02d_anscombe_norm",step_count),
+                     write_expr_matrix=TRUE
+                     )
             
         }
         
@@ -553,6 +613,40 @@ run <- function(infercnv_obj,
                  output_filename=sprintf("infercnv.%02d_removed_outliers", step_count))
     }
 
+
+
+
+    if (include.spike) {
+
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
+                
+        # normalize by spike
+        infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
+
+        if (plot_steps) {
+            infercnv_obj_scaled_by_spike <- infercnv_obj
+            save('infercnv_obj_scaled_by_spike', file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     color_safe_pal=FALSE,
+                     x.center=1,
+                     x.range="auto",
+                     title=sprintf("%02d_scaled_by_spike",step_count),
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count))
+        }
+        
+        # remove the spike now
+        infercnv_obj <- remove_spike(infercnv_obj)
+        
+    }
+    
+    
 
     ## Step: Filtering significantly DE genes
     if (mask_nonDE_genes) {
@@ -1834,3 +1928,12 @@ anscombe_transform <- function(infercnv_obj) {
     
 }
 
+
+add_pseudocount <- function(infercnv_obj, pseudocount) {
+
+    flog.info(sprintf("Adding pseudocount: %g", pseudocount))
+        
+    infercnv_obj@expr.data = infercnv_obj@expr.data + pseudocount
+
+    return(infercnv_obj)
+}
