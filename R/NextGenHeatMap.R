@@ -11,6 +11,8 @@
 #' @param out_dir (string) Path to where the infercnv.ngchm output file should be saved to 
 #' @param title (string) Title that will be used for the heatmap 
 #' @param gene_symbal (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
+#' @param x.center (integer) Center expression value for heatmap coloring.
+#' @param x.range (integer) Values for minimum and maximum thresholds for heatmap coloring. 
 #'
 #' @return
 #' 
@@ -22,7 +24,9 @@ Create_NGCHM <- function(infercnv_obj,
                          path_to_shaidyMapGen,
                          out_dir,
                          title = NULL, 
-                         gene_symbol = NULL) {
+                         gene_symbol = NULL,
+                         x.center = NA,
+                         x.range = NA) {
     
     # ----------------------Check/create Pathways-----------------------------------------------------------------------------------------------
     ## check out_dir
@@ -39,8 +43,28 @@ Create_NGCHM <- function(infercnv_obj,
     # create color map for the heat map and save it as a new data layer 
     # cut_value is the value that represents cuts on the heatmap
     cut_value <- -2147483648.0 
-    bounds <- infercnv:::get_average_bounds(infercnv_obj)
-    colMap <- NGCHM::chmNewColorMap(values        = c(cut_value, bounds[1], 1, bounds[2]),
+    # if specific center value is not given, set to 1 
+    if (any(is.na(x.center))) {
+        x.center <- 1
+    }
+    # if the range values are not given, will set appropriate values 
+    if (! any(is.na(x.range))) {
+        ## if the range values are provided, use defined values
+        low_threshold <- x.range[1]
+        high_threshold  <- x.range[2]
+        if (low_threshold > x.center | high_threshold < x.center | low_threshold >= high_threshold) {
+            x.center <- 0
+            if (low_threshold > x.center | high_threshold < x.center | low_threshold >= high_threshold) {
+                stop(paste("Error, problem with relative values of x.range: ", x.range, ", and x.center: ", x.center))
+            }
+        }
+    } else {
+        ## else, if not given, set the values 
+        bounds <- infercnv:::get_average_bounds(infercnv_obj)
+        low_threshold <- as.numeric(bounds[1])
+        high_threshold <- as.numeric(bounds[2])
+    }
+    colMap <- NGCHM::chmNewColorMap(values        = c(cut_value, low_threshold, x.center, high_threshold),
                                     colors        = c("grey45","darkblue","white","darkred"),
                                     missing.color = "white", 
                                     type          = "linear") 
