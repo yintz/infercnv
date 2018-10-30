@@ -615,7 +615,11 @@ run <- function(infercnv_obj,
 
 
 
-
+    # define heatmap thresholds for final plots.
+    plot_data = infercnv_obj@expr.data
+    high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
+    low_threshold = -1 * high_threshold
+    
     if (include.spike) {
 
         step_count = step_count + 1
@@ -624,6 +628,10 @@ run <- function(infercnv_obj,
         # normalize by spike
         infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
 
+        # now thresholds should be between 0 and 2 after spike-based scaling
+        low_threshold = 0
+        high_threshold = 2
+        
         if (plot_steps) {
             infercnv_obj_scaled_by_spike <- infercnv_obj
             save('infercnv_obj_scaled_by_spike', file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
@@ -634,7 +642,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      color_safe_pal=FALSE,
                      x.center=1,
-                     x.range="auto",
+                     x.range=c(low_threshold, high_threshold),
                      title=sprintf("%02d_scaled_by_spike",step_count),
                      obs_title="Observations (Cells)",
                      ref_title="References (Cells)",
@@ -647,17 +655,13 @@ run <- function(infercnv_obj,
     }
     
     
-
+    
     ## Step: Filtering significantly DE genes
     if (mask_nonDE_genes) {
 
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
         
-        plot_data = infercnv_obj@expr.data
-        # define heatmap expression dynamic range before masking out a bunch of non-DE genes:
-        high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
-        low_threshold = -1 * high_threshold
 
         infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj, test.use = test.use, center_val=mean(plot_data))
 
@@ -684,7 +688,22 @@ run <- function(infercnv_obj,
             
         }
     }
+
+    save('infercnv_obj', file=file.path(out_dir, "run.final.infercnv_obj"))
     
+    plot_cnv(infercnv_obj,
+             k_obs_groups=k_obs_groups,
+             cluster_by_groups=cluster_by_groups,
+             out_dir=out_dir,
+             color_safe_pal=FALSE,
+             x.center=1,
+             x.range=c(low_threshold,high_threshold),
+             title="inferCNV",
+             obs_title="Observations (Cells)",
+             ref_title="References (Cells)",
+             output_filename="infercnv")
+    
+        
     return(infercnv_obj)
 
 }

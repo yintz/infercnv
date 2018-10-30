@@ -16,23 +16,6 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              out_dir=out_dir, 
                              cluster_by_groups=T, 
                              plot_steps=F,
-                             include.spike=T
+                             include.spike=T  # used for final scaling to fit range (0,2) centered at 1.
                              )
-
-
-# save the final object in case we want to experiment with it later, replotting w/ diff thresholds, etc.
-save('infercnv_obj', file=file.path(out_dir, 'infercnv.final.obj'))
-
-# generate final plot
-plot_cnv(infercnv_obj,
-         out_dir=out_dir, 
-         cluster_by_groups=T,
-         color_safe_pal=FALSE,
-         x.center=1,
-         x.range=c(0,2),
-         title="inferCNV",
-         obs_title="Observations (Cells)",
-         ref_title="References (Cells)",
-         output_filename="infercnv")
-
 
