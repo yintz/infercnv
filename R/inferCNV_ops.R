@@ -691,6 +691,7 @@ run <- function(infercnv_obj,
 
     save('infercnv_obj', file=file.path(out_dir, "run.final.infercnv_obj"))
     
+    flog.info("Making the final infercnv heatmap")
     plot_cnv(infercnv_obj,
              k_obs_groups=k_obs_groups,
              cluster_by_groups=cluster_by_groups,
