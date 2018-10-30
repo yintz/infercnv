@@ -1,5 +1,21 @@
 
-
+#' @title spike_in_variation_chrs()
+#'
+#' Adds a 'SPIKE'-in to the observations set at different thresholds of loss/gain to
+#' aid in tracking the effect of infercnv operations and for defining the final scaling.
+#'
+#' 
+#' @param infercnv_obj
+#'
+#' @param spike_in_chrs : define the chromsomes that will serve as signal for gain/loss
+#'                        default: c('chr2', 'chr4', 'chr7', 'chr9')
+#'
+#' @param spike_in_multiplier_vec : factors that define relative expression for gain/loss
+#'                                  and must match ordering of spike_in_chrs above
+#'                                  default: c(0.01, 0.5, 1.5, 2.0)
+#' 
+#' @param max_cells max number of cells to incorporate in the spike-in
+#' 
 
 spike_in_variation_chrs <- function(infercnv_obj,
                                     spike_in_chrs=c('chr2', 'chr4', 'chr7', 'chr9'),
@@ -22,64 +38,28 @@ spike_in_variation_chrs <- function(infercnv_obj,
         gene_selection_listing[[chr]] = chr_genes
     }
 
-                                        #infercnv_obj <- spike_in_variation_genes(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
-    infercnv_obj <- spike_in_variation_genes_via_modeling(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
+    infercnv_obj <- .spike_in_variation_genes_via_modeling(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
     
     return(infercnv_obj)
 }
 
 
-spike_in_variation_genes <- function(infercnv_obj, spike_in_genes_list, spike_in_multiplier_vec, max_cells) {
+##' @title .spike_in_variation_genes_via_modeling()
+##'
+##' Creates the spike-in based on a list of genes. Generally, do not use this directly, and instead use
+##' the spike_in_variation_chrs() based on chromosomes.
+##'
+##' @param infercnv_obj
+##'
+##' @param gene_selection_listing : list of [[chr]] = [1,2,3,4,...] corresponding to indices (rows) of genes,
+##'                                 and should match order of spike_in_multiplier_vec below.
+##'
+##' @param spike_in_multiplier_vec : vector of factors corresponding to gain/loss multipliers matching order in the gene list above.
+##'
+##' @param max_cells : max number of cells to include in the spike-in
+##' 
 
-    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
-
-    # sample among them
-    if (length(normal_cells_idx) > max_cells) {
-        normal_cells_idx = base::sample(x=normal_cells_idx, size=max_cells, replace=FALSE)
-    }
-
-    spike_expr_data = infercnv_obj@expr.data[,normal_cells_idx]
-    spike_count_data = infercnv_obj@count.data[,normal_cells_idx]
-    
-    colnames(spike_expr_data) = paste0("SPIKE_", colnames(spike_expr_data))
-    colnames(spike_count_data) = paste0("SPIKE_", colnames(spike_count_data))
-    
-    if (! all.equal(colnames(spike_expr_data), colnames(spike_count_data))) {
-        flog.error("Error, differences found among spiked in cell column namesw between expr and count matrices")
-        stop("error")
-    }
-    
-    if (length(spike_in_genes_list) != length(spike_in_multiplier_vec)) {
-        flog.error("Error, difference in lengths of spike_in_gene_list and spike_in_multiplier_vec")
-        stop("error")
-    }
-    
-    for (i in 1:length(spike_in_multiplier_vec)) {
-
-        gene_indices = spike_in_genes_list[[i]]
-        multiplier = spike_in_multiplier_vec[i]
-        
-        spike_expr_data[gene_indices, ] = spike_expr_data[gene_indices, ] * multiplier
-        spike_count_data[gene_indices, ] = spike_count_data[gene_indices, ] * multiplier
-        
-    }
-
-    ## integrate into expr data and count data matrices
-    ncol_begin = ncol(infercnv_obj@expr.data) + 1
-    ncol_end = ncol_begin + length(normal_cells_idx) - 1
-    
-    infercnv_obj@expr.data = cbind( infercnv_obj@expr.data, spike_expr_data )
-    infercnv_obj@count.data = cbind( infercnv_obj@count.data, spike_count_data )
-
-    infercnv_obj@observation_grouped_cell_indices[['SPIKE']] = ncol_begin:ncol_end
-
-    infercnv:::validate_infercnv_obj(infercnv_obj)
-    
-    return(infercnv_obj)
-}
-
-
-spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells) {
+.spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells) {
 
     mvtable = .get_mean_var_table(infercnv_obj)
     normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
@@ -96,7 +76,7 @@ spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_l
     }
 
     ## get simulated matrix
-    sim_matrix = get_simulated_cell_matrix(mvtable, normal_cells_expr, max_cells)
+    sim_matrix = .get_simulated_cell_matrix(mvtable, normal_cells_expr, max_cells)
 
     ## integrate into expr data and count data matrices
     ncol_begin = ncol(infercnv_obj@expr.data) + 1
@@ -114,10 +94,32 @@ spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_l
 }
 
 
-get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cells) {
+##' .get_simulated_cell_matrix()
+##'
+##' generates a simulated grouping of cells vs. genes based on a cell expression matrix and
+##' the mean/variance relationship for all genes in all cell groupings.
+##'
+##' Cells are simulated as so:
+##'    A random cell is selected from the normal cell expression matrix.
+##'    The expression of each gene is treated as a targeted mean expression value.
+##'    The variance is chosen based on a spline fit to the mean/variance relationship provided.
+##'    A random expression value is generated from a normal distribution with corresponding (mean, variance)
+##'
+##' Genes are named according to the input expression matrix, and cells are named 'spike_{number}'.
+##' 
+##' @param mean_var_table : a data.frame containing three columns: group_name, mean, variance of expression per gene per grouping.
+##'
+##' @param normal_cell_expr : expression matrix of normal cells to guide the simulation. Should be total sum normalized.
+##'
+##' @param num_cells : number of cells to simulate
+##'
+##' @return matrix containing simulated expression values.
+##' 
+
+.get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cells) {
     
-                                        # should be working on the total sum count normalized data.
-                                        # model the mean variance relationship
+    # should be working on the total sum count normalized data.
+    # model the mean variance relationship
 
     s = smooth.spline(log2(mean_var_table$m+1), log2(mean_var_table$v+1))
         
@@ -146,6 +148,14 @@ get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cell
     return(sim_cell_matrix)
 }
     
+##' .get_mean_var_table()
+##'
+##' Computes the gene mean/variance table based on all defined cell groupings (reference and observations)
+##'
+##' @param infercnv_obj
+##'
+##' @return data.frame with 3 columns: group_name, mean, variance
+##' 
 
 .get_mean_var_table <- function(infercnv_obj) {
 
@@ -168,9 +178,16 @@ get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cell
     return(mean_var_table)
 }
 
+##' get_spike_in_average_bounds()
+##'
+##' return mean bounds for expression of all cells in the spike-in
+##'
+##' @param infercnv_obj
+##'
+##' @return c(left_bound, right_bound)
+##' 
 
-
-get_spike_in_average_bounds <- function(infercnv_obj) {
+.get_spike_in_average_bounds <- function(infercnv_obj) {
 
     spike_in_cell_idx = infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]]
     spike.expr.data = infercnv_obj@expr.data[,spike_in_cell_idx]
@@ -180,6 +197,15 @@ get_spike_in_average_bounds <- function(infercnv_obj) {
     return(bounds)
 }
 
+
+#' remove_spike()
+#'
+#' Removes the spiked-in group named 'SPIKE' from the infercnv_obj
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj 
+#' 
 
 remove_spike <- function(infercnv_obj) {
 
@@ -195,11 +221,27 @@ remove_spike <- function(infercnv_obj) {
 
 }
 
+
+
+#' scale_cnv_by_spike()
+#'
+#' Scales expression data according to the expression value bounds in the SPIKE group.
+#'
+#' Assumes data is centered at 1
+#' Expression below 1 is scaled according to the left spike bound set to zero.
+#' Expression above 1 is scaled according to the right spike bound set to two.
+#'
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#' 
+
+
 scale_cnv_by_spike <- function(infercnv_obj) {
 
     # everything here should be centered at 1 (no change).
     
-    spike_bounds = get_spike_in_average_bounds(infercnv_obj)
+    spike_bounds = .get_spike_in_average_bounds(infercnv_obj)
 
     left_bound = spike_bounds[1]
     right_bound = spike_bounds[2]
@@ -221,10 +263,3 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     return(infercnv_obj)
 }
-
-
-    
-        
-
-    
-    

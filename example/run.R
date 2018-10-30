@@ -15,7 +15,7 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
                              out_dir=out_dir, 
                              cluster_by_groups=T, 
-                             plot_steps=T,
+                             plot_steps=F,
                              include.spike=T
                              )
 
@@ -29,7 +29,7 @@ plot_cnv(infercnv_obj,
          cluster_by_groups=T,
          color_safe_pal=FALSE,
          x.center=1,
-         x.range=c(0.6,1.4),
+         x.range=c(0,2),
          title="inferCNV",
          obs_title="Observations (Cells)",
          ref_title="References (Cells)",
