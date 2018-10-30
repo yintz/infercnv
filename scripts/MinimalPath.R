@@ -49,132 +49,148 @@ args_parsed <- optparse::parse_args(pargs)
 #' @param genes (string or vector) Gene(s) of interest.
 #' @param one_ref (logical) Option to have references combined into one if TRUE or separated into different references if FALSE. Default value is FALSE.
 #' @param contig (string) The label for the chromosome that will be plotted. 
+#' 
 #' @return 
 #' PDF File with density plots showing gene expression levels along each step in inferCNV. 
 #' @export
 # Requires:
 #   gridExtra, grid, data.table, ggplot2
+
+
+configure_data <- function(infercnv_obj,
+                           gene,
+                           cluster_by_groups,
+                           one_ref,
+                           contig){
+    # Function to identify references and observed cell lines within expresion dataframe 
+    #		Input: 
+    #				infercnv_obj: (S4) infercnv object 
+    #				gene: (string) Gene of interest.
+    #               one_ref: (boolean) If True, will combine references into one 
+    #       Output:
+    #               Data frame with expression data and annotation information
+    
+    # get the cell ID names in order, (reference, observed)
+    row_order <- c(colnames(infercnv_obj@expr.data))
+    cell_type <- replace(row_order, 1:length(row_order) %in% unlist(infercnv_obj@observation_grouped_cell_indices), paste("Observed"))
+    
+    ## Label the references based on index locations 
+    if (one_ref == FALSE || length(infercnv_obj@reference_grouped_cell_indices) > 1) {
+        for(i in 1:length(infercnv_obj@reference_grouped_cell_indices)){ 
+            cell_type <- replace(cell_type, infercnv_obj@reference_grouped_cell_indices[[i]], paste("Reference",toString(i),sep = "")) 
+        }
+    } else {
+        for(i in 1:length(infercnv_obj@reference_grouped_cell_indices)){ 
+            cell_type <- replace(cell_type, 1:length(cell_type) %in% unlist(infercnv_obj@reference_grouped_cell_indices), paste("Reference"))
+        }
+    }
+    
+    #filter the expression set to only include the gene of interest 
+    if (!missing(gene)) {
+        new_plot_data <- infercnv_obj@expr.data[gene,] 
+        # add the labled cell annotation information
+        final_data <- data.frame(new_plot_data, cell_type,
+                                 check.rows = FALSE, check.names = FALSE, stringsAsFactors = FALSE)
+        colnames(final_data) <- c("exp","cell_type")
+    } 
+    if (!missing(contig)){
+        # check if contig in data
+        if (contig %in% infercnv_obj@gene_order[[1]]){
+            final_data <- data.frame(t(infercnv_obj@expr.data), cell_type,
+                                     check.rows = FALSE, check.names = FALSE, stringsAsFactors = FALSE)
+        } else {
+            error_message <- paste("Contig selected is not found in the data.\n",
+                                   "Check to make sure the correct contig label was selected.")
+            stop(error_message)
+        }
+    }
+    
+    # check if all reference cells are in cell type 
+    ref_cells <- which(cell_type != "Observed")
+    reference_ids <- colnames(infercnv_obj@expr.data)[unlist(infercnv_obj@reference_grouped_cell_indices)]
+    if (!(all(reference_ids %in% colnames(infercnv_obj@expr.data)[ref_cells]))){
+        missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
+        error_message <- paste("Error: Not all references are accounted for.",
+                               "Make sure the reference names match the names in the data.\n",
+                               "Check the following reference cell lines: ", 
+                               paste(missing_refs, collapse = ","))
+        stop(error_message)
+    }
+    # check if all observed cells are in cell type 
+    observed_ids <-colnames(infercnv_obj@expr.data)[unlist(infercnv_obj@observation_grouped_cell_indices)]
+    obs_cells <- which(cell_type == "Observed")
+    if (!(all(observed_ids %in% colnames(infercnv_obj@expr.data)[obs_cells]))){
+        missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
+        error_message <- paste("Error: Not all observed cell lines are accounted for.",
+                               "Make sure the cell id names match the names in the data.\n",
+                               "Check the following oberved cell lines: ", 
+                               paste(missing_refs, collapse = ","))
+        stop(error_message)
+    }
+    return(final_data)
+}
+
+concat <- function(files){ 
+    # Function to Create the titles for each graph:
+    #   Gets the names of the files and capitalizes first letter of each word 
+    #       input: the paths to file 
+    #       output: vector of graph titles 
+    sub_titles <- sapply(files, function(x){
+        unlist(strsplit(basename(x),split="\\."))[1]
+    })
+    temp <- strsplit(sub_titles, "_")
+    sapply(temp, function(x){
+        tmp <- paste0(toupper(substring(x[-1], 1,1)), substring(x[-1], 2), collapse=" ")
+        paste(x[1], tmp)
+    })
+}
+
+pull_legend<-function(plot){
+    plot_params <- ggplot_gtable(ggplot_build(plot))
+    # get which grob in list is the legend called "guide=box" 
+    legend_idx <- which(sapply(plot_params$grobs, function(x) x$name) == "guide-box")
+    legend <- plot_params$grobs[[legend_idx]]
+    return(legend)
+}
+
+
 MinimalPath <- function (files_dir,
                          genes = NULL,
                          one_ref = FALSE,
                          contig = NULL){
     
-    # ----------------------Select Gene & Add Cell Types-----------------------------------------------------------------------
-    create_gene_eset <- function(plot_data, 
-                                 gene,
-                                 reference_idx, 
-                                 ref_groups) {
-        # Function to create identify references 
-        #		Input: 
-        #				plot_data: (data.table) expression data, rows = Genes, columns = Cells.
-        #				gene: (string) Gene of interest.
-        #				reference_idx: (vector) Vector containing cell line reference identifiers.
-        #				ref_groups: (list) List containing index locations of reference groups.
-        #       Output:
-        #               Data frame with expression data and annotation information
-        
-        cell_ids <- colnames(plot_data)
-        # label observed or Reference(s)
-        ## find what index values are not in ref_groups 
-        cell_type <- replace(cell_ids, !(1:length(cell_ids) %in% unlist(ref_groups)), paste("Observed"))
-        #check
-        if (any(!(input_reference_samples %in% cell_type))){
-            stop("reference samples not in cell_type")
-        }
-        ## Label the references based on index locations 
-        if (one_ref == FALSE) {
-            ## Label the references based on index locations 
-            if (length(ref_groups) > 1) {
-                for(i in 1:length(ref_groups)){ 
-                    cell_type <- replace(cell_type, ref_groups[[i]], paste("Reference",toString(i),sep = "")) 
-                }
-            } else {
-                for(i in 1:length(ref_groups)){ 
-                    cell_type <- replace(cell_type, ref_groups[[1]], paste("Reference"))
-                }
-            }
-        } else {
-            cell_type <- replace(cell_type, unlist(ref_groups), paste("Reference"))
-        }
-        
-        # check if all reference cells are in cell type 
-        obs_cells <- which(cell_type != "Observed")
-        if (!(all(reference_idx %in% cell_ids[obs_cells]))){
-            missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
-            error_message <- paste("Error: Not all references are accounted for.",
-                                   "Make sure the reference names match the names in the data.\n",
-                                   "Check the following reference cell lines: ", 
-                                   paste(missing_refs, collapse = ","))
-            stop(error_message)
-        }
-        #filter the expression set to only include the gene of interest 
-        if (!missing(gene)) {
-            new_plot_data <- plot_data[gene,] 
-            filtered_plot_data_t <- t(new_plot_data)
-            # add the labled cell annotation information
-            final_eset <- data.frame(filtered_plot_data_t, cell_type,
-                                     check.rows = FALSE, check.names = FALSE, stringsAsFactors = FALSE)
-            colnames(final_eset) <- c("exp","cell_type")
-        } else {
-            filtered_plot_data_t <- t(plot_data )
-            # add the labled cell annotation information
-            final_eset <- data.table(filtered_plot_data_t, cell_type = cell_type, check.names = FALSE, stringsAsFactors = FALSE)
-        }
-        return(final_eset)
-    }
-    
     # ----------------------Check Pathways----------------------------------------------------------------------------------------
     # Error handling 
     ## check if pathway exists
-    env <- list.files(files_dir, pattern="infercnv.*.Rdata", full.names=TRUE)
+    obj_files <- list.files(files_dir, pattern="*infercnv_obj", full.names=TRUE)
     
-    if (any(!c(file.exists(files_dir,env)))){
-        path_error <- c(files_dir,env)[which(!file.exists(files_dir,env))]
+    if (any(!c(file.exists(files_dir, obj_files)))){
+        path_error <- c(files_dir,obj_files)[which(!file.exists(files_dir,obj_files))]
         error_message <- paste("Error in argument pathway.",
                                "Please make sure the following pathways are correct: ")
         stop(error_message, paste(path_error, collapse = ", "))
     }
-    # ----------------------Load Environment and variables----------------------------------------------------------------------------------------
-    if ( length(env) == 0 ) {
+    # ----------------------Load infercnv objects----------------------------------------------------------------------------------------
+    if ( length(obj_files) == 0 ) {
         stop("No enviornmental files found")
     }
-    for (i in env) {
+    for (i in obj_files) {
         load(file = i)
     }
-    ref_groups = ret_list$REF_GROUPS
-    reference_idx = ret_list$REF_OBS_IDX
+
+    obj_id <- lapply(obj_files, function(x){
+        load(x)})
+    final_obj <- get(tail(obj_id,n=1)[[1]])
     
-    # ----------------------Load Data----------------------------------------------------------------------------------------
-    filenames <- list.files(files_dir, pattern="*.pdf.txt", full.names=TRUE)
-    if (file.exists(paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))){
-        logging::loginfo("Loading Rdata file.")
-        load(paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
-    } else {
-        logging::loginfo("Reading data files.")
-        plot_data <- lapply(filenames , function(x) { 
-            read.table(file = x, sep=delim, header=TRUE, row.names=1, check.names = FALSE, stringsAsFactors = FALSE)
-        })
-        save(plot_data, file = paste(files_dir,"MinimalPathData.Rdata", sep = .Platform$file.sep))
-    }
+    ref_groups = names(final_obj@reference_grouped_cell_indices)
+    reference_idx = unlist(final_obj@reference_grouped_cell_indices)
+    
     # ----------------------Create output directory----------------------------------------------------------------------------------------   
     dir.create(file.path(files_dir, "Plots"), showWarnings = FALSE) # will create directory if it doesnt exist 
     out_directory <- paste(files_dir, "Plots", sep = .Platform$file.sep)
     
     # ----------------------Create graph title----------------------------------------------------------------------------------------
-    concat <- function(files){ 
-        # Create the titles for each graph:
-        #       Gets the names of the files and capitalizes first letter of each word 
-        #       input: the paths to file 
-        #       output: vector of graph titles 
-        temp1 <- sapply(strsplit(files, "/"), tail, n = 1)
-        temp2 <- sapply(strsplit(temp1, ".pdf.txt"),head,n=1)
-        temp3 <- strsplit(temp2, "_")
-        sapply(temp3, function(x){
-            tmp <- paste0(toupper(substring(x[-1], 1,1)), substring(x[-1], 2), collapse=" ")
-            paste(x[1], tmp)
-        })
-    }
-    titles <- concat(filenames)
+    titles <- concat(obj_files)
     
     if (!is.null(genes)){
         if (is.character(genes)) {
@@ -182,10 +198,10 @@ MinimalPath <- function (files_dir,
         }
         # check to see if the gene is in the data 
         logging::loginfo(paste0("Checking the following genes exists in data: ", paste(genes, collapse = ", ")))
-        missing_gene <- lapply(plot_data, function(x){
-            if (!(all(genes %in% row.names(x)))){
-                genes[which(!(genes %in% row.names(x)))]
-            } 
+        missing_gene <- lapply(obj_id, function(x){
+            if (!(all(genes %in% row.names(get(x)@expr.data)))){
+                genes[which(!(genes %in% row.names(get(x)@expr.data)))]
+            }
         })
         if (!is.null(unlist(missing_gene))) {
             stop(paste0("Error: The following gene(s) are not found in expression data: ", paste(unique(unlist(missing_gene)), collapse = ", ")))
@@ -196,14 +212,13 @@ MinimalPath <- function (files_dir,
         # ----------------------Create the plots for each gene of interest -----------------------------------------------------------------------
         for (gene in genes){
             logging::loginfo(paste0("Plotting ",gene))
-            # run create_gene_eset function on each file to gather the expression data 
+            # run configure_data function on each file to gather the expression data 
             data_list <- list()
-            for (q in 1:length(plot_data)){
+            for (q in 1:length(obj_id)){
                 q<-q
-                data_list[[q]] <- create_gene_eset(plot_data = plot_data[[q]], 
-                                                   gene = gene, 
-                                                   reference_idx = reference_idx, 
-                                                   ref_groups = ref_groups)
+                data_list[[q]] <- configure_data(infercnv_obj = get(obj_id[[q]]), 
+                                                   gene = gene,
+                                                   one_ref = one_ref)
             }
             # check that all cell id's match 
             if(length(unique(lapply(data_list, function(x) row.names(x))))!=1){
@@ -228,12 +243,6 @@ MinimalPath <- function (files_dir,
             ## File name is the name of the gene 
             output_file_name <- paste0(gene, ".pdf")
             pdf(file.path(out_directory,output_file_name), onefile = FALSE, height = 9, width = 9)
-            pull_legend<-function(plot){
-                plot_params <- ggplot_gtable(ggplot_build(plot))
-                # get which grob in list is the legend called "guide=box" 
-                legend_idx <- which(sapply(plot_params$grobs, function(x) x$name) == "guide-box")
-                legend <- plot_params$grobs[[legend_idx]]
-                return(legend)}
             temp <- plot_list[[1]] + 
                 theme(legend.position = "bottom") + 
                 guides(fill = guide_legend(title = "Cell Type"), colour = guide_legend(title = "Cell Type"))
@@ -244,28 +253,32 @@ MinimalPath <- function (files_dir,
                                                      top    = grid::textGrob(gene,
                                                                              gp = grid::gpar(fontsize=20,font=2)),
                                                      left   = grid::textGrob("Density",
-                                                                             gp = grid::gpar(fontsize=15), rot = 90),
+                                                                             gp = grid::gpar(fontsize=15), rot=90),
                                                      bottom = grid::textGrob("Expression Levels",
                                                                              gp = grid::gpar(fontsize=15)))
             # create the pdf and plot it on a grid 
-            gridExtra::grid.arrange(arrange_plots,
-                                    plot_legend, nrow = 2, ncol = 1, heights = c(10,1))
+            gridExtra::grid.arrange(arrange_plots, plot_legend, 
+                                    nrow = 2, ncol = 1, 
+                                    heights = c(10,1))
             dev.off()
         }
     }
+    
     if (!is.null(contig)){
         data_list <- list()
-        for (q in 1:length(plot_data)){
+        for (q in 1:length(obj_id)){
             q<-q
-            data_list[[q]] <- create_gene_eset(plot_data = plot_data[[q]],
-                                               reference_idx = reference_idx, 
-                                               ref_groups = ref_groups)
+            data_list[[q]] <- configure_data(infercnv_obj = get(obj_id[[q]]),
+                                             one_ref = one_ref,
+                                             contig = contig)
         }
-        location <- data.table(input_gene_order, "Gene" = row.names(input_gene_order))
+        
         plot_list <- list()
         for (i in 1:length(data_list)) {
-            currentGenes <- intersect(colnames(data_list[[i]]),location[chr == contig,]$Gene)
-            geneMedians <- as.data.table(data_list[[i]])[,c("cell_type",currentGenes), with = FALSE][,lapply(.SD,median), by = cell_type]
+            current_order <- get(obj_id[[i]])@gene_order
+            current_genes <- row.names(current_order[which(current_order[1] == contig),])
+            
+            geneMedians <- as.data.table(data_list[[i]])[,c("cell_type",current_genes), with = FALSE][,lapply(.SD,median), by = cell_type]
             df <- melt(geneMedians, id = "cell_type")
             colnames(df) <- c("cell_type", "Gene", "Median")
             plot_list[[i]] <- assign(paste0("plot",i), 
@@ -278,13 +291,6 @@ MinimalPath <- function (files_dir,
                                                axis.title.x = element_blank(),
                                                axis.title.y = element_blank())+
                                          scale_x_continuous(breaks = pretty(df$Median, n = 5)))
-        }
-        pull_legend<-function(plot){
-            plot_params <- ggplot_gtable(ggplot_build(plot))
-            # get which grob in list is the legend called "guide=box" 
-            legend_idx <- which(sapply(plot_params$grobs, function(x) x$name) == "guide-box")
-            legend <- plot_params$grobs[[legend_idx]]
-            return(legend)
         }
         temp <- plot_list[[1]] + 
             theme(legend.position = "bottom") +
