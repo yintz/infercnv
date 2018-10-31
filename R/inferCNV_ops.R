@@ -596,7 +596,7 @@ run <- function(infercnv_obj,
 
 #' Function for Generating a next-generation heatmap
 #'
-#' @title make_ngchm() : generates next gen heatmap
+#' @title ngchm() : generates next gen heatmap
 #'
 #' @param infercnv_obj An infercnv object
 #'
@@ -611,7 +611,13 @@ run <- function(infercnv_obj,
 #' @export
 #'
 
-make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NULL, path_to_shaidyMapGen=NULL) {
+ngchm <- function(infercnv_obj, 
+                       out_dir=".", 
+                       title="NGCHM", 
+                       gene_symbol=NULL, 
+                       path_to_shaidyMapGen=NULL,
+                       x.range = NA,
+                       x.center = NA) {
     
     if (!is.null(path_to_shaidyMapGen)) {
         shaidy.path <- unlist(strsplit(path_to_shaidyMapGen, split = .Platform$file.sep))
@@ -636,11 +642,13 @@ make_ngchm <- function(infercnv_obj, out_dir=".", title="NGCHM", gene_symbol=NUL
     }
     
     flog.info("Creating NGCHM as infercnv.ngchm")
-    Create_NGCHM(infercnv_obj,
+    Create_NGCHM(infercnv_obj = infercnv_obj,
                  path_to_shaidyMapGen = path_to_shaidyMapGen,
                  out_dir = out_dir,
                  title = title,
-                 gene_symbol = gene_symbol)
+                 gene_symbol = gene_symbol,
+                 x.range = x.range,
+                 x.center = x.center)
 }
 
 
