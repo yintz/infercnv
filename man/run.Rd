@@ -72,6 +72,10 @@ the mean value for the complete data set}
 \item{mask_nonDE_pval}{p-value threshold for defining statistically significant DE genes between tumor/normal}
 
 \item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
+
+\item{include.spike}{If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)}
+
+\item{pseudocount}{Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)}
 }
 \value{
 infercnv_obj containing filtered and transformed data
