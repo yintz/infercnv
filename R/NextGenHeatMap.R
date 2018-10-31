@@ -286,7 +286,7 @@ Create_NGCHM <- function(infercnv_obj,
     #hm@height <- as.integer(500)
     ## adjust label display size 
     #hm@rowDisplayLength <- as.integer(10) 
-    logging::loginfo(paste("Saving new NGCHM object"))
+    flog::loginfo(paste("Saving new NGCHM object"))
     NGCHM::chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen)
     }
 
