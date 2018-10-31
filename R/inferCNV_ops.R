@@ -731,6 +731,10 @@ run <- function(infercnv_obj,
 #'
 #' @param path_to_shaidyMapGen path to the shaidyMapGen jar file (default: NULL)
 #' 
+#' @param x.center (integer) Center expression value for heatmap coloring.
+#' 
+#' @param x.range (integer) Values for minimum and maximum thresholds for heatmap coloring. 
+#' 
 #' @export
 #'
 
