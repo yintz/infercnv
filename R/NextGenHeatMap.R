@@ -60,7 +60,7 @@ Create_NGCHM <- function(infercnv_obj,
         }
     } else {
         ## else, if not given, set the values 
-        bounds <- infercnv:::get_average_bounds(infercnv_obj)
+        bounds <- get_average_bounds(infercnv_obj)
         low_threshold <- as.numeric(bounds[1])
         high_threshold <- as.numeric(bounds[2])
     }
@@ -286,7 +286,7 @@ Create_NGCHM <- function(infercnv_obj,
     #hm@height <- as.integer(500)
     ## adjust label display size 
     #hm@rowDisplayLength <- as.integer(10) 
-    flog::loginfo(paste("Saving new NGCHM object"))
+    futile.logger::flog.info(paste("Saving new NGCHM object"))
     NGCHM::chmExportToFile(hm, file_path, overwrite = TRUE, shaidyMapGen = path_to_shaidyMapGen)
     }
 
