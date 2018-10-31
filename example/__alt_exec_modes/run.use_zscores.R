@@ -18,19 +18,7 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              out_dir=out_dir,
                              cluster_by_groups=T, 
                              plot_steps=T,
-                             use_zscores=T
+                             use_zscores=T,
+                             include.spike=T
                              )
-
-# generate final plot
-plot_cnv(infercnv_obj,
-         out_dir=out_dir, 
-         cluster_by_groups=T,
-         color_safe_pal=FALSE,
-         x.center=1,
-         x.range=c(0.6,1.4),
-         title="inferCNV",
-         obs_title="Observations (Cells)",
-         ref_title="References (Cells)",
-         output_filename="infercnv")
-
 

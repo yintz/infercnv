@@ -4,7 +4,8 @@
 \alias{get_DE_genes_basic}
 \title{get_DE_genes_basic}
 \usage{
-get_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05, test.use = "t")
+get_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05,
+  test.use = "wilcoxon")
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
