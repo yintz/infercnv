@@ -5,7 +5,7 @@
 \title{Create Next Generation Clustered Heat Map (NG-CHM)}
 \usage{
 Create_NGCHM(infercnv_obj, path_to_shaidyMapGen, out_dir, title = NULL,
-  gene_symbol = NULL)
+  gene_symbol = NULL, x.center = NA, x.range = NA)
 }
 \arguments{
 \item{infercnv_obj}{(S4) InferCNV S4 object holding expression data, gene location data, annotation information.}
@@ -16,7 +16,11 @@ Create_NGCHM(infercnv_obj, path_to_shaidyMapGen, out_dir, title = NULL,
 
 \item{title}{(string) Title that will be used for the heatmap}
 
-\item{gene_symbal}{(string) Specify the label type that is given to the gene needed to create linkouts, default is NULL}
+\item{gene_symbol}{(string) Specify the label type that is given to the gene needed to create linkouts, default is NULL}
+
+\item{x.center}{(integer) Center expression value for heatmap coloring.}
+
+\item{x.range}{(integer) Values for minimum and maximum thresholds for heatmap coloring.}
 }
 \value{
 Exports a NGCHM file named infercnv.ngchm and saves it to the output directory given to infercnv.

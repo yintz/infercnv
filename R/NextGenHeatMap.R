@@ -10,7 +10,7 @@
 #' @param path_to_shaidyMapGen (string) Path to the java application ShaidyMapGen.jar
 #' @param out_dir (string) Path to where the infercnv.ngchm output file should be saved to 
 #' @param title (string) Title that will be used for the heatmap 
-#' @param gene_symbal (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
+#' @param gene_symbol (string) Specify the label type that is given to the gene needed to create linkouts, default is NULL
 #' @param x.center (integer) Center expression value for heatmap coloring.
 #' @param x.range (integer) Values for minimum and maximum thresholds for heatmap coloring. 
 #'

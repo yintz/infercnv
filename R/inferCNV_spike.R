@@ -5,7 +5,7 @@
 #' aid in tracking the effect of infercnv operations and for defining the final scaling.
 #'
 #' 
-#' @param infercnv_obj
+#' @param infercnv_obj An infercnv object populated with raw count data
 #'
 #' @param spike_in_chrs : define the chromsomes that will serve as signal for gain/loss
 #'                        default: picks chrosomes in order of size
@@ -60,7 +60,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 ##' Creates the spike-in based on a list of genes. 
 ##'
-##' @param infercnv_obj
+##' @param infercnv_obj An infercnv object populated with raw count data
 ##'
 ##' @param gene_selection_listing : list of [[chr]] = [1,2,3,4,...] corresponding to indices (rows) of genes,
 ##'                                 and should match order of spike_in_multiplier_vec below.
@@ -69,7 +69,9 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 ##' @param max_cells : max number of cells to include in the spike-in
 ##' 
-
+##' @keywords internal
+##' @noRd
+##'
 .spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells) {
 
     mvtable = .get_mean_var_table(infercnv_obj)
@@ -98,7 +100,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
     
     infercnv_obj@observation_grouped_cell_indices[['SPIKE']] = ncol_begin:ncol_end
 
-    infercnv:::validate_infercnv_obj(infercnv_obj)
+    validate_infercnv_obj(infercnv_obj)
 
     
     return(infercnv_obj)
@@ -125,6 +127,9 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @param num_cells : number of cells to simulate
 ##'
 ##' @return matrix containing simulated expression values.
+##'
+##' @keywords internal
+##' @noRd
 ##' 
 
 .get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cells) {
@@ -163,10 +168,14 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 ##' Computes the gene mean/variance table based on all defined cell groupings (reference and observations)
 ##'
-##' @param infercnv_obj
+##' @param infercnv_obj An infercnv object populated with raw count data
 ##'
 ##' @return data.frame with 3 columns: group_name, mean, variance
 ##' 
+##'
+##' @keywords internal
+##' @noRd
+##'
 
 .get_mean_var_table <- function(infercnv_obj) {
 
@@ -193,17 +202,21 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 ##' return mean bounds for expression of all cells in the spike-in
 ##'
-##' @param infercnv_obj
+##' @param infercnv_obj An infercnv object populated with raw count data
 ##'
 ##' @return c(left_bound, right_bound)
 ##' 
+##' @keywords internal
+##' @noRd
+##'
+
 
 .get_spike_in_average_bounds <- function(infercnv_obj) {
 
     spike_in_cell_idx = infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]]
     spike.expr.data = infercnv_obj@expr.data[,spike_in_cell_idx]
 
-    bounds = infercnv:::.get_average_bounds(spike.expr.data)
+    bounds = .get_average_bounds(spike.expr.data)
 
     return(bounds)
 }
@@ -213,7 +226,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 #'
 #' Removes the spiked-in group named 'SPIKE' from the infercnv_obj
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj An infercnv object populated with raw count data
 #'
 #' @return infercnv_obj 
 #' 
@@ -242,7 +255,7 @@ remove_spike <- function(infercnv_obj) {
 #' Expression below 1 is scaled according to the left spike bound set to zero.
 #' Expression above 1 is scaled according to the right spike bound set to two.
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj An infercnv object populated with raw count data
 #'
 #' @return infercnv_obj
 #' 

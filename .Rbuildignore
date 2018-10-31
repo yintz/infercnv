@@ -1,4 +1,5 @@
 ^\.travis\.yml$
+^R/\.wip
 ^docker
 ^run_tests
 ^\.
@@ -8,8 +9,11 @@
 ^__simulations
 ^example/full_precision
 ^example/example.html
+^example/test_subdir
 ^example/oligodendroglioma_expression_downsampled.txt
 ^example_output
+^example/C125.matrix.obj
+^output_dir
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^devel_debug

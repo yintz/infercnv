@@ -57,7 +57,8 @@
 #'                          the mean value for the complete data set
 #'
 #' @param mask_nonDE_pval  p-value threshold for defining statistically significant DE genes between tumor/normal
-#'
+#
+#' @param test.use statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.'
 #' 
 #' @return infercnv_obj containing filtered and transformed data
 #'
@@ -66,6 +67,8 @@
 #' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
 #'
 #' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)
+#'
+#' @param debug If true, output debug level logging.
 #' 
 #' @export
 #'
