@@ -4,7 +4,8 @@
 \alias{split_references}
 \title{split_references()}
 \usage{
-split_references(infercnv_obj, num_groups = 2, hclust_method = "complete")
+split_references(infercnv_obj, num_groups = 2,
+  hclust_method = "complete")
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}

@@ -63,6 +63,10 @@
 #'
 #' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
 #'
+#' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
+#'
+#' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)
+#' 
 #' @export
 #'
 
@@ -82,7 +86,7 @@ run <- function(infercnv_obj,
 
                 # noise settings
                 noise_filter=NA,
-                sd_amplifier = 1.0,
+                sd_amplifier = 1.5,
 
                 # observation cell clustering settings
                 cluster_by_groups=FALSE,
@@ -102,10 +106,15 @@ run <- function(infercnv_obj,
 
                 mask_nonDE_genes=TRUE,
                 mask_nonDE_pval=0.05,
+                test.use='wilcoxon',
                 
                 plot_steps=FALSE,
 
-                debug=FALSE #for debug level logging
+                debug=FALSE, #for debug level logging
+
+                include.spike = FALSE,
+                                
+                pseudocount = 0
                 
                 ) {
 
@@ -133,7 +142,7 @@ run <- function(infercnv_obj,
         
     }
 
-
+           
     ###################################################
     ## Step: removing insufficiently expressed genes
     step_count = step_count + 1
@@ -157,6 +166,16 @@ run <- function(infercnv_obj,
         save('infercnv_obj_low_expr_genes_pruned', file=file.path(out_dir, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count)))
         
     }
+
+
+    ####################################################
+    ##  Adding pseudocounts
+    
+    if (pseudocount != 0) {
+        flog.info(sprintf("Adding pseudocount: %g", pseudocount))
+        infercnv_obj <- add_pseudocount(infercnv_obj, pseudocount)
+    }
+        
     
     ###########################################
     ### STEP: normalization by sequencing depth
@@ -173,6 +192,39 @@ run <- function(infercnv_obj,
         
     }
     
+
+    ##################################################
+    ## spike-in
+    
+    if (include.spike) {
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
+        
+        infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+        
+                                        # Plot incremental steps.
+        if (plot_steps){
+
+            infercnv_obj_spiked <- infercnv_obj
+            save('infercnv_obj_spiked', file=file.path(out_dir, sprintf("%02d_spiked.infercnv_obj", step_count)))
+            
+            plot_cnv(infercnv_obj=infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     color_safe_pal=FALSE,
+                     x.center=mean(infercnv_obj@expr.data),
+                     x.range="auto",
+                     title=sprintf("%02d_spike_added",step_count),
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename=sprintf("infercnv.%02d_spike_added",step_count),
+                     write_expr_matrix=TRUE
+                     )
+        }
+        
+    }
+
     
     ##################################
     ##### STEP: anscombe normalization
@@ -186,6 +238,20 @@ run <- function(infercnv_obj,
         if (plot_steps) {
             infercnv_obj_anscombe_norm <- infercnv_obj
             save('infercnv_obj_anscombe_norm', file=file.path(out_dir, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count)))
+
+            plot_cnv(infercnv_obj=infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     color_safe_pal=FALSE,
+                     x.center=mean(infercnv_obj@expr.data),
+                     x.range="auto",
+                     title=sprintf("%02d_anscombe_norm",step_count),
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename=sprintf("infercnv.%02d_anscombe_norm",step_count),
+                     write_expr_matrix=TRUE
+                     )
             
         }
         
@@ -553,18 +619,56 @@ run <- function(infercnv_obj,
     }
 
 
+
+    # define heatmap thresholds for final plots.
+    plot_data = infercnv_obj@expr.data
+    high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
+    low_threshold = -1 * high_threshold
+    
+    if (include.spike) {
+
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
+                
+        # normalize by spike
+        infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
+
+        # now thresholds should be between 0 and 2 after spike-based scaling
+        low_threshold = 0
+        high_threshold = 2
+        
+        if (plot_steps) {
+            infercnv_obj_scaled_by_spike <- infercnv_obj
+            save('infercnv_obj_scaled_by_spike', file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     color_safe_pal=FALSE,
+                     x.center=1,
+                     x.range=c(low_threshold, high_threshold),
+                     title=sprintf("%02d_scaled_by_spike",step_count),
+                     obs_title="Observations (Cells)",
+                     ref_title="References (Cells)",
+                     output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count))
+        }
+        
+        # remove the spike now
+        infercnv_obj <- remove_spike(infercnv_obj)
+        
+    }
+    
+    
+    
     ## Step: Filtering significantly DE genes
     if (mask_nonDE_genes) {
 
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
         
-        plot_data = infercnv_obj@expr.data
-        # define heatmap expression dynamic range before masking out a bunch of non-DE genes:
-        high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))
-        low_threshold = -1 * high_threshold
 
-        infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=mean(plot_data))
+        infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj, test.use = test.use, center_val=mean(plot_data))
 
 
         # Plot incremental steps.
@@ -589,7 +693,23 @@ run <- function(infercnv_obj,
             
         }
     }
+
+    save('infercnv_obj', file=file.path(out_dir, "run.final.infercnv_obj"))
     
+    flog.info("Making the final infercnv heatmap")
+    plot_cnv(infercnv_obj,
+             k_obs_groups=k_obs_groups,
+             cluster_by_groups=cluster_by_groups,
+             out_dir=out_dir,
+             color_safe_pal=FALSE,
+             x.center=1,
+             x.range=c(low_threshold,high_threshold),
+             title="inferCNV",
+             obs_title="Observations (Cells)",
+             ref_title="References (Cells)",
+             output_filename="infercnv")
+    
+        
     return(infercnv_obj)
 
 }
@@ -1284,31 +1404,39 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 .smooth_window <- function(data, window_length, smooth_ends=TRUE) {
 
     flog.info(paste("::smooth_window:Start.", sep=""))
+#    if (window_length > nrow(data)){
+#        flog.warn("window length exceeds number of rows in data") #, returning original unmodified data")
+#        flog.warn("setting window length to nrows")
+#        if ((nrow(data) %% 2 ) == 0) {
+#            window_length = nrow(data) - 1
+#        }
+#        else {
+#            window_length = nrow(data)
+#        }
+#        # return(data)
+#    }
+    
     if (window_length < 2){
         flog.warn("window length < 2, returning original unmodified data")
         return(data)
     }
-    if (window_length > nrow(data)){
-        flog.warn("window length exceeds number of rows in data") #, returning original unmodified data")
-        flog.warn("setting window length to nrows")
-        window_length = nrow(data)
-        # return(data)
-    }
-    
-    tail_length <- (window_length - 1) / 2
+
+#    tail_length <- (window_length - 1) / 2
     num_genes <- nrow(data)
-    data_sm <- apply(data,
-                     2,
-                     .smooth_window_helper,
-                     window_length=window_length)
+    #data_sm <- apply(data,
+    #                 2,
+    #                 .smooth_window_helper,
+    #                 window_length=window_length)
     flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
     
     if (smooth_ends) {
                                         # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
-        data_sm <- apply(data_sm,
+        # data_sm <- apply(data_sm,
+        data_sm <- apply(data,
                          2,
                          .smooth_ends_helper,
-                         tail_length=tail_length)
+                         window_length=window_length)
+#                         tail_length=tail_length)
         
     }
     
@@ -1328,8 +1456,9 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 #
 # Returns:
 # Data smoothed.
-.smooth_ends_helper <- function(obs_data, tail_length) {
+##.smooth_ends_helper <- function(obs_data, tail_length) {
 
+.smooth_ends_helper <- function(obs_data, window_length) {
     # strip NAs out and replace after smoothing
     orig_obs_data = obs_data
 
@@ -1340,11 +1469,45 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     obs_length <- length(obs_data)
     end_data <- obs_data
 
+    tail_length = (window_length - 1)/2
+#    window_length = (tail_length * 2) + 1
+#    #end_data <- .smooth_window_helper(obs_data, (tail_length*2) + 1)
+    if (obs_length >= window_length) {
+        end_data <- .smooth_window_helper(obs_data, window_length)
+    }
+    
     # end_data will have the end positions replaced with mean values, smoothing just at the ends.
 
     obs_count <- length(obs_data)
 
-    for (tail_end in 1:tail_length) {
+    numerator_counts_vector = c(c(1:tail_length), tail_length + 1, c(tail_length:1))
+    
+    # defining the iteration range in cases where the window size is larger than the number of genes. In that case we only iterate to the half since the process is applied from both ends.
+    iteration_range = ifelse(obs_count > window_length, tail_length, ceiling(obs_count/2))
+#    iteration_range = obs_count > window_length ? tail_length : ceiling(obs_count/2)
+
+    for (tail_end in 1:iteration_range) {
+        end_tail = obs_count - tail_end + 1
+
+        d_left = tail_end - 1
+        d_right = obs_count - tail_end
+        d_right = ifelse(d_right > tail_length, tail_length, d_right)
+#        d_right = ifelse(obs_count > window_length, tail_length, tail_length - tail_end)
+#        d_right = obs_count > window_length ? tail_length : obs_count - tail_end
+
+        r_left = tail_length - d_left
+        r_right = tail_length - d_right
+
+        denominator = (((window_length - 1)/2)^2 + window_length) - ((r_left * (r_left + 1))/2) - ((r_right * (r_right + 1))/2)
+
+        left_input_vector_chunk = obs_data[1:(tail_end + d_right)]
+        right_input_vector_chunk = obs_data[(end_tail - d_right):obs_length]
+
+        numerator_range = numerator_counts_vector[(tail_length + 1 - d_left):(tail_length + 1 + d_right)]
+#        right_numerator_range = numerator_counts_vector[():()]
+
+        end_data[tail_end] = sum(left_input_vector_chunk * numerator_range)/denominator
+        end_data[end_tail] = sum(right_input_vector_chunk * rev(numerator_range))/denominator
 
         # algorithm generates smoothing windows from the end like so:
         # <|>
@@ -1354,33 +1517,35 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         # <    |    >
         # where | is the central position assigned the mean of observations in the window.
 
-        bounds <- tail_end - 1
-        end_tail <- obs_count - bounds
-
-        show_debug_logging_here = FALSE
-
-        if (show_debug_logging_here) {
-            flog.debug(paste("::smooth_ends_helper: tail range <",
-                                    tail_end - bounds,
-                                    "|", tail_end, "|",
-                                    tail_end + bounds,">", sep=" "))
-        }
-
-        end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
-                                            (tail_end + bounds)],
-                                   na.rm=TRUE)
-
-
-        if (show_debug_logging_here) {
-            flog.debug(paste("::smooth_ends_helper: tail range <",
-                                    end_tail - bounds,
-                                    "|", end_tail, "|",
-                                    end_tail + bounds, ">", sep=" "))
-        }
-
-        end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
-                                            (end_tail + bounds)],
-                                   na.rm=TRUE)
+#        bounds <- tail_end - 1
+#        end_tail <- obs_count - bounds
+#
+#        show_debug_logging_here = FALSE
+#
+#        if (show_debug_logging_here) {
+#            flog.debug(paste("::smooth_ends_helper: tail range <",
+#                                    tail_end - bounds,
+#                                    "|", tail_end, "|",
+#                                    tail_end + bounds,">", sep=" "))
+#        }
+#
+#        #end_data[tail_end] <- mean(obs_data[(tail_end - bounds):
+#        #                                    (tail_end + bounds)],
+#        end_data[tail_end] <- mean(obs_data[1:(tail_end + tail_length)],
+#                                   na.rm=TRUE)
+#
+#
+#        if (show_debug_logging_here) {
+#            flog.debug(paste("::smooth_ends_helper: tail range <",
+#                                    end_tail - bounds,
+#                                    "|", end_tail, "|",
+#                                    end_tail + bounds, ">", sep=" "))
+#        }
+#
+#        #end_data[end_tail] <- mean(obs_data[(end_tail - bounds):
+#        #                                    (end_tail + bounds)],
+#        end_data[end_tail] <- mean(obs_data[(end_tail - tail_length):obs_length],
+#                                   na.rm=TRUE)
     }
 
     orig_obs_data[! nas] = end_data  # replace original data with end-smoothed data
@@ -1402,7 +1567,15 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     nas = is.na(obs_data)
     vals = obs_data[! nas]
 
-    smoothed = filter(vals, rep(1 / window_length, window_length), sides=2)
+    custom_filter_denominator = ((window_length-1)/2)^2 + window_length
+    custom_filter_numerator = c(c(1:((window_length-1)/2)), ((window_length-1)/2)+1, c(((window_length-1)/2):1))
+
+    custom_filter = custom_filter_numerator/rep(custom_filter_denominator, window_length)
+
+#    flog.info(paste("custom filter = ", custom_filter, "\n and window_length =", window_length, "\n and nrow(data) = ", nrow(obs_data), sep=""))
+
+    #smoothed = filter(vals, rep(1 / window_length, window_length), sides=2)
+    smoothed = filter(vals, custom_filter, sides=2)
 
     ind = which(! is.na(smoothed))
     vals[ind] = smoothed[ind]
@@ -1788,3 +1961,12 @@ anscombe_transform <- function(infercnv_obj) {
     
 }
 
+
+add_pseudocount <- function(infercnv_obj, pseudocount) {
+
+    flog.info(sprintf("Adding pseudocount: %g", pseudocount))
+        
+    infercnv_obj@expr.data = infercnv_obj@expr.data + pseudocount
+
+    return(infercnv_obj)
+}
