@@ -75,7 +75,8 @@ Create_NGCHM <- function(infercnv_obj,
     }
     hm <- NGCHM::chmNew(title, layer)
     # set the column (gene) order 
-    NGCHM::chmColOrder(hm) <- colnames(plot_data)
+    hm@colOrder <- colnames(plot_data)
+    hm@colOrderMethod <- NGCHM:::orderMethod(colnames(plot_data))
     
     # add linkouts to each gene (column) for more information 
     if (!is.null(gene_symbol)) {
@@ -110,7 +111,8 @@ Create_NGCHM <- function(infercnv_obj,
              \n Difference in row length: Original ", nrow(plot_data), ", After ordering ", length(row_order))
     }
     ## set the row order for the heatmap
-    NGCHM::chmRowOrder(hm) <- row_order
+    hm@rowOrder <- row_order
+    hm@rowOrderMethod <- NGCHM:::orderMethod(row_order)
     
     # ----------------------Add Divisions Between References And Chromosomes ------------------------------------------------------------------
     # Column Separation: separation between the chromosomes 
