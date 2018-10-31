@@ -256,6 +256,7 @@ plot_cnv <- function(infercnv_obj,
     force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height)
     .plot_cnv_observations(obs_data=obs_data_t,
                           file_base_name=out_dir,
+                          output_filename_prefix=output_filename,
                           cluster_contig=ref_contig,
                           contig_colors=ct.colors[contigs],
                           contig_labels=contig_labels,
@@ -286,6 +287,7 @@ plot_cnv <- function(infercnv_obj,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=out_dir,
+                            output_filename_prefix=output_filename,
                             cnv_ref_title=ref_title,
                             breaksList=breaksList_t,
                             x.center=x.center,
@@ -335,6 +337,7 @@ plot_cnv <- function(infercnv_obj,
                                   contig_seps,
                                   num_obs_groups,
                                   file_base_name,
+                                  output_filename_prefix,
                                   cnv_title,
                                   cnv_obs_title,
                                   contig_lab_size=1,
@@ -357,7 +360,7 @@ plot_cnv <- function(infercnv_obj,
                     "Genes=",
                     ncol(obs_data),
                     sep=" "))
-    observation_file_base <- paste(file_base_name, "observations.txt", sep=.Platform$file.sep)
+    observation_file_base <- paste(file_base_name, sprintf("%s.observations.txt", output_filename_prefix), sep=.Platform$file.sep)
     
     # Output dendrogram representation as Newick
     # Need to precompute the dendrogram so we can manipulate
@@ -414,20 +417,17 @@ plot_cnv <- function(infercnv_obj,
             group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
             ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
 
-            if (FALSE) {
-                # turning this off for now, as causing error:
-                # Error: node stack overflow
-                
-                if (isfirst) {
-                    write.tree(as.phylo(group_obs_hcl),
-                               file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
-                    isfirst <- FALSE
-                }
-                else {
-                    write.tree(as.phylo(group_obs_hcl),
-                               file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep), append=TRUE)
-                }
+                           
+            if (isfirst) {
+                write.tree(as.phylo(group_obs_hcl),
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                isfirst <- FALSE
             }
+            else {
+                write.tree(as.phylo(group_obs_hcl),
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+            }
+            
             group_obs_dend <- as.dendrogram(group_obs_hcl)
             obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
             hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
@@ -445,11 +445,10 @@ plot_cnv <- function(infercnv_obj,
     else {
         # clustering all groups together
         obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
-        if (FALSE) {
-            # temporarily turning this off to avoid stack error (see above)
-            write.tree(as.phylo(obs_hcl),
-                       file=paste(file_base_name, "observations_dendrogram.txt", sep=.Platform$file.sep))
-        }
+                                        
+        write.tree(as.phylo(obs_hcl),
+                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+        
         obs_dendrogram <- as.dendrogram(obs_hcl)
         ordered_names <- row.names(obs_data)[obs_hcl$order]
         split_groups <- cutree(obs_hcl, k=num_obs_groups)
@@ -491,18 +490,13 @@ plot_cnv <- function(infercnv_obj,
 
     # Make a file of coloring and groupings
     flog.info("plot_cnv_observation:Writing observation groupings/color.")
-    groups_file_name <- file.path(file_base_name, "observation_groupings.txt")
+    groups_file_name <- file.path(file_base_name, sprintf("%s.observation_groupings.txt", output_filename_prefix))
     # file_groups <- rbind(split_groups,row_groupings)
     file_groups <- cbind(split_groups, row_groupings[,1], hcl_obs_annotations_groups, row_groupings[,2])
     #row.names(file_groups) <- c("Group","Color")
     colnames(file_groups) <- c("Dendrogram Group", "Dendrogram Color", "Annotation Group", "Annotation Color")
     # write.table(t(file_groups), groups_file_name)
     write.table(file_groups, groups_file_name)
-
-
-
-    # obs_seps <- unique(obs_seps)
-    # obs_seps <- sort(obs_seps)
 
     # Generate the Sep list for heatmap.3
     contigSepList <- create_sep_list(row_count=nrow(obs_data),
@@ -649,6 +643,7 @@ plot_cnv <- function(infercnv_obj,
                                 col_pal,
                                 contig_seps,
                                 file_base_name,
+                                output_filename_prefix,
                                 cnv_ref_title,
                                 breaksList,
                                 x.center=x.center,
@@ -666,8 +661,8 @@ plot_cnv <- function(infercnv_obj,
                            sep=" "))
     number_references <- ncol(ref_data)
     reference_ylab <- NA
-    reference_data_file <- paste(file_base_name, "references.txt", sep=.Platform$file.sep)
-
+    reference_data_file <- paste(file_base_name, sprintf("%s.references.txt", output_filename_prefix), sep=.Platform$file.sep)
+    
     ref_seps <- c()
     # Handle only one reference
     # heatmap3 requires a 2 x 2 matrix, so with one reference
