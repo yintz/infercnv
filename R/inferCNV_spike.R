@@ -280,7 +280,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 .select_longest_chrs <- function(infercnv_obj, num_chrs_want) {
 
     # get count of chrs
-    counts = infercnv_obj@gene_order %>% count(chr, sort=TRUE)
+    counts = infercnv_obj@gene_order %>% count(.data$chr, sort=TRUE)
 
     return(counts$chr[1:num_chrs_want])
         
