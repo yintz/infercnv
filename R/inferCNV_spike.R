@@ -8,21 +8,33 @@
 #' @param infercnv_obj
 #'
 #' @param spike_in_chrs : define the chromsomes that will serve as signal for gain/loss
-#'                        default: c('chr2', 'chr4', 'chr7', 'chr9')
+#'                        default: picks chrosomes in order of size
 #'
+#' @param min_genes_per_chr  : default 100
+#' 
 #' @param spike_in_multiplier_vec : factors that define relative expression for gain/loss
 #'                                  and must match ordering of spike_in_chrs above
-#'                                  default: c(0.01, 0.5, 1.5, 2.0)
+#'                                  default: c(0.01, 2.0)
 #' 
 #' @param max_cells max number of cells to incorporate in the spike-in
 #' 
 
 spike_in_variation_chrs <- function(infercnv_obj,
-                                    spike_in_chrs=c('chr2', 'chr4', 'chr7', 'chr9'),
-                                    spike_in_multiplier_vec=c(0.01, 0.5, 1.5, 2.0),
-                                    max_cells=100) {
+                                    spike_in_chrs=NULL,
+                                    spike_in_multiplier_vec=c(0.01, 2.0),
+                                    max_cells=100,
+                                    min_genes_per_chr=100) {
 
-    min_genes_selected = 100
+
+    if (is.null(spike_in_chrs)) {
+        num_chrs_want = length(spike_in_multiplier_vec)
+        spike_in_chrs = .select_longest_chrs(infercnv_obj, num_chrs_want) 
+        flog.info(paste("Selecting longest chrs for adding spike:", paste(spike_in_chrs, collapse=",")))
+    } else {
+        flog.info(paste("Using specified chrs for adding spike:", paste(spike_in_chrs, collapse=",")))
+    }
+    
+    min_genes_selected = min_genes_per_chr
     
     ## get the gene ordering:
     gene_selection_listing = list()
@@ -46,8 +58,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 
 ##' @title .spike_in_variation_genes_via_modeling()
 ##'
-##' Creates the spike-in based on a list of genes. Generally, do not use this directly, and instead use
-##' the spike_in_variation_chrs() based on chromosomes.
+##' Creates the spike-in based on a list of genes. 
 ##'
 ##' @param infercnv_obj
 ##'
@@ -262,4 +273,15 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     infercnv_obj@expr.data <- apply(infercnv_obj@expr.data, 1:2, scale_by_spike)
 
     return(infercnv_obj)
+}
+
+
+# selects the specified number of chrs having the largest number of (expressed) genes
+.select_longest_chrs <- function(infercnv_obj, num_chrs_want) {
+
+    # get count of chrs
+    counts = infercnv_obj@gene_order %>% count(chr, sort=TRUE)
+
+    return(counts$chr[1:num_chrs_want])
+        
 }

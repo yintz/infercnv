@@ -12,7 +12,8 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   outlier_upper_bound = NA, hclust_method = "complete",
   anscombe_normalize = TRUE, use_zscores = FALSE,
   remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = TRUE,
-  mask_nonDE_pval = 0.05, plot_steps = FALSE)
+  mask_nonDE_pval = 0.05, test.use = "wilcoxon", plot_steps = FALSE,
+  debug = FALSE, include.spike = FALSE, pseudocount = 0)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -42,7 +43,7 @@ centering. Also sets a lower bound of
 default(NA, instead will use sd_amplifier below.}
 
 \item{sd_amplifier}{Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
-default: 1.5}
+default: 1.0}
 
 \item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
 of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}

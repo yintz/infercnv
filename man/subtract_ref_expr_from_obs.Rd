@@ -9,7 +9,7 @@ subtract_ref_expr_from_obs(infercnv_obj, inv_log = FALSE)
 \arguments{
 \item{infercnv_obj}{infercnv_object}
 
-\item{inv_log}{invert log-transformed data before subtracting mean, then convert back to log space.}
+\item{inv_log}{mean values will be determined based on (2^x -1)}
 }
 \value{
 infercnv_obj containing the reference subtracted values.

@@ -63,6 +63,10 @@
 #'
 #' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
 #'
+#' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
+#'
+#' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)
+#' 
 #' @export
 #'
 
@@ -109,6 +113,7 @@ run <- function(infercnv_obj,
                 debug=FALSE, #for debug level logging
 
                 include.spike = FALSE,
+                                
                 pseudocount = 0
                 
                 ) {

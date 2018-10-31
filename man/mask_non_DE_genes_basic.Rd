@@ -4,15 +4,15 @@
 \alias{mask_non_DE_genes_basic}
 \title{mask_non_DE_genes_basic()}
 \usage{
-mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05, test.use = "t",
-  center_val = mean(infercnv_obj@expr.data))
+mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05,
+  test.use = "wilcoxon", center_val = mean(infercnv_obj@expr.data))
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
 
 \item{p_val_thresh}{p-value threshold for assigning DE statistically significant}
 
-\item{test.use}{statistical test to use.  (default: "t" for t-test.) **note, other tests still need to be implemented here. basic plumbing provided.}
+\item{test.use}{statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.}
 
 \item{center_val}{value to assign to those genes that are not found to be statistically DE.}
 }
