@@ -93,7 +93,7 @@ test_that("subtract_ref updated works with 3 observaions, two reference",{
     expect_equal(infercnv:::.subtract_expr(t(matrix_three),
                                            ref_groups=list(c(1,3))),
                  t(avref_answer_3))
-	  })
+    })
 test_that("subtract_ref works with 5 observations, two reference",{
     expect_equal(infercnv:::.subtract_expr(t(matrix_five),
                                    ref_groups=list(c(2,5))),
@@ -271,75 +271,54 @@ smooth_answer_1 <- matrix_one
 
 smooth_answer_2 <- matrix_one
 
-smooth_answer_3 <- matrix(c(1.00,2.53,4.60,6.60,8.60,10.60,12.60,14.60,
-                            15.60,16.00,15.80,14.60,12.80,11.00,9.40,
-                            7.60,6.00,4.20,2.73,1.00), ncol=1)
+# smooth_answer_3 <- matrix(c(1.00,2.53,4.60,6.60,8.60,10.60,12.60,14.60,
+#                            15.60,16.00,15.80,14.60,12.80,11.00,9.40,
+#                            7.60,6.00,4.20,2.73,1.00), ncol=1)
+smooth_answer_3 <- matrix(c(2.88, 4.44, 6.67, 8.78, 10.67, 12.44, 14.44, 16.11, 16.78, 16, 14.44, 12.78, 11.11, 9.44, 7.56, 5.89, 4.22, 3.13, 2.17), ncol=1)
 
-smooth_answer_4 <- matrix(c(1.00,2.53,4.60,6.60,8.60,10.60,12.60,14.60,
-                            15.60,16.00,15.80,14.60,12.80,11.00,9.40,
-                            7.60,6.00,4.20,2.73,1.00,
-                            1.00,2.53,4.60,
-                            6.60,8.60,10.60,12.60,14.60,
-                            15.60,16.00,15.80,14.60,12.80,11.00,9.40,
-                            7.60,6.00,4.20,2.73,1.00), ncol=2)
 
-smooth_answer_5 <- matrix_one
+#smooth_answer_4 <- matrix(c(1.00,2.53,4.60,6.60,8.60,10.60,12.60,14.60,
+#                            15.60,16.00,15.80,14.60,12.80,11.00,9.40,
+#                            7.60,6.00,4.20,2.73,1.00,
+#                            1.00,2.53,4.60,
+#                            6.60,8.60,10.60,12.60,14.60,
+#                            15.60,16.00,15.80,14.60,12.80,11.00,9.40,
+#                            7.60,6.00,4.20,2.73,1.00), ncol=2)
+
+smooth_answer_4 <- matrix(c(2.88, 4.44, 6.67, 8.78, 10.67, 12.44, 14.44, 16.11, 16.78, 16, 14.44, 12.78, 11.11, 9.44, 7.56, 5.89, 4.22, 3.13, 2.17, 2.88, 4.44, 6.67, 8.78, 10.67, 12.44, 14.44, 16.11, 16.78, 16, 14.44, 12.78, 11.11, 9.44, 7.56, 5.89, 4.22, 3.13, 2.17), ncol=2)
+
+smooth_answer_5 <- matrix(c(1.67, 2.25, 3, 3.75, 4.33), ncol=1)
 
 test_that("smooth_window works with one observation, window_length 0",{
     expect_equal(infercnv:::.smooth_window(data=matrix_one,
-                                           window_length=0,
-                                           smooth_ends=F),
+                                           window_length=0),
                  smooth_answer_1)
          })
+
 test_that("smooth_window works with one observation, window_length 1",{
     expect_equal(infercnv:::.smooth_window(data=matrix_one,
-                                           window_length=1,
-                                           smooth_ends=F),
+                                           window_length=1),
                  smooth_answer_2)
 })
-test_that("smooth_window works with one observation, window_length 5",{
-    expect_equal(round(infercnv:::.smooth_window(data=matrix_one_long_2,
-                                                 window_length=5,
-                                                 smooth_ends=T),2),
-                 smooth_answer_3)
+
+test_that("smooth_window works with one observation, window_length 5", {isTRUE(all.equal(
+                                           infercnv:::.smooth_window(data=matrix_one_long_2,
+                                           window_length=5),
+                                           smooth_answer_3))
 })
-test_that("smooth_window works with two observations, window_length 5",{
-    expect_equal(round(infercnv:::.smooth_window(data=matrix_two_long_2,
-                                                 window_length=5,
-                                                 smooth_ends=T),2),
-                 smooth_answer_4)
+
+test_that("smooth_window works with two observations, window_length 5",{isTRUE(all.equal(
+                                                 infercnv:::.smooth_window(data=matrix_two_long_2,
+                                                 window_length=5),
+                                                 smooth_answer_4))
 })
+
 test_that(paste("smooth_window works with one observation,",
                 "window_length longer than measurements"),{
-                    expect_equal(infercnv:::.smooth_window(data=matrix_one,
-                                                           window_length=100,
-                                                           smooth_ends=F),
-                                 smooth_answer_5)
-                })
-
-
-# test smooth_ends_helper
-ends_data = rep(c(1,2,3), 10)
-smooth_ends_tail_3_ans = c(1.0, 2.0, 1.8, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0,
-                           3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0,
-                           2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 2.2, 2.0, 3.0)
-
-test_that("smooth_ends_helper works, tail length 3", {
-    expect_equal(round(infercnv:::.smooth_ends_helper(obs_data=ends_data, tail_length=3),2),
-                 smooth_ends_tail_3_ans)
-    })
-
-
-smooth_ends_tail_7_ans = c(1.00, 2.00, 1.80, 1.86, 2.00, 1.91, 1.92, 2.00,
-                           3.00, 1.00, 2.00, 3.00, 1.00, 2.00, 3.00,
-                           1.00, 2.00, 3.00, 1.00, 2.00, 3.00, 1.00,
-                           2.00, 2.08, 2.09, 2.00, 2.14, 2.20, 2.00, 3.00)
-
-test_that("smooth_ends_helper works, tail length 7", {
-    expect_equal(round(infercnv:::.smooth_ends_helper(obs_data=ends_data, tail_length=7),2),
-                 smooth_ends_tail_7_ans)
-    })
-
+                    isTRUE(all.equal(infercnv:::.smooth_window(data=matrix_one,
+                                                               window_length=100),
+                                                               smooth_answer_5))
+})
 
 
 context("create_sep_list")
