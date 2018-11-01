@@ -17,7 +17,8 @@
 #'                                  default: c(0.01, 2.0)
 #' 
 #' @param max_cells max number of cells to incorporate in the spike-in
-#' 
+#'
+#' @export
 
 spike_in_variation_chrs <- function(infercnv_obj,
                                     spike_in_chrs=NULL,
@@ -229,7 +230,8 @@ spike_in_variation_chrs <- function(infercnv_obj,
 #' @param infercnv_obj An infercnv object populated with raw count data
 #'
 #' @return infercnv_obj 
-#' 
+#'
+#' @export
 
 remove_spike <- function(infercnv_obj) {
 
@@ -258,7 +260,8 @@ remove_spike <- function(infercnv_obj) {
 #' @param infercnv_obj An infercnv object populated with raw count data
 #'
 #' @return infercnv_obj
-#' 
+#'
+#' @export
 
 
 scale_cnv_by_spike <- function(infercnv_obj) {

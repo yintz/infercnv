@@ -50,14 +50,29 @@ save('infercnv_obj', file = 'infercnv_obj.orig_filtered')
 
 ## Normalize each cell's counts for sequencing depth
 
+Perform a total sum normalization. Generates counts-per-million or counts-per-100k, depending on the overall sequencing depth.
+
 ```{r}
 infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
 ```
 
+## Spike in artificial variation for tracking purposes
+
+Add ~0x and 2x variation to an artificial spike-in data set based on the normal cells so we can track and later scale residual expression data to this level of variation.
+
+
+```{r}
+infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+```
 
 ## perform Anscombe normalization
 
+<<<<<<< HEAD
 Suggested for removing noisy variation at low counts
+=======
+Useful noise reduction method.  
+See: https://en.wikipedia.org/wiki/Anscombe_transform
+>>>>>>> 29a0b973d2701fe5ea2834efcd6a82dd542e0308
 
 ```{r}
 infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
@@ -73,8 +88,10 @@ save('infercnv_obj', file='infercnv_obj.log_transformed')
 ```
 
 ## Apply maximum bounds to the expression data to reduce outlier effects
+
+Here we define a threshold by taking the mean of the bounds of expression data across all cells. This is then use to define a cap for the bounds of all data.
 ```{r}
-threshold = mean(abs(get_average_bounds(infercnv_obj)))
+threshold = mean(abs(get_average_bounds(infercnv_obj))) 
 infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
 ```
 
@@ -97,6 +114,8 @@ knitr::include_graphics("infercnv.logtransf.png")
 
 
 ## perform smoothing across chromosomes
+
+The expression values are 
 
 ```{r}
 infercnv_obj = smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
@@ -218,21 +237,26 @@ knitr::include_graphics("infercnv.outliers_removed.png")
 ```
 
 
+## Scale residual expression values according to the Spike-in
 
-## Find DE genes by comparing the mutant types to normal types, BASIC
-
-Runs a t-Test comparing tumor/normal for each patient and normal sample, and masks out those genes that are not significantly DE.
-
+Perform rescaling of the data according to the spike-in w/ preset variation levels. Then, remove the spike-in data.
 ```{r}
+# rescale
+infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
+# remove the spike-in
+infercnv_obj <- remove_spike(infercnv_obj)
+```
 
-plot_data = infercnv_obj@expr.data
-high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))  
+## Mask out those genes that are not signficantly different from the normal cells
 
-low_threshold = -1 * high_threshold 
+Runs a Wilcoxon rank test comparing tumor/normal for each patient and normal sample, and masks out those genes that are not significantly DE.
 
 infercnv_obj <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=1)
 
 save('infercnv_obj', file="infercnv_obj.non_DE_masked")
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+infercnv_obj <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, center_val=1)
 
 ```
 
@@ -241,7 +265,7 @@ save('infercnv_obj', file="infercnv_obj.non_DE_masked")
 plot_cnv(infercnv_obj, 
          output_filename='infercnv.non-DE-genes-masked', 
          color_safe_pal = FALSE, 
-         x.range=c(low_threshold, high_threshold), 
+         x.range=c(0,2), # want 0-2 post scaling by the spike-in 
          x.center=1, 
          title = "non-DE-genes-masked")
 ```
@@ -252,6 +276,7 @@ knitr::include_graphics("infercnv.non-DE-genes-masked.png")
 
 ```
 
+<<<<<<< HEAD
 ## Brighten it up by changing the scale threshold to our liking:
 
 ```{r}
@@ -267,5 +292,8 @@ plot_cnv(infercnv_obj,
 
 ```{r}
 knitr::include_graphics("infercnv.finalized_view.png")
+And that's it. You can experiment with each step to fine-tune your data exploration.  See the documentation for uploading the resulting data matrix into the Next Generation Clustered Heatmap Viewer for more interactive exploration of the infercnv-processed data:
+<https://github.com/broadinstitute/inferCNV/wiki/Next-Generation-Clustered-Heat-Map>
+
 
 ```
