@@ -146,12 +146,13 @@ spike_in_variation_chrs <- function(infercnv_obj,
     
     sim_expr_val <- function(gene_idx, rand_cell_idx) {
         m = normal_cell_expr[gene_idx, rand_cell_idx]
-        v = predict(s, log2(m+1))$y
-        v = max(0, 2^v-1)
-        val = max(0, rnorm(n=1, mean=m, sd=sqrt(v)))
+        #v = predict(s, log2(m+1))$y
+        #v = max(0, 2^v-1)
+        #val = max(0, rnorm(n=1, mean=m, sd=sqrt(v)))
+        val = max(0, rnbinom(n=1, mu=m, size=0.1)) 
         return(val)
     }
-                  
+    
     sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
     rownames(sim_cell_matrix) = rownames(normal_cell_expr)
     colnames(sim_cell_matrix) = spike_cell_names
