@@ -66,6 +66,10 @@
 #'
 #' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
 #'
+#' @param spike_in_chrs  vector listing of chr names to use for modeling spike-ins (default: NULL - uses the two largest chrs.  ex.  c('chr1', 'chr2') )
+#'
+#' @param spike_in_multiplier vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)
+#'
 #' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)
 #'
 #' @param debug If true, output debug level logging.
@@ -116,7 +120,11 @@ run <- function(infercnv_obj,
                 debug=FALSE, #for debug level logging
 
                 include.spike = FALSE,
-                                
+
+                #  must specify both below if to be used, and must match in vec length
+                spike_in_chrs =  NULL, # use defaults
+                spike_in_multiplier_vec = NULL, # use defaults
+                
                 pseudocount = 0
                 
                 ) {
@@ -202,10 +210,14 @@ run <- function(infercnv_obj,
     if (include.spike) {
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
+
+        if (! (is.null(spike_in_chrs) && is.null(spike_in_multiplier_vec)) ) {
+            infercnv_obj <- spike_in_variation_chrs(infercnv_obj, spike_in_chrs, spike_in_multiplier_vec)
+        } else {
+            infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+        }
         
-        infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
-        
-                                        # Plot incremental steps.
+        # Plot incremental steps.
         if (plot_steps){
 
             infercnv_obj_spiked <- infercnv_obj
@@ -657,9 +669,6 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count))
         }
         
-        # remove the spike now
-        infercnv_obj <- remove_spike(infercnv_obj)
-        
     }
     
     
@@ -697,6 +706,12 @@ run <- function(infercnv_obj,
         }
     }
 
+    if  (include.spike) {
+        # remove the spike before making the final plot.
+        infercnv_obj <- remove_spike(infercnv_obj)
+    }
+    
+    
     save('infercnv_obj', file=file.path(out_dir, "run.final.infercnv_obj"))
     
     flog.info("Making the final infercnv heatmap")

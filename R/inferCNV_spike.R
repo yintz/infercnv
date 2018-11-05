@@ -79,18 +79,22 @@ spike_in_variation_chrs <- function(infercnv_obj,
     normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
     normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
 
+    # zeros are a problem here...
+    gene_means = rowMeans(normal_cells_expr)
+    
+    mean_p0_table = .get_mean_vs_p0_table(infercnv_obj)
+    
     ## apply spike-in multiplier vec
     for (i in 1:length(spike_in_multiplier_vec)) {
         
         gene_indices = gene_selection_listing[[i]]
         multiplier = spike_in_multiplier_vec[i]
-        
-        normal_cells_expr[gene_indices, ] = normal_cells_expr[gene_indices, ] * multiplier
-        
-    }
 
+        gene_means[gene_indices] = gene_means[gene_indices] * multiplier
+    }
+    
     ## get simulated matrix
-    sim_matrix = .get_simulated_cell_matrix(mvtable, normal_cells_expr, max_cells)
+    sim_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, max_cells)
 
     ## integrate into expr data and count data matrices
     ncol_begin = ncol(infercnv_obj@expr.data) + 1
@@ -133,39 +137,55 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @noRd
 ##' 
 
-.get_simulated_cell_matrix <- function(mean_var_table, normal_cell_expr, num_cells) {
+.get_simulated_cell_matrix <- function(gene_means, mean_p0_table, num_cells) {
     
     # should be working on the total sum count normalized data.
     # model the mean variance relationship
+            
+    ngenes = length(gene_means)
 
-    s = smooth.spline(log2(mean_var_table$m+1), log2(mean_var_table$v+1))
+    dropout_logistic_params <- .get_logistic_params(mean_p0_table)
+
         
-    spike_cell_names = paste0("spike_", 1:num_cells)
-    
-    ngenes = nrow(normal_cell_expr)
-    
-    sim_expr_val <- function(gene_idx, rand_cell_idx) {
-        m = normal_cell_expr[gene_idx, rand_cell_idx]
-        #v = predict(s, log2(m+1))$y
-        #v = max(0, 2^v-1)
-        #val = max(0, rnorm(n=1, mean=m, sd=sqrt(v)))
-        val = max(0, rnbinom(n=1, mu=m, size=0.1)) 
-        return(val)
-    }
+    spike_cell_names = paste0('spike_cell_', 1:num_cells)
     
     sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
-    rownames(sim_cell_matrix) = rownames(normal_cell_expr)
+    rownames(sim_cell_matrix) = names(gene_means)
     colnames(sim_cell_matrix) = spike_cell_names
+
+    sim_expr_vals <- function(gene_idx) {
+        m = gene_means[gene_idx]
+        return(.sim_expr_val(m, dropout_logistic_params))
+    }
     
     for (i in 1:num_cells) {
-        rand_cell_idx = floor(runif(1) * ncol(normal_cell_expr)+1)
-        newvals = sapply(1:ngenes, FUN=sim_expr_val, rand_cell_idx)
+        newvals = sapply(1:ngenes, FUN=sim_expr_vals)
         sim_cell_matrix[,i] = newvals
     }
 
     return(sim_cell_matrix)
 }
+
+
+.sim_expr_val <- function(m,  dropout_logistic_params) {
     
+    # include drop-out prediction
+    
+    val = 0
+    if (m > 0) {
+        dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
+        
+        if (runif(1) > dropout_prob) {
+            # not a drop-out
+            val = rnbinom(n=1, mu=m, size=1/0.1) #fixed dispersion at 0.1
+        }
+    }
+    return(val)
+}
+
+
+
+
 ##' .get_mean_var_table()
 ##'
 ##' Computes the gene mean/variance table based on all defined cell groupings (reference and observations)
@@ -301,4 +321,70 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     return(counts$chr[1:num_chrs_want])
         
+}
+
+
+
+.get_mean_vs_p0_table <- function(infercnv_obj) {
+
+    group_indices = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+
+    mean_p0_table = NULL
+    
+    for (group_name in names(group_indices)) {
+        flog.info(sprintf("processing group: %s", group_name))
+        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
+        ncells = ncol(expr.data)
+        m = rowMeans(expr.data)
+        numZeros = apply(expr.data, 1, function(x) { sum(x==0) })
+
+        pZero = numZeros/ncells
+        
+        if (is.null(mean_p0_table)) {
+            mean_p0_table = data.frame(g=group_name, m=m, p0=pZero)
+        } else {
+            mean_p0_table = rbind(mean_p0_table, data.frame(g=group_name, m=m, p0=pZero))
+        }
+    }
+    
+    return(mean_p0_table)
+}
+
+
+#'
+#' Logistic function
+#'
+#' InferCNV note: Standard function here, but lifted from
+#' Splatter (Zappia, Phipson, and Oshlack, 2017)
+#' https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1305-0 
+#' 
+#' Implementation of the logistic function
+#'
+#' @param x value to apply the function to.
+#' @param x0 midpoint parameter. Gives the centre of the function.
+#' @param k shape parameter. Gives the slope of the function.
+#'
+#' @return Value of logistic funciton with given parameters
+.logistic <- function(x, midpt, slope) {
+    1 / (1 + exp(-slope * (x - midpt)))
+}
+
+
+.get_logistic_params <- function(mean_p0_table) {
+
+    mean_p0_table <- mean_p0_table[mean_p0_table$m > 0, ] # remove zeros, can't take log.
+    
+    x = log(mean_p0_table$m)
+    y = mean_p0_table$p0
+
+    df = data.frame(x,y)
+    
+    fit <- nls(y ~ .logistic(x, midpt = x0, slope = k), data = df, start = list(x0 = 0, k = -1)) # borrow from splatter
+    
+    logistic_params = list()
+
+    logistic_params[[ 'midpt' ]] <- summary(fit)$coefficients["x0", "Estimate"]
+    logistic_params[[ 'slope' ]] <- summary(fit)$coefficients["k", "Estimate"]
+
+    return(logistic_params)
 }
