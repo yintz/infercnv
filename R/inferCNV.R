@@ -377,3 +377,23 @@ validate_infercnv_obj <- function(infercnv_obj) {
 
 }
 
+
+get_cell_name_by_grouping <- function(infercnv_obj) {
+
+    cell_name_groupings = list()
+    
+    groupings = c(infercnv_obj@reference_grouped_cell_indices, infercnv_obj@observation_grouped_cell_indices)
+
+    for (group_name in names(groupings)) {
+
+        cell_names = colnames(infercnv_obj@expr.data[, groupings[[ group_name ]] ] )
+
+        cell_name_groupings[[ group_name ]] = cell_names
+
+    }
+
+    return(cell_name_groupings)
+}
+
+
+

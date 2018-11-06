@@ -292,8 +292,10 @@ plot_cnv(infercnv_obj,
 
 ```{r}
 knitr::include_graphics("infercnv.finalized_view.png")
+```
+
 And that's it. You can experiment with each step to fine-tune your data exploration.  See the documentation for uploading the resulting data matrix into the Next Generation Clustered Heatmap Viewer for more interactive exploration of the infercnv-processed data:
 <https://github.com/broadinstitute/inferCNV/wiki/Next-Generation-Clustered-Heat-Map>
 
 
-```
+

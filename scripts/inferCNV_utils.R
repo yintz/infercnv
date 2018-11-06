@@ -1,9 +1,9 @@
 
 library(tidyverse)
-
+library(futile.logger)
 
 # plot expression density by chromosome for each observation group, reference groups are shown as single 'normal' group.
-plot_density_by_chr <- function(infercnv_obj, pdf_filename=NULL, exclude_range=NULL, chrs=NULL) {
+plot_density_by_chr <- function(infercnv_obj, pdf_filename=NULL, exclude_range=NULL, include_range = NULL, chrs=NULL) {
 
     ref_group_cell_indices = infercnv:::get_reference_grouped_cell_indices(infercnv_obj)
     
@@ -15,6 +15,9 @@ plot_density_by_chr <- function(infercnv_obj, pdf_filename=NULL, exclude_range=N
     if (! is.null(pdf_filename)) {
         pdf(pdf_filename)
     }
+
+
+    chr_expr_vals = list()
     
     for (chr in chrs) {
 
@@ -40,16 +43,25 @@ plot_density_by_chr <- function(infercnv_obj, pdf_filename=NULL, exclude_range=N
             excl_range_right = exclude_range[2]
 
             df = df %>% filter(vals < excl_range_left | vals > excl_range_right)
+        } else if (! is.null(include_range)) {
+            include_range_left = include_range[1]
+            include_range_right = include_range[2]
+
+            df = df %>% filter(vals >= include_range_left & vals <= include_range_right)
         }
-        
+                
         p = df %>% ggplot(aes(vals, fill=class)) + geom_density(alpha=0.3) + scale_y_continuous(trans='log10', limits=c(1,NA)) + ggtitle(chr)
         plot(p)
+
+        chr_expr_vals[[ chr ]] = df
         
     }
 
     if (! is.null(pdf_filename)) {
         dev.off()
     }
+
+    return(chr_expr_vals)
     
 }
 
@@ -87,6 +99,8 @@ plot_dist_counts_expr_genes_by_chr <- function(infercnv_obj, pdf_filename=NULL, 
     if (! is.null(pdf_filename)) {
         pdf(pdf_filename)
     }
+
+    gene_counts_dfs = list()
     
     for (chr in chrs) {
         gene_idx = which(infercnv_obj@gene_order$chr == chr)
@@ -104,11 +118,15 @@ plot_dist_counts_expr_genes_by_chr <- function(infercnv_obj, pdf_filename=NULL, 
         }
         p = df %>% ggplot(aes(gene_counts, fill=class)) + geom_density(alpha=0.3) + ggtitle(chr)
         plot(p)
+
+        gene_counts_dfs[[ chr ]] = df
     }
 
     if (! is.null(pdf_filename)) {
         dev.off()
     }
+
+    return(gene_counts_dfs)
 }
 
 
@@ -133,7 +151,9 @@ compare_gene_expr_means_by_group_pair <- function(infercnv_obj, groupA, groupB, 
     groupA.gene_mean = rowMeans(groupA.expr.data)
     groupB.gene_mean = rowMeans(groupB.expr.data)
 
-    plot(groupA.gene_mean, groupB.gene_mean)
+    #plot(groupA.gene_mean, groupB.gene_mean)
+    smoothScatter(groupA.gene_mean, groupB.gene_mean)
+    abline(a=0, b=1, col='magenta')
     
     df=data.frame(groupA=groupA.gene_mean, groupB=groupB.gene_mean)
 
