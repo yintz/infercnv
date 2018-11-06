@@ -334,19 +334,31 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     for (group_name in names(group_indices)) {
         flog.info(sprintf("processing group: %s", group_name))
         expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
-        ncells = ncol(expr.data)
-        m = rowMeans(expr.data)
-        numZeros = apply(expr.data, 1, function(x) { sum(x==0) })
 
-        pZero = numZeros/ncells
+        group_mean_p0_table <- .get_mean_vs_p0_from_matrix(expr.data)
+        group_mean_p0_table[[ 'group_name' ]] <- group_name
         
         if (is.null(mean_p0_table)) {
-            mean_p0_table = data.frame(g=group_name, m=m, p0=pZero)
+            mean_p0_table = group_mean_p0_table
         } else {
-            mean_p0_table = rbind(mean_p0_table, data.frame(g=group_name, m=m, p0=pZero))
+            mean_p0_table = rbind(mean_p0_table, group_mean_p0_table)
         }
     }
     
+    return(mean_p0_table)
+}
+
+
+
+.get_mean_vs_p0_from_matrix <- function(expr.data) {
+    ncells = ncol(expr.data)
+    m = rowMeans(expr.data)
+    numZeros = apply(expr.data, 1, function(x) { sum(x==0) })
+    
+    pZero = numZeros/ncells
+    
+    mean_p0_table = data.frame(m=m, p0=pZero)
+
     return(mean_p0_table)
 }
 
