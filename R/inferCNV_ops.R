@@ -1913,7 +1913,9 @@ anscombe_transform <- function(infercnv_obj) {
     
 }
 
-
+#' @keywords internal
+#' @noRd
+#'
 add_pseudocount <- function(infercnv_obj, pseudocount) {
 
     flog.info(sprintf("Adding pseudocount: %g", pseudocount))

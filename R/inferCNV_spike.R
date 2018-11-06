@@ -118,11 +118,9 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' the mean/variance relationship for all genes in all cell groupings.
 ##'
 ##' Cells are simulated as so:
-##'    A random cell is selected from the normal cell expression matrix.
-##'    The expression of each gene is treated as a targeted mean expression value.
-##'    The variance is chosen based on a spline fit to the mean/variance relationship provided.
-##'    A random expression value is generated from a normal distribution with corresponding (mean, variance)
-##'
+##'    The mean for genes in the normal cells are computed
+##'    A random expression value is chosen for each gene using a negative binomial distribution with dispersion = 0.1
+##' 
 ##' Genes are named according to the input expression matrix, and cells are named 'spike_{number}'.
 ##' 
 ##' @param mean_var_table : a data.frame containing three columns: group_name, mean, variance of expression per gene per grouping.
@@ -166,6 +164,9 @@ spike_in_variation_chrs <- function(infercnv_obj,
     return(sim_cell_matrix)
 }
 
+##' @keywords internal
+##' @noRd
+##' 
 
 .sim_expr_val <- function(m,  dropout_logistic_params) {
     
@@ -220,7 +221,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
     return(mean_var_table)
 }
 
-##' get_spike_in_average_bounds()
+##' .get_spike_in_average_bounds()
 ##'
 ##' return mean bounds for expression of all cells in the spike-in
 ##'
@@ -313,7 +314,11 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 }
 
 
-# selects the specified number of chrs having the largest number of (expressed) genes
+#' selects the specified number of chrs having the largest number of (expressed) genes
+#' @keywords internal
+#' @noRd
+#' 
+
 .select_longest_chrs <- function(infercnv_obj, num_chrs_want) {
 
     # get count of chrs
@@ -323,7 +328,12 @@ scale_cnv_by_spike <- function(infercnv_obj) {
         
 }
 
-
+#' Computes probability of seeing a zero expr val as a function of the mean gene expression
+#' The p(0 | mean_expr) is computed separately for each sample grouping.
+#' 
+#' @keywords internal
+#' @noRd
+#' 
 
 .get_mean_vs_p0_table <- function(infercnv_obj) {
 
@@ -348,7 +358,12 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     return(mean_p0_table)
 }
 
-
+#' Computes probability of seeing a zero expr val as a function of the mean gene expression
+#' based on the input expression  matrix.
+#' 
+#' @keywords internal
+#' @noRd
+#' 
 
 .get_mean_vs_p0_from_matrix <- function(expr.data) {
     ncells = ncol(expr.data)
@@ -381,6 +396,14 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     1 / (1 + exp(-slope * (x - midpt)))
 }
 
+
+
+#' Given the mean, p0 table, fits the data to a logistic function to compute
+#' the shape of the logistic distribution.
+#' 
+#' @keywords internal
+#' @noRd
+#' 
 
 .get_logistic_params <- function(mean_p0_table) {
 
