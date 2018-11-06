@@ -145,7 +145,8 @@ plot_cnv <- function(infercnv_obj,
     
     # Row separation based on reference
     ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
-
+    ref_idx = ref_idx[order(ref_idx)]
+        
     # Column seperation by contig and label axes with only one instance of name
     contig_tbl <- table(contigs)[unique_contigs]
     col_sep <- cumsum(contig_tbl)
@@ -176,13 +177,14 @@ plot_cnv <- function(infercnv_obj,
         counter <- counter + 1
     }
     # restrict to just the obs indices
-    obs_annotations_groups <- obs_annotations_groups[ unlist(obs_index_groupings) ]
-    
 
+    obs_annotations_groups <- obs_annotations_groups[-ref_idx]
+    
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
     if (grouping_key_coln[1] < 1) {
         grouping_key_coln[1] <- 1
     }
+
     name_ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
     grouping_key_coln[2] <- floor(123/(max(nchar(name_ref_groups)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
     if (grouping_key_coln[2] < 1) {
@@ -195,7 +197,7 @@ plot_cnv <- function(infercnv_obj,
     # Calculate how much bigger the output needs to be to accodomate for the grouping key
     grouping_key_height <- c((grouping_key_rown[2] + 2) * 0.175, (grouping_key_rown[1] + 3) * 0.175)
 
-                                        # Rows observations, Columns CHR
+    # Rows observations, Columns CHR
     if (! is.na(output_format)) {
         if (output_format == "pdf") {
             pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
@@ -219,7 +221,7 @@ plot_cnv <- function(infercnv_obj,
     ## They are more informative anyway
     obs_data <- infercnv_obj@expr.data
     if (!is.null(ref_idx)){
-        obs_data <- plot_data[, -1 * ref_idx, drop=FALSE]
+        obs_data <- plot_data[, -ref_idx, drop=FALSE]
         if (ncol(obs_data) == 1) {
             # hack for dealing with single entries
             plot_data <- cbind(obs_data, obs_data)
@@ -244,7 +246,7 @@ plot_cnv <- function(infercnv_obj,
         current_grp_idx <- current_grp_idx + 1
     }
     ref_groups <- updated_ref_groups
-
+    
     nb_breaks <- 16
     breaksList_t <-
         seq(min(min(obs_data_t, na.rm=TRUE), min(ref_data_t, na.rm=TRUE)),
