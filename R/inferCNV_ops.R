@@ -1143,7 +1143,7 @@ center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # 
 
 #' @title require_above_min_mean_expr_cutoff ()
 #'
-#' @description Filters out genes that have fewer than the corresponding mean value across the reference cell values.
+#' @description Filters out genes that have fewer than the corresponding mean value across all cell values.
 #'
 #' @param infercnv_obj  infercnv_object
 #'
@@ -1158,10 +1158,8 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 
     flog.info(paste("::above_min_mean_expr_cutoff:Start", sep=""))
 
-    # restrict to reference cells:
-    ref_cells_data <- infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
 
-    indices <-.below_min_mean_expr_cutoff(ref_cells_data, min_mean_expr_cutoff)
+    indices <-.below_min_mean_expr_cutoff(infercnv_obj@expr.data, min_mean_expr_cutoff)
     if (length(indices) > 0) {
         flog.info(sprintf("Removing %d genes from matrix as below mean expr threshold: %g",
                           length(indices), min_mean_expr_cutoff))
@@ -1195,7 +1193,7 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 
 #' @title require_above_min_cells_ref()
 #'
-#' @description Filters out genes that have fewer than specified number of reference cells expressing them.
+#' @description Filters out genes that have fewer than specified number of cells expressing them.
 #'
 #' @param infercnv_obj infercnv_object
 #' 
@@ -1207,15 +1205,11 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 #'
 
 require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
-
-    ref_cell_indices = get_reference_grouped_cell_indices(infercnv_obj)
     
-    ref_data = infercnv_obj@expr.data[,ref_cell_indices]
-    
-    ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
+    genes_passed = which(apply(infercnv_obj@expr.data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
-    num_genes_total = dim(ref_data)[1]
-    num_removed = num_genes_total - length(ref_genes_passed)
+    num_genes_total = dim(infercnv_obj@expr.data)[1]
+    num_removed = num_genes_total - length(genes_passed)
     if (num_removed > 0) {
 
         flog.info(sprintf("Removed %d genes having fewer than %d min cells per gene = %g %% genes removed here",
@@ -1229,7 +1223,7 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
         }
         
         
-        infercnv_obj <- remove_genes(infercnv_obj, -1 * ref_genes_passed)
+        infercnv_obj <- remove_genes(infercnv_obj, -1 * genes_passed)
         
                 
     }
