@@ -563,7 +563,7 @@ plot_cnv <- function(infercnv_obj,
                         observation_file_base,
                         sep=" "))
         row.names(obs_data) <- orig_row_names
-        write.table(obs_data[data_observations$rowInd,data_observations$colInd],
+        write.table(t(obs_data[data_observations$rowInd,data_observations$colInd]),
                     file=observation_file_base)
     }
 }
