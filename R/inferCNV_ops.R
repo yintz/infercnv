@@ -111,7 +111,7 @@ run <- function(infercnv_obj,
                 use_zscores=FALSE,
                 remove_genes_at_chr_ends=FALSE,
 
-                mask_nonDE_genes=TRUE,
+                mask_nonDE_genes=FALSE,
                 mask_nonDE_pval=0.05,
                 test.use='wilcoxon',
                 
