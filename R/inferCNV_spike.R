@@ -392,6 +392,9 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 #' @param k shape parameter. Gives the slope of the function.
 #'
 #' @return Value of logistic function with given parameters
+#'
+#' @keywords internal                                                                                        #' @noRd
+#' 
 .logistic <- function(x, midpt, slope) {
     1 / (1 + exp(-slope * (x - midpt)))
 }
