@@ -84,21 +84,13 @@ Create_NGCHM <- function(infercnv_obj,
     }
     
     ## set variables 
-    reference_idx = row.names(plot_data[unlist(infercnv_obj@reference_grouped_cell_indices),])
     ref_index = infercnv_obj@reference_grouped_cell_indices
-    ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
+    reference_idx = row.names(plot_data[unlist(ref_index),])
+    ref_groups = names(ref_index)
     
     # ---------------------- Import Dendrogram & Order Rows -----------------------------------------------------------------------------------
     # IF Cluster By Group is set to TRUE:
     # Get the order of the rows (cell lines) from the dendrogram created by infer_cnv 
-    #
-    
-    ## import and read the dendrogram for the observed data created using the ape library
-    #den_path <- paste(out_dir, "observations_dendrogram.txt", sep=.Platform$file.sep)
-    #phylo <- ape::read.tree(file = den_path)
-    # if multiphylo trees, need to iterate to get to labels 
-    #obs_order <- rev(unlist(lapply(1:length(phylo), function(x) phylo[[x]]$tip.label))) # vector holding cell line order taken from the dendrogram
-    
     
     # read the file containing the groupings created by infer_cnv
     row_groups_path <- paste(out_dir, "observation_groupings.txt", sep=.Platform$file.sep)
@@ -213,15 +205,53 @@ Create_NGCHM <- function(infercnv_obj,
                                     display   = "visible",
                                     thickness = as.integer(20))
     
-    # Covariate bar for annotation groups 
+    # Covariate to identify Reference and Observed data
     annotation_col <- as.character(unlist(row_groups["Annotation.Color"])) # group colors
     annotation_group <- as.character(unlist(row_groups["Annotation.Group"]))# group number
     names(annotation_group) <- cells
     names(annotation_col) <- cells
-    annotation_palette <- get_group_color_palette()(length(unique(annotation_group)))
     annotation_unique_group <- unique(annotation_group)
+    
+    len <-lengths(ref_index)
+    ref_bar_labels <- unlist(sapply(1:length(len), function(x){ rep(ref_groups[x],len[x]) }))
+    names(ref_bar_labels) <- reference_idx
+    
+    # if you want the exact coloring as the original inferCNV plots 
+    #annotation_palette <- c(get_group_color_palette()(length(ref_index)), get_group_color_palette()(length(annotation_unique_group)))
+    
+    # combine reference and observed labels 
+    annotation_group <- c(ref_bar_labels,annotation_group)
+    
+    # change the observed group names in bar to group namnes 
+    observed_data <- infercnv_obj@observation_grouped_cell_indices
+    lapply(1:length(observed_data), function(x) { 
+        tmp <- names(observed_data[x])
+        annotation_group <<- replace(annotation_group, observed_data[[x]], tmp) } )
+    unique_group <- unique(annotation_group)
+    annotation_palette <- get_group_color_palette()(length(unique_group))
+    
+    # check if all reference cells are included 
+    if (!(all(reference_idx %in% names(annotation_group)))){
+        missing_refs <- reference_idx[which(!(reference_idx %in% names(annotation_group)))]
+        error_message <- paste("Error: Not all references are accounted for.",
+                               "Make sure the reference names match the names in the data.\n",
+                               "Check the following reference cell lines: ", 
+                               paste(missing_refs, collapse = ","))
+        stop(error_message)
+    }
+    # check if all observed cells are included
+    observed_idx <- row.names(plot_data[unlist(infercnv_obj@observation_grouped_cell_indices),])
+    if (!(all(observed_idx %in% names(annotation_group)))){
+        missing_obs <- reference_idx[which(!(observed_idx %in% names(annotation_group)))]
+        error_message <- paste("Error: Not all observed cell lines are accounted for.",
+                               "Make sure the reference names match the names in the data.\n",
+                               "Check the following reference cell lines: ", 
+                               paste(missing_obs, collapse = ","))
+        stop(error_message)
+    }
+    
     ## create color mapping
-    colMap_annotation <- NGCHM::chmNewColorMap(values        = as.vector(annotation_unique_group), # row names are the cells 
+    colMap_annotation <- NGCHM::chmNewColorMap(values        = as.vector(unique_group), 
                                                colors        = annotation_palette,
                                                missing.color = "white")
     annotation_cov <- NGCHM::chmNewCovariate(fullname         = 'Annotation', 
@@ -231,56 +261,6 @@ Create_NGCHM <- function(infercnv_obj,
     hm <- NGCHM::chmAddCovariateBar(hm, "row", annotation_cov, 
                                     display   = "visible", 
                                     thickness = as.integer(20))
-    # Covariate to identify Reference and Observed data
-    
-    cell_type <- replace(row_order, 1:length(row_order) %in% unlist(infercnv_obj@observation_grouped_cell_indices), paste("Observed"))
-    
-    ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
-    
-    ## Label the references based on index locations 
-    if (length(ref_groups) > 1) {
-        for(i in 1:length(ref_groups)){ 
-            cell_type <- replace(cell_type, infercnv_obj@reference_grouped_cell_indices[[i]], paste("Reference",toString(i),sep = "")) 
-        }
-    } else {
-        for(i in 1:length(ref_groups)){ 
-            cell_type <- replace(cell_type, 1:length(cell_type) %in% infercnv_obj@reference_grouped_cell_indices[[1]], paste("Reference"))
-        }
-    }
-    # make a new variable for later use that has the cell type and cell ID as the name 
-    ## cell ID's need to map to cell types 
-    names(cell_type) <- row_order
-    
-    # check if all reference cells are in cell type 
-    if (!(all(reference_idx %in% names(cell_type)))){
-        missing_refs <- reference_idx[which(!(reference_idx %in% names(cell_type)))]
-        error_message <- paste("Error: Not all references are accounted for.",
-                               "Make sure the reference names match the names in the data.\n",
-                               "Check the following reference cell lines: ", 
-                               paste(missing_refs, collapse = ","))
-        stop(error_message)
-    }
-    if (!is.null(cell_type)){
-        ## unique group names    
-        types <- unique(cell_type)
-        ## create colors for groups 
-        type_palette <- get_group_color_palette()(length(types))
-        names(type_palette) <- types 
-        
-        colMap_type <- NGCHM::chmNewColorMap(values        = types, 
-                                             names         = types,
-                                             colors        = type_palette,
-                                             missing.color = "white", 
-                                             type          = "linear")
-        
-        type_cov <- NGCHM::chmNewCovariate(fullname         = 'Cell Type', 
-                                           values           = cell_type, 
-                                           value.properties = colMap_type,
-                                           type             = "discrete")
-        hm <- NGCHM::chmAddCovariateBar(hm, "row", type_cov, 
-                                        display   = "visible", 
-                                        thickness = as.integer(20))
-    }
     
     #---------------------------------------Export the heat map-----------------------------------------------------------------------------------------------------------------------
     ## adjust the size of the heat map 
