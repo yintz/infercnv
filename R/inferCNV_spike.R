@@ -268,7 +268,7 @@ remove_spike <- function(infercnv_obj) {
     return(infercnv_obj)
 
 }
-v
+
 
 
 #' scale_cnv_by_spike()
@@ -391,7 +391,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 #' @param x0 midpoint parameter. Gives the centre of the function.
 #' @param k shape parameter. Gives the slope of the function.
 #'
-#' @return Value of logistic funciton with given parameters
+#' @return Value of logistic function with given parameters
 .logistic <- function(x, midpt, slope) {
     1 / (1 + exp(-slope * (x - midpt)))
 }

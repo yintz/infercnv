@@ -276,7 +276,6 @@ knitr::include_graphics("infercnv.non-DE-genes-masked.png")
 
 ```
 
-<<<<<<< HEAD
 ## Brighten it up by changing the scale threshold to our liking:
 
 ```{r}
