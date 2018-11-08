@@ -20,7 +20,7 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom ape write.tree as.phylo
 #' @importFrom fastcluster hclust
 #' @import RColorBrewer
-#' @importFrom Matrix Matrix
+#' @importFrom Matrix Matrix rowMeans colSums
 #' @import coin
 #' @importFrom dplyr %>% count
 

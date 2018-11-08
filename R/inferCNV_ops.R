@@ -66,6 +66,10 @@
 #'
 #' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
 #'
+#' @param spike_in_chrs  vector listing of chr names to use for modeling spike-ins (default: NULL - uses the two largest chrs.  ex.  c('chr1', 'chr2') )
+#'
+#' @param spike_in_multiplier vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)
+#'
 #' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)
 #'
 #' @param debug If true, output debug level logging.
@@ -107,7 +111,7 @@ run <- function(infercnv_obj,
                 use_zscores=FALSE,
                 remove_genes_at_chr_ends=FALSE,
 
-                mask_nonDE_genes=TRUE,
+                mask_nonDE_genes=FALSE,
                 mask_nonDE_pval=0.05,
                 test.use='wilcoxon',
                 
@@ -116,7 +120,11 @@ run <- function(infercnv_obj,
                 debug=FALSE, #for debug level logging
 
                 include.spike = FALSE,
-                                
+
+                #  must specify both below if to be used, and must match in vec length
+                spike_in_chrs =  NULL, # use defaults
+                spike_in_multiplier_vec = NULL, # use defaults
+                
                 pseudocount = 0
                 
                 ) {
@@ -202,10 +210,14 @@ run <- function(infercnv_obj,
     if (include.spike) {
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
+
+        if (! (is.null(spike_in_chrs) && is.null(spike_in_multiplier_vec)) ) {
+            infercnv_obj <- spike_in_variation_chrs(infercnv_obj, spike_in_chrs, spike_in_multiplier_vec)
+        } else {
+            infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+        }
         
-        infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
-        
-                                        # Plot incremental steps.
+        # Plot incremental steps.
         if (plot_steps){
 
             infercnv_obj_spiked <- infercnv_obj
@@ -657,9 +669,6 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count))
         }
         
-        # remove the spike now
-        infercnv_obj <- remove_spike(infercnv_obj)
-        
     }
     
     
@@ -697,6 +706,12 @@ run <- function(infercnv_obj,
         }
     }
 
+    if  (include.spike) {
+        # remove the spike before making the final plot.
+        infercnv_obj <- remove_spike(infercnv_obj)
+    }
+    
+    
     save('infercnv_obj', file=file.path(out_dir, "run.final.infercnv_obj"))
     
     flog.info("Making the final infercnv heatmap")
@@ -1143,7 +1158,7 @@ center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # 
 
 #' @title require_above_min_mean_expr_cutoff ()
 #'
-#' @description Filters out genes that have fewer than the corresponding mean value across the reference cell values.
+#' @description Filters out genes that have fewer than the corresponding mean value across all cell values.
 #'
 #' @param infercnv_obj  infercnv_object
 #'
@@ -1158,10 +1173,8 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 
     flog.info(paste("::above_min_mean_expr_cutoff:Start", sep=""))
 
-    # restrict to reference cells:
-    ref_cells_data <- infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
 
-    indices <-.below_min_mean_expr_cutoff(ref_cells_data, min_mean_expr_cutoff)
+    indices <-.below_min_mean_expr_cutoff(infercnv_obj@expr.data, min_mean_expr_cutoff)
     if (length(indices) > 0) {
         flog.info(sprintf("Removing %d genes from matrix as below mean expr threshold: %g",
                           length(indices), min_mean_expr_cutoff))
@@ -1195,7 +1208,7 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 
 #' @title require_above_min_cells_ref()
 #'
-#' @description Filters out genes that have fewer than specified number of reference cells expressing them.
+#' @description Filters out genes that have fewer than specified number of cells expressing them.
 #'
 #' @param infercnv_obj infercnv_object
 #' 
@@ -1207,15 +1220,11 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 #'
 
 require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
-
-    ref_cell_indices = get_reference_grouped_cell_indices(infercnv_obj)
     
-    ref_data = infercnv_obj@expr.data[,ref_cell_indices]
-    
-    ref_genes_passed = which(apply(ref_data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
+    genes_passed = which(apply(infercnv_obj@expr.data, 1, function(x) { sum(x>0 & ! is.na(x)) >= min_cells_per_gene}))
 
-    num_genes_total = dim(ref_data)[1]
-    num_removed = num_genes_total - length(ref_genes_passed)
+    num_genes_total = dim(infercnv_obj@expr.data)[1]
+    num_removed = num_genes_total - length(genes_passed)
     if (num_removed > 0) {
 
         flog.info(sprintf("Removed %d genes having fewer than %d min cells per gene = %g %% genes removed here",
@@ -1229,7 +1238,7 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
         }
         
         
-        infercnv_obj <- remove_genes(infercnv_obj, -1 * ref_genes_passed)
+        infercnv_obj <- remove_genes(infercnv_obj, -1 * genes_passed)
         
                 
     }
@@ -1904,7 +1913,9 @@ anscombe_transform <- function(infercnv_obj) {
     
 }
 
-
+#' @keywords internal
+#' @noRd
+#'
 add_pseudocount <- function(infercnv_obj, pseudocount) {
 
     flog.info(sprintf("Adding pseudocount: %g", pseudocount))
