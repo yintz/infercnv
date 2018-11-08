@@ -17,6 +17,10 @@ ngchm(infercnv_obj, out_dir = ".", title = "NGCHM", gene_symbol = NULL,
 \item{gene_symbol}{##TODO  (default: NULL)}
 
 \item{path_to_shaidyMapGen}{path to the shaidyMapGen jar file (default: NULL)}
+
+\item{x.range}{(integer) Values for minimum and maximum thresholds for heatmap coloring.}
+
+\item{x.center}{(integer) Center expression value for heatmap coloring.}
 }
 \description{
 Function for Generating a next-generation heatmap
