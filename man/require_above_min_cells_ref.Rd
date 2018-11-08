@@ -15,5 +15,5 @@ require_above_min_cells_ref(infercnv_obj, min_cells_per_gene)
 infercnv_obj infercnv_object with corresponding genes removed.
 }
 \description{
-Filters out genes that have fewer than specified number of reference cells expressing them.
+Filters out genes that have fewer than specified number of cells expressing them.
 }

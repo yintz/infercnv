@@ -15,5 +15,5 @@ require_above_min_mean_expr_cutoff(infercnv_obj, min_mean_expr_cutoff)
 infercnv_obj  the infercnv_object with lowly or unexpressed genes removed.
 }
 \description{
-Filters out genes that have fewer than the corresponding mean value across the reference cell values.
+Filters out genes that have fewer than the corresponding mean value across all cell values.
 }

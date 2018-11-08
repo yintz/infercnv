@@ -11,9 +11,10 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   outlier_method_bound = "average_bound", outlier_lower_bound = NA,
   outlier_upper_bound = NA, hclust_method = "complete",
   anscombe_normalize = TRUE, use_zscores = FALSE,
-  remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = TRUE,
+  remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = FALSE,
   mask_nonDE_pval = 0.05, test.use = "wilcoxon", plot_steps = FALSE,
-  debug = FALSE, include.spike = FALSE, pseudocount = 0)
+  debug = FALSE, include.spike = FALSE, spike_in_chrs = NULL,
+  spike_in_multiplier_vec = NULL, pseudocount = 0)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -79,7 +80,11 @@ the mean value for the complete data set}
 
 \item{include.spike}{If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)}
 
+\item{spike_in_chrs}{vector listing of chr names to use for modeling spike-ins (default: NULL - uses the two largest chrs.  ex.  c('chr1', 'chr2') )}
+
 \item{pseudocount}{Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)}
+
+\item{spike_in_multiplier}{vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)}
 }
 \value{
 infercnv_obj containing filtered and transformed data
