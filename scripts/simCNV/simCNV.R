@@ -41,37 +41,50 @@ colnames(normal_sim_matrix) = paste0("normal_", 1:ncol(normal_sim_matrix))
 cell_annots_df = data.frame("cells"=colnames(normal_sim_matrix), "class"="normal")
 
 #' make simulated tumors:
-gene_ordering = read.table(args$gene_order_file, header=F, row.names=NULL)
+gene_ordering = read.table(args$gene_order_file, header=F, row.names=NULL, sep="\t")
 colnames(gene_ordering) = c('gene', 'chr', 'lend', 'rend')
 
-cnv_info = read.table(args$CNV_spec, header=F, row.names=NULL)
+cnv_info = read.table(args$CNV_spec, header=F, row.names=NULL, sep="\t", stringsAsFactors=F)
 colnames(cnv_info) = c('chr', 'lend', 'rend', 'cnv')
 
 for (i in 1:nrow(cnv_info)) {
-    r = cnv_info[i,,drop=T]
-    chr = r[1]
-    lend = r[2]
-    rend = r[3]
-    cnv = r[4]
+    r = unlist(cnv_info[i,,drop=T])
+    message(r)
+    chrwant = r[1]
+    lend = as.integer(r[2])
+    rend = as.integer(r[3])
+    cnv = as.double(r[4])
 
-    chr_genes = gene_ordering %>% filter(chr==chr)
+    chr_genes = gene_ordering %>% filter(chr==chrwant)
 
-    idx = which(names(gene_means) %in% chr_genes$genes)
+    idx = which(names(gene_means) %in% chr_genes$gene)
+    if (length(idx)==0) {
+        stop(sprintf("Error, found no genes on chr: %s", chrwant))
+    }
 
+    gene_means_before = gene_means[idx] 
+    
     gene_means[idx] = gene_means[idx] * cnv
+
+    gene_means_after = gene_means[idx]
+
+    write.table(data.frame(before=gene_means_before, after=gene_means_after), file=sprintf("means.%s", chrwant), quote=F,sep="\t")
 }
 
+
 tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means, mean_p0_table, args$num_tumor_cells)
-colnames(normal_sim_matrix) = paste0("tumor_", 1:ncol(tumor_sim_matrix)) 
+colnames(tumor_sim_matrix) = paste0("tumor_", 1:ncol(tumor_sim_matrix)) 
 
 cell_annots_df = rbind(cell_annots_df,
                        data.frame("cells"=colnames(tumor_sim_matrix), "class"="tumor") )
 
 # write outputs
-write.table(cell_annots_df, file="my.cell.annots", quote=F, sep="\t", col.names=F)
+message("writing my.cell.annots")
+write.table(cell_annots_df, file="my.cell.annots", quote=F, sep="\t", col.names=F, row.names=F)
 
 merged_matrix = cbind(normal_sim_matrix, tumor_sim_matrix)
 
+message("writing merged.matrix")
 write.table(merged_matrix, file="merged.matrix", quote=F, sep="\t")
 
 
