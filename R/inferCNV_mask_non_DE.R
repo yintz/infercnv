@@ -21,37 +21,43 @@ NULL
 #' @noRd
 #'
 
-.mask_DE_genes <- function(infercnv_obj, all_DE_results, mask_val) {
+.mask_DE_genes <- function(infercnv_obj, all_DE_results, mask_val, require_DE_all_normals) {
 
     
-    all_DE_genes_matrix = matrix(data=FALSE, nrow=nrow(infercnv_obj@expr.data),
+    all_DE_genes_matrix = matrix(data=0, nrow=nrow(infercnv_obj@expr.data),
                                  ncol=ncol(infercnv_obj@expr.data),
                                  dimnames = list(rownames(infercnv_obj@expr.data),
                                                  colnames(infercnv_obj@expr.data) ) )
 
 
+    num_normal_types = length(names(infercnv_obj@reference_grouped_cell_indices))
 
-    all_DE_genes_matrix[,] = FALSE
-    
     ## turn on all normal genes
-    all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = TRUE
+    all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = num_normal_types
     
     for (DE_results in all_DE_results) {
         tumor_type = DE_results$tumor
         genes = DE_results$de_genes
         
-    
-        all_DE_genes_matrix[rownames(all_DE_genes_matrix) %in% genes,
-                            infercnv_obj@observation_grouped_cell_indices[[ tumor_type ]] ] = TRUE
+        gene_idx = rownames(all_DE_genes_matrix) %in% genes
+        cell_idx = infercnv_obj@observation_grouped_cell_indices[[ tumor_type ]]
+        
+        all_DE_genes_matrix[gene_idx, cell_idx] = all_DE_genes_matrix[gene_idx, cell_idx] + 1
     
     }
-        
-    infercnv_obj@expr.data[ ! all_DE_genes_matrix ] = mask_val
+
+    if (require_DE_all_normals) {
+        # must be found in each of the tumor vs (normal_1, normal_2, ..., normal_N) DE comparisons to not be masked.
+        infercnv_obj@expr.data[ all_DE_genes_matrix != num_normal_types ] = mask_val
+    } else {
+        # masking if not found DE in any comparison
+        infercnv_obj@expr.data[ all_DE_genes_matrix == 0 ] = mask_val
+    }
     
     return(infercnv_obj)
     
-
 }
+
 
 #' @title mask_non_DE_genes_basic()
 #'
@@ -77,18 +83,22 @@ NULL
 mask_non_DE_genes_basic <- function(infercnv_obj,
                                     p_val_thresh = 0.05,
                                     test.use="wilcoxon",
-                                    center_val=mean(infercnv_obj@expr.data) ) {
+                                    center_val=mean(infercnv_obj@expr.data),
+                                    require_DE_all_normals=TRUE) {
     
 
     all_DE_results = get_DE_genes_basic(infercnv_obj,
                                         p_val_thresh=p_val_thresh,
                                         test.use=test.use)
 
+    
     #save('all_DE_results', file='all_DE_results.obj')
+    
     
     infercnv_obj <- .mask_DE_genes(infercnv_obj,
                                    all_DE_results,
-                                   mask_val=center_val)
+                                   mask_val=center_val,
+                                   require_DE_all_normals=require_DE_all_normals)
 
     return(infercnv_obj)
 }
@@ -155,7 +165,11 @@ get_DE_genes_basic <- function(infercnv_obj,
 
         vals1 = x[idx1]
         vals2 = x[idx2]
-                
+
+        ## force break ties by adding random noise
+        vals1 = vals1 + rnorm(n=length(vals1), mean=0.0001, sd=0.0001)
+        vals2 = vals2 + rnorm(n=length(vals2), mean=0.0001, sd=0.0001)
+        
         w = wilcox.test(vals1, vals2)
 
         return(w$p.value)

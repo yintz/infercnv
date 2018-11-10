@@ -396,4 +396,3 @@ get_cell_name_by_grouping <- function(infercnv_obj) {
 }
 
 
-

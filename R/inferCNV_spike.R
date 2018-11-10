@@ -75,7 +75,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 .spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells) {
 
-    mvtable = .get_mean_var_table(infercnv_obj)
+        
     normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
     normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
 
@@ -96,6 +96,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
     ## get simulated matrix
     sim_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, max_cells)
 
+        
     ## integrate into expr data and count data matrices
     ncol_begin = ncol(infercnv_obj@expr.data) + 1
     ncol_end = ncol_begin + max_cells - 1

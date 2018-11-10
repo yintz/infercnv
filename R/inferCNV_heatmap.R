@@ -47,10 +47,10 @@ plot_cnv <- function(infercnv_obj,
                      cluster_by_groups=TRUE,
                      k_obs_groups = 3,
                      contig_cex=1,
-                     x.center=0,
-                     x.range=NA,
+                     x.center=mean(infercnv_obj@expr.data),
+                     x.range="auto", #NA,
                      hclust_method='ward.D',
-                     color_safe_pal=TRUE,
+                     color_safe_pal=FALSE,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
                      ref_contig = NULL,
@@ -2374,3 +2374,51 @@ get.sep <-
 }
 
 
+#####################################################
+## Custom infercnv functions related to visualization
+
+
+depress_low_signal_midpt_ratio <- function(infercnv_obj, expr_mean, midpt_ratio=0.2, slope=20) {
+
+    expr_bounds = infercnv::get_average_bounds(infercnv_obj)
+
+    delta_mean = max(expr_mean - expr_bounds[1],  expr_bounds[2] - expr_mean)
+    delta_midpt = delta_mean * midpt_ratio
+
+    infercnv_obj <- depress_log_signal_midpt_val(infercnv_obj, expr_mean, delta_midpt, slope)
+    
+    return(infercnv_obj)
+    
+}
+
+depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, slope=20) {
+    
+    
+    infercnv_obj@expr.data <- .apply_logistic_val_adj(infercnv_obj@expr.data, expr_mean, delta_midpt, slope)
+
+    return(infercnv_obj)
+}
+
+
+.apply_logistic_val_adj <- function(vals_matrix, expr_mean, delta_midpt, slope) {
+
+    adjust_value <- function(x) {
+        newval = x
+        val = abs(x - expr_mean)
+        p = infercnv:::.logistic(val, delta_midpt, slope)
+        if (x > expr_mean) {
+            newval = expr_mean + p*val
+        } else if (x < expr_mean) {
+            newval = expr_mean - p*val
+        }
+        return(newval)
+    }
+
+
+    vals_matrix <- apply(vals_matrix, 1:2, adjust_value)
+
+    return(vals_matrix)
+}
+    
+
+    
