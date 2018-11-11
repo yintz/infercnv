@@ -125,15 +125,21 @@ subcluster_tumors <- function(infercnv_obj,
 #'
 #' @param mask_val float value to assign to genes that are in the mask set (complement of the DE gene set)
 #'
+#' @param min_cluster_size_mask clusters smaller than this size are automatically retained (unmasked). default=5
+#' 
 #' @return infercnv_obj
 #' 
 #' @keywords internal
 #' @noRd
 #'
 
-.mask_DE_genes <- function(infercnv_obj, tumor_groupings, all_DE_results, mask_val, require_DE_all_normals) {
-
-    
+.mask_DE_genes <- function(infercnv_obj,
+                           tumor_groupings,
+                           all_DE_results,
+                           mask_val,
+                           require_DE_all_normals,
+                           min_cluster_size_mask=5) {
+        
     all_DE_genes_matrix = matrix(data=0, nrow=nrow(infercnv_obj@expr.data),
                                  ncol=ncol(infercnv_obj@expr.data),
                                  dimnames = list(rownames(infercnv_obj@expr.data),
@@ -144,7 +150,15 @@ subcluster_tumors <- function(infercnv_obj,
 
     ## turn on all normal genes
     all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = num_normal_types
-    
+
+    ## retain small clusters that are unlikely to show up as DE
+    for (tumor_type in names(tumor_groupings)) {
+        tumor_idx = tumor_groupings[[tumor_type]]
+        if (length(tumor_idx) <= min_cluster_size_mask) {
+            all_DE_genes_matrix[, tumor_idx] = num_normal_types
+        }
+    }
+        
     for (DE_results in all_DE_results) {
         tumor_type = DE_results$tumor
         genes = DE_results$de_genes
