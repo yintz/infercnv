@@ -67,7 +67,7 @@
 #' ## Masking non-DE genes parameters #########
 #' 
 #' @param mask_nonDE_genes If true, sets genes not significantly differentially expressed between tumor/normal to
-#'                          the mean value for the complete data set
+#'                          the mean value for the complete data set (default: 0.05)
 #'
 #' @param mask_nonDE_pval  p-value threshold for defining statistically significant DE genes between tumor/normal
 #
@@ -144,7 +144,7 @@ run <- function(infercnv_obj,
                 remove_genes_at_chr_ends=FALSE,
 
                 mask_nonDE_genes=FALSE,
-                mask_nonDE_pval=0.1, # use permissive threshold
+                mask_nonDE_pval=0.05, # use permissive threshold
                 test.use='wilcoxon',
                 require_DE_all_normals=TRUE,
                 DE_on_tumor_subclusters=TRUE,
