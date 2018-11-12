@@ -1452,7 +1452,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 
     for (chr in chrs) {
         chr_genes_indices = which(gene_chr_listing == chr)
-        flog.debug(paste0("smooth_by_chromosome: chr: ",chr)) 
+        flog.info(paste0("smooth_by_chromosome: chr: ",chr)) 
         
         input_data = data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
         flog.debug(paste0("dim subset:", paste(dim(input_data), collapse=",")))
@@ -1475,7 +1475,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 
 .smooth_window <- function(data, window_length) {
 
-    flog.info(paste("::smooth_window:Start.", sep=""))
+    flog.debug(paste("::smooth_window:Start.", sep=""))
     
     if (window_length < 2){
         flog.warn("window length < 2, returning original unmodified data")
