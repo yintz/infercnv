@@ -17,7 +17,7 @@ NULL
 #'
 #' @param center_val value to assign to those genes that are not found to be statistically DE.
 #'
-#' @param require_DE_all_normals mask gene if found significantly DE in each normal comparison (default=TRUE)
+#' @param require_DE_all_normals mask gene if found significantly DE in each normal comparison (default="any") options("any", "most", "all")
 #'
 #' @param subcluster divide tumor samples into clades (subclusters) based on hierarchical clustering
 #'
@@ -34,7 +34,7 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
                                     p_val_thresh = 0.05,
                                     test.use="wilcoxon",
                                     center_val=mean(infercnv_obj@expr.data),
-                                    require_DE_all_normals=TRUE,
+                                    require_DE_all_normals="any",
                                     subcluster=TRUE,
                                     cut_tree_height_ratio=0.9,
                                     hclust_method="ward.D"
@@ -157,7 +157,7 @@ subcluster_tumors <- function(infercnv_obj,
                            tumor_groupings,
                            all_DE_results,
                            mask_val,
-                           require_DE_all_normals,
+                           require_DE_all_normals, # any, most, all
                            min_cluster_size_mask=5) {
         
     all_DE_genes_matrix = matrix(data=0, nrow=nrow(infercnv_obj@expr.data),
@@ -191,14 +191,16 @@ subcluster_tumors <- function(infercnv_obj,
         }
     }
     
-    if (is.logical(require_DE_all_normals) && require_DE_all_normals) {
+    if (require_DE_all_normals == "all") {
         ## must be found in each of the tumor vs (normal_1, normal_2, ..., normal_N) DE comparisons to not be masked.
         infercnv_obj@expr.data[ all_DE_genes_matrix != num_normal_types ] = mask_val
-    } else if ( is.character(require_DE_all_normals) && require_DE_all_normals == "most") {
+    } else if ( require_DE_all_normals == "most") {
         infercnv_obj@expr.data[ all_DE_genes_matrix < num_normal_types/2 ] = mask_val
-    } else {
+    } else if ( require_DE_all_normals == "any") {
         ## masking if not found DE in any comparison
         infercnv_obj@expr.data[ all_DE_genes_matrix == 0 ] = mask_val
+    } else {
+        stop(sprintf("Error, not recognizing require_DE_all_normals=%s", require_DE_all_normals))
     }
     
     return(infercnv_obj)
