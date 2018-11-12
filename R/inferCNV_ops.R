@@ -164,7 +164,9 @@ run <- function(infercnv_obj,
                 
                 pseudocount = 0,
 
-                final_scale_limits = c(0, 2)
+                final_scale_limits = c(0, 2),
+
+                reuse_subtracted = TRUE
                 
                 ) {
 
@@ -184,9 +186,11 @@ run <- function(infercnv_obj,
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %d: incoming data\n", step_count))
     
-    # Plot incremental steps.
-    saveRDS(infercnv_obj, file=file.path(out_dir, sprintf("%02d_incoming_data.infercnv_obj", step_count)))
-               
+    infercnv_obj_file=file.path(out_dir, sprintf("%02d_incoming_data.infercnv_obj", step_count))
+    if (! (reuse_subtracted && file.exists(infercnv_obj_file)) ) {
+        saveRDS(infercnv_obj, infercnv_obj_file)
+    }
+    
     ###################################################
     ## Step: removing insufficiently expressed genes
     step_count = step_count + 1
@@ -196,15 +200,21 @@ run <- function(infercnv_obj,
     # Examines the original (non-log-transformed) data, gets mean for each gene, and removes genes
     #  with mean values below cutoff.
 
-    infercnv_obj <- require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
-    
-    ## require each gene to be present in a min number of cells for ref sets
+    infercnv_obj_file = file.path(out_dir, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count))
 
-    infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
-    
-    saveRDS(infercnv_obj, 
-         file=file.path(out_dir, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count)))
-
+    if (reuse_subtracted && file.exists(infercnv_obj_file) ) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj = readRDS(infercnv_obj_file)
+    } else {
+        
+        infercnv_obj <- require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
+        
+        ## require each gene to be present in a min number of cells for ref sets
+        
+        infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
+        
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+    }
     
     ####################################################
     ##  Adding pseudocounts
@@ -220,11 +230,18 @@ run <- function(infercnv_obj,
     
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: normalization by sequencing depth\n", step_count))
-    
-    infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj, normalize_factor=normalize_factor)
 
-    saveRDS(infercnv_obj, 
-         file=file.path(out_dir, sprintf("%02d_normalized_by_depth.infercnv_obj", step_count)))
+    infercnv_obj_file = file=file.path(out_dir, sprintf("%02d_normalized_by_depth.infercnv_obj", step_count))
+
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+        
+    } else {
+        infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj, normalize_factor=normalize_factor)
+
+        saveRDS(infercnv_obj, infercnv_obj_file)
+    }
     
 
     ##################################################
@@ -234,28 +251,35 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
 
-        if (! (is.null(spike_in_chrs) && is.null(spike_in_multiplier_vec)) ) {
-            infercnv_obj <- spike_in_variation_chrs(infercnv_obj, spike_in_chrs, spike_in_multiplier_vec)
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_spiked.infercnv_obj", step_count))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj_file = readRDS(infercnv_obj_file)
         } else {
-            infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+        
+            if (! (is.null(spike_in_chrs) && is.null(spike_in_multiplier_vec)) ) {
+                infercnv_obj <- spike_in_variation_chrs(infercnv_obj, spike_in_chrs, spike_in_multiplier_vec)
+            } else {
+                infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
+            }
+            
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+            
+            
+                                        # Plot incremental steps.
+            if (plot_steps){
+                
+                plot_cnv(infercnv_obj=infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_spike_added",step_count),
+                         output_filename=sprintf("infercnv.%02d_spike_added",step_count),
+                         write_expr_matrix=TRUE
+                         )
+            }
         }
-        
-        saveRDS(infercnv_obj, file=file.path(out_dir, sprintf("%02d_spiked.infercnv_obj", step_count)))
-        
-        
-        # Plot incremental steps.
-        if (plot_steps){
-                        
-            plot_cnv(infercnv_obj=infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_spike_added",step_count),
-                     output_filename=sprintf("infercnv.%02d_spike_added",step_count),
-                     write_expr_matrix=TRUE
-                     )
-        }
-        
     }
 
     
@@ -266,23 +290,31 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: anscombe normalization\n", step_count))    
 
-        infercnv_obj <- anscombe_transform(infercnv_obj)
-
-        saveRDS(infercnv_obj,
-             file=file.path(out_dir, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count)))
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count))
+        
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            
+            infercnv_obj <- anscombe_transform(infercnv_obj)
+            
+            saveRDS(infercnv_obj,
+                    file=infercnv_obj_file)
+            
+            if (plot_steps) {
                 
-        if (plot_steps) {
-            
-            plot_cnv(infercnv_obj=infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     color_safe_pal=FALSE,
-                     title=sprintf("%02d_anscombe_norm",step_count),
-                     output_filename=sprintf("infercnv.%02d_anscombe_norm",step_count),
-                     write_expr_matrix=TRUE
-                     )
-            
+                plot_cnv(infercnv_obj=infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         color_safe_pal=FALSE,
+                         title=sprintf("%02d_anscombe_norm",step_count),
+                         output_filename=sprintf("infercnv.%02d_anscombe_norm",step_count),
+                         write_expr_matrix=TRUE
+                         )
+                
+            }
         }
         
     }
@@ -292,28 +324,34 @@ run <- function(infercnv_obj,
     
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: log transformation of data\n", step_count))    
+
+    infercnv_obj_file = file.path(out_dir, sprintf("%02d_logtransformed.infercnv_obj", step_count))
     
-    infercnv_obj <- log2xplus1(infercnv_obj)
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+        
+        infercnv_obj <- log2xplus1(infercnv_obj)
 
-    saveRDS(infercnv_obj,
-            file=file.path(out_dir, sprintf("%02d_logtransformed.infercnv_obj", step_count)))
+        saveRDS(infercnv_obj,
+                file=infercnv_obj_file)
         
 
-    # Plot incremental steps.
-    if (plot_steps){
-        
-        plot_cnv(infercnv_obj=infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_dir,
-                 title=sprintf("%02d_log_transformed_data",step_count),
-                 output_filename=sprintf("infercnv.%02d_log_transformed",step_count),
-                 write_expr_matrix=TRUE
-                 )
+        ## Plot incremental steps.
+        if (plot_steps){
+            
+            plot_cnv(infercnv_obj=infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_log_transformed_data",step_count),
+                     output_filename=sprintf("infercnv.%02d_log_transformed",step_count),
+                     write_expr_matrix=TRUE
+                     )
+        }
     }
     
-    
-
     ###############################
     ### STEP: ZScore transformation
 
@@ -321,24 +359,31 @@ run <- function(infercnv_obj,
         
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Z-score transformation of data\n", step_count))    
-        
-        infercnv_obj <- transform_to_reference_based_Zscores(infercnv_obj)
-        
-        saveRDS(infercnv_obj, file=file.path(out_dir, sprintf("%02d_Z-scores.infercnv_obj", step_count)))
+
+        infercnv_obj_file = file=file.path(out_dir, sprintf("%02d_Z-scores.infercnv_obj", step_count))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            infercnv_obj <- transform_to_reference_based_Zscores(infercnv_obj)
+            
+            saveRDS(infercnv_obj, infercnv_obj_file)
+            
+            if (plot_steps){
+            
+                plot_cnv(infercnv_obj=infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_centering_gene_expr",step_count),
+                         output_filename=sprintf("infercnv.%02d_centering_gene_expr",step_count),
+                         write_expr_matrix=TRUE)
                 
-        if (plot_steps){
-            
-            plot_cnv(infercnv_obj=infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_centering_gene_expr",step_count),
-                     output_filename=sprintf("infercnv.%02d_centering_gene_expr",step_count),
-                     write_expr_matrix=TRUE)
-            
+            }
         }
     }
-        
+
     if (! is.na(max_centered_threshold)) {
     
         ## #####################################################
@@ -348,30 +393,38 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: apply max centered expression threshold\n", step_count))
         
-        threshold = max_centered_threshold
-        if (is.charachter(max_centered_threshold) && max_centered_threshold == "auto") {
-            threshold = mean(abs(get_average_bounds(infercnv_obj)))
-        }
+        infercnv_obj_file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
         
-        infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
-        
-        saveRDS(infercnv_obj, 
-                file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count)))
+            threshold = max_centered_threshold
+            if (is.charachter(max_centered_threshold) && max_centered_threshold == "auto") {
+                threshold = mean(abs(get_average_bounds(infercnv_obj)))
+            }
+            
+            infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
+            
+            saveRDS(infercnv_obj, file=infercnv_obj_file) 
+            
+            
+            ## Plot incremental steps.
+            if (plot_steps){
                 
-        ## Plot incremental steps.
-        if (plot_steps){
-            
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
-                     output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
-                     write_expr_matrix=TRUE)
-            
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
+                         output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
         }
     }
-        
+    
     ###########################################################################
     ## Step: For each cell, smooth the data along chromosome with gene windows
 
@@ -379,25 +432,31 @@ run <- function(infercnv_obj,
     
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Smoothing data per cell by chromosome\n", step_count))
-        
-        infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
-        
-        saveRDS(infercnv_obj,
-                file=file.path(out_dir, sprintf("%02d_smoothed_by_chr.infercnv_obj", step_count)))
-        
-        ## Plot incremental steps.
-        if (plot_steps){
+
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_smoothed_by_chr.infercnv_obj", step_count))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+                    
+            infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
             
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_smoothed_by_chr",step_count),
-                     output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
-                     write_expr_matrix=TRUE)
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+            
+            ## Plot incremental steps.
+            if (plot_steps){
+                
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_smoothed_by_chr",step_count),
+                         output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
+                         write_expr_matrix=TRUE)
+            }
         }
     }
-    
     
     ## 
     ## Step: 
@@ -406,39 +465,49 @@ run <- function(infercnv_obj,
     
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: re-centering data across chromosome after smoothing\n", step_count))
-    
-    infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method="median")
-        
-    saveRDS(infercnv_obj, 
-            file=file.path(out_dir, sprintf("%02d_recentered_cells_by_chr.infercnv_obj", step_count)))
-        
-    # Plot incremental steps.
-    if (plot_steps) {
 
-        plot_cnv(infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_dir,
-                 title=sprintf("%02d_centering_of_smoothed",step_count),
-                 output_filename=sprintf("infercnv.%02d_centering_of_smoothed", step_count),
-                 write_expr_matrix=TRUE)
+    infercnv_obj_file = file.path(out_dir, sprintf("%02d_recentered_cells_by_chr.infercnv_obj", step_count))
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+        infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method="median")
         
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+        
+        ## Plot incremental steps.
+        if (plot_steps) {
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_centering_of_smoothed",step_count),
+                     output_filename=sprintf("infercnv.%02d_centering_of_smoothed", step_count),
+                     write_expr_matrix=TRUE)
+        
+        }
     }
     
-    ###################################################
-    # Step: Split the reference data into groups if requested
+    ## #################################################
+    ## Step: Split the reference data into groups if requested
     
     if (!is.null(num_ref_groups)) {
 
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: splitting reference data into %d clusters\n", step_count, num_ref_groups))
-        
-        infercnv_obj <- split_references(infercnv_obj,
-                                         num_groups=num_ref_groups,
-                                         hclust_method=hclust_method)
-        
-        
-        
+
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_split_%02d_refs.infercnv_obj", step_count, num_ref_groups))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            infercnv_obj <- split_references(infercnv_obj,
+                                             num_groups=num_ref_groups,
+                                             hclust_method=hclust_method)
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+        }
         
     }
     
@@ -449,26 +518,31 @@ run <- function(infercnv_obj,
 
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
-    
-    infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
-    
-    
-    # Plot incremental steps.
-    # This is a milestone step and results should always be examined here.
 
-    saveRDS(infercnv_obj,
-            file=file.path(out_dir,
-                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count)))
+    infercnv_obj_file = file.path(out_dir,
+                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+            
+        ## Plot incremental steps.
+        ## This is a milestone step and results should always be examined here.
+
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
     
-    plot_cnv(infercnv_obj,
-             k_obs_groups=k_obs_groups,
-             cluster_by_groups=cluster_by_groups,
-             out_dir=out_dir,
-             title=sprintf("%02d_remove_average",step_count),
-             output_filename=sprintf("infercnv.%02d_remove_average", step_count),
-             write_expr_matrix=TRUE)
-    
-    
+        plot_cnv(infercnv_obj,
+                 k_obs_groups=k_obs_groups,
+                 cluster_by_groups=cluster_by_groups,
+                 out_dir=out_dir,
+                 title=sprintf("%02d_remove_average",step_count),
+                 output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                 write_expr_matrix=TRUE)
+        
+    }
+        
     ## Step 08:
     # Remove Ends
 
@@ -477,22 +551,28 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: removing genes at chr ends\n", step_count))
         
-        infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_remove_gene_at_chr_ends.infercnv_obj", step_count))
 
-        saveRDS(infercnv_obj,
-             file=file.path(out_dir, sprintf("%02d_remove_gene_at_chr_ends.infercnv_obj", step_count)))
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
+            
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+            
+            ## Plot incremental steps.
+            if (plot_steps){
                 
-        # Plot incremental steps.
-        if (plot_steps){
-            
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_remove_genes_at_chr_ends",step_count),
-                     output_filename=sprintf("infercnv.%02d_remove_genes_at_chr_ends",step_count),
-                     write_expr_matrix=TRUE)
-            
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_remove_genes_at_chr_ends",step_count),
+                         output_filename=sprintf("infercnv.%02d_remove_genes_at_chr_ends",step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
         }
     }
     
@@ -502,29 +582,37 @@ run <- function(infercnv_obj,
 
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: invert log2(FC) to FC\n", step_count))
-    
-    infercnv_obj <- invert_log2(infercnv_obj)
 
-    saveRDS(infercnv_obj, 
-            file=file.path(out_dir, sprintf("%02d_invert_log_transform.infercnv_obj", step_count)))
+    infercnv_obj_file = file.path(out_dir, sprintf("%02d_invert_log_transform.infercnv_obj", step_count))
+
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+    
+        infercnv_obj <- invert_log2(infercnv_obj)
         
-    # Plot incremental steps.
-    if (plot_steps) {
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
         
-        plot_cnv(infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_dir,
-                 title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
-                 output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
-                 write_expr_matrix=TRUE)
-        
+                                        # Plot incremental steps.
+        if (plot_steps) {
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
+                     output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
+                     write_expr_matrix=TRUE)
+            
+        }
     }
-    
-    
+    ## ###################################################################
+    ## Done restoring infercnv_obj's from files now under reuse_subtracted
+    ## ###################################################################
+        
     if (prune_outliers) {
-
-    
+            
         ##################################
         # STEP: Remove outliers for viz
     
