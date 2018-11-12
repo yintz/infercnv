@@ -154,7 +154,7 @@ subcluster_tumors <- function(infercnv_obj,
     ## retain small clusters that are unlikely to show up as DE
     for (tumor_type in names(tumor_groupings)) {
         tumor_idx = tumor_groupings[[tumor_type]]
-        if (length(tumor_idx) <= min_cluster_size_mask) {
+        if (length(tumor_idx) < min_cluster_size_mask) {
             all_DE_genes_matrix[, tumor_idx] = num_normal_types
         }
     }
@@ -165,11 +165,12 @@ subcluster_tumors <- function(infercnv_obj,
         
         gene_idx = rownames(all_DE_genes_matrix) %in% genes
         cell_idx = tumor_groupings[[ tumor_type ]]
-        
-        all_DE_genes_matrix[gene_idx, cell_idx] = all_DE_genes_matrix[gene_idx, cell_idx] + 1
-    
-    }
 
+        if (length(cell_idx) >= min_cluster_size_mask) {
+            all_DE_genes_matrix[gene_idx, cell_idx] = all_DE_genes_matrix[gene_idx, cell_idx] + 1
+        }
+    }
+    
     if (require_DE_all_normals) {
         # must be found in each of the tumor vs (normal_1, normal_2, ..., normal_N) DE comparisons to not be masked.
         infercnv_obj@expr.data[ all_DE_genes_matrix != num_normal_types ] = mask_val
