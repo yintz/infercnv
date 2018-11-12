@@ -98,7 +98,7 @@
 #'
 #' @param prune_outliers  Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.
 #'
-#' @param final_scale_limits The scale limits for the final heatmap output by the run() method. Default (0,2) 
+#' @param final_scale_limits The scale limits for the final heatmap output by the run() method. Default "auto". Alt, c(low,high)
 #' 
 #' @param debug If true, output debug level logging.
 #'
@@ -163,7 +163,7 @@ run <- function(infercnv_obj,
                 
                 pseudocount = 0,
 
-                final_scale_limits = c(0, 2),
+                final_scale_limits = NULL,
 
                 reuse_subtracted = TRUE
                 
@@ -757,6 +757,10 @@ run <- function(infercnv_obj,
     }
     
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
+
+    if (is.null(final_scale_limits)) {
+        final_scale_limits = "auto"
+    }
     
     flog.info("## Making the final infercnv heatmap ##")
     plot_cnv(infercnv_obj,
