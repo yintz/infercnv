@@ -85,14 +85,34 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 subcluster_tumors <- function(infercnv_obj,
                               tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
                               cut_tree_height_ratio=0.9,
-                              hclust_method="ward.D") {
+                              hclust_method="ward.D",
+                              min_median_tree_height_ratio=2.5) {
 
+    flog.info("Subclustering tumors")
     subclusters = list()
     
     for (tumor in names(tumor_groupings)) {
         expr.data = infercnv_obj@expr.data[,tumor_groupings[[ tumor ]] ]
         
         hc <- hclust(dist(t(expr.data)), method=hclust_method)
+
+        max_height = max(hc$height)
+        median_height = median(hc$height)
+        flog.info(sprintf("tumor: %s, cluster info, max_height %g, median_height: %g",
+                          tumor,
+                          max_height, median_height))
+
+
+        median_height_tree_ratio = max_height / median_height
+        
+        if (median_height_tree_ratio < min_median_tree_height_ratio) {
+            ## retain original grouping, no cutting
+            flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
+            subclusters[[ tumor ]] = tumor_groupings[[ tumor ]]
+            next
+        } 
+        
+        flog.info(sprintf("Carving subclusters for tumor %s", tumor))
         
         grps <- cutree(hc, h=(cut_tree_height_ratio * max(hc$height)) )
 
@@ -171,11 +191,13 @@ subcluster_tumors <- function(infercnv_obj,
         }
     }
     
-    if (require_DE_all_normals) {
-        # must be found in each of the tumor vs (normal_1, normal_2, ..., normal_N) DE comparisons to not be masked.
+    if (is.logical(require_DE_all_normals) && require_DE_all_normals) {
+        ## must be found in each of the tumor vs (normal_1, normal_2, ..., normal_N) DE comparisons to not be masked.
         infercnv_obj@expr.data[ all_DE_genes_matrix != num_normal_types ] = mask_val
+    } else if ( is.character(require_DE_all_normals) && require_DE_all_normals == "most") {
+        infercnv_obj@expr.data[ all_DE_genes_matrix < num_normal_types/2 ] = mask_val
     } else {
-        # masking if not found DE in any comparison
+        ## masking if not found DE in any comparison
         infercnv_obj@expr.data[ all_DE_genes_matrix == 0 ] = mask_val
     }
     
