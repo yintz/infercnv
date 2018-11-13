@@ -5,17 +5,22 @@
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
 run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
-  normalize_factor = NA, window_length = 101, num_ref_groups = NULL,
-  max_centered_threshold = NA, noise_filter = NA, sd_amplifier = 1.5,
+  normalize_factor = NA, window_length = 101, smooth_rounds = 2,
+  num_ref_groups = NULL, max_centered_threshold = NA,
+  noise_filter = NA, sd_amplifier = 1.5, noise_logistic = TRUE,
   median_filtering = TRUE, median_filtering_window = 11,
   cluster_by_groups = FALSE, k_obs_groups = 1,
   outlier_method_bound = "average_bound", outlier_lower_bound = NA,
-  outlier_upper_bound = NA, hclust_method = "complete",
+  outlier_upper_bound = NA, hclust_method = "ward.D",
   anscombe_normalize = TRUE, use_zscores = FALSE,
   remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = FALSE,
-  mask_nonDE_pval = 0.05, test.use = "wilcoxon", plot_steps = FALSE,
-  debug = FALSE, include.spike = FALSE, spike_in_chrs = NULL,
-  spike_in_multiplier_vec = NULL, pseudocount = 0)
+  mask_nonDE_pval = 0.05, test.use = "wilcoxon",
+  require_DE_all_normals = "any", DE_on_tumor_subclusters = TRUE,
+  cut_tree_height_ratio = 0.9, plot_steps = FALSE, debug = FALSE,
+  include.spike = FALSE, spike_in_chrs = NULL,
+  spike_in_multiplier_vec = c(0.5, 1.5), prune_outliers = FALSE,
+  pseudocount = 0, final_scale_limits = NULL,
+  reuse_subtracted = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -33,19 +38,29 @@ will be set = 10^round(log10(mean(colSums))), typically setting to 1e5}
 \item{window_length}{Length of the window for the moving average
 (smoothing). Should be an odd integer. (default: 101)#'}
 
+\item{smooth_rounds}{Number of rounds of chromosome level smoothing of gene intensities}
+
 \item{num_ref_groups}{The number of reference groups or a list of
 indices for each group of reference indices in
 relation to reference_obs. (default: NULL)}
 
 \item{max_centered_threshold}{The maximum value a value can have after
-centering. Also sets a lower bound of
--1 * this value.}
+                                  centering. Also sets a lower bound of
+                                  -1 * this value. (default: NA),
+                              can set to a numeric value or "auto" to bound by the mean bounds across cells.
+
+## de-noising parameters ####}
 
 \item{noise_filter}{Values +- from the reference cell mean will be set to zero (whitening effect)
 default(NA, instead will use sd_amplifier below.}
 
 \item{sd_amplifier}{Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
 default: 1.0}
+
+\item{noise_logistic}{use the noise_filter or sd_amplifier based threshold (whichever is invoked) as the midpoint in a
+                      logistic model for downscaling values close to the mean. (default: TRUE)
+
+#############################}
 
 \item{median_filtering}{Whether to apply median filtering or not 
 default: TRUE}
@@ -66,22 +81,36 @@ Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 \item{outlier_upper_bound}{Outliers above this upper bound will be set to this value.}
 
 \item{hclust_method}{Method used for hierarchical clustering of cells. Valid choices are:
-"ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".}
+"ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
+default("ward.D")}
 
 \item{anscombe_normalize}{Perform anscombe normalization on normalized counts before log transformation.}
 
 \item{use_zscores}{If true, converts log(expression) data to zscores based on reference cell expr distribution.}
 
-\item{remove_genes_at_chr_ends}{If true, removes the window_length/2 genes at both ends of the chromosome.}
+\item{remove_genes_at_chr_ends}{If true, removes the window_length/2 genes at both ends of the chromosome.
+
+## Masking non-DE genes parameters #########}
 
 \item{mask_nonDE_genes}{If true, sets genes not significantly differentially expressed between tumor/normal to
-the mean value for the complete data set}
+the mean value for the complete data set (default: 0.05)}
 
 \item{mask_nonDE_pval}{p-value threshold for defining statistically significant DE genes between tumor/normal}
 
 \item{test.use}{statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.'}
 
-\item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
+\item{require_DE_all_normals}{If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")}
+
+\item{DE_on_tumor_subclusters}{First break tumor into subclusters via hclust, then perform DE on the subclusters instead of the whole tumor sample. (default: TRUE)}
+
+\item{cut_tree_height_ratio}{ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
+
+
+#############################################}
+
+\item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.
+
+## Spike-in parameters ####}
 
 \item{debug}{If true, output debug level logging.}
 
@@ -89,9 +118,15 @@ the mean value for the complete data set}
 
 \item{spike_in_chrs}{vector listing of chr names to use for modeling spike-ins (default: NULL - uses the two largest chrs.  ex.  c('chr1', 'chr2') )}
 
-\item{pseudocount}{Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)}
+\item{prune_outliers}{Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.}
 
-\item{spike_in_multiplier}{vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)}
+\item{pseudocount}{Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)  (an experimental option, not meant for routine use)}
+
+\item{final_scale_limits}{The scale limits for the final heatmap output by the run() method. Default "auto". Alt, c(low,high)}
+
+\item{spike_in_multiplier}{vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)
+
+##########################}
 }
 \value{
 infercnv_obj containing filtered and transformed data

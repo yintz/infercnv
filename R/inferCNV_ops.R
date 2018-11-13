@@ -78,7 +78,7 @@
 #
 #' @param test.use statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.'
 #'
-#' @param require_DE_all_normals If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all") (default: "any")
+#' @param require_DE_all_normals If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")
 #'
 #' @param DE_on_tumor_subclusters First break tumor into subclusters via hclust, then perform DE on the subclusters instead of the whole tumor sample. (default: TRUE)
 #'
@@ -130,6 +130,7 @@ run <- function(infercnv_obj,
                 # noise settings
                 noise_filter=NA,
                 sd_amplifier = 1.5,
+                noise_logistic=TRUE, # if false, does complete 'noise' elimination.
                 median_filtering=TRUE,
                 median_filtering_window=11,
 

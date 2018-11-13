@@ -4,7 +4,8 @@
 \alias{clear_noise_via_ref_mean_sd}
 \title{clear_noise_via_ref_mean_sd()}
 \usage{
-clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
+clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5,
+  noise_logistic = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
