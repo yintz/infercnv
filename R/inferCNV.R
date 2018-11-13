@@ -177,7 +177,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     ref_group_cell_indices = list()
     for (name_group in ref_group_names) {
         cell_indices = which(input_classifications[,1] == name_group)
-        cell_names =  rownames(input_classifications)[cell_indices]
+        
         if (length(cell_indices) == 0 ) {
             stop(sprintf("Error, not identifying cells with classification %s", name_group))
         }
@@ -216,7 +216,6 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     obs_group_cell_indices = list()
     for (name_group in obs_group_names) {
         cell_indices = which(input_classifications[,1] == name_group)
-        cell_names = rownames(input_classifications)[cell_indices]
         obs_group_cell_indices[[ name_group ]] <- cell_indices
     }
     
