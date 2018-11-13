@@ -25,3 +25,9 @@ default: c(0.01, 2.0)}
 
 \item{min_genes_per_chr}{: default 100}
 }
+\description{
+spike_in_variation_chrs()
+
+Adds a 'SPIKE'-in to the observations set at different thresholds of loss/gain to
+aid in tracking the effect of infercnv operations and for defining the final scaling.
+}

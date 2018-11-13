@@ -42,6 +42,11 @@
 #'
 #' #############################
 #' 
+#' @param median_filtering Whether to apply median filtering or not 
+#'                         default: TRUE
+#' @param median_filtering_window Size of the window side centered on the data point to  apply median filtering
+#'                                default: 11
+#' 
 #' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
 #'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
 #' 
@@ -124,9 +129,10 @@ run <- function(infercnv_obj,
 
                 # noise settings
                 noise_filter=NA,
-                sd_amplifier = 1.0,
-                noise_logistic=TRUE, # if false, does complete 'noise' elimination.
-                
+                sd_amplifier = 1.5,
+                median_filtering=TRUE,
+                median_filtering_window=11,
+
                 # observation cell clustering settings
                 cluster_by_groups=FALSE,
                 k_obs_groups=1,
@@ -751,17 +757,21 @@ run <- function(infercnv_obj,
     
     
     if (include.spike) {
-            
         # remove the spike before making the final plot.
         infercnv_obj <- remove_spike(infercnv_obj)
     }
-    
+
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
+
+    if (median_filtering) {
+      infercnv_obj <- apply_median_filtering(infercnv_obj,
+                                             window_size=median_filtering_window)
+    }
 
     if (is.null(final_scale_limits)) {
         final_scale_limits = "auto"
     }
-    
+
     flog.info("## Making the final infercnv heatmap ##")
     plot_cnv(infercnv_obj,
              k_obs_groups=k_obs_groups,

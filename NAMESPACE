@@ -3,6 +3,7 @@
 export(CreateInfercnvObject)
 export(anscombe_transform)
 export(apply_max_threshold_bounds)
+export(apply_median_filtering)
 export(center_cell_expr_across_chromosome)
 export(clear_noise)
 export(clear_noise_via_ref_mean_sd)
