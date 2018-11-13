@@ -9,6 +9,7 @@ C_STOP <- "stop"
 C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")
 C_OUTPUT_FORMAT <- c("pdf", "png")
 
+
 #' @importFrom grDevices col2rgb colorRampPalette dev.off pdf png rgb
 #' @importFrom graphics abline axis boxplot hist image layout lines mtext par plot points rect text title legend
 #' @importFrom stats as.dendrogram as.dist cutree density dist filter median order.dendrogram quantile reorder sd complete.cases cor t.test p.adjust predict rnorm runif smooth.spline var wilcox.test

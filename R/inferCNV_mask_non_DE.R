@@ -1,58 +1,6 @@
 #' @include inferCNV.R
 NULL
 
-
-
-#' @title .mask_DE_genes()
-#'
-#' @description private function that does the actual masking of expression values in the matrix
-#' according to the specified mask value
-#'
-#' @param infercnv_obj infercnv_object
-#'
-#' @param all_DE_results  DE results list with structure:
-#'                           all_DE_results[[ tumor_type ]] = list(tumor=tumor_type, de_genes=c(geneA, geneB, ...))
-#'
-#' @param mask_val float value to assign to genes that are in the mask set (complement of the DE gene set)
-#'
-#' @return infercnv_obj
-#' 
-#' @keywords internal
-#' @noRd
-#'
-
-.mask_DE_genes <- function(infercnv_obj, all_DE_results, mask_val) {
-
-    
-    all_DE_genes_matrix = matrix(data=FALSE, nrow=nrow(infercnv_obj@expr.data),
-                                 ncol=ncol(infercnv_obj@expr.data),
-                                 dimnames = list(rownames(infercnv_obj@expr.data),
-                                                 colnames(infercnv_obj@expr.data) ) )
-
-
-
-    all_DE_genes_matrix[,] = FALSE
-    
-    ## turn on all normal genes
-    all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = TRUE
-    
-    for (DE_results in all_DE_results) {
-        tumor_type = DE_results$tumor
-        genes = DE_results$de_genes
-        
-    
-        all_DE_genes_matrix[rownames(all_DE_genes_matrix) %in% genes,
-                            infercnv_obj@observation_grouped_cell_indices[[ tumor_type ]] ] = TRUE
-    
-    }
-        
-    infercnv_obj@expr.data[ ! all_DE_genes_matrix ] = mask_val
-    
-    return(infercnv_obj)
-    
-
-}
-
 #' @title mask_non_DE_genes_basic()
 #'
 #' @description Mask gene expression in infercnv_obj based on expression values that are found
@@ -69,6 +17,14 @@ NULL
 #'
 #' @param center_val value to assign to those genes that are not found to be statistically DE.
 #'
+#' @param require_DE_all_normals mask gene if found significantly DE in each normal comparison (default="any") options("any", "most", "all")
+#'
+#' @param subcluster divide tumor samples into clades (subclusters) based on hierarchical clustering
+#'
+#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
+#'
+#' @param hclust_method see 'hclust' documentation. default="ward.D"
+#' 
 #' @return infercnv_obj
 #' 
 #' @export
@@ -77,20 +33,178 @@ NULL
 mask_non_DE_genes_basic <- function(infercnv_obj,
                                     p_val_thresh = 0.05,
                                     test.use="wilcoxon",
-                                    center_val=mean(infercnv_obj@expr.data) ) {
+                                    center_val=mean(infercnv_obj@expr.data),
+                                    require_DE_all_normals="any",
+                                    subcluster=TRUE,
+                                    cut_tree_height_ratio=0.9,
+                                    hclust_method="ward.D"
+                                    ) {
     
+    tumor_groupings = infercnv_obj@observation_grouped_cell_indices
 
+    if (subcluster==TRUE) {
+        tumor_groupings = subcluster_tumors(infercnv_obj, tumor_groupings, cut_tree_height_ratio, hclust_method)
+    }
+    
     all_DE_results = get_DE_genes_basic(infercnv_obj,
+                                        tumor_groupings=tumor_groupings,
                                         p_val_thresh=p_val_thresh,
                                         test.use=test.use)
 
+    
     #save('all_DE_results', file='all_DE_results.obj')
     
+    
     infercnv_obj <- .mask_DE_genes(infercnv_obj,
+                                   tumor_groupings,
                                    all_DE_results,
-                                   mask_val=center_val)
+                                   mask_val=center_val,
+                                   require_DE_all_normals=require_DE_all_normals)
 
     return(infercnv_obj)
+}
+
+
+#' @title subcluster_tumors
+#'
+#' Divides tumor groupings according to clades by cutting the hierarchical cluster tree at specified height.
+#'
+#' @param infercnv_obj
+#'
+#' @param tumor_groupings list of tumor group indices (default: infercnv_obj@observation_grouped_cell_indices)
+#'
+#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
+#'
+#' @param hclust_method see 'hclust' documentation. default="ward.D"
+#'
+#' @return list of tumor subclusters (ie.  list[[ tumor_subcluster_name ]] = c(cell_idxA, ..., cell_idxN)
+#'
+#' @export
+
+
+subcluster_tumors <- function(infercnv_obj,
+                              tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+                              cut_tree_height_ratio=0.9,
+                              hclust_method="ward.D",
+                              min_median_tree_height_ratio=2.5) {
+
+    flog.info("Subclustering tumors")
+    subclusters = list()
+    
+    for (tumor in names(tumor_groupings)) {
+        expr.data = infercnv_obj@expr.data[,tumor_groupings[[ tumor ]] ]
+        
+        hc <- hclust(dist(t(expr.data)), method=hclust_method)
+
+        max_height = max(hc$height)
+        median_height = median(hc$height)
+        flog.info(sprintf("tumor: %s, cluster info, max_height %g, median_height: %g",
+                          tumor,
+                          max_height, median_height))
+
+
+        median_height_tree_ratio = max_height / median_height
+        
+        if (median_height_tree_ratio < min_median_tree_height_ratio) {
+            ## retain original grouping, no cutting
+            flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
+            subclusters[[ tumor ]] = tumor_groupings[[ tumor ]]
+            next
+        } 
+        
+        flog.info(sprintf("Carving subclusters for tumor %s", tumor))
+        
+        grps <- cutree(hc, h=(cut_tree_height_ratio * max(hc$height)) )
+
+        s = split(grps,grps)
+
+        for (g in names(s)) {
+            
+            tumor_subcluster = paste0(tumor, "_s", g)
+
+            cell_idx = which(colnames(infercnv_obj@expr.data) %in% names(s[[g]]))
+
+            subclusters[[ tumor_subcluster ]] = cell_idx
+        }
+
+    }
+
+    return(subclusters)
+}
+
+
+#' @title .mask_DE_genes()
+#'
+#' @description private function that does the actual masking of expression values in the matrix
+#' according to the specified mask value
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param all_DE_results  DE results list with structure:
+#'                           all_DE_results[[ tumor_type ]] = list(tumor=tumor_type, de_genes=c(geneA, geneB, ...))
+#'
+#' @param mask_val float value to assign to genes that are in the mask set (complement of the DE gene set)
+#'
+#' @param min_cluster_size_mask clusters smaller than this size are automatically retained (unmasked). default=5
+#' 
+#' @return infercnv_obj
+#' 
+#' @keywords internal
+#' @noRd
+#'
+
+.mask_DE_genes <- function(infercnv_obj,
+                           tumor_groupings,
+                           all_DE_results,
+                           mask_val,
+                           require_DE_all_normals, # any, most, all
+                           min_cluster_size_mask=5) {
+        
+    all_DE_genes_matrix = matrix(data=0, nrow=nrow(infercnv_obj@expr.data),
+                                 ncol=ncol(infercnv_obj@expr.data),
+                                 dimnames = list(rownames(infercnv_obj@expr.data),
+                                                 colnames(infercnv_obj@expr.data) ) )
+
+
+    num_normal_types = length(names(infercnv_obj@reference_grouped_cell_indices))
+
+    ## turn on all normal genes
+    all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = num_normal_types
+
+    ## retain small clusters that are unlikely to show up as DE
+    for (tumor_type in names(tumor_groupings)) {
+        tumor_idx = tumor_groupings[[tumor_type]]
+        if (length(tumor_idx) < min_cluster_size_mask) {
+            all_DE_genes_matrix[, tumor_idx] = num_normal_types
+        }
+    }
+        
+    for (DE_results in all_DE_results) {
+        tumor_type = DE_results$tumor
+        genes = DE_results$de_genes
+        
+        gene_idx = rownames(all_DE_genes_matrix) %in% genes
+        cell_idx = tumor_groupings[[ tumor_type ]]
+
+        if (length(cell_idx) >= min_cluster_size_mask) {
+            all_DE_genes_matrix[gene_idx, cell_idx] = all_DE_genes_matrix[gene_idx, cell_idx] + 1
+        }
+    }
+    
+    if (require_DE_all_normals == "all") {
+        ## must be found in each of the tumor vs (normal_1, normal_2, ..., normal_N) DE comparisons to not be masked.
+        infercnv_obj@expr.data[ all_DE_genes_matrix != num_normal_types ] = mask_val
+    } else if ( require_DE_all_normals == "most") {
+        infercnv_obj@expr.data[ all_DE_genes_matrix < num_normal_types/2 ] = mask_val
+    } else if ( require_DE_all_normals == "any") {
+        ## masking if not found DE in any comparison
+        infercnv_obj@expr.data[ all_DE_genes_matrix == 0 ] = mask_val
+    } else {
+        stop(sprintf("Error, not recognizing require_DE_all_normals=%s", require_DE_all_normals))
+    }
+    
+    return(infercnv_obj)
+    
 }
 
 
@@ -115,14 +229,11 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 #'
 
 get_DE_genes_basic <- function(infercnv_obj,
+                               tumor_groupings,
                                p_val_thresh = 0.05,
                                test.use="wilcoxon" # other options:  (wilcoxon, t, perm)
                                ) {
-    
-    ## Find DE genes by comparing the mutant types to normal types
-    normal_types = names(infercnv_obj@reference_grouped_cell_indices)
-    tumor_types = names(infercnv_obj@observation_grouped_cell_indices)
-
+        
     all_DE_results = list()
 
     statfxns = list()
@@ -155,7 +266,11 @@ get_DE_genes_basic <- function(infercnv_obj,
 
         vals1 = x[idx1]
         vals2 = x[idx2]
-                
+
+        ## force break ties by adding random noise
+        vals1 = vals1 + rnorm(n=length(vals1), mean=0.0001, sd=0.0001)
+        vals2 = vals2 + rnorm(n=length(vals2), mean=0.0001, sd=0.0001)
+        
         w = wilcox.test(vals1, vals2)
 
         return(w$p.value)
@@ -163,11 +278,14 @@ get_DE_genes_basic <- function(infercnv_obj,
     
     
     statfxn = statfxns[[ test.use ]]
-    
-    ## turn on only DE genes in tumors
-    for (tumor_type in tumor_types) {
 
-        tumor_indices = infercnv_obj@observation_grouped_cell_indices[[ tumor_type ]] 
+    ## Find DE genes by comparing the mutant types to normal types
+    normal_types = names(infercnv_obj@reference_grouped_cell_indices)
+        
+    ## turn on only DE genes in tumors
+    for (tumor_type in names(tumor_groupings)) {
+
+        tumor_indices = tumor_groupings[[ tumor_type ]] 
         
         for (normal_type in normal_types) {
             flog.info(sprintf("Finding DE genes between %s and %s", tumor_type, normal_type))
