@@ -20,21 +20,34 @@ apply_median_filtering <- function(infercnv_obj,
     half_window = (window_size - 1) / 2
     tumor_groupings = infercnv_obj@observation_grouped_cell_indices
     
+    gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
+    chrs = unlist(unique(gene_chr_listing))
+    
     for (tumor_type in names(tumor_groupings)) {
         tumor_indices = tumor_groupings[[ tumor_type ]] 
-        
-        working_data = infercnv_obj@expr.data[, tumor_indices]
-        xdim = dim(working_data)[1]
-        ydim = dim(working_data)[2]
-        results = working_data
-        if (xdim >= window_size & ydim >= window_size) {
-            for (posx in ((half_window + 1):(xdim - (half_window + 1)))) {
-                for ( posy in ((half_window + 1):(ydim - (half_window + 1)))) {
-                    results[posx, posy] = median(working_data[(posx - half_window):(posx + half_window), (posy - half_window):(posy + half_window)])
+      
+        for (chr in chrs) {
+            chr_genes_indices = which(gene_chr_listing == chr)
+          
+            working_data = infercnv_obj@expr.data[chr_genes_indices, tumor_indices]
+            xdim = dim(working_data)[1]
+            ydim = dim(working_data)[2]
+            results = working_data
+            
+            if (xdim >= window_size & ydim >= window_size) {
+                # for (posx in ((half_window + 1):(xdim - (half_window + 1)))) {
+                for (posx in 1:xdim) {
+                    posxa <- ifelse(posx <= (half_window + 1), 1, (posx - (half_window + 1)))
+                    posxb <- ifelse(posx >= (xdim - (half_window + 1)), xdim, (posx + (half_window + 1)))
+                    for ( posy in 1:ydim) {
+                        posya <- ifelse(posy <= (half_window + 1), 1, (posy - (half_window + 1)))
+                        posyb <- ifelse(posy >= (ydim - (half_window + 1)), ydim, (posy + (half_window + 1)))
+                        results[posx, posy] = median(working_data[posxa:posxb, posya:posyb])
+                    }
                 }
             }
+            infercnv_obj@expr.data[chr_genes_indices, tumor_indices] = results
         }
-        infercnv_obj@expr.data[, tumor_indices] = results
     }
     
     return(infercnv_obj)
