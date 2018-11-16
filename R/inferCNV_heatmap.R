@@ -256,10 +256,12 @@ plot_cnv <- function(infercnv_obj,
 
     # Create file base for plotting output
     force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height)
-    .plot_cnv_observations(obs_data=obs_data_t,
+    .plot_cnv_observations(infercnv_obj=infercnv_obj,
+                          obs_data=obs_data_t,
                           file_base_name=out_dir,
                           output_filename_prefix=output_filename,
                           cluster_contig=ref_contig,
+                          contigs=contigs,
                           contig_colors=ct.colors[contigs],
                           contig_labels=contig_labels,
                           contig_names=contig_names,
@@ -331,7 +333,8 @@ plot_cnv <- function(infercnv_obj,
 #' @noRd
 #'
 
-.plot_cnv_observations <- function(obs_data,
+.plot_cnv_observations <- function(infercnv_obj,
+                                  obs_data,
                                   col_pal,
                                   contig_colors,
                                   contig_labels,
@@ -343,6 +346,7 @@ plot_cnv <- function(infercnv_obj,
                                   cnv_title,
                                   cnv_obs_title,
                                   contig_lab_size=1,
+                                  contigs,
                                   cluster_contig=NULL,
                                   obs_annotations_groups,
                                   obs_annotations_names,
@@ -398,9 +402,30 @@ plot_cnv <- function(infercnv_obj,
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
     obs_seps <- c()
+    sub_obs_seps <- c()
 
-    
-    if (cluster_by_groups) {
+    if (length(infercnv_obj@tumor_subclusters) > 0) {
+        # for (tumor in obs_annotations_names) { #tumor_subclusters$hc) {
+        for (i in seq(1, max(obs_annotations_groups))) {
+            obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
+            ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
+            obs_seps <- c(obs_seps, length(ordered_names))
+            hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+        }
+        if (length(obs_dendrogram) > 1) {
+            obs_dendrogram <- do.call(merge, obs_dendrogram)
+        } else {
+            obs_dendrogram <- obs_dendrogram[[1]]
+        }
+        split_groups <- rep(1, dim(obs_data)[1])
+        names(split_groups) <- ordered_names
+        
+        for(subtumor in infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]]) {
+            length(subtumor)
+            sub_obs_seps <- c(sub_obs_seps, (sub_obs_seps[length(sub_obs_seps)] + length(subtumor)))
+        }
+    }
+    else if (cluster_by_groups) {
 
         ## Clustering separately by groups (ie. patients)
 
@@ -443,6 +468,7 @@ plot_cnv <- function(infercnv_obj,
         }
         split_groups <- rep(1, dim(obs_data)[1])
         names(split_groups) <- ordered_names
+        sub_obs_seps = obs_seps
     }
     else {
         # clustering all groups together
@@ -476,12 +502,34 @@ plot_cnv <- function(infercnv_obj,
           }
         }
         obs_seps <- c(obs_seps, length(ordered_names))
+        sub_obs_seps = sub_ops_seps
     }
-
+    
+    
     if (length(obs_seps) > 1) {
         obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
     }
 
+    infercnv_obj <- .apply_heatmap_median_filtering(infercnv_obj=infercnv_obj,
+                                                    window_size=11)
+    
+    ################# DUPLICATE CHUNK OF CODE HERE FROM BEFORE CALLING THIS ROUTINE SINCE INFERCNV_OBJ WAS UPDATED (median filtering)
+    plot_data = infercnv_obj@expr.data
+    ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
+    ref_idx = ref_idx[order(ref_idx)]
+    
+    if (!is.null(ref_idx)){
+      obs_data <- plot_data[, -ref_idx, drop=FALSE]
+      if (ncol(obs_data) == 1) {
+        # hack for dealing with single entries
+        plot_data <- cbind(obs_data, obs_data)
+        names(obs_data) <- c("", names(obs_data)[1])
+      }
+    }
+    
+    obs_data <- t(obs_data)
+    ################# END OF DUPLICATE
+    
     # Output HCL group membership.
     # Record locations of seperations
 
@@ -2420,5 +2468,6 @@ depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, s
     return(vals_matrix)
 }
     
+
 
     

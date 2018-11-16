@@ -764,11 +764,26 @@ run <- function(infercnv_obj,
 
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
 
-    if (median_filtering) {
-      infercnv_obj <- apply_median_filtering(infercnv_obj,
-                                             window_size=median_filtering_window)
-    }
-
+  #  if (median_filtering) {
+  #    infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
+  #                                               cluster_by_groups=cluster_by_groups,
+  #                                               num_obs_groups=num_obs_groups,
+  #                                               tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+  #                                               cut_tree_height_ratio=cut_tree_height_ratio,
+  #                                               hclust_method=hclust_method)
+  #    
+  #    infercnv_obj <- apply_median_filtering(infercnv_obj,
+  #                                           window_size=median_filtering_window)
+  #  }
+    
+    infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
+                                               cluster_by_groups=TRUE,
+                                               num_obs_groups=2,
+                                               tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+                                               cut_tree_height_ratio=0.9,
+                                               hclust_method="ward.D",
+                                               min_median_tree_height_ratio=2.5)
+    
     if (is.null(final_scale_limits)) {
         final_scale_limits = "auto"
     }

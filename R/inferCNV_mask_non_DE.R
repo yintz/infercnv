@@ -133,6 +133,99 @@ subcluster_tumors <- function(infercnv_obj,
 }
 
 
+.subcluster_tumors_general <- function(infercnv_obj,
+                                       cluster_by_groups=TRUE,
+                                       num_obs_groups=2,
+                                       tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+                                       cut_tree_height_ratio=0.9,
+                                       hclust_method="ward.D",
+                                       min_median_tree_height_ratio=2.5) {
+  
+    flog.info("Subclustering tumors")
+    res=list()
+    res$hc = list()
+    res$subclusters = list()
+
+    if (cluster_by_groups) {
+        for (tumor in names(tumor_groupings)) {
+          data = infercnv_obj@expr.data[,tumor_groupings[[ tumor ]] ]
+      
+          in_indices = tumor_groupings[[ tumor ]]
+      
+          res = .subcluster_one_tumor(data=data,
+                                      res=res,
+                                      tumor=tumor,
+                                      in_indices=in_indices,
+                                      cut_tree_height_ratio=cut_tree_height_ratio,
+                                      hclust_method=hclust_method,
+                                      min_median_tree_height_ratio=min_median_tree_height_ratio)
+        }
+    }
+    else  {
+      res = .subcluster_one_tumor(data=infernv_obj@expr.data,
+                                  res=res,
+                                  tumor="all_tumors",
+                                  in_indices=unlist(infercnv_obj@observation_grouped_cell_indices),
+                                  cut_tree_height_ratio=cut_tree_height_ratio,
+                                  hclust_method=hclust_method,
+                                  min_median_tree_height_ratio=min_median_tree_height_ratio)
+    }
+    
+    infercnv_obj@tumor_subclusters <- res
+    
+    return(infercnv_obj)
+}    
+    
+    
+    
+.subcluster_one_tumor <- function(data,
+                                  res,
+                                  tumor,
+                                  in_indices,
+                                  cut_tree_height_ratio=0.9,
+                                  hclust_method="ward.D",
+                                  min_median_tree_height_ratio=2.5) {
+  
+    hc <- hclust(dist(t(data)), method=hclust_method)
+    res$hc[[ tumor ]] = hc
+    
+    max_height = max(hc$height)
+    median_height = median(hc$height)
+    flog.info(sprintf("tumor: %s, cluster info, max_height %g, median_height: %g",
+                      tumor,
+                      max_height, median_height))
+    
+    median_height_tree_ratio = max_height / median_height
+    
+    res$subclusters[[ tumor ]] = list()
+    if (median_height_tree_ratio < min_median_tree_height_ratio) {
+      ## retain original grouping, no cutting
+      flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
+      res$subclusters[[ tumor ]][[ tumor ]] = in_indices
+      return(res)
+    } 
+    
+    flog.info(sprintf("Carving subclusters for tumor %s", tumor))
+    
+    grps <- cutree(hc, h=(cut_tree_height_ratio * max(hc$height)) )
+    
+    s = split(grps,grps)
+    
+    for (g in names(s)) {
+      
+      tumor_subcluster = paste0(tumor, "_s", g)
+      
+      cell_idx = which(colnames(data) %in% names(s[[g]]))
+      
+      res$subclusters[[ tumor ]][[ tumor_subcluster ]] = in_indices[cell_idx]
+      #res$subclusters[[ tumor_subcluster ]] = in_indices[cell_idx]
+    }
+    
+  return(res)
+}
+
+
+
 #' @title .mask_DE_genes()
 #'
 #' @description private function that does the actual masking of expression values in the matrix
