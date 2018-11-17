@@ -80,7 +80,7 @@
 #'
 #' @param require_DE_all_normals If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")
 #'
-#' @param DE_on_tumor_subclusters First break tumor into subclusters via hclust, then perform DE on the subclusters instead of the whole tumor sample. (default: TRUE)
+#' @param on_tumor_subclusters First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)
 #'
 #' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
 #'
@@ -153,7 +153,7 @@ run <- function(infercnv_obj,
                 mask_nonDE_pval=0.05, # use permissive threshold
                 test.use='wilcoxon',
                 require_DE_all_normals="any",
-                DE_on_tumor_subclusters=TRUE,
+                on_tumor_subclusters=TRUE,
                 cut_tree_height_ratio= 0.9,
                 
                 plot_steps=FALSE,
@@ -648,7 +648,16 @@ run <- function(infercnv_obj,
         }
     }
 
-
+    
+    if (on_tumor_subclusters) {
+        infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
+                                                   cluster_by_groups=TRUE,
+                                                   tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+                                                   cut_tree_height_ratio=0.9,
+                                                   hclust_method="ward.D",
+                                                   min_median_tree_height_ratio=2.5)
+    }
+    
     
     ## Step: Filtering significantly DE genes
     if (mask_nonDE_genes) {
@@ -661,10 +670,10 @@ run <- function(infercnv_obj,
                                                 p_val_thresh=mask_nonDE_pval,
                                                 test.use = test.use,
                                                 center_val=mean(infercnv_obj@expr.data),
-                                                require_DE_all_normals=require_DE_all_normals,
-                                                subcluster=DE_on_tumor_subclusters,
-                                                cut_tree_height_ratio=cut_tree_height_ratio,
-                                                hclust_method=hclust_method)
+                                                require_DE_all_normals=require_DE_all_normals)
+                                                #subcluster=DE_on_tumor_subclusters,
+                                                #cut_tree_height_ratio=cut_tree_height_ratio,
+                                                #hclust_method=hclust_method)
         
         saveRDS(infercnv_obj, 
                 file=file.path(out_dir, sprintf("%02d_mask_nonDE.infercnv_obj", step_count)))
@@ -776,14 +785,7 @@ run <- function(infercnv_obj,
   #                                           window_size=median_filtering_window)
   #  }
     
-    infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
-                                               cluster_by_groups=TRUE,
-                                               num_obs_groups=2,
-                                               tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-                                               cut_tree_height_ratio=0.9,
-                                               hclust_method="ward.D",
-                                               min_median_tree_height_ratio=2.5)
-    
+   
     if (is.null(final_scale_limits)) {
         final_scale_limits = "auto"
     }

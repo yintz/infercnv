@@ -19,12 +19,6 @@ NULL
 #'
 #' @param require_DE_all_normals mask gene if found significantly DE in each normal comparison (default="any") options("any", "most", "all")
 #'
-#' @param subcluster divide tumor samples into clades (subclusters) based on hierarchical clustering
-#'
-#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
-#'
-#' @param hclust_method see 'hclust' documentation. default="ward.D"
-#' 
 #' @return infercnv_obj
 #' 
 #' @export
@@ -34,20 +28,19 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
                                     p_val_thresh = 0.05,
                                     test.use="wilcoxon",
                                     center_val=mean(infercnv_obj@expr.data),
-                                    require_DE_all_normals="any",
-                                    subcluster=TRUE,
-                                    cut_tree_height_ratio=0.9,
-                                    hclust_method="ward.D"
+                                    require_DE_all_normals="any"
+                                    #subcluster=TRUE,
+                                    #cut_tree_height_ratio=0.9,
+                                    #hclust_method="ward.D"
                                     ) {
     
     tumor_groupings = infercnv_obj@observation_grouped_cell_indices
 
-    if (subcluster==TRUE) {
-        tumor_groupings = subcluster_tumors(infercnv_obj, tumor_groupings, cut_tree_height_ratio, hclust_method)
-    }
+    #if (subcluster==TRUE) {
+    #    tumor_groupings = subcluster_tumors(infercnv_obj, tumor_groupings, cut_tree_height_ratio, hclust_method)
+    #}
     
     all_DE_results = get_DE_genes_basic(infercnv_obj,
-                                        tumor_groupings=tumor_groupings,
                                         p_val_thresh=p_val_thresh,
                                         test.use=test.use)
 
@@ -65,77 +58,76 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 }
 
 
-#' @title subcluster_tumors
-#'
-#' Divides tumor groupings according to clades by cutting the hierarchical cluster tree at specified height.
-#'
-#' @param infercnv_obj
-#'
-#' @param tumor_groupings list of tumor group indices (default: infercnv_obj@observation_grouped_cell_indices)
-#'
-#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
-#'
-#' @param hclust_method see 'hclust' documentation. default="ward.D"
-#'
-#' @return list of tumor subclusters (ie.  list[[ tumor_subcluster_name ]] = c(cell_idxA, ..., cell_idxN)
-#'
-#' @export
+##' @title subcluster_tumors
+##'
+##' Divides tumor groupings according to clades by cutting the hierarchical cluster tree at specified height.
+##'
+##' @param infercnv_obj
+##'
+##' @param tumor_groupings list of tumor group indices (default: infercnv_obj@observation_grouped_cell_indices)
+##'
+##' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
+##'
+##' @param hclust_method see 'hclust' documentation. default="ward.D"
+##'
+##' @return list of tumor subclusters (ie.  list[[ tumor_subcluster_name ]] = c(cell_idxA, ..., cell_idxN)
+##'
+##' @export
 
 
-subcluster_tumors <- function(infercnv_obj,
-                              tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-                              cut_tree_height_ratio=0.9,
-                              hclust_method="ward.D",
-                              min_median_tree_height_ratio=2.5) {
-
-    flog.info("Subclustering tumors")
-    subclusters = list()
-    
-    for (tumor in names(tumor_groupings)) {
-        expr.data = infercnv_obj@expr.data[,tumor_groupings[[ tumor ]] ]
-        
-        hc <- hclust(dist(t(expr.data)), method=hclust_method)
-
-        max_height = max(hc$height)
-        median_height = median(hc$height)
-        flog.info(sprintf("tumor: %s, cluster info, max_height %g, median_height: %g",
-                          tumor,
-                          max_height, median_height))
-
-
-        median_height_tree_ratio = max_height / median_height
-        
-        if (median_height_tree_ratio < min_median_tree_height_ratio) {
-            ## retain original grouping, no cutting
-            flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
-            subclusters[[ tumor ]] = tumor_groupings[[ tumor ]]
-            next
-        } 
-        
-        flog.info(sprintf("Carving subclusters for tumor %s", tumor))
-        
-        grps <- cutree(hc, h=(cut_tree_height_ratio * max(hc$height)) )
-
-        s = split(grps,grps)
-
-        for (g in names(s)) {
-            
-            tumor_subcluster = paste0(tumor, "_s", g)
-
-            cell_idx = which(colnames(infercnv_obj@expr.data) %in% names(s[[g]]))
-
-            subclusters[[ tumor_subcluster ]] = cell_idx
-        }
-
-    }
-
-    return(subclusters)
-}
+#subcluster_tumors <- function(infercnv_obj,
+#                              tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+#                              cut_tree_height_ratio=0.9,
+#                              hclust_method="ward.D",
+#                              min_median_tree_height_ratio=2.5) {
+#
+#    flog.info("Subclustering tumors")
+#    subclusters = list()
+#    
+#    for (tumor in names(tumor_groupings)) {
+#        expr.data = infercnv_obj@expr.data[,tumor_groupings[[ tumor ]] ]
+#        
+#        hc <- hclust(dist(t(expr.data)), method=hclust_method)
+#
+#        max_height = max(hc$height)
+#        median_height = median(hc$height)
+#        flog.info(sprintf("tumor: %s, cluster info, max_height %g, median_height: %g",
+#                          tumor,
+#                          max_height, median_height))
+#
+#
+#        median_height_tree_ratio = max_height / median_height
+#        
+#        if (median_height_tree_ratio < min_median_tree_height_ratio) {
+#            ## retain original grouping, no cutting
+#            flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
+#            subclusters[[ tumor ]] = tumor_groupings[[ tumor ]]
+#            next
+#        } 
+#        
+#        flog.info(sprintf("Carving subclusters for tumor %s", tumor))
+#        
+#        grps <- cutree(hc, h=(cut_tree_height_ratio * max(hc$height)) )
+#
+#        s = split(grps,grps)
+#
+#        for (g in names(s)) {
+#            
+#            tumor_subcluster = paste0(tumor, "_s", g)
+#
+#            cell_idx = which(colnames(infercnv_obj@expr.data) %in% names(s[[g]]))
+#
+#            subclusters[[ tumor_subcluster ]] = cell_idx
+#        }
+#
+#    }
+#
+#    return(subclusters)
+#}
 
 
 .subcluster_tumors_general <- function(infercnv_obj,
                                        cluster_by_groups=TRUE,
-                                       num_obs_groups=2,
                                        tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
                                        cut_tree_height_ratio=0.9,
                                        hclust_method="ward.D",
@@ -247,7 +239,6 @@ subcluster_tumors <- function(infercnv_obj,
 #'
 
 .mask_DE_genes <- function(infercnv_obj,
-                           tumor_groupings,
                            all_DE_results,
                            mask_val,
                            require_DE_all_normals, # any, most, all
@@ -265,19 +256,25 @@ subcluster_tumors <- function(infercnv_obj,
     all_DE_genes_matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)] = num_normal_types
 
     ## retain small clusters that are unlikely to show up as DE
-    for (tumor_type in names(tumor_groupings)) {
-        tumor_idx = tumor_groupings[[tumor_type]]
-        if (length(tumor_idx) < min_cluster_size_mask) {
-            all_DE_genes_matrix[, tumor_idx] = num_normal_types
+    #for (tumor_type in names(tumor_groupings)) {
+    #    tumor_idx = tumor_groupings[[tumor_type]]
+    #    if (length(tumor_idx) < min_cluster_size_mask) {
+    #        all_DE_genes_matrix[, tumor_idx] = num_normal_types
+    #    }
+    #}
+    for (DE_results in all_DE_results) {
+        if (length(DE_results$tumor_indices) < min_cluster_size_mask) {
+            all_DE_genes_matrix[, DE_results$tumor_indices] = num_normal_types
         }
     }
         
     for (DE_results in all_DE_results) {
-        tumor_type = DE_results$tumor
+        # tumor_type = DE_results$tumor
         genes = DE_results$de_genes
         
         gene_idx = rownames(all_DE_genes_matrix) %in% genes
-        cell_idx = tumor_groupings[[ tumor_type ]]
+        # cell_idx = tumor_groupings[[ tumor_type ]]
+        cell_idx = DE_results$tumor_indices
 
         if (length(cell_idx) >= min_cluster_size_mask) {
             all_DE_genes_matrix[gene_idx, cell_idx] = all_DE_genes_matrix[gene_idx, cell_idx] + 1
@@ -322,7 +319,6 @@ subcluster_tumors <- function(infercnv_obj,
 #'
 
 get_DE_genes_basic <- function(infercnv_obj,
-                               tumor_groupings,
                                p_val_thresh = 0.05,
                                test.use="wilcoxon" # other options:  (wilcoxon, t, perm)
                                ) {
@@ -376,34 +372,48 @@ get_DE_genes_basic <- function(infercnv_obj,
     normal_types = names(infercnv_obj@reference_grouped_cell_indices)
         
     ## turn on only DE genes in tumors
+    tumor_groupings = infercnv_obj@observation_grouped_cell_indices
     for (tumor_type in names(tumor_groupings)) {
-
-        tumor_indices = tumor_groupings[[ tumor_type ]] 
         
-        for (normal_type in normal_types) {
-            flog.info(sprintf("Finding DE genes between %s and %s", tumor_type, normal_type))
-
-            normal_indices = infercnv_obj@reference_grouped_cell_indices[[ normal_type ]]
-
-
-            pvals = apply(infercnv_obj@expr.data, 1, statfxn, idx1=normal_indices, idx2=tumor_indices)
-            pvals = unlist(pvals)
-            pvals = p.adjust(pvals, method="BH")
-            
-            names(pvals) = rownames(infercnv_obj@expr.data)
-
-            genes = names(pvals)[pvals<p_val_thresh]
-            
-            flog.info(sprintf("Found %d genes / %d total as DE", length(genes), length(pvals)))
-            
-            condition_pair = paste(tumor_type, normal_type, sep=",")
-            
-            all_DE_results[[condition_pair]] = list(tumor=tumor_type,
-                                                    normal=normal_type,
-                                                    pvals=pvals,
-                                                    de_genes=genes)
-            
-            
+        indices = infercnv_obj@tumor_subclusters[["subclusters"]][[ tumor_type ]]
+        if(is.list(indices)) {
+            tumor_indices_list = indices
+        }
+        else { # is.vector(indices)
+            tumor_indices_list = list(indices)
+        }
+        
+        for (tumor_indices_name in names(tumor_indices_list)) {
+            tumor_indices = tumor_indices_list[[ tumor_indices_name ]]
+#    for (tumor_type in names(tumor_groupings)) {
+#
+#        tumor_indices = tumor_groupings[[ tumor_type ]] 
+        
+            for (normal_type in normal_types) {
+                flog.info(sprintf("Finding DE genes between %s and %s", tumor_indices_name, normal_type))
+    
+                normal_indices = infercnv_obj@reference_grouped_cell_indices[[ normal_type ]]
+    
+    
+                pvals = apply(infercnv_obj@expr.data, 1, statfxn, idx1=normal_indices, idx2=tumor_indices)
+                pvals = unlist(pvals)
+                pvals = p.adjust(pvals, method="BH")
+                
+                names(pvals) = rownames(infercnv_obj@expr.data)
+    
+                genes = names(pvals)[pvals<p_val_thresh]
+                
+                flog.info(sprintf("Found %d genes / %d total as DE", length(genes), length(pvals)))
+                
+                condition_pair = paste(tumor_indices_name, normal_type, sep=",")
+                
+                all_DE_results[[condition_pair]] = list(tumor_indices=tumor_indices,
+                                                        normal=normal_type,
+                                                        pvals=pvals,
+                                                        de_genes=genes)
+                
+                
+            }
         }
     }
     

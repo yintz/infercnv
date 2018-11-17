@@ -15,7 +15,7 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   anscombe_normalize = TRUE, use_zscores = FALSE,
   remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = FALSE,
   mask_nonDE_pval = 0.05, test.use = "wilcoxon",
-  require_DE_all_normals = "any", DE_on_tumor_subclusters = TRUE,
+  require_DE_all_normals = "any", on_tumor_subclusters = TRUE,
   cut_tree_height_ratio = 0.9, plot_steps = FALSE, debug = FALSE,
   include.spike = FALSE, spike_in_chrs = NULL,
   spike_in_multiplier_vec = c(0.5, 1.5), prune_outliers = FALSE,
@@ -101,7 +101,7 @@ the mean value for the complete data set (default: 0.05)}
 
 \item{require_DE_all_normals}{If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")}
 
-\item{DE_on_tumor_subclusters}{First break tumor into subclusters via hclust, then perform DE on the subclusters instead of the whole tumor sample. (default: TRUE)}
+\item{on_tumor_subclusters}{First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)}
 
 \item{cut_tree_height_ratio}{ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
 

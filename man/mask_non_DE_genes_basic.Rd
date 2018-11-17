@@ -6,8 +6,7 @@
 \usage{
 mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05,
   test.use = "wilcoxon", center_val = mean(infercnv_obj@expr.data),
-  require_DE_all_normals = "any", subcluster = TRUE,
-  cut_tree_height_ratio = 0.9, hclust_method = "ward.D")
+  require_DE_all_normals = "any")
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -19,12 +18,6 @@ mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05,
 \item{center_val}{value to assign to those genes that are not found to be statistically DE.}
 
 \item{require_DE_all_normals}{mask gene if found significantly DE in each normal comparison (default="any") options("any", "most", "all")}
-
-\item{subcluster}{divide tumor samples into clades (subclusters) based on hierarchical clustering}
-
-\item{cut_tree_height_ratio}{ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)}
-
-\item{hclust_method}{see 'hclust' documentation. default="ward.D"}
 }
 \value{
 infercnv_obj
