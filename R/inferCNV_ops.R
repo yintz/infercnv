@@ -256,9 +256,9 @@ run <- function(infercnv_obj,
     if (include.spike) {
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
-
+        
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_spiked.infercnv_obj", step_count))
-
+        
         if (reuse_subtracted && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj_file = readRDS(infercnv_obj_file)
@@ -893,15 +893,22 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
     flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
             
     ref_groups = infercnv_obj@reference_grouped_cell_indices
-    
+
+    flog.info("subtracting mean(normal) per gene per cell across all data")
+
     subtr_data <- .subtract_expr(infercnv_obj@expr.data, ref_groups, inv_log)
     
     colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
 
     infercnv_obj@expr.data <- subtr_data
     
-    flog.info("subtracting mean(normal) per gene per cell across all data")
-                
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- subtract_ref_expr_from_obs(infercnv_obj@.hspike, inv_log)
+    }
+
+    
     return(infercnv_obj)
 
 }
@@ -1121,6 +1128,11 @@ remove_outliers_norm <- function(infercnv_obj,
                                                     lower_bound=lower_bound,
                                                     upper_bound=upper_bound)
     
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- remove_outliers_norm(infercnv_obj@.hspike, out_method, lower_bound, upper_bound)
+    }
+    
     return(infercnv_obj)
     
 }
@@ -1206,6 +1218,13 @@ center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # 
     flog.info(paste("::center_smooth across chromosomes per cell"))
     
     infercnv_obj@expr.data <- .center_columns(infercnv_obj@expr.data, method)
+
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- center_cell_expr_across_chromosome(infercnv_obj@.hspike, method)
+    }
+
     
     return(infercnv_obj)
 }
@@ -1361,6 +1380,11 @@ clear_noise <- function(infercnv_obj, threshold, noise_logistic=FALSE) {
     
         infercnv_obj@expr.data <- .clear_noise(infercnv_obj@expr.data, threshold, center_pos=mean_ref_vals)
     }
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- clear_noise(infercnv_obj@.hspike, threshold, noise_logistic)
+    }
     
     return(infercnv_obj)
 }
@@ -1421,6 +1445,11 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
         smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
         
         infercnv_obj@expr.data <- smooth_matrix
+    }
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- clear_noise_via_ref_mean_sd(infercnv_obj@.hspike, sd_amplifier, noise_logistic)
     }
     
     return(infercnv_obj)
@@ -1500,6 +1529,12 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
             infercnv_obj@expr.data[chr_genes_indices, ] <- smoothed_chr_data
         }
     }
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- smooth_by_chromosome(infercnv_obj@.hspike, window_length, smooth_ends)
+    }
+    
     
     return(infercnv_obj)
 }
@@ -1671,6 +1706,11 @@ log2xplus1 <- function(infercnv_obj) {
     
     infercnv_obj@expr.data <- log2(infercnv_obj@expr.data + 1)
 
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- log2xplus1(infercnv_obj@.hspike)
+    }
+    
     return(infercnv_obj)
         
 }
@@ -1695,6 +1735,11 @@ invert_log2xplus1 <- function(infercnv_obj) {
     
     infercnv_obj@expr.data <- 2^infercnv_obj@expr.data - 1
 
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- invert_log2xplus1(infercnv_obj@.hspike)
+    }
+    
     return(infercnv_obj)
 }
 
@@ -1717,6 +1762,11 @@ invert_log2 <- function(infercnv_obj) {
     
     infercnv_obj@expr.data <- 2^infercnv_obj@expr.data
 
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- invert_log2(infercnv_obj@.hspike)
+    }
+    
     return(infercnv_obj)
 }
 
@@ -1738,6 +1788,12 @@ make_zero_NA <- function(infercnv_obj) {
     flog.info("make_zero_NA()")
     
     infercnv_obj@expr.data <- infercnv_obj@expr.data[infercnv_obj@expr.data == 0] <- NA
+
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- make_zero_NA(infercnv_obj@.hspike)
+    }
     
     return(infercnv_obj)
 
@@ -1783,7 +1839,11 @@ transform_to_reference_based_Zscores <- function(infercnv_obj) {
     
     # convert to z-scores based on the ref (normal) distribution
     infercnv_obj@expr.data = sweep(infercnv_obj@expr.data, 1, gene_ref_sd, FUN="/") # make all data z-scores based on the ref data distribution.
-    
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- transform_to_reference_based_Zscores(infercnv_obj@.hspike)
+    }
     
     return(infercnv_obj)
     
@@ -1806,7 +1866,12 @@ mean_center_gene_expr <- function(infercnv_obj) {
     flog.info(paste("::centering", sep=""))
 
     infercnv_obj@expr.data <- sweep(infercnv_obj@expr.data, 1, rowMeans(infercnv_obj@expr.data, na.rm=T), FUN="-")
-        
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- mean_center_gene_expr(infercnv_obj@.hspike)
+    }
+    
     return(infercnv_obj)
 }
 
@@ -1846,7 +1911,12 @@ apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
 
     infercnv_obj@expr.data[infercnv_obj@expr.data > threshold] <- threshold
     infercnv_obj@expr.data[infercnv_obj@expr.data < (-1 * threshold)] <- -1 * threshold
-
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- apply_max_threshold_bounds(infercnv_obj@.hspike, threshold)
+    }
+    
     return(infercnv_obj)
 }
 
@@ -1898,7 +1968,12 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
         stop(1234)
     }
 
-        
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- remove_genes_at_ends_of_chromosomes(infercnv_obj@.hspike, window_length)
+    }
+    
     return(infercnv_obj)
 
 }
@@ -1997,6 +2072,11 @@ compute_normalization_factor <- function(infercnv_obj) {
 anscombe_transform <- function(infercnv_obj) {
 
     infercnv_obj@expr.data <- 2 * sqrt(infercnv_obj@expr.data + 3/8)
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- anscombe_transform(infercnv_obj@.hspike)
+    }
     
     return(infercnv_obj)
     
@@ -2011,5 +2091,10 @@ add_pseudocount <- function(infercnv_obj, pseudocount) {
         
     infercnv_obj@expr.data = infercnv_obj@expr.data + pseudocount
 
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- add_pseudocount(infercnv_obj@.hspike, pseudocount)
+    }
+        
     return(infercnv_obj)
 }

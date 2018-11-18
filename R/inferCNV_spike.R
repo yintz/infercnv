@@ -52,6 +52,9 @@ spike_in_variation_chrs <- function(infercnv_obj,
     }
 
     infercnv_obj <- .spike_in_variation_genes_via_modeling(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
+
+    # add in the hidden spike needed by the HMM
+    infercnv_obj <- .build_and_add_hspike(infercnv_obj)
     
     return(infercnv_obj)
 }
@@ -429,4 +432,89 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     logistic_params[[ 'slope' ]] <- summary(fit)$coefficients["k", "Estimate"]
 
     return(logistic_params)
+}
+
+
+
+.build_and_add_hspike <- function(infercnv_obj) {
+
+    flog.info("Adding h-spike")
+    
+    ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
+    
+    num_cells = 100
+    num_genes_per_chr = 100
+    
+    ## design for fake chr
+    chr_info = list(list(name='chrA',
+                         cnv=1),
+                    list(name='chr_0',
+                         cnv=0.01),
+                    list(name='chr_B',
+                         cnv=1),
+                    list(name='chr_0pt5',
+                         cnv=0.5),
+                    list(name='chr_C',
+                         cnv=1),
+                    list(name='chr_1pt5',
+                         cnv=1.5),
+                    list(name='chr_D',
+                         cnv=1),
+                    list(name='chr_2pt0',
+                         cnv=2.0),
+                    list(name='chr_E',
+                         cnv=1),
+                    list(name='chr_3pt0',
+                         cnv=3),
+                    list(name='chr_F',
+                         cnv=1)
+                    )
+
+    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:num_genes_per_chr, end=1:num_genes_per_chr) }))
+    num_genes = nrow(gene_order)
+    rownames(gene_order) <- paste0("gene_", 1:num_genes)
+            
+    ## sample gene info from the normal data    
+    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
+    normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
+    gene_means = rowMeans(normal_cells_expr)
+    mean_p0_table = .get_mean_vs_p0_table(infercnv_obj)
+    gene_means = sample(x=gene_means, size=num_genes, replace=T)
+    names(gene_means) = rownames(gene_order)
+        
+    ## simulate normals:
+    sim_normal_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, num_cells)
+    colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
+    
+    ## apply spike-in multiplier vec
+    hspike_gene_means = gene_means
+    for (info in chr_info) {
+        chr_name = info$name
+        cnv = info$cnv
+        if (cnv != 1) {
+            gene_idx = which(gene_order$chr == chr_name)
+            hspike_gene_means[gene_idx] =  hspike_gene_means[gene_idx] * cnv
+        }
+    }
+    
+    sim_spiked_cnv_matrix = .get_simulated_cell_matrix(hspike_gene_means, mean_p0_table, num_cells)
+    colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
+    
+    expr.matrix = cbind(sim_normal_matrix, sim_spiked_cnv_matrix)
+    reference_grouped_cell_indices = list('simnormal'=1:num_cells)
+    observation_grouped_cell_indices = list('SPIKE'=(num_cells+1):(2*num_cells))
+
+    .hspike <- new( Class="infercnv",
+                   expr.data=expr.matrix,
+                   count.data=expr.matrix,
+                   gene_order=gene_order,
+                   reference_grouped_cell_indices=reference_grouped_cell_indices,
+                   observation_grouped_cell_indices=observation_grouped_cell_indices)
+                   
+
+    validate_infercnv_obj(.hspike)
+
+    infercnv_obj@.hspike <- .hspike
+    
+    return(infercnv_obj)
 }
