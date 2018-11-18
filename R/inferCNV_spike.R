@@ -436,14 +436,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
 
 
-.build_and_add_hspike <- function(infercnv_obj) {
-
-    flog.info("Adding h-spike")
-    
-    ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
-    
-    num_cells = 100
-    num_genes_per_chr = 100
+.get_hspike_chr_info <- function() {
     
     ## design for fake chr
     chr_info = list(list(name='chrA',
@@ -469,6 +462,21 @@ scale_cnv_by_spike <- function(infercnv_obj) {
                     list(name='chr_F',
                          cnv=1)
                     )
+
+    return(chr_info)
+    
+}
+
+.build_and_add_hspike <- function(infercnv_obj) {
+
+    flog.info("Adding h-spike")
+    
+    ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
+    
+    num_cells = 100
+    num_genes_per_chr = 100
+    
+    chr_info <- .get_hspike_chr_info()
 
     gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:num_genes_per_chr, end=1:num_genes_per_chr) }))
     num_genes = nrow(gene_order)
