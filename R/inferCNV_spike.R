@@ -189,8 +189,6 @@ spike_in_variation_chrs <- function(infercnv_obj,
 }
 
 
-
-
 ##' .get_mean_var_table()
 ##'
 ##' Computes the gene mean/variance table based on all defined cell groupings (reference and observations)

@@ -63,7 +63,7 @@
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
 #' default("ward.D")
 #'
-#' @param anscombe_normalize  Perform anscombe normalization on normalized counts before log transformation.
+#' @param anscombe_normalize  Perform anscombe normalization on normalized counts before log transformation. (default: F)
 #' 
 #' @param use_zscores If true, converts log(expression) data to zscores based on reference cell expr distribution.
 #' 
@@ -145,7 +145,7 @@ run <- function(infercnv_obj,
 
                 hclust_method='ward.D',
 
-                anscombe_normalize=TRUE,
+                anscombe_normalize=FALSE,
                 use_zscores=FALSE,
                 remove_genes_at_chr_ends=FALSE,
 
