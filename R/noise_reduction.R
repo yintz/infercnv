@@ -68,6 +68,10 @@
     gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
     chrs = unlist(unique(gene_chr_listing))
     
+    testing <- function(ax, ax2, ay, ay2) {
+        return(median(working_data[ax:ax2, ay:ay2]))
+    }
+    
     for (tumor_type in names(tumor_groupings)) {
         
         indices = infercnv_obj@tumor_subclusters[["subclusters"]][[ tumor_type ]]
@@ -90,15 +94,29 @@
                 
                 if (xdim >= window_size & ydim >= window_size) {
                     # for (posx in ((half_window + 1):(xdim - (half_window + 1)))) {
-                      for (posx in 1:xdim) {
-                          posxa <- ifelse(posx <= (half_window + 1), 1, (posx - (half_window + 1)))
-                          posxb <- ifelse(posx >= (xdim - (half_window + 1)), xdim, (posx + (half_window + 1)))
-                          for ( posy in 1:ydim) {
-                            posya <- ifelse(posy <= (half_window + 1), 1, (posy - (half_window + 1)))
-                            posyb <- ifelse(posy >= (ydim - (half_window + 1)), ydim, (posy + (half_window + 1)))
-                            results[posx, posy] = median(working_data[posxa:posxb, posya:posyb])
-                        }
-                    }
+                    posx = 1:xdim
+                    posxa <- ifelse(posx <= (half_window + 1), 1, (posx - (half_window + 1)))
+                    posxb <- ifelse(posx >= (xdim - (half_window + 1)), xdim, (posx + (half_window + 1)))
+                    posy = 1:ydim
+                    posya <- ifelse(posy <= (half_window + 1), 1, (posy - (half_window + 1)))
+                    posyb <- ifelse(posy >= (ydim - (half_window + 1)), ydim, (posy + (half_window + 1)))
+                    
+                    starts = expand.grid(posxa, posya)
+                    ends = expand.grid(posxb, posyb)
+                    
+                    results = matrix(unlist(list(starts$Var1, ends$Var1, starts$Var2, ends$Var2) %>% pmap(testing)), nrow=xdim)
+                    
+                    #results[posx, posy] = median(working_data[posxa:posxb, posya:posyb])
+                    
+                    #for (posx in 1:xdim) {
+                    #      posxa <- ifelse(posx <= (half_window + 1), 1, (posx - (half_window + 1)))
+                    #      posxb <- ifelse(posx >= (xdim - (half_window + 1)), xdim, (posx + (half_window + 1)))
+                    #      for ( posy in 1:ydim) {
+                    #        posya <- ifelse(posy <= (half_window + 1), 1, (posy - (half_window + 1)))
+                    #        posyb <- ifelse(posy >= (ydim - (half_window + 1)), ydim, (posy + (half_window + 1)))
+                    #        results[posx, posy] = median(working_data[posxa:posxb, posya:posyb])
+                    #    }
+                    #}
                 }
               infercnv_obj@expr.data[chr_genes_indices, tumor_indices] = results
             }
