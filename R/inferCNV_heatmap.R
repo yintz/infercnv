@@ -509,26 +509,6 @@ plot_cnv <- function(infercnv_obj,
     if (length(obs_seps) > 1) {
         obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
     }
-
-    infercnv_obj <- .apply_heatmap_median_filtering(infercnv_obj=infercnv_obj,
-                                                    window_size=11)
-    
-    ################# DUPLICATE CHUNK OF CODE HERE FROM BEFORE CALLING THIS ROUTINE SINCE INFERCNV_OBJ WAS UPDATED (median filtering)
-    plot_data = infercnv_obj@expr.data
-    ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
-    ref_idx = ref_idx[order(ref_idx)]
-    
-    if (!is.null(ref_idx)){
-      obs_data <- plot_data[, -ref_idx, drop=FALSE]
-      if (ncol(obs_data) == 1) {
-        # hack for dealing with single entries
-        plot_data <- cbind(obs_data, obs_data)
-        names(obs_data) <- c("", names(obs_data)[1])
-      }
-    }
-    
-    obs_data <- t(obs_data)
-    ################# END OF DUPLICATE
     
     # Output HCL group membership.
     # Record locations of seperations

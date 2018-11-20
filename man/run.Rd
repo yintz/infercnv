@@ -8,7 +8,6 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   normalize_factor = NA, window_length = 101, smooth_rounds = 2,
   num_ref_groups = NULL, max_centered_threshold = NA,
   noise_filter = NA, sd_amplifier = 1.5, noise_logistic = TRUE,
-  median_filtering = TRUE, median_filtering_window = 11,
   cluster_by_groups = FALSE, k_obs_groups = 1,
   outlier_method_bound = "average_bound", outlier_lower_bound = NA,
   outlier_upper_bound = NA, hclust_method = "ward.D",
@@ -61,12 +60,6 @@ default: 1.0}
                       logistic model for downscaling values close to the mean. (default: TRUE)
 
 #############################}
-
-\item{median_filtering}{Whether to apply median filtering or not 
-default: TRUE}
-
-\item{median_filtering_window}{Size of the window side centered on the data point to  apply median filtering
-default: 11}
 
 \item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
 of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}

@@ -203,13 +203,16 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
     
     s = split(grps,grps)
     
+    start_idx = 1
     for (g in names(s)) {
       
       tumor_subcluster = paste0(tumor, "_s", g)
       
-      cell_idx = which(colnames(data) %in% names(s[[g]]))
-      
-      res$subclusters[[ tumor ]][[ tumor_subcluster ]] = in_indices[cell_idx]
+      #cell_idx = which(colnames(data) %in% names(s[[g]]))
+      end_idx = start_idx + length(s[[g]]) - 1
+      res$subclusters[[ tumor ]][[ tumor_subcluster ]] = in_indices[hc$order[start_idx:end_idx]]
+      start_idx = end_idx + 1
+      #res$subclusters[[ tumor ]][[ tumor_subcluster ]] = in_indices[cell_idx]
       #res$subclusters[[ tumor_subcluster ]] = in_indices[cell_idx]
     }
     
