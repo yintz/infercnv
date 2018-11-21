@@ -411,6 +411,16 @@ plot_cnv <- function(infercnv_obj,
             ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
             obs_seps <- c(obs_seps, length(ordered_names))
             hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+            
+            if (isfirst) {
+                write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                isfirst <- FALSE
+            }
+            else {
+                write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]],
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+            }
         }
         if (length(obs_dendrogram) > 1) {
             obs_dendrogram <- do.call(merge, obs_dendrogram)
