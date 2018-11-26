@@ -83,7 +83,7 @@ get_spike_dists <- function(hspike_obj) {
 ## Based on number of cells in a clade
 get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
     
-    gene_expr_by_cnv <- .get_gene_expr_by_cnv(hspike)
+    gene_expr_by_cnv <- .get_gene_expr_by_cnv(hspike_obj)
     cnv_level_to_mean_sd = list()
     
     for (cnv_level in names(gene_expr_by_cnv) ) {
@@ -179,7 +179,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
 
 predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike), t=1e-6) {
     
-    flog.info("predict_CNV_via_HMM()")
+    flog.info("predict_CNV_via_HMM_on_indiv_cells()")
     
     HMM_info  <- .get_HMM(cnv_mean_sd, t)
     
@@ -224,7 +224,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       t=1e-6) {
 
 
-    flog.info("predict_CNV_via_HMM()")
+    flog.info("predict_CNV_via_HMM_on_tumor_subclusters()")
     
     HMM_info  <- .get_HMM(cnv_mean_sd, t)
     
@@ -235,7 +235,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     hmm.data = expr.data
     hmm.data[,] = -1 #init to invalid state
 
-    tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[[2]], recursive=F)
+    tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
     
     ## add the normals, so they get predictions too:
     tumor_subclusters <- c(tumor_subclusters, infercnv_obj@reference_grouped_cell_indices)
