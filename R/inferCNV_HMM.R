@@ -353,6 +353,98 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 }
 
 
+get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluster", "cell")) {
+
+    by = match.arg(by)
+
+    cell_groups = NULL
+
+    if (by == "consensus") {
+        cell_groups = infercnv_obj@observation_grouped_cell_indices
+    } else if (by == "subcluster") {
+        cell_groups = unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
+    } else if (by == "cell") {
+        cell_groups = lapply(unlist(infercnv_obj@observation_grouped_cell_indices), function(x) x) 
+    }
+    else {
+        stop("Error, shouldn't get here ... bug")
+    }
+    
+    cnv_regions = list()
+    
+    for (cell_group_name in names(cell_groups)) {
+        cell_group = cell_groups[[cell_group_name]]
+        cell_group_mtx = infercnv_obj@expr.data[,cell_group,drop=F]
+        cell_group_names = colnames(cell_group_mtx)
+
+        state_consensus <- .get_state_consensus(cell_group_mtx)
+        
+        state_consensus <- as.numeric(state_consensus)
+        names(state_consensus) <- rownames(cell_group_mtx)
+        cnv_ranges = .define_cnv_bounds(state_consensus, infercnv_obj@gene_order)
+        
+        
+        consensus_state_list = list(cell_group_name=cell_group_name,
+                                    cells=cell_group_names,
+                                    cnv_ranges=cnv_ranges)
+        
+        cnv_regions[[length(cnv_regions)+1]] = consensus_state_list
+    }
+    
+    return(cnv_regions)
+    
+}
+
+
+.get_state_consensus <- function(cell_group_matrix) {
+
+    consensus  = apply(cell_group_matrix, 1, function(x) {
+        t = table(x)
+        names(t)[order(t, decreasing=T)[1]]
+    })
+    
+    return(consensus)
+}
+
+
+.define_cnv_bounds <- function(state_consensus, gene_order) {
+
+    regions = list()
+
+    chrs = unique(gene_order$chr)
+    for (chr in chrs) {
+        gene_idx = which(gene_order$chr==chr)
+        chr_states = state_consensus[gene_idx]
+        prev_state = chr_states[1]
+        pos_begin = paste(gene_order[gene_idx[1],,drop=T], collapse=",")
+        for (i in seq(2,length(gene_idx))) {
+            state = chr_states[i]
+            if (state != prev_state) {
+                ## state transition
+                ## first, end previous region
+                pos_end = paste(gene_order[gene_idx[i-1],,drop=T], collapse=",")
+                region = list(state=prev_state, begin=pos_begin, end=pos_end)
+                regions[[length(regions)+1]] = region
+                ## now start new region definition
+                pos_begin = paste(gene_order[gene_idx[i],,drop=T], collapse=",")
+            }
+            prev_state = state
+        }
+        ## get last one.
+        pos_end = paste(gene_order[gene_idx[i],], collapse=",")
+        region = list(state=prev_state, begin=pos_begin, end=pos_end)
+        regions[[length(regions)+1]] = region
+    }
+    
+    regions_df = do.call(rbind,
+                         lapply(regions, function(x) {
+                             data.frame(state=x$state, begin=x$begin, end=x$end)
+                         } ) )
+
+    rownames(regions_df) = NULL
+    
+    return(regions_df)
+}
 
 
     
