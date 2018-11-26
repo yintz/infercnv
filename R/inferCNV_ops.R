@@ -41,12 +41,7 @@
 #'                       logistic model for downscaling values close to the mean. (default: TRUE)
 #'
 #' #############################
-#' 
-#' @param median_filtering Whether to apply median filtering or not 
-#'                         default: TRUE
-#' @param median_filtering_window Size of the window side centered on the data point to  apply median filtering
-#'                                default: 11
-#' 
+#'
 #' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
 #'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
 #' 
@@ -131,8 +126,6 @@ run <- function(infercnv_obj,
                 noise_filter=NA,
                 sd_amplifier = 1.5,
                 noise_logistic=TRUE, # if false, does complete 'noise' elimination.
-                median_filtering=TRUE,
-                median_filtering_window=11,
 
                 # observation cell clustering settings
                 cluster_by_groups=FALSE,
@@ -772,19 +765,6 @@ run <- function(infercnv_obj,
     }
 
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
-
-  #  if (median_filtering) {
-  #    infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
-  #                                               cluster_by_groups=cluster_by_groups,
-  #                                               num_obs_groups=num_obs_groups,
-  #                                               tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-  #                                               cut_tree_height_ratio=cut_tree_height_ratio,
-  #                                               hclust_method=hclust_method)
-  #    
-  #    infercnv_obj <- apply_median_filtering(infercnv_obj,
-  #                                           window_size=median_filtering_window)
-  #  }
-    
    
     if (is.null(final_scale_limits)) {
         final_scale_limits = "auto"

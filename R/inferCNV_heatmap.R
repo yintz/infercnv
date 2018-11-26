@@ -404,13 +404,23 @@ plot_cnv <- function(infercnv_obj,
     obs_seps <- c()
     sub_obs_seps <- c()
 
-    if (length(infercnv_obj@tumor_subclusters) > 0) {
+    if (!is.null(infercnv_obj@tumor_subclusters)) {
         # for (tumor in obs_annotations_names) { #tumor_subclusters$hc) {
         for (i in seq(1, max(obs_annotations_groups))) {
             obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
             ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
             obs_seps <- c(obs_seps, length(ordered_names))
             hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+            
+            if (isfirst) {
+                write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                isfirst <- FALSE
+            }
+            else {
+                write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]],
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE))
+            }
         }
         if (length(obs_dendrogram) > 1) {
             obs_dendrogram <- do.call(merge, obs_dendrogram)
@@ -509,26 +519,6 @@ plot_cnv <- function(infercnv_obj,
     if (length(obs_seps) > 1) {
         obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
     }
-
-    infercnv_obj <- .apply_heatmap_median_filtering(infercnv_obj=infercnv_obj,
-                                                    window_size=11)
-    
-    ################# DUPLICATE CHUNK OF CODE HERE FROM BEFORE CALLING THIS ROUTINE SINCE INFERCNV_OBJ WAS UPDATED (median filtering)
-    plot_data = infercnv_obj@expr.data
-    ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
-    ref_idx = ref_idx[order(ref_idx)]
-    
-    if (!is.null(ref_idx)){
-      obs_data <- plot_data[, -ref_idx, drop=FALSE]
-      if (ncol(obs_data) == 1) {
-        # hack for dealing with single entries
-        plot_data <- cbind(obs_data, obs_data)
-        names(obs_data) <- c("", names(obs_data)[1])
-      }
-    }
-    
-    obs_data <- t(obs_data)
-    ################# END OF DUPLICATE
     
     # Output HCL group membership.
     # Record locations of seperations
