@@ -27,14 +27,8 @@ apply_median_filtering <- function(infercnv_obj,
     
     for (tumor_type in names(tumor_groupings)) {
         
-        indices = infercnv_obj@tumor_subclusters[["subclusters"]][[ tumor_type ]]
-        if(is.list(indices)) {
-            tumor_indices_list = indices
-        }
-        else { # is.vector(indices)
-            tumor_indices_list = list(indices)
-        }
-        
+        tumor_indices_list = infercnv_obj@tumor_subclusters[["subclusters"]][[ tumor_type ]]
+
         for (tumor_indices in tumor_indices_list) {
         
             for (chr in chrs) {

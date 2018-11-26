@@ -38,7 +38,7 @@ infercnv <- methods::setClass(
                              gene_order= "data.frame",
                              reference_grouped_cell_indices = "list",
                              observation_grouped_cell_indices = "list",
-                             tumor_subclusters = "list") )
+                             tumor_subclusters = "ANY") )
 
 
 
@@ -229,7 +229,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         gene_order = input_gene_order,
         reference_grouped_cell_indices = ref_group_cell_indices,
         observation_grouped_cell_indices = obs_group_cell_indices,
-        tumor_subclusters = list())
+        tumor_subclusters = NULL)
 
 
     validate_infercnv_obj(object)

@@ -404,7 +404,7 @@ plot_cnv <- function(infercnv_obj,
     obs_seps <- c()
     sub_obs_seps <- c()
 
-    if (length(infercnv_obj@tumor_subclusters) > 0) {
+    if (!is.null(infercnv_obj@tumor_subclusters)) {
         # for (tumor in obs_annotations_names) { #tumor_subclusters$hc) {
         for (i in seq(1, max(obs_annotations_groups))) {
             obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
@@ -419,7 +419,7 @@ plot_cnv <- function(infercnv_obj,
             }
             else {
                 write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]],
-                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE))
             }
         }
         if (length(obs_dendrogram) > 1) {
