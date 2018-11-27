@@ -354,9 +354,10 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 
 
 get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluster", "cell")) {
-
     by = match.arg(by)
 
+    flog.info(sprintf("get_predicted_CNV_regions(%s)", by)) 
+    
     cell_groups = NULL
 
     if (by == "consensus") {
@@ -373,6 +374,8 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
     cnv_regions = list()
     
     for (cell_group_name in names(cell_groups)) {
+        flog.info(sprintf("-processing cell_group_name: %s", cell_group_name))
+        
         cell_group = cell_groups[[cell_group_name]]
         cell_group_mtx = infercnv_obj@expr.data[,cell_group,drop=F]
         cell_group_names = colnames(cell_group_mtx)
@@ -396,6 +399,53 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
 }
 
 
+generate_cnv_region_reports <- function(infercnv_obj,
+                                        output_filename_prefix,
+                                        out_dir,
+                                        by=c("consensus", "subcluster", "cell") ) {
+
+    ## remove spike if included:
+    if ('SPIKE' %in% names(infercnv_obj@observation_grouped_cell_indices) ) {
+        infercnv_obj <- infercnv::remove_spike(infercnv_obj)
+    }
+    
+    cnv_regions <- get_predicted_CNV_regions(infercnv_obj, by)
+
+    ## cell clusters defined.
+    cell_clusters_outfile = paste(out_dir, paste0(output_filename_prefix, ".cell_groupings"), sep="/")
+
+    cell_clusters_df = lapply(cnv_regions, function(x) {
+        cell_group_name = x$cell_group_name
+        cells = x$cells
+        ret_df = data.frame(cell_group_name=cell_group_name, cell=cells)
+        return(ret_df)
+    })
+    
+    cell_clusters_df = do.call(rbind, cell_clusters_df)
+    write.table(cell_clusters_df, file=cell_clusters_outfile, row.names=F, quote=F, sep="\t")
+    
+    ## regions DF:
+    regions_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_regions.dat"), sep="/")
+    
+    regions_df = lapply(cnv_regions, function(x) {
+        cell_group_name = x$cell_group_name
+        cnv_ranges = x$cnv_ranges
+        ret_df = cbind(cell_group_name=cell_group_name, cnv_ranges)
+        return(ret_df)
+    })
+
+    regions_df = do.call(rbind, regions_df)
+
+    ## remove the neutral calls:
+    regions_df = regions_df[regions_df$state != 3, ]
+
+    write.table(regions_df, regions_outfile, row.names=F, sep="\t", quote=F)
+
+
+    return
+    
+}
+    
 .get_state_consensus <- function(cell_group_matrix) {
 
     consensus  = apply(cell_group_matrix, 1, function(x) {

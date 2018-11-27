@@ -266,7 +266,10 @@ remove_spike <- function(infercnv_obj) {
     infercnv_obj@expr.data = infercnv_obj@expr.data[, -spike_in_cell_idx]
 
     infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]] <- NULL # deletes it.
-
+    
+    if (! is.null(infercnv_obj@tumor_subclusters)) {
+        infercnv_obj@tumor_subclusters[["subclusters"]][['SPIKE']] = NULL #remove spike if there
+    }
     return(infercnv_obj)
 
 }

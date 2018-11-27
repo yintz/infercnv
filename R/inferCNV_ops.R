@@ -24,12 +24,38 @@
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs. (default: NULL)
 #'
+#' #############################
+#'
+#' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
+#'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
+#' 
+#'
+#' @param k_obs_groups Number of groups in which to break the observations. (default: 1)
+#'
+#' 
+#'
+#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
+#' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
+#' default("ward.D")
+#'
 #' @param max_centered_threshold The maximum value a value can have after
 #'                                   centering. Also sets a lower bound of
 #'                                   -1 * this value. (default: NA),
 #'                               can set to a numeric value or "auto" to bound by the mean bounds across cells.
 #'
+#' #########################################################################
+#' ## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters
+#'
+#' @param on_tumor_subclusters First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)
+#'
+#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
+#'
+#'
+#' #############################
 #' ## de-noising parameters ####
+#' 
+#'
+#' @param denoise       If True, turns on denoising according to options below
 #' 
 #' @param noise_filter  Values +- from the reference cell mean will be set to zero (whitening effect)
 #'                      default(NA, instead will use sd_amplifier below.
@@ -40,29 +66,19 @@
 #' @param noise_logistic use the noise_filter or sd_amplifier based threshold (whichever is invoked) as the midpoint in a
 #'                       logistic model for downscaling values close to the mean. (default: TRUE)
 #'
-#' #############################
 #'
-#' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
-#'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
+#' #######################
+#' ## Experimental options
 #' 
-#'
-#' @param k_obs_groups Number of groups in which to break the observations. (default: 1)
-#'
-#' @param outlier_method_bound Method to use for bounding outlier values. (default: "average_bound")
-#'                             Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.
-#' @param outlier_lower_bound  Outliers below this lower bound will be set to this value. 
-#' @param outlier_upper_bound  Outliers above this upper bound will be set to this value.
-#'
-#'
-#' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
-#' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
-#' default("ward.D")
-#'
-#' @param anscombe_normalize  Perform anscombe normalization on normalized counts before log transformation. (default: F)
+#' @param anscombe_normalize  experimental option: Perform anscombe normalization on normalized counts before log transformation. (default: F)
 #' 
-#' @param use_zscores If true, converts log(expression) data to zscores based on reference cell expr distribution.
+#' @param use_zscores experimental option: If true, converts log(expression) data to zscores based on reference cell expr distribution.
 #' 
-#' @param remove_genes_at_chr_ends If true, removes the window_length/2 genes at both ends of the chromosome.
+#' @param remove_genes_at_chr_ends experimental option: If true, removes the window_length/2 genes at both ends of the chromosome.
+#'
+#' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)  (an experimental option, not meant for routine use)
+#'
+#' @param prune_outliers  Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.
 #'
 #' ## Masking non-DE genes parameters #########
 #' 
@@ -75,16 +91,21 @@
 #'
 #' @param require_DE_all_normals If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")
 #'
-#' @param on_tumor_subclusters First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)
+#' ##################
+#' ## Outlier pruning
 #'
-#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
+#' @param outlier_method_bound Method to use for bounding outlier values. (default: "average_bound")
+#'                             Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.
+#' @param outlier_lower_bound  Outliers below this lower bound will be set to this value. 
+#' @param outlier_upper_bound  Outliers above this upper bound will be set to this value.
 #'
 #' 
 #' #############################################
 #' 
 #' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
 #'
-#' ## Spike-in parameters ####
+#' #################################################################
+#' ## Spike-in parameters for observable 'pos control' spike-in ####
 #' 
 #' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
 #'
@@ -94,11 +115,9 @@
 #'
 #' ##########################
 #' 
-#' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)  (an experimental option, not meant for routine use)
-#'
-#' @param prune_outliers  Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.
-#'
 #' @param final_scale_limits The scale limits for the final heatmap output by the run() method. Default "auto". Alt, c(low,high)
+#' 
+#' @param final_center_val   Center value for final heatmap output by the run() method.
 #' 
 #' @param debug If true, output debug level logging.
 #'
@@ -122,7 +141,10 @@ run <- function(infercnv_obj,
 
                 max_centered_threshold=NA, # or set to a specific value or "auto"
 
-                # noise settings
+                HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
+                
+                ## noise settings
+                denoise=FALSE,
                 noise_filter=NA,
                 sd_amplifier = 1.5,
                 noise_logistic=TRUE, # if false, does complete 'noise' elimination.
@@ -135,9 +157,9 @@ run <- function(infercnv_obj,
                 outlier_method_bound="average_bound",
                 outlier_lower_bound=NA,
                 outlier_upper_bound=NA,
-
+                
                 hclust_method='ward.D',
-
+                
                 anscombe_normalize=FALSE,
                 use_zscores=FALSE,
                 remove_genes_at_chr_ends=FALSE,
@@ -146,6 +168,8 @@ run <- function(infercnv_obj,
                 mask_nonDE_pval=0.05, # use permissive threshold
                 test.use='wilcoxon',
                 require_DE_all_normals="any",
+
+                ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
                 cut_tree_height_ratio= 0.9,
                 
@@ -164,7 +188,8 @@ run <- function(infercnv_obj,
                 pseudocount = 0,
 
                 final_scale_limits = NULL,
-
+                final_center_val = NULL,
+                
                 reuse_subtracted = TRUE
                 
                 ) {
@@ -266,7 +291,7 @@ run <- function(infercnv_obj,
             saveRDS(infercnv_obj, file=infercnv_obj_file)
             
             
-                                        # Plot incremental steps.
+            ## Plot incremental steps.
             if (plot_steps){
                 
                 plot_cnv(infercnv_obj=infercnv_obj,
@@ -527,19 +552,17 @@ run <- function(infercnv_obj,
     } else {
         infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
             
-        ## Plot incremental steps.
-        ## This is a milestone step and results should always be examined here.
-
         saveRDS(infercnv_obj, file=infercnv_obj_file)
-    
-        plot_cnv(infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_dir,
-                 title=sprintf("%02d_remove_average",step_count),
-                 output_filename=sprintf("infercnv.%02d_remove_average", step_count),
-                 write_expr_matrix=TRUE)
-        
+
+        if (plot_steps) {
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_remove_average",step_count),
+                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                     write_expr_matrix=TRUE)
+        }
     }
         
     ## Step 08:
@@ -592,24 +615,26 @@ run <- function(infercnv_obj,
         infercnv_obj <- invert_log2(infercnv_obj)
         
         saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        ## This is a milestone step and results should always be examined here.
+                    
+        plot_cnv(infercnv_obj,
+                 k_obs_groups=k_obs_groups,
+                 cluster_by_groups=cluster_by_groups,
+                 out_dir=out_dir,
+                 title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
+                 output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
+                 write_expr_matrix=TRUE)
         
-                                        # Plot incremental steps.
-        if (plot_steps) {
-            
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
-                     output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
-                     write_expr_matrix=TRUE)
-            
-        }
     }
+    
     ## ###################################################################
     ## Done restoring infercnv_obj's from files now under reuse_subtracted
     ## ###################################################################
-        
+
+    
+    ## Below represent optional downstream analysis steps:
+    
     if (prune_outliers) {
             
         ##################################
@@ -640,7 +665,7 @@ run <- function(infercnv_obj,
                      write_expr_matrix=TRUE)
         }
     }
-
+    
     
     if (on_tumor_subclusters) {
         infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
@@ -650,132 +675,175 @@ run <- function(infercnv_obj,
                                                    hclust_method="ward.D",
                                                    min_median_tree_height_ratio=2.5)
     }
-    
-    
-    ## Step: Filtering significantly DE genes
-    if (mask_nonDE_genes) {
 
+    if (HMM) {
         step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
-        
+        flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
-        infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj,
-                                                p_val_thresh=mask_nonDE_pval,
-                                                test.use = test.use,
-                                                center_val=mean(infercnv_obj@expr.data),
-                                                require_DE_all_normals=require_DE_all_normals)
-                                                #subcluster=DE_on_tumor_subclusters,
-                                                #cut_tree_height_ratio=cut_tree_height_ratio,
-                                                #hclust_method=hclust_method)
+        by=NULL
+        if (on_tumor_subclusters) {
+            infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj)
+            by="subcluster"
+        } else {
+            infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
+            by="consensus"
+        }
         
-        saveRDS(infercnv_obj, 
-                file=file.path(out_dir, sprintf("%02d_mask_nonDE.infercnv_obj", step_count)))
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))   
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        ## report predicted cnv regions:
+        generate_cnv_region_reports(infercnv_obj,
+                                    output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
+                                    out_dir=out_dir,
+                                    by=by)
+                
+        final_center_val <- 3
+        final_scale_limits <- c(1,5)
         
         ## Plot incremental steps.
-        if (plot_steps) {
-
-            plot_cnv(infercnv_obj,
+        if (plot_steps){
+            
+            plot_cnv(infercnv_obj=infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
-                     title=sprintf("%02d_mask_nonDE",step_count),
-                     output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
-                     write_expr_matrix=TRUE)
-            
-            
+                     title=sprintf("%02d_HMM_preds",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                     write_expr_matrix=TRUE,
+                     x.center=final_center_val,
+                     x.range=final_scale_limits
+                     )
         }
-    }
+        
+    } else {
 
-    if (include.spike) {
+        ## all processes that are alternatives to the HMM prediction wrt DE analysis and/or denoising
+        
+        ## Step: Filtering significantly DE genes
+        if (mask_nonDE_genes) {
 
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
+            step_count = step_count + 1
+            flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
+            
+            
+            infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj,
+                                                    p_val_thresh=mask_nonDE_pval,
+                                                    test.use = test.use,
+                                                    center_val=mean(infercnv_obj@expr.data),
+                                                    require_DE_all_normals=require_DE_all_normals)
+            
+            saveRDS(infercnv_obj, 
+                    file=file.path(out_dir, sprintf("%02d_mask_nonDE.infercnv_obj", step_count)))
+            
+            ## Plot incremental steps.
+            if (plot_steps) {
                 
-        ## normalize by spike
-        infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_mask_nonDE",step_count),
+                         output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
+        }
         
-        saveRDS(infercnv_obj,
-                file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
-        
-        
-        if (plot_steps) {
+        if (include.spike) {
             
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_scaled_by_spike",step_count),
-                     output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count),
-                     write_expr_matrix=TRUE)
-        }
-    }
-    
-    
-    
-    ################################
-    # Step: de-noising 
-
-    step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: Denoising\n", step_count))
-    
-    if (! is.na(noise_filter)) {
-
-        if (noise_filter > 0) {
-            flog.info(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
-            infercnv_obj <- clear_noise(infercnv_obj,
-                                        threshold=noise_filter,
-                                        noise_logistic=noise_logistic)
-        }
-        else {
-                                        # noise == 0 or negative...
-                                        # don't remove noise.
+            step_count = step_count + 1
+            flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
+            
+            ## normalize by spike
+            infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
+            
+            saveRDS(infercnv_obj,
+                    file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
+            
+            
+            if (plot_steps) {
+            
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_scaled_by_spike",step_count),
+                         output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count),
+                         write_expr_matrix=TRUE)
+            }
         }
         
-    }
-    else {
-        # default, use quantiles, if NA 
-        flog.info(paste("::process_data:Remove noise, noise threshold defined via ref mean sd_amplifier: ", sd_amplifier))
-        infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj,
-                                                    sd_amplifier = sd_amplifier,
-                                                    noise_logistic=noise_logistic)
-    }
-    
-        
-    saveRDS(infercnv_obj,
-            file=file.path(out_dir, sprintf("%02d_denoise.infercnv_obj", step_count)))
-    
 
-    if (plot_steps){
-        
-        plot_cnv(infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_dir,
-                 color_safe_pal=FALSE,
-                 title=sprintf("%02d_denoised", step_count),
-                 output_filename=sprintf("infercnv.%02d_denoised", step_count),
-                 write_expr_matrix=TRUE)
-        
-    }
+        if (denoise) {
     
+            ## ##############################
+            ## Step: de-noising 
+            
+            step_count = step_count + 1
+            flog.info(sprintf("\n\n\tSTEP %02d: Denoising\n", step_count))
+            
+            if (! is.na(noise_filter)) {
+                
+                if (noise_filter > 0) {
+                    flog.info(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
+                    infercnv_obj <- clear_noise(infercnv_obj,
+                                                threshold=noise_filter,
+                                                noise_logistic=noise_logistic)
+                }
+                else {
+                    ## noise == 0 or negative...
+                    ## don't remove noise.
+                }
+                
+            }
+            else {
+                ## default, use quantiles, if NA 
+                flog.info(paste("::process_data:Remove noise, noise threshold defined via ref mean sd_amplifier: ", sd_amplifier))
+                infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj,
+                                                            sd_amplifier = sd_amplifier,
+                                                            noise_logistic=noise_logistic)
+            }
+            
+            saveRDS(infercnv_obj,
+                    file=file.path(out_dir, sprintf("%02d_denoise.infercnv_obj", step_count)))
+            
+            
+            if (plot_steps){
+                
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         color_safe_pal=FALSE,
+                         title=sprintf("%02d_denoised", step_count),
+                         output_filename=sprintf("infercnv.%02d_denoised", step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
+        } # end of non-HMM opts
+    }
     
     if (include.spike) {
         # remove the spike before making the final plot.
         infercnv_obj <- remove_spike(infercnv_obj)
     }
-
+    
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
    
     if (is.null(final_scale_limits)) {
         final_scale_limits = "auto"
     }
-
+    if (is.null(final_center_val)) {
+        final_center_val = 1
+    }
+    
     flog.info("## Making the final infercnv heatmap ##")
     plot_cnv(infercnv_obj,
              k_obs_groups=k_obs_groups,
              cluster_by_groups=cluster_by_groups,
              out_dir=out_dir,
-             x.center=1,
+             x.center=final_center_val,
              x.range=final_scale_limits,
              title="inferCNV",
              output_filename="infercnv",
