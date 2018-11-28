@@ -13,6 +13,7 @@ parser$add_argument("--readRDS", action="store_true", default=FALSE, help="load 
 parser$add_argument("--use_real_normals", action="store_true", default=FALSE, help="samples from normals instead of simulating them; note all tumor cells are simulated")
 parser$add_argument("--no_run_infercnv", action="store_true", default=FALSE, help="do not run inferCNV automatically after simulating data")
 parser$add_argument("--infercnv_cutoff", type='double', default=1.0, help="cutoff for infercnv filtering. (typically use 1 for smart-seq2, use 0.1 for 10x genomics)")
+parser$add_argument("--copy_normal_to_simnormal", action="store_true")
 
 args = parser$parse_args()
 
@@ -107,8 +108,18 @@ if (! is.null(args$CNV_spec)) {
     }
 }
 
-message("Simulating tumor cells")
-tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means, mean_p0_table, args$num_tumor_cells)
+
+
+
+
+if (args$copy_normal_to_simnormal) {
+    message("debugging - copying normal over to tumor")
+    tumor_sim_matrix = normal_sim_matrix
+} else {
+    message("Simulating tumor cells")
+    tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means, mean_p0_table, args$num_tumor_cells)
+}
+
 colnames(tumor_sim_matrix) = paste0("tumor_", 1:ncol(tumor_sim_matrix)) 
 
 cell_annots_df = rbind(cell_annots_df,
