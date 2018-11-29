@@ -384,11 +384,13 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
         
         state_consensus <- as.numeric(state_consensus)
         names(state_consensus) <- rownames(cell_group_mtx)
-        cnv_ranges = .define_cnv_bounds(state_consensus, infercnv_obj@gene_order)
+        cnv_gene_regions <- .define_cnv_gene_regions(state_consensus, infercnv_obj@gene_order)
+        cnv_ranges <- .get_cnv_gene_region_bounds(cnv_gene_regions)
         
         
         consensus_state_list = list(cell_group_name=cell_group_name,
                                     cells=cell_group_names,
+                                    gene_regions=cnv_gene_regions,
                                     cnv_ranges=cnv_ranges)
         
         cnv_regions[[length(cnv_regions)+1]] = consensus_state_list
@@ -457,43 +459,77 @@ generate_cnv_region_reports <- function(infercnv_obj,
 }
 
 
-.define_cnv_bounds <- function(state_consensus, gene_order) {
+.define_cnv_gene_regions <- function(state_consensus, gene_order) {
 
     regions = list()
 
+    cnv_region_counter = 0
+
+    gene_names = rownames(gene_order)
+    
     chrs = unique(gene_order$chr)
     for (chr in chrs) {
         gene_idx = which(gene_order$chr==chr)
         chr_states = state_consensus[gene_idx]
         prev_state = chr_states[1]
-        pos_begin = paste(gene_order[gene_idx[1],,drop=T], collapse=",")
+        ## pos_begin = paste(gene_order[gene_idx[1],,drop=T], collapse=",")
+        pos_begin = gene_order[gene_idx[1],,drop=T]
+        
+        cnv_region_counter = cnv_region_counter + 1
+        cnv_region_name = sprintf("%s-region_%d", chr, cnv_region_counter)
+        current_cnv_region = data.frame(state=prev_state,
+                                        gene=gene_names[gene_idx[1]],
+                                        chr=pos_begin$chr,
+                                        start=pos_begin$start,
+                                        end=pos_begin$stop) 
+        regions[[cnv_region_name]] = current_cnv_region
+
         for (i in seq(2,length(gene_idx))) {
             state = chr_states[i]
+            pos_end = gene_order[gene_idx[i-1],,drop=T]
+            next_gene_entry = data.frame(state=state,
+                                         gene=gene_names[gene_idx[i]],
+                                         chr=pos_end$chr,
+                                         start=pos_end$start,
+                                         end=pos_end$stop)
+            
             if (state != prev_state) {
                 ## state transition
-                ## first, end previous region
-                pos_end = paste(gene_order[gene_idx[i-1],,drop=T], collapse=",")
-                region = list(state=prev_state, begin=pos_begin, end=pos_end)
-                regions[[length(regions)+1]] = region
-                ## now start new region definition
-                pos_begin = paste(gene_order[gene_idx[i],,drop=T], collapse=",")
+                ## start new cnv region
+                cnv_region_counter = cnv_region_counter + 1
+                cnv_region_name = sprintf("%s-region_%d", chr, cnv_region_counter)
+                regions[[cnv_region_name]] = next_gene_entry
+            } else {
+                ## append gene to current cnv region
+                regions[[cnv_region_name]] = rbind(regions[[cnv_region_name]], next_gene_entry)
             }
+
             prev_state = state
         }
-        ## get last one.
-        pos_end = paste(gene_order[gene_idx[i],], collapse=",")
-        region = list(state=prev_state, begin=pos_begin, end=pos_end)
-        regions[[length(regions)+1]] = region
+        
     }
-    
-    regions_df = do.call(rbind,
-                         lapply(regions, function(x) {
-                             data.frame(state=x$state, begin=x$begin, end=x$end)
-                         } ) )
 
-    rownames(regions_df) = NULL
+    return(regions)
+}
+
+# cnv_gene_regions = .define_cnv_bounds(hmm_path, infercnv_obj@gene_order)
+
+.get_cnv_gene_region_bounds <- function(cnv_gene_regions) {
+
+    bounds = do.call(rbind, lapply(names(cnv_gene_regions), function(x) {
+        cnv_name = x
+        df = cnv_gene_regions[[cnv_name]]
+        state = df$state[1]
+        chr = df$chr[1]
+        start = min(df$start)
+        end = max(df$end)
+        
+        return(data.frame(cnv_name, state, chr, start, end))
+    }) )
+
+    rownames(bounds) <- NULL
     
-    return(regions_df)
+    return(bounds)
 }
 
 
