@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
 
+set.seed(1234)
+
 suppressPackageStartupMessages(library("argparse"))
 
 parser = ArgumentParser()
@@ -57,7 +59,7 @@ logistic_params <- infercnv:::.get_logistic_params(mean_p0_table)
 ## make simulated normals
 
 normal_sim_matrix <- NULL
-if (! is.null(args$use_real_normals)) {
+if (args$use_real_normals) {
     message("Sampling from normal cells")
     normal_sim_matrix <- data[, sample(x=1:ncol(data), size=args$num_normal_cells, replace=T)]
     normal_sim_matrix <- as.matrix(normal_sim_matrix)
@@ -107,8 +109,6 @@ if (! is.null(args$CNV_spec)) {
         write.table(data.frame(before=gene_means_before, after=gene_means_after), file=sprintf("means.%s", chrwant), quote=F,sep="\t")
     }
 }
-
-
 
 
 

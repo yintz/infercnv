@@ -264,6 +264,9 @@ run <- function(infercnv_obj,
     } else {
         infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj, normalize_factor=normalize_factor)
 
+        # add in the hidden spike needed by the HMM
+        infercnv_obj <- .build_and_add_hspike(infercnv_obj)
+        
         saveRDS(infercnv_obj, infercnv_obj_file)
     }
     

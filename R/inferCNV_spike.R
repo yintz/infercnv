@@ -52,9 +52,6 @@ spike_in_variation_chrs <- function(infercnv_obj,
     }
 
     infercnv_obj <- .spike_in_variation_genes_via_modeling(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
-
-    # add in the hidden spike needed by the HMM
-    infercnv_obj <- .build_and_add_hspike(infercnv_obj)
     
     return(infercnv_obj)
 }
@@ -263,9 +260,11 @@ remove_spike <- function(infercnv_obj) {
     
     spike_in_cell_idx = infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]]
 
-    infercnv_obj@expr.data = infercnv_obj@expr.data[, -spike_in_cell_idx]
-
-    infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]] <- NULL # deletes it.
+    if (! is.null(spike_in_cell_idx)) {
+        infercnv_obj@expr.data = infercnv_obj@expr.data[, -spike_in_cell_idx]
+        
+        infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]] <- NULL # deletes it.
+    }
     
     if (! is.null(infercnv_obj@tumor_subclusters)) {
         infercnv_obj@tumor_subclusters[["subclusters"]][['SPIKE']] = NULL #remove spike if there
