@@ -46,10 +46,13 @@
 #' #########################################################################
 #' ## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters
 #'
+#' @param HMM  when set to True, runs HMM to predict CNV level (default: FALSE)
+#' 
 #' @param on_tumor_subclusters First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)
 #'
 #' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
 #'
+#' @param HMM_report_by   cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
 #'
 #' #############################
 #' ## de-noising parameters ####
@@ -141,7 +144,14 @@ run <- function(infercnv_obj,
 
                 max_centered_threshold=NA, # or set to a specific value or "auto"
 
+
+                ## HMM and tumor subclustering options
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
+                ## tumor subclustering opts
+                on_tumor_subclusters=TRUE,
+                cut_tree_height_ratio= 0.9,
+                HMM_report_by="subcluster",
+                
                 
                 ## noise settings
                 denoise=FALSE,
@@ -169,10 +179,7 @@ run <- function(infercnv_obj,
                 test.use='wilcoxon',
                 require_DE_all_normals="any",
 
-                ## tumor subclustering opts
-                on_tumor_subclusters=TRUE,
-                cut_tree_height_ratio= 0.9,
-                
+                                
                 plot_steps=FALSE,
 
                 debug=FALSE, #for debug level logging
@@ -686,10 +693,8 @@ run <- function(infercnv_obj,
         by=NULL
         if (on_tumor_subclusters) {
             infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj)
-            by="subcluster"
         } else {
             infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
-            by="consensus"
         }
         
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))   
@@ -699,8 +704,8 @@ run <- function(infercnv_obj,
         generate_cnv_region_reports(infercnv_obj,
                                     output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
                                     out_dir=out_dir,
-                                    by=by)
-                
+                                    by=HMM_report_by)
+        
         final_center_val <- 3
         final_scale_limits <- c(1,5)
         

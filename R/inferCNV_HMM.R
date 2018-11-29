@@ -387,11 +387,6 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
         cnv_gene_regions <- .define_cnv_gene_regions(state_consensus, infercnv_obj@gene_order)
         cnv_ranges <- .get_cnv_gene_region_bounds(cnv_gene_regions)
 
-        if (by == "cell") {
-            ## going to avoid including the per-gene analysis, as it'll bloat memory and most wont use it.
-            cnv_gene_regions <- NULL
-        }
-        
         consensus_state_list = list(cell_group_name=cell_group_name,
                                     cells=cell_group_names,
                                     gene_regions=cnv_gene_regions,
@@ -450,30 +445,31 @@ generate_cnv_region_reports <- function(infercnv_obj,
 
 
     ## write the per-gene reports of cnv:
-    if (by != "cell") {
-        gene_cnv_df = lapply(cnv_regions, function(x) {
-            cell_group_name = x$cell_group_name
-            gene_region_list = x$gene_regions
-            gene_region_names = names(gene_region_list)
-            gene_region_df = lapply(gene_region_names, function(gene_region_name) {
-                df = gene_region_list[[gene_region_name]]
-                df = cbind(cell_group_name, gene_region_name, df)
-                rownames(df) <- NULL
-                return(df)
-            })
-            gene_region_df = do.call(rbind, gene_region_df)
-            ## remove state 3 = neutral
-            gene_region_df = gene_region_df[gene_region_df$state != 3,]
-            return(gene_region_df)
-        })
-        gene_cnv_df = do.call(rbind, gene_cnv_df)
-
-        ## write output file:
-        gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
-        flog.info(sprintf("-writing per-gene cnv report: %s", gene_cnv_outfile))
-        write.table(gene_cnv_df, gene_cnv_outfile, row.names=F, sep="\t", quote=F)
+    if (by == "cell") {
+        flog.warn("Note, HMM reporting is being done by 'cell', so this may use more memory, write more info to disk, take more time, ...")
     }
+    gene_cnv_df = lapply(cnv_regions, function(x) {
+        cell_group_name = x$cell_group_name
+        gene_region_list = x$gene_regions
+        gene_region_names = names(gene_region_list)
+        gene_region_df = lapply(gene_region_names, function(gene_region_name) {
+            df = gene_region_list[[gene_region_name]]
+            df = cbind(cell_group_name, gene_region_name, df)
+            rownames(df) <- NULL
+            return(df)
+        })
+        gene_region_df = do.call(rbind, gene_region_df)
+        ## remove state 3 = neutral
+        gene_region_df = gene_region_df[gene_region_df$state != 3,]
+        return(gene_region_df)
+    })
+    gene_cnv_df = do.call(rbind, gene_cnv_df)
     
+    ## write output file:
+    gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
+    flog.info(sprintf("-writing per-gene cnv report: %s", gene_cnv_outfile))
+    write.table(gene_cnv_df, gene_cnv_outfile, row.names=F, sep="\t", quote=F)
+        
     return
     
 }
