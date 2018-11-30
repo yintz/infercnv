@@ -143,9 +143,14 @@ spike_in_variation_chrs <- function(infercnv_obj,
             
     ngenes = length(gene_means)
 
-    dropout_logistic_params <- .get_logistic_params(mean_p0_table)
-
-        
+    dropout_logistic_params <- NULL
+    if (! is.null(mean_p0_table)) {
+        tryCatch (
+            dropout_logistic_params <- .get_logistic_params(mean_p0_table),
+            error=function(x) { cat(sprintf("(%s), zero inflation couldn't be estimated from data. Using just neg binom now\n", x)) } 
+        )
+    }
+    
     spike_cell_names = paste0('spike_cell_', 1:num_cells)
     
     sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
@@ -175,13 +180,19 @@ spike_in_variation_chrs <- function(infercnv_obj,
     
     val = 0
     if (m > 0) {
-        dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
+
+        val = rnbinom(n=1, mu=m, size=1/0.1) #fixed dispersion at 0.1
+
+        if (! is.null(dropout_logistic_params)) {
+            dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
         
-        if (runif(1) > dropout_prob) {
-            # not a drop-out
-            val = rnbinom(n=1, mu=m, size=1/0.1) #fixed dispersion at 0.1
+            if (runif(1) <= dropout_prob) {
+                ## not a drop-out
+                val = 0
+            }
         }
     }
+    
     return(val)
 }
 
