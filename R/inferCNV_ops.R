@@ -150,7 +150,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
                 cut_tree_height_ratio= 0.9,
-                HMM_report_by="subcluster",
+                HMM_report_by=c("subcluster","consensus","cell"),
                 
                 
                 ## noise settings
@@ -202,6 +202,8 @@ run <- function(infercnv_obj,
                 ) {
 
 
+    HMM_report_by = match.arg(HMM_report_by)
+    
     if (debug) {
         flog.threshold(DEBUG)
     }

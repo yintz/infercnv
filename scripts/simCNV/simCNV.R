@@ -3,14 +3,19 @@
 set.seed(1234)
 
 suppressPackageStartupMessages(library("argparse"))
+library(edgeR)
+library(infercnv)
+library(dplyr)
+library(Matrix)
+library(stringr)
 
 parser = ArgumentParser()
 
 parser$add_argument("--normal_counts_matrix", required=T, nargs=1)
-parser$add_argument("--CNV_spec", required=F, nargs=1, default=NULL)
+parser$add_argument("--CNV_spec", required=F, nargs='*', default=NULL)
 parser$add_argument("--gene_order_file", required=T, nargs=1)
 parser$add_argument("--num_normal_cells", type="integer", default=100, nargs=1)
-parser$add_argument("--num_tumor_cells", type="integer", default=100, nargs=1)
+parser$add_argument("--num_tumor_cells", type="integer", default=100, nargs='+')
 parser$add_argument("--readRDS", action="store_true", default=FALSE, help="load matrix obj via readRDS")
 parser$add_argument("--use_real_normals", action="store_true", default=FALSE, help="samples from normals instead of simulating them; note all tumor cells are simulated")
 parser$add_argument("--no_run_infercnv", action="store_true", default=FALSE, help="do not run inferCNV automatically after simulating data")
@@ -19,12 +24,6 @@ parser$add_argument("--copy_normal_to_simnormal", action="store_true")
 
 args = parser$parse_args()
 
-
-library(edgeR)
-library(infercnv)
-library(dplyr)
-library(Matrix)
-library(stringr)
 
 #' learn distribution parameters:
 data = NULL
@@ -72,67 +71,94 @@ colnames(normal_sim_matrix) = paste0("normal_", 1:ncol(normal_sim_matrix))
 
 cell_annots_df = data.frame("cells"=colnames(normal_sim_matrix), "class"="normal")
 
+merged_matrix <- normal_sim_matrix
+
 #' make simulated tumors:
 gene_ordering = read.table(args$gene_order_file, header=F, row.names=NULL, stringsAsFactors=F)
 colnames(gene_ordering) = c('gene', 'chr', 'lend', 'rend')
-
-if (! is.null(args$CNV_spec)) {
-    cnv_info = read.table(args$CNV_spec, header=F, row.names=NULL, stringsAsFactors=F)
-    colnames(cnv_info) = c('chr', 'lend', 'rend', 'cnv')
-    
-    for (i in 1:nrow(cnv_info)) {
-        r = unlist(cnv_info[i,,drop=T])
-        message("simulating cnv for: ", paste(r, collapse="\t"))
-        chrwant = r[1]
-        chrlend = as.integer(r[2])
-        chrrend = as.integer(r[3])
-        cnv = as.double(r[4])
-        
-        chr_genes = gene_ordering %>% filter(chr==chrwant)
-        
-        if (chrlend > 0) {
-                                        # if less than zero, using the whole chr
-            chr_genes = chr_genes %>% filter(lend >= chrlend & rend <= chrrend)
-        }
-        
-        idx = which(names(gene_means) %in% chr_genes$gene)
-        if (length(idx)==0) {
-            stop(sprintf("Error, found no genes on chr: %s", chrwant))
-        }
-        
-        gene_means_before = gene_means[idx] 
-        
-        gene_means[idx] = gene_means[idx] * cnv
-        
-        gene_means_after = gene_means[idx]
-        
-        write.table(data.frame(before=gene_means_before, after=gene_means_after), file=sprintf("means.%s", chrwant), quote=F,sep="\t")
-    }
-}
-
 
 
 if (args$copy_normal_to_simnormal) {
     message("debugging - copying normal over to tumor")
     tumor_sim_matrix = normal_sim_matrix
+    colnames(tumor_sim_matrix) = paste0("tumor_", 1:ncol(tumor_sim_matrix))
+
+    cell_annots_df = rbind(cell_annots_df,
+                           data.frame("cells"=colnames(tumor_sim_matrix), "class"="tumor") )
+
+    merged_matrix = cbind(merged_matrix, tumor_sim_matrix)
+    
+    
 } else {
     message("Simulating tumor cells")
-    tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means, mean_p0_table, args$num_tumor_cells)
+ 
+    if (! is.null(args$CNV_spec)) {
+        
+        num_tumor_clusters = length(args$CNV_spec)
+        if (length(args$num_tumor_cells) < length(args$CNV_spec)) {
+            stop("Error, number of tumor cells vector is less than number of cnv_spec files")
+        }
+        
+        for (cnv_file_idx in 1:length(args$CNV_spec)) {
+            cnv_file = args$CNV_spec[cnv_file_idx]
+            num_tumor_cells = args$num_tumor_cells[cnv_file_idx]
+            
+            cnv_info = read.table(cnv_file, header=F, row.names=NULL, stringsAsFactors=F)
+            colnames(cnv_info) = c('chr', 'lend', 'rend', 'cnv')
+
+            tumor_group_name = paste0("tumor_grp_", cnv_file_idx)
+            message(sprintf("** Simulating tumor set: %s", tumor_group_name))
+
+            gene_means_tumor = gene_means
+
+            ## set amp/deletions for tumor group
+            for (i in 1:nrow(cnv_info)) {
+                r = unlist(cnv_info[i,,drop=T])
+                message("simulating cnv for: ", paste(r, collapse="\t"))
+                chrwant = r[1]
+                chrlend = as.integer(r[2])
+                chrrend = as.integer(r[3])
+                cnv = as.double(r[4])
+                
+                chr_genes = gene_ordering %>% filter(chr==chrwant)
+                
+                if (chrlend > 0) {
+                    ## if less than zero, using the whole chr
+                    chr_genes = chr_genes %>% filter(lend >= chrlend & rend <= chrrend)
+                }
+                
+                idx = which(names(gene_means) %in% chr_genes$gene)
+                if (length(idx)==0) {
+                    stop(sprintf("Error, found no genes on chr: %s", chrwant))
+                }
+                
+                                
+                gene_means_tumor[idx] = gene_means[idx] * cnv
+            }
+
+            ## sim the tumor matrix
+            tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means_tumor, mean_p0_table, num_tumor_cells)
+            
+            colnames(tumor_sim_matrix) = paste0(sprintf("%s_cell_", tumor_group_name), 1:ncol(tumor_sim_matrix))
+            
+            cell_annots_df = rbind(cell_annots_df,
+                                   data.frame("cells"=colnames(tumor_sim_matrix), "class"="tumor") )
+            
+            merged_matrix = cbind(merged_matrix, tumor_sim_matrix)
+                        
+        }
+    }
 }
 
-colnames(tumor_sim_matrix) = paste0("tumor_", 1:ncol(tumor_sim_matrix)) 
 
-cell_annots_df = rbind(cell_annots_df,
-                       data.frame("cells"=colnames(tumor_sim_matrix), "class"="tumor") )
 
 # write outputs
 message("writing my.cell.annots")
 write.table(cell_annots_df, file="my.cell.annots", quote=F, sep="\t", col.names=F, row.names=F)
 
-merged_matrix = cbind(normal_sim_matrix, tumor_sim_matrix)
-
 message("writing merged.matrix")
 write.table(merged_matrix, file="merged.matrix", quote=F, sep="\t")
+
 
 
 if (! args$no_run_infercnv) {
