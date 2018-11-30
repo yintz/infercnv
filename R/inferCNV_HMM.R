@@ -247,7 +247,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
         ## run through each cell for this chromosome:
         lapply(tumor_subclusters, function(tumor_subcluster_cells_idx) {
             
-            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx])
+            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F])
             
             num_cells = length(tumor_subcluster_cells_idx)
 

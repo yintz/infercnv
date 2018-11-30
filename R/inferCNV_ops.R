@@ -623,6 +623,16 @@ run <- function(infercnv_obj,
     } else {
     
         infercnv_obj <- invert_log2(infercnv_obj)
+
+
+        if (on_tumor_subclusters) {
+            infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
+                                                       cluster_by_groups=TRUE,
+                                                       tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+                                                       cut_tree_height_ratio=0.9,
+                                                       hclust_method="ward.D",
+                                                       min_median_tree_height_ratio=2.5)
+        }
         
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
@@ -677,15 +687,6 @@ run <- function(infercnv_obj,
     }
     
     
-    if (on_tumor_subclusters) {
-        infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
-                                                   cluster_by_groups=TRUE,
-                                                   tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-                                                   cut_tree_height_ratio=0.9,
-                                                   hclust_method="ward.D",
-                                                   min_median_tree_height_ratio=2.5)
-    }
-
     if (HMM) {
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
