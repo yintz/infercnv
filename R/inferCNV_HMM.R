@@ -377,6 +377,8 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
         flog.info(sprintf("-processing cell_group_name: %s", cell_group_name))
         
         cell_group = cell_groups[[cell_group_name]]
+        #flog.info(sprintf("cell group %s -> %s", cell_group_name, cell_group))
+        
         cell_group_mtx = infercnv_obj@expr.data[,cell_group,drop=F]
         cell_group_names = colnames(cell_group_mtx)
 

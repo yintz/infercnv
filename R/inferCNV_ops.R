@@ -52,6 +52,8 @@
 #'
 #' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
 #'
+#' @param min_median_tree_height_ratio   minimum median tree height ratio to consider dividing into subclusters (default: 2.5)
+#' 
 #' @param HMM_report_by   cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
 #'
 #' #############################
@@ -138,7 +140,7 @@ run <- function(infercnv_obj,
                 out_dir=".",
                 normalize_factor=NA,
                 window_length=101,
-                smooth_rounds = 2,
+                smooth_rounds = 1,
 
                 num_ref_groups=NULL,
 
@@ -150,6 +152,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
                 cut_tree_height_ratio= 0.9,
+                min_median_tree_height_ratio=2.5,
                 HMM_report_by=c("subcluster","consensus","cell"),
                 
                 
@@ -626,34 +629,71 @@ run <- function(infercnv_obj,
     
         infercnv_obj <- invert_log2(infercnv_obj)
 
-
-        if (on_tumor_subclusters) {
-            infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
-                                                       cluster_by_groups=TRUE,
-                                                       tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-                                                       cut_tree_height_ratio=0.9,
-                                                       hclust_method="ward.D",
-                                                       min_median_tree_height_ratio=2.5)
-        }
-        
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
         ## This is a milestone step and results should always be examined here.
-                    
-        plot_cnv(infercnv_obj,
-                 k_obs_groups=k_obs_groups,
-                 cluster_by_groups=cluster_by_groups,
-                 out_dir=out_dir,
-                 title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
-                 output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
-                 write_expr_matrix=TRUE)
-        
+        if (plot_steps) {
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
+                     output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
+                     write_expr_matrix=TRUE)
+            
+        }
     }
-    
+
     ## ###################################################################
     ## Done restoring infercnv_obj's from files now under reuse_subtracted
     ## ###################################################################
+        
+    if (on_tumor_subclusters) {
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters\n", step_count))
+        
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.infercnv_obj", step_count))
+                
+        
+        infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
+                                                   cluster_by_groups=TRUE,
+                                                   tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+                                                   cut_tree_height_ratio=cut_tree_height_ratio,
+                                                   hclust_method="ward.D",
+                                                   min_median_tree_height_ratio=min_median_tree_height_ratio)
 
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        if (plot_steps) {
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_tumor_subclusters",step_count),
+                     output_filename=sprintf("infercnv.%02d_tumor_subclusters",step_count),
+                     write_expr_matrix=TRUE)
+        }
+        
+    }
+
+
+    ## This is a milestone step and results should always be examined here.
+    infercnv_obj_prelim <- infercnv_obj
+    infercnv_obj_file = file.path(out_dir, "preliminary.infercnv_obj")
+    if (include.spike) {
+        infercnv_obj_prelim <- remove_spike(infercnv_obj_prelim)
+    }
+    saveRDS(infercnv_obj_prelim, file=infercnv_obj_file)     
+    plot_cnv(infercnv_obj_prelim,
+             k_obs_groups=k_obs_groups,
+             cluster_by_groups=cluster_by_groups,
+             out_dir=out_dir,
+             title=sprintf("Preliminary infercnv (pre-noise filtering)",step_count),
+             output_filename=sprintf("infercnv.preliminary",step_count),
+             write_expr_matrix=TRUE)
+        
     
     ## Below represent optional downstream analysis steps:
     

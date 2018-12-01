@@ -18,7 +18,8 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              plot_steps=T,
                              include.spike=T,  # used for final scaling to fit range (0,2) centered at 1.
                              HMM=T,
-                             on_tumor_subclusters=F,
-                             HMM_report_by='cell'
+                             on_tumor_subclusters=T,
+                             HMM_report_by='subcluster',
+                             cut_tree_height_ratio=0.5
                              )
 

@@ -278,7 +278,13 @@ remove_spike <- function(infercnv_obj) {
     }
     
     if (! is.null(infercnv_obj@tumor_subclusters)) {
-        infercnv_obj@tumor_subclusters[["subclusters"]][['SPIKE']] = NULL #remove spike if there
+
+        spike_cluster_names = grep(x=names(infercnv_obj@tumor_subclusters[["subclusters"]]), pattern="SPIKE", value=T)
+        if (length(spike_cluster_names) > 0) {
+            for (spike_name in spike_cluster_names) {
+                infercnv_obj@tumor_subclusters[["subclusters"]][[spike_name]] = NULL #remove spike if there
+            }
+        }
     }
     return(infercnv_obj)
 
