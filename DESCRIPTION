@@ -27,3 +27,4 @@ Collate:
     'inferCNV_spike.R'
     'noise_reduction.R'
     'inferCNV_HMM.R'
+    'inferCNV_tumor_subclusters.R'

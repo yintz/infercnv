@@ -656,13 +656,17 @@ run <- function(infercnv_obj,
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.infercnv_obj", step_count))
                 
         
-        infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
-                                                   cluster_by_groups=TRUE,
-                                                   tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-                                                   cut_tree_height_ratio=cut_tree_height_ratio,
-                                                   hclust_method="ward.D",
-                                                   min_median_tree_height_ratio=min_median_tree_height_ratio)
+        #infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
+        #                                           cluster_by_groups=TRUE,
+        #                                           tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
+        #                                           cut_tree_height_ratio=cut_tree_height_ratio,
+        #                                           hclust_method="ward.D",
+        #                                           min_median_tree_height_ratio=min_median_tree_height_ratio)
 
+        
+        infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj, hclust_method="ward.D")
+        
+        
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
         if (plot_steps) {
