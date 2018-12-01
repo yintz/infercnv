@@ -93,7 +93,8 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
           data = infercnv_obj@expr.data[,tumor_groupings[[ tumor ]] ]
       
           in_indices = tumor_groupings[[ tumor ]]
-      
+
+          res$subclusters[[ tumor ]] = list()
           res = .subcluster_one_tumor(data=data,
                                       res=res,
                                       tumor=tumor,
@@ -106,14 +107,15 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
         }
     }
     else  {
-      res = .subcluster_one_tumor(data=infernv_obj@expr.data,
-                                  res=res,
-                                  tumor="all_tumors",
-                                  tumor_subcluster="all_tumors",
-                                  in_indices=unlist(infercnv_obj@observation_grouped_cell_indices),
-                                  cut_tree_height_ratio=cut_tree_height_ratio,
-                                  hclust_method=hclust_method,
-                                  min_median_tree_height_ratio=min_median_tree_height_ratio, recursive)
+        res$subclusters[[ "all_tumors" ]] = list()
+        res = .subcluster_one_tumor(data=infernv_obj@expr.data,
+                                    res=res,
+                                    tumor="all_tumors",
+                                    tumor_subcluster="all_tumors",
+                                    in_indices=unlist(infercnv_obj@observation_grouped_cell_indices),
+                                    cut_tree_height_ratio=cut_tree_height_ratio,
+                                    hclust_method=hclust_method,
+                                    min_median_tree_height_ratio=min_median_tree_height_ratio, recursive)
     }
     
     infercnv_obj@tumor_subclusters <- res
@@ -134,11 +136,16 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
                                   recursive=TRUE,
                                   min_cells_cluster=5) {
 
-    flog.info(sprintf(".subcluster_one_tumor(%s, cut_tree_height: %g, min_median_tree_height_ratio:  %g, num_indices: %g",
-                      tumor, cut_tree_height_ratio, min_median_tree_height_ratio, length(in_indices)))
+    
+    
+    flog.info(sprintf(".subcluster_one_tumor(%s,%s cut_tree_height: %g, min_median_tree_height_ratio:  %g, num_indices: %g",
+                      tumor, tumor_subcluster, cut_tree_height_ratio, min_median_tree_height_ratio, length(in_indices)))
 
     
+    #flog.info(sprintf(".subcluster_one_tumor(current state of res: %s)", res$subclusters))
+    
     if (length(in_indices) < min_cells_cluster) {
+        flog.info(sprintf("-too few genes (%g) in cluster (%s). Not splitting further.", length(in_indices), tumor_subcluster))
         res$subclusters[[ tumor ]][[ tumor_subcluster ]] = in_indices
         return(res)
     }
@@ -148,24 +155,25 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
     
     max_height = max(hc$height)
     median_height = median(hc$height)
-    flog.info(sprintf("tumor: %s, cluster info, max_height %g, median_height: %g",
-                      tumor,
+    flog.info(sprintf("tumor: %s, %s, cluster info, max_height %g, median_height: %g",
+                      tumor, tumor_subcluster,
                       max_height, median_height))
     
     median_height_tree_ratio = max_height / median_height
     
-    flog.info(sprintf("tumor cluster %s has median height tree ratio: %g", tumor, median_height_tree_ratio))
+    flog.info(sprintf("tumor cluster %s, %s has median height tree ratio: %g", tumor, tumor_subcluster, median_height_tree_ratio))
     
-    res$subclusters[[ tumor ]] = list()
+    
     if (median_height_tree_ratio < min_median_tree_height_ratio) {
         ## retain original grouping, no cutting
-        flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
+        flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s, %s", median_height_tree_ratio, tumor, tumor_subcluster))
         res$subclusters[[ tumor ]][[ tumor_subcluster ]] = in_indices[hc$order]
+
+        return(res)
         
     } else {
-        
     
-        flog.info(sprintf("Carving subclusters for tumor %s", tumor))
+        flog.info(sprintf("Carving subclusters for tumor %s, %s", tumor, tumor_subcluster))
         
         grps <- cutree(hc, h=(cut_tree_height_ratio * max(hc$height)) )
         
@@ -174,23 +182,24 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
         start_idx = 1
         for (g in names(s)) {
 
-            tumor_subcluster = paste0(tumor, "_s", g)
+            split_subcluster = paste0(tumor_subcluster, "_s", g)
             
             end_idx = start_idx + length(s[[g]]) - 1
             subcluster_indices = in_indices[hc$order[start_idx:end_idx]]
             subcluster_data =  data[,hc$order[start_idx:end_idx]]
             
             if (recursive) {
-                res <- .subcluster_one_tumor(subcluster_data, res, tumor, tumor_subcluster, subcluster_indices,
-                                            cut_tree_height_ratio, hclust_method, min_median_tree_height_ratio, recursive)
+                res <- .subcluster_one_tumor(subcluster_data, res, tumor, split_subcluster, subcluster_indices,
+                                            cut_tree_height_ratio, hclust_method, min_median_tree_height_ratio, recursive, min_cells_cluster)
             } else {
-                res$subclusters[[ tumor ]][[ tumor_subcluster ]] = subcluster_indices
+                res$subclusters[[ tumor ]][[ split_subcluster ]] = subcluster_indices
             }
             start_idx = end_idx + 1
         }
-    }
     
-    return(res)
+        
+        return(res)
+    }
 }
 
 
