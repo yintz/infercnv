@@ -221,7 +221,9 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
 predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike),
                                                       cnv_level_to_mean_sd_fit=get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike),
-                                                      t=1e-6) {
+                                                      t=1e-6,
+                                                      iterative=TRUE,
+                                                      hclust_method="ward.D") {
 
 
     flog.info("predict_CNV_via_HMM_on_tumor_subclusters()")
@@ -266,9 +268,37 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     })
     
     infercnv_obj@expr.data <- hmm.data
+
+    if (iterative) {
+        infercnv_obj <- .iteratively_refine_consensus_clusters(infercnv_obj, hclust_method)
+    }
+    
     
     return(infercnv_obj)
     
+}
+
+
+.iteratively_refine_consensus_clusters <- function(infercnv_obj, hclust_method) {
+    
+    tumor_groups <- infercnv_obj@observation_grouped_cell_indices
+
+    for (tumor_group in names(tumor_groups)) {
+        flog.info(sprintf("iteratively refining consensus clusters(), tumor: %s", tumor_group))  
+        tumor_group_idx <- tumor_groups[[ tumor_group ]]
+        tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
+        prev_cluster_count <- 1e6 # or infinity
+
+        iter_count = 0
+        while(TRUE) {
+            iter_count = iter_count + 1
+            ## continue until cluster count stabilizes
+            tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_expr_data, hclust_method, 1e6)
+
+            ## define consensus for subclusters
+            for (subcluster in tumor_subcluster_info$subclusters) {
+                
+        
 }
 
 
