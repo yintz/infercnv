@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
 
+options(error = function() traceback(2))
+
 library("infercnv")
 
 # create the infercnv object
