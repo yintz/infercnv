@@ -157,8 +157,10 @@ message("writing my.cell.annots")
 write.table(cell_annots_df, file="my.cell.annots", quote=F, sep="\t", col.names=F, row.names=F)
 
 message("writing merged.matrix")
-write.table(merged_matrix, file="merged.matrix", quote=F, sep="\t")
+## first, shuffle it
 
+merged_matrix = merged_matrix[,sample(x=1:ncol(merged_matrix), size=ncol(merged_matrix),replace=F)]
+write.table(merged_matrix, file="merged.matrix", quote=F, sep="\t")
 
 
 if (! args$no_run_infercnv) {
