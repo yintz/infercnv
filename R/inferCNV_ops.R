@@ -50,6 +50,8 @@
 #' 
 #' @param on_tumor_subclusters First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)
 #'
+#' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
+#' 
 #' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
 #'
 #' @param min_median_tree_height_ratio   minimum median tree height ratio to consider dividing into subclusters (default: 2.5)
@@ -151,6 +153,7 @@ run <- function(infercnv_obj,
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
+                tumor_subcluster_pval=0.01,
                 cut_tree_height_ratio= 0.9,
                 min_median_tree_height_ratio=2.5,
                 HMM_report_by=c("subcluster","consensus","cell"),
@@ -664,9 +667,8 @@ run <- function(infercnv_obj,
         #                                           min_median_tree_height_ratio=min_median_tree_height_ratio)
 
         
-        infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj, hclust_method="ward.D")
-        
-        
+        infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
+                
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
         if (plot_steps) {
