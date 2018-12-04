@@ -227,6 +227,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       hclust_method=NULL # must set if iterative=TRUE
                                                       ) {
     
+    
     if (iterative) {
         if (is.null(p_val) || is.null(hclust_method)) {
             stop("predict_CNV_via_HMM_on_tumor_subclusters() - if iterative set, then p_val and hclust_method must be set")
@@ -307,7 +308,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
             iter_count = iter_count + 1
             tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
             ## continue until cluster count stabilizes
-            tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_expr_data, p_val=p_val, hclust_method=hclust_method)
+            tumor_subcluster_info <- .single_tumor_subclustering_random_trees(tumor_group, tumor_group_idx, tumor_expr_data, p_val=p_val, hclust_method=hclust_method)
             num_subclusters = length(tumor_subcluster_info$subclusters)
             flog.info(sprintf("iterative clustering round: [%d] on %s returns: %g subclusters.", iter_count, tumor_group, num_subclusters))
 
