@@ -318,6 +318,16 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                                                                   tumor_group,
                                                                                                   iter_count,
                                                                                                   num_subclusters))
+
+
+                ## for tmp plotting of intermediate results
+                infercnv_copy = infercnv_obj
+                infercnv_copy@tumor_subclusters$hc[[ tumor_group ]] = tumor_subcluster_info$hc
+                infercnv_copy@tumor_subclusters$rand_params_info[[ tumor_group ]] = tumor_subcluster_info$rand_params_info
+                infercnv_copy@tumor_subclusters$subclusters[[ tumor_group ]] = tumor_subcluster_info$subclusters
+                
+                plot_cnv(infercnv_copy, sprintf('hmm_intermediates-%s', tumor_group), output_filename=sprintf("infercnv-hmm-iter-%d", iter_count))
+                
             }
             
             

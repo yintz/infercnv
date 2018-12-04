@@ -17,6 +17,10 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
                 
         if (use_random_trees) {
             tumor_subcluster_info <- .single_tumor_subclustering_random_trees(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method)
+            pdf(sprintf("tmp.%s.tree_info.pdf", tumor_group))
+            .plot_tree_height_dist(tumor_subcluster_info$rand_params_info)
+            dev.off()
+            
         } else {
             tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method)
         }
