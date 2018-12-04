@@ -155,7 +155,7 @@ run <- function(infercnv_obj,
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
-                tumor_subcluster_pval=0.01,
+                tumor_subcluster_pval=0.1,
                 use_random_trees=FALSE,
                 cut_tree_height_ratio= 0.9,
                 min_median_tree_height_ratio=2.5,
