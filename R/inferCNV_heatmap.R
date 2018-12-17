@@ -414,7 +414,7 @@ plot_cnv <- function(infercnv_obj,
                 next
             }
             
-            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=F]
+            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=FALSE]
             flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
             group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
             ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
@@ -1425,9 +1425,9 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   flush.console()
   ## reorder x and cellnote ##
-  x <- x[rowInd,colInd]
+  x <- x[rowInd,colInd,drop=FALSE]
 
-  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd]
+  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd,drop=FALSE ]
 
   ## reorder labels - row ##
   if(identical(labRow,TRUE)){ ## Note: x is already reorderred
@@ -1446,7 +1446,7 @@ heatmap.cnv <-
   } else if(is.character(labCol)){
     labCol <- labCol[colInd]
   }
-
+  
   ## ------------------------------------------------------------------------
   ## scale
   ## center to 0 and scale to 1 in row or col but not both! ##
