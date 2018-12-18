@@ -399,9 +399,8 @@ plot_cnv <- function(infercnv_obj,
     hcl_obs_annotations_groups <- vector()
     obs_seps <- c()
 
-    
     if (cluster_by_groups) {
-
+      
         ## Clustering separately by groups (ie. patients)
 
         for (i in seq(1, max(obs_annotations_groups))) {
@@ -411,29 +410,41 @@ plot_cnv <- function(infercnv_obj,
 
             if (num_genes_in_group < 2) {
                 flog.info(sprintf("Skipping group: %d, since less than 2 entries", i))
-                next
-            }
-            
-            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=FALSE]
-            flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
-            group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
-            ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
+                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i),,drop=FALSE]))
 
-                           
-            if (isfirst) {
-                write.tree(as.phylo(group_obs_hcl),
-                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-                isfirst <- FALSE
+                if (isfirst) {
+                    write.(row.names(obs_data[which(obs_annotations_groups == i),,drop=FALSE ]),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                    isfirst <- FALSE
+                }
+                else {
+                    write(row.names(obs_data[which(obs_annotations_groups == i),,drop=FALSE]),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                }
             }
             else {
-                write.tree(as.phylo(group_obs_hcl),
-                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=FALSE]
+                flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
+                group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
+                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i),,drop=FALSE])[group_obs_hcl$order])
+
+                if (isfirst) {
+                    write.tree(as.phylo(group_obs_hcl),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                    isfirst <- FALSE
+                }
+                else {
+                    write.tree(as.phylo(group_obs_hcl),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                }
+
+                group_obs_dend <- as.dendrogram(group_obs_hcl)
+                obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
+                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
             }
-            
-            group_obs_dend <- as.dendrogram(group_obs_hcl)
-            obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
-            hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+
             obs_seps <- c(obs_seps, length(ordered_names))
+
         }
         if (length(obs_dendrogram) > 1) {
             # merge separate dendrograms into a single dendrogram
