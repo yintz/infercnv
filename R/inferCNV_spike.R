@@ -208,7 +208,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
     
     for (group_name in names(group_indices)) {
         flog.info(sprintf("processing group: %s", group_name))
-        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
+        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]],drop=FALSE]
         m = rowMeans(expr.data)
         v = apply(expr.data, 1, var)
         if (is.null(mean_var_table)) {
@@ -343,7 +343,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     
     for (group_name in names(group_indices)) {
         flog.info(sprintf("processing group: %s", group_name))
-        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
+        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]], drop=FALSE ]
 
         group_mean_p0_table <- .get_mean_vs_p0_from_matrix(expr.data)
         group_mean_p0_table[[ 'group_name' ]] <- group_name

@@ -399,9 +399,7 @@ plot_cnv <- function(infercnv_obj,
     hcl_obs_annotations_groups <- vector()
     obs_seps <- c()
 
-    
     if (cluster_by_groups) {
-
         ## Clustering separately by groups (ie. patients)
 
         for (i in seq(1, max(obs_annotations_groups))) {
@@ -423,7 +421,6 @@ plot_cnv <- function(infercnv_obj,
                                file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
                 }
             }
-
             else {
                 data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=F]
                 flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
@@ -1438,9 +1435,9 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   flush.console()
   ## reorder x and cellnote ##
-  x <- x[rowInd,colInd]
+  x <- x[rowInd,colInd,drop=FALSE]
 
-  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd]
+  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd,drop=FALSE ]
 
   ## reorder labels - row ##
   if(identical(labRow,TRUE)){ ## Note: x is already reorderred
@@ -1459,7 +1456,7 @@ heatmap.cnv <-
   } else if(is.character(labCol)){
     labCol <- labCol[colInd]
   }
-
+  
   ## ------------------------------------------------------------------------
   ## scale
   ## center to 0 and scale to 1 in row or col but not both! ##
