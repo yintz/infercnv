@@ -409,7 +409,19 @@ plot_cnv <- function(infercnv_obj,
 
             if (num_genes_in_group < 2) {
                 flog.info(sprintf("Skipping group: %d, since less than 2 entries", i))
-                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), ]))
+                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
+                dfake = list()
+                dfake[[1]] = 1L
+                attr(dfake, "class") = "dendrogram"
+                attr(dfake, "height") = 1
+                attr(dfake, "members") = 1L
+                attr(dfake[[1]], "class") = "dendrogram"
+                attr(dfake[[1]], "leaf") = TRUE
+                attr(dfake[[1]], "label") = row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE])
+                attr(dfake[[1]], "height") = 0
+                obs_dendrogram[[length(obs_dendrogram) + 1]] <- dfake
+                
+                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
                 if (isfirst) {
                     write.(row.names(obs_data[which(obs_annotations_groups == i), ]),
