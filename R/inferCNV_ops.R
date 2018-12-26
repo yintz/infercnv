@@ -52,11 +52,6 @@
 #'
 #' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
 #'
-#' @param use_random_trees   use random trees for computing p-value (default: FALSE)
-#' 
-#' @param cut_tree_height_ratio ratio of the hierarchical cluster tree height for cutting into subclusters (default: 0.9)
-#'
-#' @param min_median_tree_height_ratio   minimum median tree height ratio to consider dividing into subclusters (default: 2.5)
 #' 
 #' @param HMM_report_by   cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
 #'
@@ -155,10 +150,8 @@ run <- function(infercnv_obj,
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
-                tumor_subcluster_pval=0.1,
-                use_random_trees=FALSE,
-                cut_tree_height_ratio= 0.9,
-                min_median_tree_height_ratio=2.5,
+                tumor_subcluster_pval=0.05,
+                tumor_subcluster_partition_method=c('qgamma', 'qnorm', 'pheight', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
                 
                 
@@ -177,7 +170,7 @@ run <- function(infercnv_obj,
                 outlier_lower_bound=NA,
                 outlier_upper_bound=NA,
                 
-                hclust_method='ward.D',
+                hclust_method='ward.D2',
                 
                 anscombe_normalize=FALSE,
                 use_zscores=FALSE,
@@ -212,6 +205,8 @@ run <- function(infercnv_obj,
 
 
     HMM_report_by = match.arg(HMM_report_by)
+    tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
+    
     
     if (debug) {
         flog.threshold(DEBUG)
@@ -660,20 +655,14 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters\n", step_count))
         
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.infercnv_obj", step_count))
-                
         
-        #infercnv_obj <- .subcluster_tumors_general(infercnv_obj,
-        #                                           cluster_by_groups=TRUE,
-        #                                           tumor_groupings=infercnv_obj@observation_grouped_cell_indices,
-        #                                           cut_tree_height_ratio=cut_tree_height_ratio,
-        #                                           hclust_method="ward.D",
-        #                                           min_median_tree_height_ratio=min_median_tree_height_ratio)
-
+        infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
+                                                        p_val=tumor_subcluster_pval,
+                                                        hclust_method=hclust_method,
+                                                        partition_method=tumor_subcluster_partition_method)
         
-        infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method, use_random_trees=use_random_trees)
-                
         saveRDS(infercnv_obj, file=infercnv_obj_file)
-
+        
         if (plot_steps) {
             
             plot_cnv(infercnv_obj,
@@ -702,7 +691,7 @@ run <- function(infercnv_obj,
              title=sprintf("Preliminary infercnv (pre-noise filtering)",step_count),
              output_filename=sprintf("infercnv.preliminary",step_count),
              write_expr_matrix=TRUE)
-        
+    
     
     ## Below represent optional downstream analysis steps:
     
@@ -744,7 +733,7 @@ run <- function(infercnv_obj,
 
         by=NULL
         if (on_tumor_subclusters) {
-            infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, iterative=use_random_trees, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
+            infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
         } else {
             infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
         }
