@@ -8,6 +8,8 @@ if (length(args) == 0) {
 
 infercnv_obj_file = args[1]
 
+pdf(paste0(infercnv_obj_file, '.dropout.pdf'))
+
 infercnv_obj = readRDS(infercnv_obj_file)
 
 
@@ -28,15 +30,6 @@ get_parameters <- function(group_name, expr.matrix) {
     norm.counts <- t(t(expr.matrix) / lib.sizes * lib.med)
     norm.counts <- norm.counts[rowSums(norm.counts > 0) > 1, ]
 
-    ## note, fitting the gamma is done differently in splatter... using method = "mge", gof = "CvM", and first winsorizing the data at q=0.1
-    means <- rowMeans(norm.counts)
-    means.fit <- fitdistrplus::fitdist(means, "gamma", method = "mme")
-    mean.shape = unname(means.fit$estimate["shape"])
-    mean.rate = unname(means.fit$estimate["rate"])
-    
-    params[[ 'gamma.mean.shape' ]] = mean.shape
-    params[[ 'gamma.mean.rate' ]] = mean.rate
-    
     
     # estimate dropout params
     mean_vs_p0_table = infercnv:::.get_mean_vs_p0_from_matrix(expr.matrix)
@@ -46,16 +39,29 @@ get_parameters <- function(group_name, expr.matrix) {
     params[['dropout.logistic.slope']] = logistic_params$slope
         
     
-    # estimate common dispersion
-    design <- matrix(1, ncol(expr.matrix), 1)
-    disps <- edgeR::estimateDisp(expr.matrix, design = design)
 
-    params[[ 'common.dispersion' ]] = disps$common.dispersion
+    mean_vs_p0_table = cbind(mean_vs_p0_table, logm=log(mean_vs_p0_table$m + 1))
+    smoothScatter(mean_vs_p0_table$logm, mean_vs_p0_table$p0, main=group_name)
+    points(mean_vs_p0_table$logm,
+           infercnv:::.logistic(mean_vs_p0_table$logm, logistic_params$midpt, logistic_params$slope), col='red')
+
+
+    midpt_use = mean(mean_vs_p0_table$logm[mean_vs_p0_table$p0>0.48 & mean_vs_p0_table$p0<0.52])
+    
+    points(mean_vs_p0_table$logm,
+           infercnv:::.logistic(mean_vs_p0_table$logm, midpt_use, logistic_params$slope), col='magenta')
+    
+
+    s = smooth.spline(mean_vs_p0_table$logm, mean_vs_p0_table$p0)
+    r = range(mean_vs_p0_table$logm)
+    x=seq(r[1], r[2], 0.1)
+    points(x, predict(s, x)$y, col='orange')
     
 
     return(params)
 
 }
+
 
 
 

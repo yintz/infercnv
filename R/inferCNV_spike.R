@@ -441,7 +441,9 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     #write.table(df, "_logistic_params", quote=F, sep="\t")  # debugging...
     
-    fit <- nls(y ~ .logistic(x, midpt = x0, slope = k), data = df, start = list(x0 = mean(x), k = -1)) # borrowed/updated from splatter
+    fit <- nls(y ~ .logistic(x, midpt = x0, slope = k),
+               data = df,
+               start = list(x0 = mean(x), k = -1)) # borrowed/updated from splatter
     
     logistic_params = list()
 
