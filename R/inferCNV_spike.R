@@ -136,7 +136,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @noRd
 ##' 
 
-.get_simulated_cell_matrix <- function(gene_means, mean_p0_table, num_cells) {
+.get_simulated_cell_matrix <- function(gene_means, mean_p0_table, num_cells, common_dispersion=0.1) {
     
     # should be working on the total sum count normalized data.
     # model the mean variance relationship
@@ -159,7 +159,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 
     sim_expr_vals <- function(gene_idx) {
         m = gene_means[gene_idx]
-        return(.sim_expr_val(m, dropout_logistic_params))
+        return(.sim_expr_val(m, dropout_logistic_params, common_dispersion=common_dispersion))
     }
     
     for (i in 1:num_cells) {
@@ -174,14 +174,14 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @noRd
 ##' 
 
-.sim_expr_val <- function(m,  dropout_logistic_params, use_spline=TRUE) {
+.sim_expr_val <- function(m,  dropout_logistic_params, common_dispersion=0.1, use_spline=TRUE) {
     
     # include drop-out prediction
     
     val = 0
     if (m > 0) {
         
-        val = rnbinom(n=1, mu=m, size=1/0.1) #fixed dispersion at 0.1
+        val = rnbinom(n=1, mu=m, size=1/common_dispersion)
         
         if (! is.null(dropout_logistic_params)) {
             if (use_spline) {
