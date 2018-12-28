@@ -14,11 +14,13 @@ infercnv_obj = readRDS(infercnv_obj_file)
 library(edgeR)
 library(fitdistrplus)
 library(infercnv)
+library(Matrix)
 
 # borrowing some code from splatter
 
 get_parameters <- function(group_name, expr.matrix) {
 
+    message(sprintf("getting params for: %s", group_name))
     params = list()
     params[['group_name']] = group_name
     
