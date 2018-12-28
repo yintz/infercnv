@@ -174,18 +174,21 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @noRd
 ##' 
 
-.sim_expr_val <- function(m,  dropout_logistic_params) {
+.sim_expr_val <- function(m,  dropout_logistic_params, use_spline=TRUE) {
     
     # include drop-out prediction
     
     val = 0
     if (m > 0) {
-
-        val = rnbinom(n=1, mu=m, size=1/0.1) #fixed dispersion at 0.1
-
-        if (! is.null(dropout_logistic_params)) {
-            dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
         
+        val = rnbinom(n=1, mu=m, size=1/0.1) #fixed dispersion at 0.1
+        
+        if (! is.null(dropout_logistic_params)) {
+            if (use_spline) {
+                dropout_prob <- predict(dropout_logistic_params$spline, log(m))
+            } else {
+                dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
+            }
             if (runif(1) <= dropout_prob) {
                 ## not a drop-out
                 val = 0
@@ -450,6 +453,11 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     logistic_params[[ 'midpt' ]] <- summary(fit)$coefficients["x0", "Estimate"]
     logistic_params[[ 'slope' ]] <- summary(fit)$coefficients["k", "Estimate"]
 
+    ## also fit a spline
+    s = smooth.spline(x, mean_p0_table$p0)
+    logistic_params[[ 'spline' ]] = s
+    
+    
     return(logistic_params)
 }
 
