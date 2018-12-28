@@ -76,8 +76,12 @@ print(resultset)
 write.table(resultset, file=paste0(infercnv_obj_file, ".dispersion_estimation.dat"), quote=F, sep="\t")
 
 ## examples:
-## 10x:  0.221 + 1.05 * (true_dispersion)
-## smrtSeq: 0.95 + 1.56 * (true_dispersion)
+## 10x:  0.221 + 1.05 * (true_dispersion)  # colon single sample
+##       0.223 + 1.05 * (true_dipersion)   # multiple colon samples
+
+## smrtSeq: 0.95 + 1.56 * (true_dispersion)   # oligodendro
+##          1.073 + 1.628 * (true_dispersion) # melanoma
+
 
 res.lm = lm(resultset[,3] ~ resultset[,1])
 
