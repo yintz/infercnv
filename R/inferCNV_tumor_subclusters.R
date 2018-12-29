@@ -28,8 +28,8 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 
 .single_tumor_subclustering <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method,
-                                        partition_method=c('pheight', 'qnorm', 'qgamma', 'shc') ) {
-
+                                        partition_method=c('shc', 'qnorm', 'pheight', 'qgamma') ) {
+    
     partition_method = match.arg(partition_method)
     
     tumor_subcluster_info = list()
@@ -96,8 +96,10 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 
 .get_shc_clusters <- function(tumor_expr_data, hclust_method, p_val) { 
+
+    library(sigclust2)
     
-    flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val, cut_height))
+    flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val))
     
     shc_result = shc(t(tumor_expr_data), metric='euclidean', linkage=hclust_method, alpha=p_val)
 

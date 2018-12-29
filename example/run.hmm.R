@@ -18,7 +18,6 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              out_dir=out_dir, 
                              cluster_by_groups=T, 
                              plot_steps=F,
-                             include.spike=T,  # used for final scaling to fit range (0,2) centered at 1.
                              HMM=T
                              )
 

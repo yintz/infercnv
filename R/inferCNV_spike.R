@@ -136,7 +136,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @noRd
 ##' 
 
-.get_simulated_cell_matrix <- function(gene_means, mean_p0_table, num_cells, common_dispersion=0.1) {
+.get_simulated_cell_matrix <- function(gene_means, mean_p0_table, num_cells, common_dispersion) {
     
     # should be working on the total sum count normalized data.
     # model the mean variance relationship
@@ -156,7 +156,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
     sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
     rownames(sim_cell_matrix) = names(gene_means)
     colnames(sim_cell_matrix) = spike_cell_names
-
+        
     sim_expr_vals <- function(gene_idx) {
         m = gene_means[gene_idx]
         return(.sim_expr_val(m, dropout_logistic_params, common_dispersion=common_dispersion))
@@ -174,7 +174,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @noRd
 ##' 
 
-.sim_expr_val <- function(m,  dropout_logistic_params, common_dispersion=0.1, use_spline=TRUE) {
+.sim_expr_val <- function(m,  dropout_logistic_params, common_dispersion, use_spline=TRUE) {
     
     # include drop-out prediction
     
@@ -184,13 +184,24 @@ spike_in_variation_chrs <- function(infercnv_obj,
         val = rnbinom(n=1, mu=m, size=1/common_dispersion)
         
         if (! is.null(dropout_logistic_params)) {
+
+            #message(sprintf("log(m) %g -> spline: %g, logistic: %g\n", log(m),
+            #                predict(dropout_logistic_params$spline, log(m))$y[1],
+            #                .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
+            #                )
+            #        )
+
+            #if (abs( predict(dropout_logistic_params$spline, log(m))$y[1] - .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)) > 0.5) {
+            #    stop("Error!!")
+            #}
+            
             if (use_spline) {
-                dropout_prob <- predict(dropout_logistic_params$spline, log(m))
+                dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
             } else {
                 dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
             }
             if (runif(1) <= dropout_prob) {
-                ## not a drop-out
+                ## a drop-out
                 val = 0
             }
         }
@@ -508,7 +519,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:num_genes_per_chr, end=1:num_genes_per_chr) }))
     num_genes = nrow(gene_order)
     rownames(gene_order) <- paste0("gene_", 1:num_genes)
-            
+    
     ## sample gene info from the normal data    
     normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
     normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
@@ -516,9 +527,14 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     mean_p0_table = .get_mean_vs_p0_table(infercnv_obj)
     gene_means = sample(x=gene_means, size=num_genes, replace=T)
     names(gene_means) = rownames(gene_order)
-        
+
+    common_dispersion <- .estimate_common_dispersion(normal_cells_expr)
+    flog.info(sprintf("-estimated common dispersion for NB as: %g", common_dispersion))
+
+    # common_dispersion = 0.1 ###DEBUGGING
+    
     ## simulate normals:
-    sim_normal_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, num_cells)
+    sim_normal_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, num_cells, common_dispersion)
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
     
     ## apply spike-in multiplier vec
@@ -532,7 +548,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
         }
     }
     
-    sim_spiked_cnv_matrix = .get_simulated_cell_matrix(hspike_gene_means, mean_p0_table, num_cells)
+    sim_spiked_cnv_matrix = .get_simulated_cell_matrix(hspike_gene_means, mean_p0_table, num_cells, common_dispersion)
     colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
     
     expr.matrix = cbind(sim_normal_matrix, sim_spiked_cnv_matrix)
@@ -554,3 +570,40 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     return(infercnv_obj)
 }
 
+
+.estimate_common_dispersion <- function(expr.data) {
+    
+    ## estimate common disp from these data:
+    ## creds to splatter
+    design <- matrix(1, ncol(expr.data), 1)
+        
+    disps <- edgeR::estimateDisp(expr.data, design = design)
+    
+    common_dispersion = disps$common.dispersion
+
+    ## adjust for zero inflation levels
+    ## splatter does this: bcv.common = 0.1 + 0.25 * disps$common.dispersion
+    
+    
+    ## examples from real data:
+    ## examples:
+    ## 10x:  0.221 + 1.05 * (true_dispersion)  # colon single sample
+    ##       0.223 + 1.05 * (true_dipersion)   # multiple colon samples
+
+    ## smrtSeq: 0.95 + 1.56 * (true_dispersion)   # oligodendro
+    ##          1.073 + 1.628 * (true_dispersion) # melanoma
+
+
+    ## note, for 10x data, observed dispersion is ~1, whereas for truseq, it's anywhere from 2 to 8.
+
+    if (common_dispersion < 1.5) {
+        ## assume 10x type
+        common_dispersion <- (common_dispersion - 0.22) / 1.05
+    } else {
+        ## assume truseq
+        common_dispersion <- (common_dispersion - 1.0) / 1.6
+    }
+
+    return(common_dispersion)
+    
+}

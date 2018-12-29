@@ -108,15 +108,6 @@
 #' 
 #' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
 #'
-#' #################################################################
-#' ## Spike-in parameters for observable 'pos control' spike-in ####
-#' 
-#' @param include.spike  If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)
-#'
-#' @param spike_in_chrs  vector listing of chr names to use for modeling spike-ins (default: NULL - uses the two largest chrs.  ex.  c('chr1', 'chr2') )
-#'
-#' @param spike_in_multiplier vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)
-#'
 #' ##########################
 #' 
 #' @param final_scale_limits The scale limits for the final heatmap output by the run() method. Default "auto". Alt, c(low,high)
@@ -151,7 +142,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
                 tumor_subcluster_pval=0.05,
-                tumor_subcluster_partition_method=c('qgamma', 'qnorm', 'pheight', 'shc'),
+                tumor_subcluster_partition_method=c('shc', 'qnorm', 'pheight', 'qgamma'),
                 HMM_report_by=c("subcluster","consensus","cell"),
                 
                 
@@ -185,12 +176,6 @@ run <- function(infercnv_obj,
                 plot_steps=FALSE,
 
                 debug=FALSE, #for debug level logging
-
-                include.spike = FALSE,
-                
-                #  must specify both below if to be used, and must match in vec length
-                spike_in_chrs =  NULL, # use defaults
-                spike_in_multiplier_vec = c(0.5, 1.5), # minus or plus one copy in a diploid where diploid scale=1
 
                 prune_outliers=FALSE,
                 
@@ -283,45 +268,6 @@ run <- function(infercnv_obj,
         saveRDS(infercnv_obj, infercnv_obj_file)
     }
     
-
-    ##################################################
-    ## spike-in
-    
-    if (include.spike) {
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Spiking in genes with variation added for tracking\n", step_count))
-        
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_spiked.infercnv_obj", step_count))
-        
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj_file = readRDS(infercnv_obj_file)
-        } else {
-        
-            if (! (is.null(spike_in_chrs) && is.null(spike_in_multiplier_vec)) ) {
-                infercnv_obj <- spike_in_variation_chrs(infercnv_obj, spike_in_chrs, spike_in_multiplier_vec)
-            } else {
-                infercnv_obj <- spike_in_variation_chrs(infercnv_obj)
-            }
-            
-            saveRDS(infercnv_obj, file=infercnv_obj_file)
-            
-            
-            ## Plot incremental steps.
-            if (plot_steps){
-                
-                plot_cnv(infercnv_obj=infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_spike_added",step_count),
-                         output_filename=sprintf("infercnv.%02d_spike_added",step_count),
-                         write_expr_matrix=TRUE
-                         )
-            }
-        }
-    }
-
     
     ##################################
     ##### STEP: anscombe normalization
@@ -680,9 +626,6 @@ run <- function(infercnv_obj,
     ## This is a milestone step and results should always be examined here.
     infercnv_obj_prelim <- infercnv_obj
     infercnv_obj_file = file.path(out_dir, "preliminary.infercnv_obj")
-    if (include.spike) {
-        infercnv_obj_prelim <- remove_spike(infercnv_obj_prelim)
-    }
     saveRDS(infercnv_obj_prelim, file=infercnv_obj_file)     
     plot_cnv(infercnv_obj_prelim,
              k_obs_groups=k_obs_groups,
@@ -799,29 +742,29 @@ run <- function(infercnv_obj,
             }
         }
         
-        if (include.spike) {
-            
-            step_count = step_count + 1
-            flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
-            
-            ## normalize by spike
-            infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
-            
-            saveRDS(infercnv_obj,
-                    file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
-            
-            
-            if (plot_steps) {
-            
-                plot_cnv(infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_scaled_by_spike",step_count),
-                         output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count),
-                         write_expr_matrix=TRUE)
-            }
-        }
+        #if (include.spike) {
+        #    
+        #    step_count = step_count + 1
+        #    flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
+        #    
+        #    ## normalize by spike
+        #    infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
+        #    
+        #    saveRDS(infercnv_obj,
+        #            file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
+        #    
+        #    
+        #    if (plot_steps) {
+        #    
+        #        plot_cnv(infercnv_obj,
+        #                 k_obs_groups=k_obs_groups,
+        #                 cluster_by_groups=cluster_by_groups,
+        #                 out_dir=out_dir,
+        #                 title=sprintf("%02d_scaled_by_spike",step_count),
+        #                 output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count),
+        #                 write_expr_matrix=TRUE)
+        #    }
+        #}
         
 
         if (denoise) {
@@ -872,12 +815,7 @@ run <- function(infercnv_obj,
             }
         } # end of non-HMM opts
     }
-    
-    if (include.spike) {
-        # remove the spike before making the final plot.
-        infercnv_obj <- remove_spike(infercnv_obj)
-    }
-    
+
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
    
     if (is.null(final_scale_limits)) {
