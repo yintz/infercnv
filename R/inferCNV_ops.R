@@ -142,7 +142,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
                 tumor_subcluster_pval=0.05,
-                tumor_subcluster_partition_method=c('shc', 'qnorm', 'pheight', 'qgamma'),
+                tumor_subcluster_partition_method=c('qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
                 
                 

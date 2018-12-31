@@ -26,7 +26,7 @@ expr.matrix = infercnv_obj@expr.data[, normal_grp_idx]
 mean_vs_p0_table = infercnv:::.get_mean_vs_p0_from_matrix(expr.matrix)
 logistic_params = infercnv:::.get_logistic_params(mean_vs_p0_table)
 
-iterations=3
+iterations=1
 dispersion_params = c(0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10)
 
 resultset=matrix(0, ncol=3, nrow=iterations*length(dispersion_params))

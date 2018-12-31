@@ -1,4 +1,5 @@
 
+
 #' @title spike_in_variation_chrs()
 #'
 #' Adds a 'SPIKE'-in to the observations set at different thresholds of loss/gain to
@@ -531,8 +532,12 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     common_dispersion <- .estimate_common_dispersion(normal_cells_expr)
     flog.info(sprintf("-estimated common dispersion for NB as: %g", common_dispersion))
 
-    # common_dispersion = 0.1 ###DEBUGGING
-    
+    MAX_DISPERSION = 0.1
+    if (common_dispersion > MAX_DISPERSION) {
+        flog.info(sprintf("- ** dispersion excceds max dispersion allowed, setting to %g", MAX_DISPERSION))
+        common_dispersion <- MAX_DISPERSION
+    }
+        
     ## simulate normals:
     sim_normal_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, num_cells, common_dispersion)
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
@@ -581,29 +586,8 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     
     common_dispersion = disps$common.dispersion
 
-    ## adjust for zero inflation levels
-    ## splatter does this: bcv.common = 0.1 + 0.25 * disps$common.dispersion
+    flog.info(sprintf("-edgeR::estimateDisp() -> %g", common_dispersion))
     
-    
-    ## examples from real data:
-    ## examples:
-    ## 10x:  0.221 + 1.05 * (true_dispersion)  # colon single sample
-    ##       0.223 + 1.05 * (true_dipersion)   # multiple colon samples
-
-    ## smrtSeq: 0.95 + 1.56 * (true_dispersion)   # oligodendro
-    ##          1.073 + 1.628 * (true_dispersion) # melanoma
-
-
-    ## note, for 10x data, observed dispersion is ~1, whereas for truseq, it's anywhere from 2 to 8.
-
-    if (common_dispersion < 1.5) {
-        ## assume 10x type
-        common_dispersion <- (common_dispersion - 0.22) / 1.05
-    } else {
-        ## assume truseq
-        common_dispersion <- (common_dispersion - 1.0) / 1.6
-    }
-
     return(common_dispersion)
     
 }

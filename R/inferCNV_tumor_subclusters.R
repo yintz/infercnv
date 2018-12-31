@@ -28,7 +28,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 
 .single_tumor_subclustering <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method,
-                                        partition_method=c('shc', 'qnorm', 'pheight', 'qgamma') ) {
+                                        partition_method=c('qnorm', 'pheight', 'qgamma', 'shc') ) {
     
     partition_method = match.arg(partition_method)
     
