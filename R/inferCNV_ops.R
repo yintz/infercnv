@@ -12,9 +12,6 @@
 #' 
 #' @param out_dir path to directory to deposit outputs (default: '.')
 #'
-#' @param normalize_factor scaling factor for total sum of counts (default: NA, in which case
-#'                         will be set = 10^round(log10(mean(colSums))), typically setting to 1e5
-#'
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
@@ -128,7 +125,6 @@ run <- function(infercnv_obj,
                 min_cells_per_gene=3,
                 
                 out_dir=".",
-                normalize_factor=NA,
                 window_length=101,
                 smooth_rounds = 1,
 
@@ -260,7 +256,7 @@ run <- function(infercnv_obj,
         infercnv_obj <- readRDS(infercnv_obj_file)
         
     } else {
-        infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj, normalize_factor=normalize_factor)
+        infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj)
 
         # add in the hidden spike needed by the HMM
         infercnv_obj <- .build_and_add_hspike(infercnv_obj)
@@ -2019,9 +2015,8 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 #' @description Normalizes count data by total sum scaling
 #'
 #' For single cell data, a typical normalization factor is 1e5, providing counts per 100k total counts.
-#' If a normalization factor is not provided, one is estimated based on:
-#'     10^round(log10(mean(column_sums))) 
-#' 
+#' If a normalization factor is not provided, the median lib size is used.:
+#'  
 #' @param infercnv_obj infercnv_object
 #'
 #' @param normalize_factor  total counts to scale the normalization to (default: NA, computed as described above)
@@ -2040,9 +2035,9 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
     
     if (is.na(normalize_factor)) {
         
-        normalize_factor = .compute_normalization_factor_from_column_sums(cs)
+        normalize_factor = median(cs)
         
-        flog.info(sprintf("Computed total sum normalization factor as: %f", normalize_factor))
+        flog.info(sprintf("Computed total sum normalization factor as median libsize: %f", normalize_factor))
                 
     } else {
         flog.info(sprintf("Using specified normalization factor: %f", normalize_factor))
@@ -2054,40 +2049,6 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
     return(infercnv_obj)
         
-}
-
-#' @title compute_normalization_factor()
-#'
-#' @description computes norm factor as:
-#'    normalize_factor = 10^round(log10(mean(cs)))
-#'
-#' @param infercnv_obj infercnv_object
-#'
-#' @return normalization_factor
-#'
-#' @export
-#'
-
-compute_normalization_factor <- function(infercnv_obj) {
-
-    data <- infercnv_obj@expr.data
-    
-    cs = colSums(data)
-    
-    normalize_factor = .compute_normalization_factor_from_column_sums(cs)
-
-    return(normalize_factor)
-
-}
-    
-#' @keywords internal
-#' @noRd
-#'
-.compute_normalization_factor_from_column_sums <- function(cs) {
-
-    normalize_factor = 10^round(log10(mean(cs)))
-
-    return(normalize_factor)
 }
 
 
