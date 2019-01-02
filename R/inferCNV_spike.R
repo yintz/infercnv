@@ -516,7 +516,9 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     splatter.params = splatter::splatEstimate(infercnv_obj@count.data[,normal_cells_idx])
     splatter.params = setParams(splatter.params, dropout.type='experiment')
-    
+
+    splatter.params
+        
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
     
     num_cells = 100
@@ -531,7 +533,9 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     ## sample gene info from the normal data    
     normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
     gene_means = rowMeans(normal_cells_expr)
-
+    ## remove zeros (might not be zero in the non-normal cells)
+    gene_means = gene_means[gene_means>0]
+    
     gene_means = sample(x=gene_means, size=num_genes, replace=T)
 
     names(gene_means) = rownames(gene_order)

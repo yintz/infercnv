@@ -2030,6 +2030,8 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
     
     cs = colSums(data)
 
+    print(cs)
+    
     # make fraction of total counts:
     data <- sweep(data, STATS=cs, MARGIN=2, FUN="/")
     
@@ -2043,6 +2045,10 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
         flog.info(sprintf("Using specified normalization factor: %f", normalize_factor))
     }
 
+    if (is.na(normalize_factor)) {
+        stop("Error, normalize factor not estimated")
+    }
+    
     data <- data * normalize_factor
 
     infercnv_obj@expr.data <- data
