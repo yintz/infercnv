@@ -509,6 +509,13 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 .build_and_add_hspike <- function(infercnv_obj) {
 
     flog.info("Adding h-spike")
+
+    library(splatter)
+
+    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
+
+    splatter.params = splatter::splatEstimate(infercnv_obj@count.data[,normal_cells_idx])
+    splatter.params = setParams(splatter.params, dropout.type='experiment')
     
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
     
@@ -522,25 +529,19 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     rownames(gene_order) <- paste0("gene_", 1:num_genes)
     
     ## sample gene info from the normal data    
-    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
     normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
     gene_means = rowMeans(normal_cells_expr)
-    mean_p0_table = .get_mean_vs_p0_table(infercnv_obj)
+
     gene_means = sample(x=gene_means, size=num_genes, replace=T)
+
     names(gene_means) = rownames(gene_order)
-
-    common_dispersion <- .estimate_common_dispersion(normal_cells_expr)
-    flog.info(sprintf("-estimated common dispersion for NB as: %g", common_dispersion))
-
-    MAX_DISPERSION = 0.1
-    if (common_dispersion > MAX_DISPERSION) {
-        flog.info(sprintf("- ** dispersion excceds max dispersion allowed, setting to %g", MAX_DISPERSION))
-        common_dispersion <- MAX_DISPERSION
-    }
-        
+    
     ## simulate normals:
-    sim_normal_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, num_cells, common_dispersion)
+    splatter.params = setParams(splatter.params, "batchCells"=c(num_cells), "nGenes"=num_genes)
+    sim.data = splatter::splatSimulate(splatter.params, method='single', use.genes.means=gene_means)
+    sim_normal_matrix = counts(sim.data)
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
+    rownames(sim_normal_matrix) = rownames(gene_order)
     
     ## apply spike-in multiplier vec
     hspike_gene_means = gene_means
@@ -552,24 +553,27 @@ scale_cnv_by_spike <- function(infercnv_obj) {
             hspike_gene_means[gene_idx] =  hspike_gene_means[gene_idx] * cnv
         }
     }
-    
-    sim_spiked_cnv_matrix = .get_simulated_cell_matrix(hspike_gene_means, mean_p0_table, num_cells, common_dispersion)
+
+    sim.spiked_data = splatter::splatSimulate(splatter.params, method='single', use.genes.means=hspike_gene_means)
+    sim_spiked_cnv_matrix = counts(sim.spiked_data)
     colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
+    rownames(sim_spiked_cnv_matrix) = rownames(gene_order)
     
-    expr.matrix = cbind(sim_normal_matrix, sim_spiked_cnv_matrix)
+    sim.counts.matrix = cbind(sim_normal_matrix, sim_spiked_cnv_matrix)
     reference_grouped_cell_indices = list('simnormal'=1:num_cells)
     observation_grouped_cell_indices = list('SPIKE'=(num_cells+1):(2*num_cells))
 
     .hspike <- new( Class="infercnv",
-                   expr.data=expr.matrix,
-                   count.data=expr.matrix,
+                   expr.data=sim.counts.matrix,
+                   count.data=sim.counts.matrix,
                    gene_order=gene_order,
                    reference_grouped_cell_indices=reference_grouped_cell_indices,
                    observation_grouped_cell_indices=observation_grouped_cell_indices)
-                   
-
+        
     validate_infercnv_obj(.hspike)
 
+    .hspike <- normalize_counts_by_seq_depth(.hspike)
+    
     infercnv_obj@.hspike <- .hspike
     
     return(infercnv_obj)
