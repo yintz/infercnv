@@ -1,36 +1,29 @@
 
-define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, partition_method, restrict_to_DE_genes=TRUE) {
-    
+
+define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method) {
+
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
     tumor_groups <- infercnv_obj@observation_grouped_cell_indices
-
+    
     res = list()
-
+    
     normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
     
     for (tumor_group in names(tumor_groups)) {
-
+        
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
         
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
         tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
-
-        if (restrict_to_DE_genes) {
-            p_vals <- .find_DE_stat_significance(normal_expr_data, tumor_expr_data)
-            
-            DE_gene_idx = which(p_vals < p_val)
-            tumor_expr_data = tumor_expr_data[DE_gene_idx, , drop=F]
-            
-        }
         
-        tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, partition_method)
-                
+        tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method)
+        
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
         res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
-
+        
     }
-         
+    
     infercnv_obj@tumor_subclusters <- res
     
     return(infercnv_obj)
@@ -38,12 +31,9 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 
 
-.single_tumor_subclustering <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method,
-                                        partition_method=c('qnorm', 'pheight', 'qgamma', 'shc')
-                                        ) {
-    
-    partition_method = match.arg(partition_method)
-    
+.single_tumor_subclustering_smoothed_tree <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method) {
+
+
     tumor_subcluster_info = list()
     
     hc <- hclust(dist(t(tumor_expr_data)), method=hclust_method)
@@ -52,46 +42,9 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     
     heights = hc$height
 
-    grps <- NULL
-    
-    if (partition_method == 'pheight') {
+    grps <- .partition_by_random_smoothed_trees(tumor_name, tumor_expr_data, hclust_method, p_val)
 
-        cut_height = p_val * max(heights)
-        flog.info(sprintf("cut height based on p_val(%g) = %g and partition_method: %s", p_val, cut_height, partition_method))
-        grps <- cutree(hc, h=cut_height) # will just be one cluster if height > max_height
-
-        
-    } else if (partition_method == 'qnorm') {
-
-        mu = mean(heights)
-        sigma = sd(heights)
-        
-        cut_height = qnorm(p=1-p_val, mean=mu, sd=sigma)
-        flog.info(sprintf("cut height based on p_val(%g) = %g and partition_method: %s", p_val, cut_height, partition_method))
-        grps <- cutree(hc, h=cut_height) # will just be one cluster if height > max_height
-        
-    } else if (partition_method == 'qgamma') {
-
-        library(fitdistrplus)
-        gamma_fit = fitdist(heights, 'gamma')
-        shape = gamma_fit$estimate[1]
-        rate = gamma_fit$estimate[2]
-        cut_height=qgamma(p=0.9, shape=shape, rate=rate)
-        flog.info(sprintf("cut height based on p_val(%g) = %g and partition_method: %s", p_val, cut_height, partition_method))
-        grps <- cutree(hc, h=cut_height) # will just be one cluster if height > max_height
-        
-    } else if (partition_method == 'shc') {
-        
-        grps <- .get_shc_clusters(tumor_expr_data, hclust_method, p_val)
-
-    #} else if (partition_method == 'random_trees') {
-    #    
-    #    grps <- .partition_by_random_trees(tumor_name, tumor_expr_data, hclust_method, p_val)
-    #    
-    } else {
-        stop("Error, not recognizing parition_method")
-    }
-        
+            
     cluster_ids = unique(grps)
     flog.info(sprintf("cut tree into: %g groups", length(cluster_ids)))
     
@@ -111,67 +64,14 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 }
 
 
-.get_shc_clusters <- function(tumor_expr_data, hclust_method, p_val) { 
-
-    library(sigclust2)
-    
-    flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val))
-    
-    shc_result = shc(t(tumor_expr_data), metric='euclidean', linkage=hclust_method, alpha=p_val)
-
-    cluster_idx = which(shc_result$p_norm <= p_val)
-        
-    grps = rep(1, ncol(tumor_expr_data))
-    names(grps) <- colnames(tumor_expr_data)
-    
-    counter = 1
-    for (cluster_id in cluster_idx) {
-        labelsA = unlist(shc_result$idx_hc[cluster_id,1])
-
-        labelsB = unlist(shc_result$idx_hc[cluster_id,2])
-
-        counter = counter + 1
-        grps[labelsB] <- counter
-    }
-    
-    return(grps)
-}
-        
-
-
-
-.find_DE_stat_significance <- function(normal_matrix, tumor_matrix) {
-    
-    run_t_test<- function(idx) {
-        vals1 = unlist(normal_matrix[idx,,drop=T])
-        vals2 = unlist(tumor_matrix[idx,,drop=T])
-        
-        ## useful way of handling tests that may fail:
-        ## https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
-
-        res = try(t.test(vals1, vals2), silent=TRUE)
-        
-        if (is(res, "try-error")) return(NA) else return(res$p.value)
-        
-    }
-
-    pvals = sapply(seq(nrow(normal_matrix)), run_t_test)
-
-    return(pvals)
-}
-
-
-
-
-##### Below is deprecated.... use inferCNV_tumor_subclusters.random_smoothed_trees
 ## Random Trees
 
-.partition_by_random_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val) {
+.partition_by_random_smoothed_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val) {
 
     grps <- rep(sprintf("%s.%d", tumor_name, 1), ncol(tumor_expr_data))
     names(grps) <- colnames(tumor_expr_data)
 
-    grps <- .single_tumor_subclustering_recursive_random_trees(tumor_expr_data, hclust_method, p_val, grps)
+    grps <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data, hclust_method, p_val, grps)
 
     
     return(grps)
@@ -179,18 +79,20 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 }
 
 
-.single_tumor_subclustering_recursive_random_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, min_cluster_size_recurse=10) {
+.single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, min_cluster_size_recurse=10) {
 
     tumor_clade_name = unique(grps.adj[names(grps.adj) %in% colnames(tumor_expr_data)])
     message("unique tumor clade name: ", tumor_clade_name)
     if (length(tumor_clade_name) > 1) {
         stop("Error, found too many names in current clade")
     }
+
+    sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=31)
     
-    hc <- hclust(dist(t(tumor_expr_data)), method=hclust_method)
-
+    hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
+    
     rand_params_info = .parameterize_random_cluster_heights(tumor_expr_data, hclust_method)
-
+    
     h_obs = rand_params_info$h_obs
     h = h_obs$height
     max_height = rand_params_info$max_h
@@ -227,10 +129,10 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
             if (length(grp_idx) > min_cluster_size_recurse) {
                 ## recurse
-                grps.adj <- .single_tumor_subclustering_recursive_random_trees(tumor_expr_data=df,
-                                                                               hclust_method=hclust_method,
-                                                                               p_val=p_val,
-                                                                               grps.adj)
+                grps.adj <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data=df,
+                                                                                        hclust_method=hclust_method,
+                                                                                        p_val=p_val,
+                                                                                        grps.adj)
             } else {
                 message("paritioned cluster size too small to recurse further")
             }
@@ -247,9 +149,11 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
-    t_tumor.expr.data = t(expr_matrix) # cells as rows, genes as cols
-    d = dist(t_tumor.expr.data)
-
+    sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=31)
+    
+    
+    d = dist(t(sm_expr_data))
+    
     h_obs = hclust(d, method=hclust_method)
 
         
@@ -265,15 +169,19 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         
         df
     }
-    
+
+    t_tumor.expr.data = t(expr_matrix) # cells as rows, genes as cols
     h_rand_ex = NULL
     max_rand_heights = c()
     num_rand_iters=100
     for (i in 1:num_rand_iters) {
-        #message(sprintf("iter i:%d", i))
+        message(sprintf("iter i:%d", i))
         rand.tumor.expr.data = permute_col_vals(t_tumor.expr.data)
+
+        ## smooth it:
+        sm.rand.tumor.expr.data = t(apply(rand.tumor.expr.data, 1, caTools::runmean, k=31))
         
-        rand.dist = dist(rand.tumor.expr.data)
+        rand.dist = dist(sm.rand.tumor.expr.data)
         h_rand <- hclust(rand.dist, method=hclust_method)
         h_rand_ex = h_rand
         max_rand_heights = c(max_rand_heights, max(h_rand$height))
@@ -342,6 +250,28 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     h = quantile(params_list$ecdf, probs=1-p_val)
 
     return(h)
+}
+
+
+
+find_DE_stat_significance <- function(normal_matrix, tumor_matrix) {
+    
+    run_t_test<- function(idx) {
+        vals1 = unlist(normal_matrix[idx,,drop=T])
+        vals2 = unlist(tumor_matrix[idx,,drop=T])
+        
+        ## useful way of handling tests that may fail:
+        ## https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
+
+        res = try(t.test(vals1, vals2), silent=TRUE)
+        
+        if (is(res, "try-error")) return(NA) else return(res$p.value)
+        
+    }
+
+    pvals = sapply(seq(nrow(normal_matrix)), run_t_test)
+
+    return(pvals)
 }
 
 
