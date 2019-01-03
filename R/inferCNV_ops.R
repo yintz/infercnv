@@ -1,5 +1,6 @@
 
 
+
 #' Function doing the actual analysis before calling the plotting functions.
 #'
 #' @title run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts. 
@@ -460,35 +461,6 @@ run <- function(infercnv_obj,
     }
     
     
-    ####################################
-    ## Step: Subtract average reference
-    ## Since we're in log space, this now becomes log(fold_change)
-
-    step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
-
-    infercnv_obj_file = file.path(out_dir,
-                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
-
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-        infercnv_obj <- readRDS(infercnv_obj_file)
-    } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
-            
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
-
-        if (plot_steps) {
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_remove_average",step_count),
-                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
-                     write_expr_matrix=TRUE)
-        }
-    }
-    
     
     if (on_tumor_subclusters & tumor_subcluster_partition_method == 'random_trees') {
         
@@ -582,10 +554,10 @@ run <- function(infercnv_obj,
         }
     }
     
-        
-    ## Step 08:
-    # Remove Ends
 
+        
+    ## Step: Remove Ends
+    
     if (remove_genes_at_chr_ends == TRUE) {
 
         step_count = step_count + 1
@@ -615,38 +587,70 @@ run <- function(infercnv_obj,
             }
         }
     }
+
+
     
-    
-    #############################
-    # Step: invert log transform  (convert from log(FC) to FC)
+    ####################################
+    ## Step: Subtract average reference
+    ## Since we're in log space, this now becomes log(fold_change)
 
     step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: invert log2(FC) to FC\n", step_count))
+    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
 
-    infercnv_obj_file = file.path(out_dir, sprintf("%02d_invert_log_transform.infercnv_obj", step_count))
+    infercnv_obj_file = file.path(out_dir,
+                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
 
     if (reuse_subtracted && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
-    
-        infercnv_obj <- invert_log2(infercnv_obj)
-
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+            
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
-        ## This is a milestone step and results should always be examined here.
         if (plot_steps) {
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
-                     title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
-                     output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
+                     title=sprintf("%02d_remove_average",step_count),
+                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
                      write_expr_matrix=TRUE)
-            
         }
     }
-
+    
+    invert_logFC=T
+    if (invert_logFC) {
+        ## ###########################
+        ## Step: invert log transform  (convert from log(FC) to FC)
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: invert log2(FC) to FC\n", step_count))
+        
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_invert_log_transform.infercnv_obj", step_count))
+        
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            
+            infercnv_obj <- invert_log2(infercnv_obj)
+            
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+            
+            if (plot_steps) {
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
+                         output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
+        }
+    }
+    
     ## ###################################################################
     ## Done restoring infercnv_obj's from files now under reuse_subtracted
     ## ###################################################################

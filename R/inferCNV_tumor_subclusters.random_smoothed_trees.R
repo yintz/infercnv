@@ -1,15 +1,17 @@
 
 
-define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method) {
+define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, window_size=101) {
 
     ## the state of the infercnv object here should be:
     ## log transformed, normal subtracted.
     ## but *NOT* smoothed.
     ## TODO: -include check for smoothed property so will not run this if already smoothed.
         
-    infercnv_copy = infercnv_obj
+    infercnv_copy = infercnv_obj  ## don't want to change the original data .... just want to add subcluster info.
     
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
+
+    infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)  # important, remove normal from tumor before testing clusters.
     
     tumor_groups <- infercnv_obj@observation_grouped_cell_indices
     
@@ -24,7 +26,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
         tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
         
-        tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method)
+        tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size)
         
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
         res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
@@ -45,12 +47,12 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 
 
-.single_tumor_subclustering_smoothed_tree <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method) {
+.single_tumor_subclustering_smoothed_tree <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size) {
 
 
     tumor_subcluster_info = list()
 
-    sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=31)
+    sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=window_size)
     sm_tumor_expr_data = scale(sm_tumor_expr_data, center=T, scale=F)
     
     hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
@@ -59,7 +61,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     
     heights = hc$height
 
-    grps <- .partition_by_random_smoothed_trees(tumor_name, tumor_expr_data, hclust_method, p_val)
+    grps <- .partition_by_random_smoothed_trees(tumor_name, tumor_expr_data, hclust_method, p_val, window_size)
 
             
     cluster_ids = unique(grps)
@@ -83,12 +85,12 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 ## Random Trees
 
-.partition_by_random_smoothed_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val) {
+.partition_by_random_smoothed_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val, window_size) {
 
     grps <- rep(sprintf("%s.%d", tumor_name, 1), ncol(tumor_expr_data))
     names(grps) <- colnames(tumor_expr_data)
 
-    grps <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data, hclust_method, p_val, grps)
+    grps <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data, hclust_method, p_val, grps, window_size)
 
     
     return(grps)
@@ -96,7 +98,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 }
 
 
-.single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, min_cluster_size_recurse=10) {
+.single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, window_size, min_cluster_size_recurse=10) {
 
     tumor_clade_name = unique(grps.adj[names(grps.adj) %in% colnames(tumor_expr_data)])
     message("unique tumor clade name: ", tumor_clade_name)
@@ -104,7 +106,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         stop("Error, found too many names in current clade")
     }
 
-    rand_params_info = .parameterize_random_cluster_heights(tumor_expr_data, hclust_method)
+    rand_params_info = .parameterize_random_cluster_heights_smoothed_trees(tumor_expr_data, hclust_method, window_size)
     
     h_obs = rand_params_info$h_obs
     h = h_obs$height
@@ -150,7 +152,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
                 grps.adj <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data=df,
                                                                                         hclust_method=hclust_method,
                                                                                         p_val=p_val,
-                                                                                        grps.adj)
+                                                                                        grps.adj=grps.adj,
+                                                                                        window_size=window_size)
                 
                 
             }
@@ -163,11 +166,11 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 }
 
 
-.parameterize_random_cluster_heights <- function(expr_matrix, hclust_method, plot=T) {
+.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=T) {
     
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
-    sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=31)
+    sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=window_size)
     sm_expr_data = scale(sm_expr_data, center=T, scale=F)
     
     d = dist(t(sm_expr_data))
@@ -197,7 +200,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))
         
         ## smooth it and re-center:
-        sm.rand.tumor.expr.data = apply(rand.tumor.expr.data, 2, caTools::runmean, k=31)
+        sm.rand.tumor.expr.data = apply(rand.tumor.expr.data, 2, caTools::runmean, k=window_size)
         sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=T, scale=F)
         
         rand.dist = dist(t(sm.rand.tumor.expr.data))
