@@ -1,4 +1,5 @@
 
+
 #' Function doing the actual analysis before calling the plotting functions.
 #'
 #' @title run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts. 
@@ -138,10 +139,9 @@ run <- function(infercnv_obj,
                 ## tumor subclustering opts
                 on_tumor_subclusters=TRUE,
                 tumor_subcluster_pval=0.05,
-                tumor_subcluster_partition_method=c('qnorm', 'pheight', 'qgamma', 'shc'),
+                tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
-                
-                
+                                
                 ## noise settings
                 denoise=FALSE,
                 noise_filter=NA,
@@ -365,7 +365,7 @@ run <- function(infercnv_obj,
             }
         }
     }
-
+    
     if (! is.na(max_centered_threshold)) {
     
         ## #####################################################
@@ -373,7 +373,7 @@ run <- function(infercnv_obj,
         ## Cap values between threshold and -threshold, retaining earlier center
         
         step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: apply max centered expression threshold\n", step_count))
+        flog.info(sprintf("\n\n\tSTEP %02d: apply max centered expression threshold: %s\n", step_count, max_centered_threshold))
         
         infercnv_obj_file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count))
 
@@ -406,6 +406,116 @@ run <- function(infercnv_obj,
             }
         }
     }
+
+    scale_data=T
+    if (scale_data == TRUE) {
+
+        infercnv_obj <- scale_infercnv_expr(infercnv_obj)
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: scaling all expression data\n", step_count))
+
+        infercnv_obj_file=file.path(out_dir, sprintf("%02d_scaled.infercnv_obj", step_count))
+
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        ## Plot incremental steps.
+        if (plot_steps){
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_scaled",step_count),
+                     output_filename=sprintf("infercnv.%02d_scaled",step_count),
+                     write_expr_matrix=TRUE)
+            
+        }
+        
+    }
+    
+    
+    
+    ## #################################################
+    ## Step: Split the reference data into groups if requested
+    
+    if (!is.null(num_ref_groups)) {
+
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: splitting reference data into %d clusters\n", step_count, num_ref_groups))
+
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_split_%02d_refs.infercnv_obj", step_count, num_ref_groups))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            infercnv_obj <- split_references(infercnv_obj,
+                                             num_groups=num_ref_groups,
+                                             hclust_method=hclust_method)
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+        }
+        
+    }
+    
+    
+    ####################################
+    ## Step: Subtract average reference
+    ## Since we're in log space, this now becomes log(fold_change)
+
+    step_count = step_count + 1
+    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
+
+    infercnv_obj_file = file.path(out_dir,
+                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+            
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        if (plot_steps) {
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_remove_average",step_count),
+                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                     write_expr_matrix=TRUE)
+        }
+    }
+    
+    
+    if (on_tumor_subclusters & tumor_subcluster_partition_method == 'random_trees') {
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
+        
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.%s.infercnv_obj", step_count, tumor_subcluster_partition_method))
+        
+        infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
+                                                                                   p_val=tumor_subcluster_pval,
+                                                                                   hclust_method=hclust_method)
+        
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+        
+        if (plot_steps) {
+            
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
+                     output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
+                     write_expr_matrix=TRUE)
+            
+        }
+    }
+    
+
     
     ###########################################################################
     ## Step: For each cell, smooth the data along chromosome with gene windows
@@ -471,57 +581,6 @@ run <- function(infercnv_obj,
         }
     }
     
-    ## #################################################
-    ## Step: Split the reference data into groups if requested
-    
-    if (!is.null(num_ref_groups)) {
-
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: splitting reference data into %d clusters\n", step_count, num_ref_groups))
-
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_split_%02d_refs.infercnv_obj", step_count, num_ref_groups))
-
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
-            infercnv_obj <- split_references(infercnv_obj,
-                                             num_groups=num_ref_groups,
-                                             hclust_method=hclust_method)
-            saveRDS(infercnv_obj, file=infercnv_obj_file)
-        }
-        
-    }
-    
-    
-    ####################################
-    ## Step: Subtract average reference
-    ## Since we're in log space, this now becomes log(fold_change)
-
-    step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
-
-    infercnv_obj_file = file.path(out_dir,
-                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
-
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-        infercnv_obj <- readRDS(infercnv_obj_file)
-    } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
-            
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
-
-        if (plot_steps) {
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_remove_average",step_count),
-                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
-                     write_expr_matrix=TRUE)
-        }
-    }
         
     ## Step 08:
     # Remove Ends
@@ -591,12 +650,12 @@ run <- function(infercnv_obj,
     ## Done restoring infercnv_obj's from files now under reuse_subtracted
     ## ###################################################################
         
-    if (on_tumor_subclusters) {
+    if (on_tumor_subclusters & tumor_subcluster_partition_method != 'random_trees') {
         
         step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters\n", step_count))
+        flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
         
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.infercnv_obj", step_count))
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.%s.infercnv_obj", step_count, tumor_subcluster_partition_method))
         
         infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
                                                         p_val=tumor_subcluster_pval,
@@ -2098,5 +2157,19 @@ add_pseudocount <- function(infercnv_obj, pseudocount) {
         infercnv_obj@.hspike <- add_pseudocount(infercnv_obj@.hspike, pseudocount)
     }
         
+    return(infercnv_obj)
+}
+
+
+scale_infercnv_expr <- function(infercnv_obj) {
+
+    flog.info("-scaling expr data")
+    infercnv_obj@expr.data = t(scale(t(infercnv_obj@expr.data)))
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- scale_infercnv_expr(infercnv_obj@.hspike)
+    }
+    
     return(infercnv_obj)
 }

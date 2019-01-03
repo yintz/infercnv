@@ -2,6 +2,13 @@
 
 define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method) {
 
+    ## the state of the infercnv object here should be:
+    ## log transformed, normal subtracted.
+    ## but *NOT* smoothed.
+    ## TODO: -include check for smoothed property so will not run this if already smoothed.
+        
+    infercnv_copy = infercnv_obj
+    
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
     tumor_groups <- infercnv_obj@observation_grouped_cell_indices
@@ -24,9 +31,9 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
     }
     
-    infercnv_obj@tumor_subclusters <- res
+    infercnv_copy@tumor_subclusters <- res
     
-    return(infercnv_obj)
+    return(infercnv_copy)
 }
 
 
@@ -35,8 +42,11 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 
     tumor_subcluster_info = list()
+
+    sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=31)
+    sm_tumor_expr_data = scale(sm_tumor_expr_data, center=T, scale=F)
     
-    hc <- hclust(dist(t(tumor_expr_data)), method=hclust_method)
+    hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
     
     tumor_subcluster_info$hc = hc
     
@@ -87,10 +97,6 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         stop("Error, found too many names in current clade")
     }
 
-    sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=31)
-    
-    hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
-    
     rand_params_info = .parameterize_random_cluster_heights(tumor_expr_data, hclust_method)
     
     h_obs = rand_params_info$h_obs
@@ -150,16 +156,17 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
     sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=31)
-    
+    sm_expr_data = scale(sm_expr_data, center=T, scale=F)
     
     d = dist(t(sm_expr_data))
     
     h_obs = hclust(d, method=hclust_method)
-
+    
         
     # permute by chromosomes
     permute_col_vals <- function(df) {
-
+        ## cells as rows, features as columns
+        
         num_cells = nrow(df)
 
         for (i in seq(ncol(df) ) ) {
@@ -169,19 +176,19 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
         df
     }
-
-    t_tumor.expr.data = t(expr_matrix) # cells as rows, genes as cols
+    
     h_rand_ex = NULL
     max_rand_heights = c()
     num_rand_iters=100
     for (i in 1:num_rand_iters) {
         message(sprintf("iter i:%d", i))
-        rand.tumor.expr.data = permute_col_vals(t_tumor.expr.data)
-
-        ## smooth it:
-        sm.rand.tumor.expr.data = t(apply(rand.tumor.expr.data, 1, caTools::runmean, k=31))
+        rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))
         
-        rand.dist = dist(sm.rand.tumor.expr.data)
+        ## smooth it and re-center:
+        sm.rand.tumor.expr.data = apply(rand.tumor.expr.data, 2, caTools::runmean, k=31)
+        sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=T, scale=F)
+        
+        rand.dist = dist(t(sm.rand.tumor.expr.data))
         h_rand <- hclust(rand.dist, method=hclust_method)
         h_rand_ex = h_rand
         max_rand_heights = c(max_rand_heights, max(h_rand$height))

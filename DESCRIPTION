@@ -28,3 +28,5 @@ Collate:
     'noise_reduction.R'
     'inferCNV_HMM.R'
     'inferCNV_tumor_subclusters.R'
+	'inferCNV_tumor_subclusters.random_smoothed_trees.R'
+    
