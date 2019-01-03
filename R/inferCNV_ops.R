@@ -161,6 +161,7 @@ run <- function(infercnv_obj,
                 
                 anscombe_normalize=FALSE,
                 use_zscores=FALSE,
+                scale_data=FALSE,
                 remove_genes_at_chr_ends=FALSE,
 
                 mask_nonDE_genes=FALSE,
@@ -407,8 +408,8 @@ run <- function(infercnv_obj,
         }
     }
 
-    scale_data=T
-    if (scale_data == TRUE) {
+    
+    if (scale_data) {
 
         infercnv_obj <- scale_infercnv_expr(infercnv_obj)
         

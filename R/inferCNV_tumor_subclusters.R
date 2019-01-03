@@ -32,6 +32,13 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     }
          
     infercnv_obj@tumor_subclusters <- res
+
+
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- define_signif_tumor_subclusters(infercnv_obj@.hspike, p_val, hclust_method, partition_method, restrict_to_DE_genes)
+    }
+        
     
     return(infercnv_obj)
 }

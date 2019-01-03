@@ -33,6 +33,13 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     
     infercnv_copy@tumor_subclusters <- res
     
+    if (! is.null(infercnv_copy@.hspike)) {
+        flog.info("-mirroring for hspike")
+
+        infercnv_copy@.hspike <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_copy@.hspike, p_val, hclust_method)
+    }
+    
+    
     return(infercnv_copy)
 }
 
@@ -122,25 +129,30 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         uniqgrps = unique(grps)
         
         message("unique grps: ", paste0(uniqgrps, sep=",", collapse=","))
-        for (grp in uniqgrps) {
-            grp_idx = which(grps==grp)
-            
-            message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
-            df = tumor_expr_data[,grp_idx,drop=F]
-            ## define subset.
-            subset_cell_names = colnames(df)
-            
-            subset_clade_name = sprintf("%s.%d", tumor_clade_name, grp)
-            grps.adj[names(grps.adj) %in% subset_cell_names] <- subset_clade_name
 
-            if (length(grp_idx) > min_cluster_size_recurse) {
+        if (min(table(grps)) <  min_cluster_size_recurse) {
+            message("partitions contains a cluster size too small to recurse further")
+        } else {
+            
+            for (grp in uniqgrps) {
+                grp_idx = which(grps==grp)
+                
+                message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
+                df = tumor_expr_data[,grp_idx,drop=F]
+                ## define subset.
+                subset_cell_names = colnames(df)
+                
+                subset_clade_name = sprintf("%s.%d", tumor_clade_name, grp)
+                grps.adj[names(grps.adj) %in% subset_cell_names] <- subset_clade_name
+                
+                
                 ## recurse
                 grps.adj <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data=df,
                                                                                         hclust_method=hclust_method,
                                                                                         p_val=p_val,
                                                                                         grps.adj)
-            } else {
-                message("paritioned cluster size too small to recurse further")
+                
+                
             }
         }
     } else {
@@ -181,7 +193,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     max_rand_heights = c()
     num_rand_iters=100
     for (i in 1:num_rand_iters) {
-        message(sprintf("iter i:%d", i))
+        #message(sprintf("iter i:%d", i))
         rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))
         
         ## smooth it and re-center:
