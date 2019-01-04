@@ -89,7 +89,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
     for (cnv_level in names(gene_expr_by_cnv) ) {
         expr_vals = gene_expr_by_cnv[[ cnv_level ]]
         nrounds = 100
-        
+
         sds = c()
         for (ncells in seq_len(100)) {
             means = c()
