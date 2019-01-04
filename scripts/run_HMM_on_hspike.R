@@ -23,7 +23,7 @@ hspike.hmm = infercnv:::predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj=hs
                                                                  hclust_method='ward.D2'
                                                                  )
 
-plot_cnv(hspike.hmm, x.center=3, x.range=c(1,5), output_filename="hspike.hmm")
+plot_cnv(hspike.hmm, x.center=3, x.range=c(0,6), output_filename="hspike.hmm")
 
 saveRDS(hspike.hmm, file=sprintf("%s-HMM.obj", infercnv_obj_file))
 
