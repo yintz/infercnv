@@ -200,11 +200,11 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
             
             gene_expr_vals = as.vector(expr.data[chr_gene_idx,cell_idx])
             
-            hmm <- HiddenMarkov::dthmm(gene_expr_vals,
-                                       HMM_info[['state_transitions']],
-                                       HMM_info[['delta']],
-                                       "norm",
-                                       HMM_info[['state_emission_params']])
+            hmm <- HiddenMarkov::dthmm(x=gene_expr_vals,
+                                       Pi=HMM_info[['state_transitions']],
+                                       delta=HMM_info[['delta']],
+                                       distn="norm",
+                                       pm=HMM_info[['state_emission_params']])
             
             hmm_trace <- HiddenMarkov::Viterbi(hmm)
             
