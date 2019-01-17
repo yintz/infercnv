@@ -199,7 +199,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
             if (use_spline) {
                 dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
             } else {
-                dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)    
+                dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
             }
             if (runif(1) <= dropout_prob) {
                 ## a drop-out
@@ -510,14 +510,10 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     flog.info("Adding h-spike")
 
-    library(splatter)
-
     normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
 
-    splatter.params = splatter::splatEstimate(infercnv_obj@count.data[,normal_cells_idx])
-    splatter.params = setParams(splatter.params, dropout.type='experiment')
-
-    splatter.params
+    params = .estimateSingleCellParamsSplatterScrape(counts=infercnv_obj@count.data[,normal_cells_idx])
+            
         
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
     
@@ -541,9 +537,13 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     names(gene_means) = rownames(gene_order)
     
     ## simulate normals:
-    splatter.params = setParams(splatter.params, "batchCells"=c(num_cells), "nGenes"=num_genes)
-    sim.data = splatter::splatSimulate(splatter.params, method='single', use.genes.means=gene_means)
-    sim_normal_matrix = counts(sim.data)
+    params[["nGenes"]] <- num_genes
+    params[["nCells"]] <- num_cells
+    
+    sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
+
+    sim_normal_matrix = counts(sim.scExpObj)
+    
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
     rownames(sim_normal_matrix) = rownames(gene_order)
     
@@ -558,8 +558,11 @@ scale_cnv_by_spike <- function(infercnv_obj) {
         }
     }
 
-    sim.spiked_data = splatter::splatSimulate(splatter.params, method='single', use.genes.means=hspike_gene_means)
-    sim_spiked_cnv_matrix = counts(sim.spiked_data)
+    
+    sim_spiked_cnv.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params,
+                                                                            use.genes.means=hspike_gene_means) 
+    sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
+    
     colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
     rownames(sim_spiked_cnv_matrix) = rownames(gene_order)
     

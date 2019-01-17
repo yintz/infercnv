@@ -14,12 +14,16 @@
 #################################################################################################################
 
 
-.estimateSingleCellParamsSplatterScrape <- function(counts, include.dropout=TRUE) {
+.estimateSingleCellParamsSplatterScrape <- function(counts,
+                                                    include.dropout=TRUE,
+                                                    use.spline.dropout.fit=TRUE
+                                                    ) {
 
     # scraped from splatter
     params = list()
 
     params[['include.dropout']] <- include.dropout
+    params[['use.spline.dropout.fit']] <- use.spline.dropout.fit
     
     ## Normalise for library size and remove all zero genes
     lib.sizes <- colSums(counts)
@@ -172,14 +176,25 @@
 
     df <- data.frame(x, y)
 
-    fit <- nls(y ~ .logistic(x, x0 = x0, k = k), data = df,
-               start = list(x0 = 0, k = -1))
+    colnames(df) <- c('log_means', 'pct_zeros')
+    write.table(df, file="dropout.dat", quote=F, sep="\t")
+    plot(df$log_means, df$pct_zeros)
 
+    x_approx_mid <- median(x[which(y>0.2 & y < 0.8)]) # bhaas-added to avoid error: Error in nls(y ~ .logistic(x, x0 = x0, k = k), data = df, start = list(x0 = 0,  : singular gradient
+    
+    fit <- nls(y ~ .logistic(x, x0 = x0, k = k), data = df,
+               start = list(x0 = x_approx_mid, k = -1))
+    
     mid <- summary(fit)$coefficients["x0", "Estimate"]
     shape <- summary(fit)$coefficients["k", "Estimate"]
 
     params[['dropout.mid']] <- mid
     params[['dropout.shape']] <- shape
+
+
+    ## also try fitting a spline
+    params[['dropout.spline.fit']] <- smooth.spline(x,y)
+
     
     return(params)
 }
@@ -195,8 +210,10 @@
 ## Beginning of Splat Simulation routines
 #########################################
 
-.simulateSingleCellCountsMatrixSplatterScrape <- function(params, use.genes.means=NULL) {
-
+.simulateSingleCellCountsMatrixSplatterScrape <- function(params,
+                                                          use.genes.means=NULL
+                                                          ) {
+    
     if ( (! is.null(use.genes.means)) && length(use.genes.means) != params[['nGenes']]) {
         stop("Error, use.genes.means provided but not matching the params nGenes count")
     }
