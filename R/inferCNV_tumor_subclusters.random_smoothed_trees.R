@@ -131,33 +131,33 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         uniqgrps = unique(grps)
         
         message("unique grps: ", paste0(uniqgrps, sep=",", collapse=","))
-
-        if (min(table(grps)) <  min_cluster_size_recurse) {
-            message("partitions contains a cluster size too small to recurse further")
-        } else {
+        
+        for (grp in uniqgrps) {
+            grp_idx = which(grps==grp)
             
-            for (grp in uniqgrps) {
-                grp_idx = which(grps==grp)
-                
-                message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
-                df = tumor_expr_data[,grp_idx,drop=F]
-                ## define subset.
-                subset_cell_names = colnames(df)
-                
-                subset_clade_name = sprintf("%s.%d", tumor_clade_name, grp)
-                grps.adj[names(grps.adj) %in% subset_cell_names] <- subset_clade_name
-                
-                
+            message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
+            df = tumor_expr_data[,grp_idx,drop=F]
+            ## define subset.
+            subset_cell_names = colnames(df)
+            
+            subset_clade_name = sprintf("%s.%d", tumor_clade_name, grp)
+            grps.adj[names(grps.adj) %in% subset_cell_names] <- subset_clade_name
+            
+
+            if (length(grp_idx) >= min_cluster_size_recurse) {
                 ## recurse
                 grps.adj <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data=df,
                                                                                         hclust_method=hclust_method,
                                                                                         p_val=p_val,
                                                                                         grps.adj=grps.adj,
-                                                                                        window_size=window_size)
-                
-                
+                                                                                        window_size=window_size,
+                                                                                        min_cluster_size_recurse)
+            } else {
+                message(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
             }
+            
         }
+        
     } else {
         message("No cluster pruning: ", tumor_clade_name)
     }

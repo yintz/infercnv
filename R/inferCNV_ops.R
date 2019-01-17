@@ -885,7 +885,7 @@ run <- function(infercnv_obj,
         final_center_val = 1
     }
     
-    flog.info("## Making the final infercnv heatmap ##")
+    flog.info("\n\n## Making the final infercnv heatmap ##")
     plot_cnv(infercnv_obj,
              k_obs_groups=k_obs_groups,
              cluster_by_groups=cluster_by_groups,
