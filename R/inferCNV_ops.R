@@ -468,23 +468,28 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
         
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.%s.infercnv_obj", step_count, tumor_subcluster_partition_method))
-        
-        infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
-                                                                                   p_val=tumor_subcluster_pval,
-                                                                                   hclust_method=hclust_method)
-        
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
-        
-        if (plot_steps) {
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
+                                                                                       p_val=tumor_subcluster_pval,
+                                                                                       hclust_method=hclust_method)
             
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
-                     output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
-                     write_expr_matrix=TRUE)
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
             
+            if (plot_steps) {
+                
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
+                         output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
+                         write_expr_matrix=TRUE)
+                
+            }
         }
     }
     
