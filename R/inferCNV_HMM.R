@@ -150,8 +150,8 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
                                byrow=T,
                                nrow=6)
 
-    delta=c(t,      t,     t,    1-5*t,    t,    t) # more likely normal,
-
+    delta=c(t,      t,     1-5*t,    t,    t,   t) # more likely normal,
+    
     state_emission_params = list(mean=c(cnv_mean_sd[["cnv:0.01"]]$mean,
                                         cnv_mean_sd[["cnv:0.5"]]$mean,
                                         cnv_mean_sd[["cnv:1"]]$mean,
