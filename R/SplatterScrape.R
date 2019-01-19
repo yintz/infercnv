@@ -15,10 +15,10 @@
 
 
 .estimateSingleCellParamsSplatterScrape <- function(counts,
-                                                    include.dropout=TRUE,
-                                                    use.spline.dropout.fit=TRUE
+                                                    include.dropout=FALSE,
+                                                    use.spline.dropout.fit=FALSE # logistic is default.
                                                     ) {
-
+    
     # scraped from splatter
     params = list()
 
@@ -43,6 +43,8 @@
     
     params[['nGenes']] <- nrow(counts)
     params[['nCells']] <- ncol(counts)
+
+    print(params)
     
     return(params)
 }
@@ -188,14 +190,20 @@
     mid <- summary(fit)$coefficients["x0", "Estimate"]
     shape <- summary(fit)$coefficients["k", "Estimate"]
 
+    points(x, predict(fit, newdata=x), col='green')
+    
     params[['dropout.mid']] <- mid
     params[['dropout.shape']] <- shape
 
 
     ## also try fitting a spline
-    params[['dropout.spline.fit']] <- smooth.spline(x,y)
+    spline.fit <- smooth.spline(x,y)
+    params[['dropout.spline.fit']] <- spline.fit
+    spline.pts = predict(spline.fit, newdata=x)
+    points(spline.pts$x, spline.pts$y, col='magenta')
+    legend('topright', c('logistic', 'spline'), col=c('green', 'magenta'), pch=1)
 
-    
+        
     return(params)
 }
 
@@ -432,18 +440,36 @@
     nBatches <- params[["nBatches"]]
     nGroups <- params[["nGroups"]]
     cell.means <- assays(sim)$CellMeans
-
+    dropout.spline.fit <- params[['dropout.spline.fit']]
+    
     if (include.dropout) {
-        
-        dropout.mid <- rep(dropout.mid, nCells)
-        dropout.shape <- rep(dropout.shape, nCells)
-        
-        ## Generate probabilites based on expression
-        drop.prob <- sapply(seq_len(nCells), function(idx) {
-            eta <- log(cell.means[, idx])
-            return(.logistic(eta, x0 = dropout.mid[idx], k = dropout.shape[idx]))
-        })
 
+        if ( params[['use.spline.dropout.fit']] ) {
+            ## Generate probabilites based on expression
+            drop.prob <- sapply(seq_len(nCells), function(idx) {
+                eta <- log(cell.means[, idx])
+                pvals <- predict(dropout.spline.fit, eta)$y
+                pvals[is.na(pvals)] <- 0
+                pvals[pvals<0] <- 0
+                pvals[pvals>1] <- 1
+                return(pvals)
+            })
+            
+            
+        } else {
+            # using logistic 
+            dropout.mid <- rep(dropout.mid, nCells)
+            dropout.shape <- rep(dropout.shape, nCells)
+            
+            ## Generate probabilites based on expression
+            drop.prob <- sapply(seq_len(nCells), function(idx) {
+                eta <- log(cell.means[, idx])
+                return(.logistic(eta, x0 = dropout.mid[idx], k = dropout.shape[idx]))
+            })
+        }
+
+        print(drop.prob)
+        
         # Decide which counts to keep
         keep <- matrix(rbinom(nCells * nGenes, 1, 1 - drop.prob),
                        nrow = nGenes, ncol = nCells)
