@@ -165,9 +165,9 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
                                       cnv_mean_sd[["cnv:1.5"]]$sd,
                                       cnv_mean_sd[["cnv:2"]]$sd,
                                       cnv_mean_sd[["cnv:3"]]$sd) )
-
-
-
+    
+    
+    
     HMM_info = list(state_transitions=state_transitions,
                     delta=delta,
                     state_emission_params=state_emission_params)
@@ -175,7 +175,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
     return(HMM_info)
 }
 
-    
+
 
 predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike), t=1e-6) {
     
@@ -206,7 +206,8 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
                                        distn="norm",
                                        pm=HMM_info[['state_emission_params']])
             
-            hmm_trace <- HiddenMarkov::Viterbi(hmm)
+            ## hmm_trace <- HiddenMarkov::Viterbi(hmm)
+            hmm_trace <- Viterbi.dthmm.adj(hmm)
             
             hmm.data[chr_gene_idx,cell_idx] <<- hmm_trace
         })
@@ -262,7 +263,8 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                        "norm",
                                        state_emission_params)
             
-            hmm_trace <- HiddenMarkov::Viterbi(hmm)
+            ## hmm_trace <- HiddenMarkov::Viterbi(hmm)
+            hmm_trace <- Viterbi.dthmm.adj(hmm)
             
             hmm.data[chr_gene_idx,tumor_subcluster_cells_idx] <<- hmm_trace
         })
@@ -569,3 +571,68 @@ generate_cnv_region_reports <- function(infercnv_obj,
 
 
     
+
+
+## Adapted from the HiddenMarkov package:
+Viterbi.dthmm.adj <- function (object, ...){
+    x <- object$x
+    dfunc <- HiddenMarkov:::makedensity(object$distn)
+    n <- length(x)
+    m <- nrow(object$Pi) # transition matrix
+    nu <- matrix(NA, nrow = n, ncol = m)  # scoring matrix
+    y <- rep(NA, n) # final trace
+    pseudocount = 1e-20
+    
+    emissions <- matrix(NA, nrow = n, ncol = m) 
+    
+    ## init first row
+
+    emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
+    emission <- 1 / (-1 * emission)
+    emission <- emission / sum(emission)
+    
+    emissions[1,] <- log(emission)
+    
+    nu[1, ] <- log(object$delta) + # start probabilities
+        emissions[1,]
+    
+    
+    #nu[1, ] <- log(object$delta) + # start probabilities
+    #    dfunc(x=x[1], # mean expr val for gene_1
+    #          object$pm, # parameters (mean, sd) for norm dist
+    #          HiddenMarkov:::getj(object$pn, 1), # NULL value
+    #          log=TRUE) # returns p-values as log(p)
+    
+    logPi <- log(object$Pi) # convert transition matrix to log(p)
+    
+    for (i in 2:n) {
+        
+        matrixnu <- matrix(nu[i - 1, ], nrow = m, ncol = m)
+        
+        #nu[i, ] <- apply(matrixnu + logPi, 2, max) +
+        #              dfunc(x=x[i], object$pm, getj(object$pn, i),
+        #                    log=TRUE)
+
+        
+        emission <- pnorm(abs(x[i]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
+        emission <- 1 / (-1 * emission)
+        emission <- emission / sum(emission)
+        
+        emissions[i, ] <- log(emission)
+        
+        nu[i, ] <- apply(matrixnu + logPi, 1, max) + emissions[i, ] 
+                
+    }
+    if (any(nu[n, ] == -Inf)) 
+        stop("Problems With Underflow")
+
+
+    ## traceback
+    y[n] <- which.max(nu[n, ])
+
+    for (i in seq(n - 1, 1, -1))
+        y[i] <- which.max(logPi[, y[i + 1]] + nu[i, ])
+
+    return(y)
+}
+

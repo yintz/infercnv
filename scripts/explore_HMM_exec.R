@@ -60,11 +60,14 @@ Viterbi.dthmm <- function (object, ...){
     emissions <- matrix(NA, nrow = n, ncol = m) 
     
     ## init first row
+    emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
+    emission <- 1 / (-1 * emission)
+    emission <- emission / sum(emission)
+    
+    emissions[1,] <- log(emission)
+    
     nu[1, ] <- log(object$delta) + # start probabilities
-        dfunc(x=x[1], # mean expr val for gene_1
-              object$pm, # parameters (mean, sd) for norm dist
-              getj(object$pn, 1), # NULL value
-              log=TRUE) # returns p-values as log(p)
+        emissions[1,]
     
     logPi <- log(object$Pi) # convert transition matrix to log(p)
     
