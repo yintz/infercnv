@@ -369,47 +369,6 @@ run <- function(infercnv_obj,
         }
     }
     
-    if (! is.na(max_centered_threshold)) {
-    
-        ## #####################################################
-        ## Apply maximum centered expression thresholds to data
-        ## Cap values between threshold and -threshold, retaining earlier center
-        
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: apply max centered expression threshold: %s\n", step_count, max_centered_threshold))
-        
-        infercnv_obj_file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count))
-
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
-        
-            threshold = max_centered_threshold
-            if (is.charachter(max_centered_threshold) && max_centered_threshold == "auto") {
-                threshold = mean(abs(get_average_bounds(infercnv_obj)))
-            }
-            
-            infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
-            
-            saveRDS(infercnv_obj, file=infercnv_obj_file) 
-            
-            
-            ## Plot incremental steps.
-            if (plot_steps){
-                
-                plot_cnv(infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
-                         output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
-                         write_expr_matrix=TRUE)
-                
-            }
-        }
-    }
-
     
     if (scale_data) {
 
@@ -495,6 +454,87 @@ run <- function(infercnv_obj,
     }
     
 
+
+    
+    ####################################
+    ## Step: Subtract average reference
+    ## Since we're in log space, this now becomes log(fold_change)
+
+    step_count = step_count + 1
+    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
+
+    infercnv_obj_file = file.path(out_dir,
+                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+            
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        if (plot_steps) {
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_remove_average",step_count),
+                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                     write_expr_matrix=TRUE)
+        }
+    }
+
+
+    
+    max_centered_threshold <- 3
+    if (! is.na(max_centered_threshold)) {
+    
+        ## #####################################################
+        ## Apply maximum centered expression thresholds to data
+        ## Cap values between threshold and -threshold, retaining earlier center
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: apply max centered expression threshold: %s\n", step_count, max_centered_threshold))
+        
+        infercnv_obj_file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold.infercnv_obj", step_count))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+        
+            threshold = max_centered_threshold
+            if (is.character(max_centered_threshold) && max_centered_threshold == "auto") {
+                threshold = mean(abs(get_average_bounds(infercnv_obj)))
+                flog.info(sprintf("Setting max centered threshoolds via auto to: +- %g", threshold))
+            }
+            
+            infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
+            
+            saveRDS(infercnv_obj, file=infercnv_obj_file) 
+            
+            
+            ## Plot incremental steps.
+            if (plot_steps){
+                
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
+                         output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
+        }
+    }
+
+
+    
+
+
+    
     
     ###########################################################################
     ## Step: For each cell, smooth the data along chromosome with gene windows
@@ -561,6 +601,36 @@ run <- function(infercnv_obj,
     }
     
 
+
+    ## ##################################
+    ## Step: Subtract average reference (again! small adjustment after smoothing/centering)
+    ## Since we're in log space, this now becomes log(fold_change)
+
+    step_count = step_count + 1
+    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
+
+    infercnv_obj_file = file.path(out_dir,
+                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+            
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        if (plot_steps) {
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_remove_average",step_count),
+                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                     write_expr_matrix=TRUE)
+        }
+    }
+
         
     ## Step: Remove Ends
     
@@ -594,36 +664,6 @@ run <- function(infercnv_obj,
         }
     }
 
-
-    
-    ####################################
-    ## Step: Subtract average reference
-    ## Since we're in log space, this now becomes log(fold_change)
-
-    step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
-
-    infercnv_obj_file = file.path(out_dir,
-                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
-
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-        infercnv_obj <- readRDS(infercnv_obj_file)
-    } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
-            
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
-
-        if (plot_steps) {
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_remove_average",step_count),
-                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
-                     write_expr_matrix=TRUE)
-        }
-    }
     
     invert_logFC=T
     if (invert_logFC) {

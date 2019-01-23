@@ -97,8 +97,8 @@ local.Viterbi.dthmm <- function (object, ...){
         
         nu[i, ] <- apply(matrixnu + logPi, 2, max) + emissions[i, ] 
 
-        print(matrixnu)
-        print(logPi)
+        #print(matrixnu)
+        #print(logPi)
     }
     if (any(nu[n, ] == -Inf)) 
         stop("Problems With Underflow")
@@ -118,7 +118,7 @@ local.Viterbi.dthmm <- function (object, ...){
 
 ##########################################
 
-chrs = c("chr19")
+chrs = c("chr13")
 for (chr in chrs) {
     print(chr)
     chr_gene_idx = which(gene_order$chr == chr)
@@ -129,6 +129,7 @@ for (chr in chrs) {
         tumor_subcluster_cells_idx <- tumor_subclusters[[tumor_subcluster_name]]
                 
         gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F])
+        ##gene_expr_vals = apply(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F], 1, median)
         
         num_cells = length(tumor_subcluster_cells_idx)
         

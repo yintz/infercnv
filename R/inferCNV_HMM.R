@@ -229,6 +229,12 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     
     
     flog.info(sprintf("predict_CNV_via_HMM_on_tumor_subclusters(p_val=%g)", p_val))
+
+    if (is.null(infercnv_obj@tumor_subclusters)) {
+        flog.warn("No subclusters defined, so instead running on whole samples")
+        return(predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, cnv_mean_sd, cnv_level_to_mean_sd_fit, t));
+    }
+    
     
     HMM_info  <- .get_HMM(cnv_mean_sd, t)
     
