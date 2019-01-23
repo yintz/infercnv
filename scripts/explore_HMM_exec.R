@@ -118,7 +118,7 @@ local.Viterbi.dthmm <- function (object, ...){
 
 ##########################################
 
-chrs = c("chr13")
+chrs = c("chr4")
 for (chr in chrs) {
     print(chr)
     chr_gene_idx = which(gene_order$chr == chr)

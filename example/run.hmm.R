@@ -19,6 +19,6 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              cluster_by_groups=T, 
                              plot_steps=T,
                              HMM=T,
-                             HMM_mode='samples'
+                             HMM_mode='subclusters' #'samples'
                              )
 
