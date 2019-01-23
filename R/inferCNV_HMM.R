@@ -279,6 +279,63 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 }
 
 
+
+predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
+                                                        cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike),
+                                                        cnv_level_to_mean_sd_fit=get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike),
+                                                        t=1e-6
+                                                        ) {
+    
+    
+    flog.info("predict_CNV_via_HMM_on_whole_tumor_samples")
+    
+    HMM_info  <- .get_HMM(cnv_mean_sd, t)
+    
+    chrs = unique(infercnv_obj@gene_order$chr)
+    
+    expr.data = infercnv_obj@expr.data
+    gene_order = infercnv_obj@gene_order
+    hmm.data = expr.data
+    hmm.data[,] = -1 #init to invalid state
+
+    ## add the normals, so they get predictions too:
+    tumor_samples <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+    
+    ## run through each chr separately
+    lapply(chrs, function(chr) {
+        chr_gene_idx = which(gene_order$chr == chr)
+        
+        ## run through each cell for this chromosome:
+        lapply(tumor_samples, function(tumor_sample_cells_idx) {
+            
+            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_sample_cells_idx,drop=F])
+            
+            num_cells = length(tumor_sample_cells_idx)
+
+            state_emission_params <- .get_state_emission_params(num_cells, cnv_mean_sd, cnv_level_to_mean_sd_fit)
+                        
+            hmm <- HiddenMarkov::dthmm(gene_expr_vals,
+                                       HMM_info[['state_transitions']],
+                                       HMM_info[['delta']],
+                                       "norm",
+                                       state_emission_params)
+            
+            ## hmm_trace <- HiddenMarkov::Viterbi(hmm)
+            hmm_trace <- Viterbi.dthmm.adj(hmm)
+            
+            hmm.data[chr_gene_idx,tumor_sample_cells_idx] <<- hmm_trace
+        })
+    })
+    
+    infercnv_obj@expr.data <- hmm.data
+
+    flog.info("-done predicting CNV based on initial tumor subclusters")
+        
+    return(infercnv_obj)
+    
+}
+
+
 .get_state_emission_params <- function(num_cells, cnv_mean_sd, cnv_level_to_mean_sd_fit, plot=FALSE) {
         
     for (cnv_level in names(cnv_mean_sd)) {
@@ -367,6 +424,11 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
     
     cell_groups = NULL
 
+    if (is.null(infercnv_obj@tumor_subclusters)) {
+        flog.warn("get_predicted_CNV_regions() - no subclusters defined, resetting reporting mode to consensus")
+        by <- "consensus"
+    }
+    
     if (by == "consensus") {
         cell_groups = infercnv_obj@observation_grouped_cell_indices
     } else if (by == "subcluster") {
@@ -414,10 +476,6 @@ generate_cnv_region_reports <- function(infercnv_obj,
                                         out_dir,
                                         by=c("consensus", "subcluster", "cell") ) {
 
-    ## remove spike if included:
-    if ('SPIKE' %in% names(infercnv_obj@observation_grouped_cell_indices) ) {
-        infercnv_obj <- infercnv::remove_spike(infercnv_obj)
-    }
     
     cnv_regions <- get_predicted_CNV_regions(infercnv_obj, by)
 
@@ -620,7 +678,7 @@ Viterbi.dthmm.adj <- function (object, ...){
         
         emissions[i, ] <- log(emission)
         
-        nu[i, ] <- apply(matrixnu + logPi, 1, max) + emissions[i, ] 
+        nu[i, ] <- apply(matrixnu + logPi, 2, max) + emissions[i, ] 
                 
     }
     if (any(nu[n, ] == -Inf)) 

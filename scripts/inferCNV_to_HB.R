@@ -17,7 +17,9 @@ infercnv_obj_file = args$infercnv_obj
 infercnv_obj = readRDS(infercnv_obj_file)
 
 require(biomaRt) ## for gene coordinates
-mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
+                    dataset = 'hsapiens_gene_ensembl',
+                    host = "jul2015.archive.ensembl.org")
 
 do_scale=TRUE
 if (args$no_scale_data) {
@@ -52,7 +54,7 @@ run_hbadger <- function(tumor_group_name, normal_matrix, tumor_matrix) {
 
     if (length(regions.genes) == 0) {
         message("No cnv regions identified")
-        return
+        return()
     }
     
     ## Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell. We can cluster cells on these posterior probabilities and visualize them as a heatmap.
@@ -61,7 +63,9 @@ run_hbadger <- function(tumor_group_name, normal_matrix, tumor_matrix) {
     
     ## look at final results
     results <- hb$summarizeResults(geneBased=TRUE, alleleBased=FALSE)
-    print(head(results[,1:5]))
+    print(head(results[,1:7]))
+    write.table(results[,1:7], sprintf("%s-hb.cnvs.tsv", tumor_group_name), quote=F, sep="\t")
+    
     
     ## visualize as heatmap 
     trees <- hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, details=TRUE, margins=c(25,15))
@@ -84,15 +88,16 @@ run_hbadger <- function(tumor_group_name, normal_matrix, tumor_matrix) {
 
 
 
-normal_cell_matrix = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices), drop=F]
+normal_matrix = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices), drop=F]
 
 tumor_groups = infercnv_obj@observation_grouped_cell_indices
 
 tumor_group_names = names(tumor_groups)
+tumor_group_name = tumor_group_names[1] # for debugging
 for (tumor_group_name in tumor_group_names) {
     tumor_grp_idx = tumor_groups[[tumor_group_name]]
 
-    tumor_expr_matrix = infercnv_obj@expr.data[,tumor_grp_idx]
+    tumor_matrix = infercnv_obj@expr.data[,tumor_grp_idx]
 
-    run_hbadger(tumor_group_name, normal_cell_matrix, tumor_expr_matrix)
+    run_hbadger(tumor_group_name, normal_matrix, tumor_matrix)
 }

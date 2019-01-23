@@ -16,13 +16,13 @@ infercnv_obj = readRDS(infercnv_obj_file)
 
 cnv_mean_sd=infercnv:::get_spike_dists(infercnv_obj@.hspike)
 cnv_level_to_mean_sd_fit=infercnv:::get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)
-t=1/6
+transition_out_p=1e-6
 p_val=0.05
 hclust_method='ward.D2'
 
 
 flog.info(sprintf("predict_CNV_via_HMM_on_tumor_subclusters(p_val=%g)", p_val))
-HMM_info  <- infercnv:::.get_HMM(cnv_mean_sd, t)
+HMM_info  <- infercnv:::.get_HMM(cnv_mean_sd, transition_out_p)
 chrs = unique(infercnv_obj@gene_order$chr)
 expr.data = infercnv_obj@expr.data
 gene_order = infercnv_obj@gene_order
@@ -48,7 +48,7 @@ getj <- function (x, j)  {
 }
 
 
-Viterbi.dthmm <- function (object, ...){
+local.Viterbi.dthmm <- function (object, ...){
     x <- object$x
     dfunc <- HiddenMarkov:::makedensity(object$distn)
     n <- length(x)
@@ -95,12 +95,16 @@ Viterbi.dthmm <- function (object, ...){
         
         emissions[i, ] <- log(emission)
         
-        nu[i, ] <- apply(matrixnu + logPi, 1, max) + emissions[i, ] 
-                
+        nu[i, ] <- apply(matrixnu + logPi, 2, max) + emissions[i, ] 
+
+        print(matrixnu)
+        print(logPi)
     }
     if (any(nu[n, ] == -Inf)) 
         stop("Problems With Underflow")
 
+    write.table(nu, file='nu.txt', quote=F, sep="\t")
+    write.table(emissions, file='emissions.txt', quote=F, sep="\t")
 
     ## traceback
     y[n] <- which.max(nu[n, ])
@@ -114,7 +118,7 @@ Viterbi.dthmm <- function (object, ...){
 
 ##########################################
 
-
+chrs = c("chr19")
 for (chr in chrs) {
     print(chr)
     chr_gene_idx = which(gene_order$chr == chr)
@@ -129,6 +133,8 @@ for (chr in chrs) {
         num_cells = length(tumor_subcluster_cells_idx)
         
         state_emission_params <- infercnv:::.get_state_emission_params(num_cells, cnv_mean_sd, cnv_level_to_mean_sd_fit)
+        print(state_emission_params)
+        print(gene_expr_vals)
         
         hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                    HMM_info[['state_transitions']],
@@ -136,11 +142,13 @@ for (chr in chrs) {
                                    "norm",
                                    state_emission_params)
 
-        hmm_trace <- Viterbi.dthmm(hmm)
+        hmm_trace <- local.Viterbi.dthmm(hmm)
         
         print(hmm_trace)
         
         hmm.data[chr_gene_idx,tumor_subcluster_cells_idx] <- hmm_trace
+
+        break
     }
 }
 

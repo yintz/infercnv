@@ -47,7 +47,7 @@
 #'
 #' @param HMM  when set to True, runs HMM to predict CNV level (default: FALSE)
 #' 
-#' @param on_tumor_subclusters First break tumor into subclusters via hclust for DE and median filtering if used instead of the whole tumor sample. (default: TRUE)
+#' @param HMM_mode options(samples|cells|subclusters), default: subclusters
 #'
 #' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
 #'
@@ -138,7 +138,7 @@ run <- function(infercnv_obj,
                 ## HMM and tumor subclustering options
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
-                on_tumor_subclusters=TRUE,
+                HMM_mode=c('subclusters', 'samples', 'cells'),
                 tumor_subcluster_pval=0.05,
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
@@ -188,6 +188,7 @@ run <- function(infercnv_obj,
 
 
     HMM_report_by = match.arg(HMM_report_by)
+    HMM_mode = match.arg(HMM_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
     
     
@@ -462,7 +463,7 @@ run <- function(infercnv_obj,
     
     
     
-    if (on_tumor_subclusters & tumor_subcluster_partition_method == 'random_trees') {
+    if (HMM_mode == 'subclusters' & tumor_subcluster_partition_method == 'random_trees') {
         
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
@@ -660,7 +661,7 @@ run <- function(infercnv_obj,
     ## Done restoring infercnv_obj's from files now under reuse_subtracted
     ## ###################################################################
         
-    if (on_tumor_subclusters & tumor_subcluster_partition_method != 'random_trees') {
+    if (HMM_mode == 'subclusters' & tumor_subcluster_partition_method != 'random_trees') {
         
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
@@ -686,8 +687,8 @@ run <- function(infercnv_obj,
         }
         
     }
-
-
+    
+    
     ## This is a milestone step and results should always be examined here.
     infercnv_obj_prelim <- infercnv_obj
     infercnv_obj_file = file.path(out_dir, "preliminary.infercnv_obj")
@@ -739,11 +740,13 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
-        by=NULL
-        if (on_tumor_subclusters) {
+        if (HMM_mode == 'subclusters') {
             infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
-        } else {
+        } else if (HMM_mode == 'cells') {
             infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
+        } else {
+            ## samples mode
+            infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj)
         }
         
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))   
