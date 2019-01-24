@@ -43,8 +43,10 @@ for (chr in chrs) {
 
     flog.info(sprintf("Plotting data for chr: %s", chr))
     
-    p = df %>% ggplot(aes(vals, fill=class)) + geom_density(alpha=0.3) + scale_y_continuous(trans='log10', limits=c(1,NA)) + ggtitle(chr)
-
+    p = df %>% ggplot(aes(vals, fill=class)) + geom_density(alpha=0.3) + ggtitle(chr) +
+        scale_y_continuous(trans='log10', limits=c(1,NA))
+    
+    
     p = p +
         stat_function(fun=dnorm, color='black', args=list('mean'=cnv_mean_sd[["cnv:0.01"]]$mean,'sd'=cnv_mean_sd[["cnv:0.01"]]$sd)) +
         stat_function(fun=dnorm, color='black', args=list('mean'=cnv_mean_sd[["cnv:0.5"]]$mean,'sd'=cnv_mean_sd[["cnv:0.5"]]$sd)) +
