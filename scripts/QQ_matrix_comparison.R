@@ -23,7 +23,7 @@ if (args$log) {
     data2 = log(data2+1)
 }
 qqplot(data1, data2)
-abline(a=0,b=1)
+abline(a=0,b=1, col='red')
 
 
 

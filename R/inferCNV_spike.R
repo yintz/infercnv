@@ -518,7 +518,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
     
     num_cells = 100
-    num_genes_per_chr = 100
+    num_genes_per_chr = 250
     
     chr_info <- .get_hspike_chr_info()
 
