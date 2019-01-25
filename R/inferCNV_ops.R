@@ -305,7 +305,45 @@ run <- function(infercnv_obj,
         
     }
 
+
+    ## ##############################
+    ## Step: Cross-cell normalization
+
+    CROSS_NORMALIZE=TRUE
+    if (CROSS_NORMALIZE) {
+    
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: cross-sample normalize data\n", step_count))    
         
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_cross_norm.infercnv_obj", step_count))
+        
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            
+            infercnv_obj <- cross_cell_normalize(infercnv_obj)
+            
+            saveRDS(infercnv_obj,
+                    file=infercnv_obj_file)
+            
+            
+            ## Plot incremental steps.
+            if (plot_steps){
+                
+                plot_cnv(infercnv_obj=infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_cross_norm",step_count),
+                         output_filename=sprintf("infercnv.%02d_cross_norm",step_count),
+                         write_expr_matrix=TRUE
+                         )
+            }
+        }
+    }
+    
+    
     ###########################
     ## Step: log transformation
     
@@ -2270,4 +2308,26 @@ scale_infercnv_expr <- function(infercnv_obj) {
     }
     
     return(infercnv_obj)
+}
+
+
+cross_cell_normalize <- function(infercnv_obj) {
+
+    ## using upper quartile normalization
+
+    flog.info("-cross cell normalization")
+    
+    upper_quart = apply(infercnv_obj@expr.data, 2, quantile, probs=0.75)
+    mean_upper_quart = mean(upper_quart)
+    infercnv_obj@expr.data = sweep(infercnv_obj@expr.data, 2, mean_upper_quart/upper_quart, "*")
+    
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- cross_cell_normalize(infercnv_obj@.hspike)
+    }
+    
+    return(infercnv_obj)
+    
+    
 }

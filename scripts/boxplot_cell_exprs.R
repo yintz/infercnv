@@ -4,7 +4,7 @@ suppressPackageStartupMessages(library("argparse"))
     
 parser = ArgumentParser()
 parser$add_argument("--infercnv_obj", help="infercnv_obj file", required=TRUE, nargs=1)
-parser$add_argument("--log", help="log transform expr", action='store_true', default=FALSE)
+parser$add_argument("--log", help="log(x+1) transform expr", action='store_true', default=FALSE)
 
 args = parser$parse_args()
 
@@ -17,6 +17,10 @@ infercnv_obj_file = args$infercnv_obj
 infercnv_obj = readRDS(infercnv_obj_file)
 
 expr.data = infercnv_obj@expr.data
+
+if (args$log) {
+    expr.data = log(expr.data+1)
+}
 
 ## build df of expr values.
 cell_groups = c(infercnv_obj@reference_grouped_cell_indices, infercnv_obj@observation_grouped_cell_indices)
