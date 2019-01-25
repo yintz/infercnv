@@ -475,31 +475,47 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
 
 
-.get_hspike_chr_info <- function() {
+.get_hspike_chr_info <- function(num_genes_each, num_total) {
+
+    num_remaining = num_total - 10*num_genes_each
+    if (num_remaining < num_genes_each) {
+        num_remaining = num_genes_each
+    }
     
     ## design for fake chr
     chr_info = list(list(name='chrA',
-                         cnv=1),
+                         cnv=1,
+                         ngenes=num_genes_each),
                     list(name='chr_0',
-                         cnv=0.01),
+                         cnv=0.01,
+                         ngenes=num_genes_each),
                     list(name='chr_B',
-                         cnv=1),
+                         cnv=1,
+                         ngenes=num_genes_each),
                     list(name='chr_0pt5',
-                         cnv=0.5),
+                         cnv=0.5,
+                         ngenes=num_genes_each),
                     list(name='chr_C',
-                         cnv=1),
+                         cnv=1,
+                         ngenes=num_genes_each),
                     list(name='chr_1pt5',
-                         cnv=1.5),
+                         cnv=1.5,
+                         ngenes=num_genes_each),
                     list(name='chr_D',
-                         cnv=1),
+                         cnv=1,
+                         ngenes=num_genes_each),
                     list(name='chr_2pt0',
-                         cnv=2.0),
+                         cnv=2.0,
+                         ngenes=num_genes_each),
                     list(name='chr_E',
-                         cnv=1),
+                         cnv=1,
+                         ngenes=num_genes_each),
                     list(name='chr_3pt0',
-                         cnv=3),
+                         cnv=3,
+                         ngenes=num_genes_each),
                     list(name='chr_F',
-                         cnv=1)
+                         cnv=1,
+                         ngenes=num_remaining)
                     )
 
     return(chr_info)
@@ -519,10 +535,12 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     
     num_cells = 100
     num_genes_per_chr = 250
-    
-    chr_info <- .get_hspike_chr_info()
 
-    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:num_genes_per_chr, end=1:num_genes_per_chr) }))
+    num_total_genes = nrow(infercnv_obj@expr.data)
+    
+    chr_info <- .get_hspike_chr_info(num_genes_per_chr, num_total_genes)
+    
+    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:x$ngenes, end=1:x$ngenes) }))
     num_genes = nrow(gene_order)
     rownames(gene_order) <- paste0("gene_", 1:num_genes)
     

@@ -236,15 +236,16 @@ run <- function(infercnv_obj,
         
         saveRDS(infercnv_obj, file=infercnv_obj_file)
     }
+
     
-    ####################################################
+    ## ##################################################
     ##  Adding pseudocounts
     
     if (pseudocount != 0) {
         flog.info(sprintf("Adding pseudocount: %g", pseudocount))
         infercnv_obj <- add_pseudocount(infercnv_obj, pseudocount)
     }
-        
+    
     
     ###########################################
     ### STEP: normalization by sequencing depth
@@ -304,6 +305,7 @@ run <- function(infercnv_obj,
         
     }
 
+        
     ###########################
     ## Step: log transformation
     
@@ -455,39 +457,43 @@ run <- function(infercnv_obj,
     
 
 
-    
-    ####################################
-    ## Step: Subtract average reference
-    ## Since we're in log space, this now becomes log(fold_change)
 
-    step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
+    SMOOTH_BEFORE_SUBTRACTION=TRUE
 
-    infercnv_obj_file = file.path(out_dir,
-                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+    if (! SMOOTH_BEFORE_SUBTRACTION) {
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-        infercnv_obj <- readRDS(infercnv_obj_file)
-    } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+        ## ##################################
+        ## Step: Subtract average reference
+        ## Since we're in log space, this now becomes log(fold_change)
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data (before smoothing)\n", step_count))
+        
+        infercnv_obj_file = file.path(out_dir,
+                                      sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+        
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
             
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
-
-        if (plot_steps) {
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_remove_average",step_count),
-                     output_filename=sprintf("infercnv.%02d_remove_average", step_count),
-                     write_expr_matrix=TRUE)
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+            
+            if (plot_steps) {
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_remove_average",step_count),
+                         output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                         write_expr_matrix=TRUE)
+            }
         }
+        
     }
 
-
     
-    max_centered_threshold <- 3
     if (! is.na(max_centered_threshold)) {
     
         ## #####################################################
@@ -552,6 +558,9 @@ run <- function(infercnv_obj,
         } else {
                     
             infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+
+            #infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj)
+            
             
             saveRDS(infercnv_obj, file=infercnv_obj_file)
             
@@ -603,12 +612,12 @@ run <- function(infercnv_obj,
 
 
     ## ##################################
-    ## Step: Subtract average reference (again! small adjustment after smoothing/centering)
+    ## Step: Subtract average reference 
     ## Since we're in log space, this now becomes log(fold_change)
-
+    
     step_count = step_count + 1
-    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data\n", step_count))
-
+    flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data (after smoothing)\n", step_count))
+    
     infercnv_obj_file = file.path(out_dir,
                            sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
 
@@ -1803,6 +1812,42 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 
     return(obs_data)
 }
+
+
+smooth_by_chromosome_runmeans <- function(infercnv_obj) {
+    
+    gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
+    chrs = unlist(unique(gene_chr_listing))
+
+    for (chr in chrs) {
+        chr_genes_indices = which(gene_chr_listing == chr)
+        flog.info(paste0("smooth_by_chromosome: chr: ",chr)) 
+        
+        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
+
+        if (nrow(chr_data) > 1) {
+            #kvals = c(3,11,31,101)
+            
+            kvals=c(101)
+            for (k in kvals) {
+                chr_data = apply(chr_data, 2, caTools::runmean, k=k)
+            }
+            infercnv_obj@expr.data[chr_genes_indices, ] <- chr_data
+        }
+    }
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- smooth_by_chromosome_runmeans(infercnv_obj@.hspike)
+    }
+    
+    
+    return(infercnv_obj)
+}
+
+
+
+
 
 
 #' @title get_average_bounds()

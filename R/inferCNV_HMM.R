@@ -21,7 +21,7 @@ get_spike_dists <- function(hspike_obj) {
 
 .get_gene_expr_by_cnv <- function(hspike_obj) {
     
-    chr_info = .get_hspike_chr_info()
+    chr_info = .get_hspike_chr_info(1,1) # dummy values for now
 
     spike_cell_idx = unlist(hspike_obj@observation_grouped_cell_indices)
 
