@@ -190,7 +190,7 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
     median_height_tree_ratio = max_height / median_height
     
     res$subclusters[[ tumor ]] = list()
-    if (median_height_tree_ratio < min_median_tree_height_ratio) {
+    if (is.nan(median_height_tree_ratio) || median_height_tree_ratio < min_median_tree_height_ratio) {
       ## retain original grouping, no cutting
       flog.info(sprintf("hclust tree is not sufficiently divisive at %g median tree height ratio. Keeping original clustering uncut for %s", median_height_tree_ratio, tumor))
       res$subclusters[[ tumor ]][[ tumor ]] = in_indices[hc$order]
