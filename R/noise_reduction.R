@@ -76,6 +76,7 @@ apply_median_filtering <- function(infercnv_obj,
                 results[posx, posy] = median(data[posxa:posxb, posya:posyb])
             }
         }
+    }
 
     return(results)
 }
