@@ -4,6 +4,7 @@ suppressPackageStartupMessages(library("argparse"))
     
 parser = ArgumentParser()
 parser$add_argument("--infercnv_obj", help="infercnv_obj file", required=TRUE, nargs=1)
+parser$add_argument("--chr", help='restrict to chr', required=FALSE, nargs=1, default=NULL)
 args = parser$parse_args()
 
 library(infercnv)
@@ -31,6 +32,10 @@ hmm.data[,] = -1 #init to invalid state
 
 tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
 
+if (! is.null(args$chr)) {
+   chrs = c(args$chr)
+}  	  
+
 
 ##########################################
 #chrs = c('chr1')
@@ -57,10 +62,16 @@ local.Viterbi.dthmm <- function (object, ...){
     y <- rep(NA, n) # final trace
     pseudocount = 1e-20
     
+    object$pm$sd = max(object$pm$sd)
+
     emissions <- matrix(NA, nrow = n, ncol = m) 
+    emissions_pre <- emissions
     
     ## init first row
     emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
+    #emissions_pre[1,] <- emission
+    emissions_pre[1,] <- abs(x[1]-object$pm$mean)/object$pm$sd 
+
     emission <- 1 / (-1 * emission)
     emission <- emission / sum(emission)
     
@@ -90,7 +101,10 @@ local.Viterbi.dthmm <- function (object, ...){
                 
 
         emission <- pnorm(abs(x[i]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
-        emission <- 1 / (-1 * emission)
+       	#emissions_pre[i,] <- emission
+	emissions_pre[i,] <- abs(x[i]-object$pm$mean)/object$pm$sd
+
+	emission <- 1 / (-1 * emission)
         emission <- emission / sum(emission)
         
         emissions[i, ] <- log(emission)
@@ -105,6 +119,7 @@ local.Viterbi.dthmm <- function (object, ...){
 
     write.table(nu, file='nu.txt', quote=F, sep="\t")
     write.table(emissions, file='emissions.txt', quote=F, sep="\t")
+    write.table(emissions_pre, file='emissions_pre.txt', quote=F, sep="\t")
 
     ## traceback
     y[n] <- which.max(nu[n, ])
@@ -118,7 +133,7 @@ local.Viterbi.dthmm <- function (object, ...){
 
 ##########################################
 
-chrs = c("chr4")
+
 for (chr in chrs) {
     print(chr)
     chr_gene_idx = which(gene_order$chr == chr)

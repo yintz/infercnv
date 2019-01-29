@@ -309,7 +309,7 @@ run <- function(infercnv_obj,
     ## ##############################
     ## Step: Cross-cell normalization
 
-    CROSS_NORMALIZE=TRUE
+    CROSS_NORMALIZE=FALSE
     if (CROSS_NORMALIZE) {
     
         step_count = step_count + 1
@@ -495,12 +495,8 @@ run <- function(infercnv_obj,
     
 
 
-
-    SMOOTH_BEFORE_SUBTRACTION=TRUE
-
-    if (! SMOOTH_BEFORE_SUBTRACTION) {
-
-        ## ##################################
+    
+	## ##################################
         ## Step: Subtract average reference
         ## Since we're in log space, this now becomes log(fold_change)
         
@@ -508,7 +504,7 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data (before smoothing)\n", step_count))
         
         infercnv_obj_file = file.path(out_dir,
-                                      sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+                                      sprintf("%02d_remove_ref_avg_from_obs_logFC.infercnv_obj", step_count))
         
         if (reuse_subtracted && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
@@ -529,7 +525,7 @@ run <- function(infercnv_obj,
             }
         }
         
-    }
+    
 
     
     if (! is.na(max_centered_threshold)) {
@@ -650,14 +646,13 @@ run <- function(infercnv_obj,
 
 
     ## ##################################
-    ## Step: Subtract average reference 
-    ## Since we're in log space, this now becomes log(fold_change)
+    ## Step: Subtract average reference (adjustment)
     
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data (after smoothing)\n", step_count))
     
     infercnv_obj_file = file.path(out_dir,
-                           sprintf("%02d_remove_ref_avg_from_obs.infercnv_obj", step_count))
+                           sprintf("%02d_remove_ref_avg_from_obs_adjust.infercnv_obj", step_count))
 
     if (reuse_subtracted && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
@@ -846,7 +841,7 @@ run <- function(infercnv_obj,
                                     by=HMM_report_by)
         
         final_center_val <- 3
-        final_scale_limits <- c(1,5)
+        final_scale_limits <- c(0,6)
         
         ## Plot incremental steps.
         if (plot_steps){

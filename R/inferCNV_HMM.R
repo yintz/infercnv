@@ -649,6 +649,12 @@ Viterbi.dthmm.adj <- function (object, ...){
     
     emissions <- matrix(NA, nrow = n, ncol = m) 
     
+    ## ###############################
+    ## restrict to constant variance to avoid nonsensical results:
+    object$pm$sd = max(object$pm$sd)
+    ## ###############################    
+
+
     ## init first row
 
     emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
