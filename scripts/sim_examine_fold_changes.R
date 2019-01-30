@@ -104,7 +104,20 @@ density_plot(sprintf("delta cnv: %g", fold_change), sim_matrix.log, alt_matrix.l
 smoothScatter(sim_matrix.log.means, rowMeans(alt_matrix.log), main='gene means, normal subtracted')
 abline(h=log(fold_change), col='magenta')
 
-sim_matrix.log = apply(sim_matrix.log, 1, caTools::runmean, k=101)
-alt_matrix.log = apply(alt_matrix.log, 1, caTools::runmean, k=101)
+sim_matrix.log.smoothed = apply(sim_matrix.log, 1, caTools::runmean, k=101)
+alt_matrix.log.smoothed = apply(alt_matrix.log, 1, caTools::runmean, k=101)
 
-density_plot(sprintf("cnv: %g, smoothed", fold_change), sim_matrix.log, alt_matrix.log)
+density_plot(sprintf("cnv: %g, smoothed", fold_change), sim_matrix.log.smoothed, alt_matrix.log.smoothed)
+
+all_alt_smoothed_vals = c(as.numeric(alt_matrix.log.smoothed))
+
+## smoothing results depends on gene chr order.
+for (round in seq(5)) {
+    alt_matrix.log.reordered = alt_matrix.log[ sample(seq(ncol(alt_matrix.log)), replace=T), ]
+    alt_matrix.log.reordered.smoothed = apply(alt_matrix.log.reordered, 1, caTools::runmean, k=101)
+    density_plot(sprintf("smoothR: %g, cnv: %g, smoothed", round, fold_change), sim_matrix.log.smoothed, alt_matrix.log.reordered.smoothed)
+    
+    all_alt_smoothed_vals = c(all_alt_smoothed_vals, as.numeric(alt_matrix.log.reordered.smoothed))
+}
+
+density_plot(sprintf("all smoothR cnv: %g, smoothed", fold_change), sim_matrix.log.smoothed, all_alt_smoothed_vals)
