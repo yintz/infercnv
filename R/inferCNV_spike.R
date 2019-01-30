@@ -5,18 +5,18 @@
 #' Adds a 'SPIKE'-in to the observations set at different thresholds of loss/gain to
 #' aid in tracking the effect of infercnv operations and for defining the final scaling.
 #'
-#' 
+#'
 #' @param infercnv_obj An infercnv object populated with raw count data
 #'
 #' @param spike_in_chrs : define the chromsomes that will serve as signal for gain/loss
 #'                        default: picks chrosomes in order of size
 #'
 #' @param min_genes_per_chr  : default 100
-#' 
+#'
 #' @param spike_in_multiplier_vec : factors that define relative expression for gain/loss
 #'                                  and must match ordering of spike_in_chrs above
 #'                                  default: c(0.01, 2.0)
-#' 
+#'
 #' @param max_cells max number of cells to incorporate in the spike-in
 #'
 #' @export
@@ -30,14 +30,14 @@ spike_in_variation_chrs <- function(infercnv_obj,
 
     if (is.null(spike_in_chrs)) {
         num_chrs_want = length(spike_in_multiplier_vec)
-        spike_in_chrs = .select_longest_chrs(infercnv_obj, num_chrs_want) 
+        spike_in_chrs = .select_longest_chrs(infercnv_obj, num_chrs_want)
         flog.info(paste("Selecting longest chrs for adding spike:", paste(spike_in_chrs, collapse=",")))
     } else {
         flog.info(paste("Using specified chrs for adding spike:", paste(spike_in_chrs, collapse=",")))
     }
-    
+
     min_genes_selected = min_genes_per_chr
-    
+
     ## get the gene ordering:
     gene_selection_listing = list()
     for (chr in spike_in_chrs) {
@@ -53,14 +53,14 @@ spike_in_variation_chrs <- function(infercnv_obj,
     }
 
     infercnv_obj <- .spike_in_variation_genes_via_modeling(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells)
-    
+
     return(infercnv_obj)
 }
 
 
 ##' @title .spike_in_variation_genes_via_modeling()
 ##'
-##' Creates the spike-in based on a list of genes. 
+##' Creates the spike-in based on a list of genes.
 ##'
 ##' @param infercnv_obj An infercnv object populated with raw count data
 ##'
@@ -70,46 +70,46 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @param spike_in_multiplier_vec : vector of factors corresponding to gain/loss multipliers matching order in the gene list above.
 ##'
 ##' @param max_cells : max number of cells to include in the spike-in
-##' 
+##'
 ##' @keywords internal
 ##' @noRd
 ##'
 .spike_in_variation_genes_via_modeling <- function(infercnv_obj, gene_selection_listing, spike_in_multiplier_vec, max_cells=max_cells) {
 
-        
+
     normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
     normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
 
     # zeros are a problem here...
     gene_means = rowMeans(normal_cells_expr)
-    
+
     mean_p0_table = .get_mean_vs_p0_table(infercnv_obj)
-    
+
     ## apply spike-in multiplier vec
     for (i in 1:length(spike_in_multiplier_vec)) {
-        
+
         gene_indices = gene_selection_listing[[i]]
         multiplier = spike_in_multiplier_vec[i]
 
         gene_means[gene_indices] = gene_means[gene_indices] * multiplier
     }
-    
+
     ## get simulated matrix
     sim_matrix = .get_simulated_cell_matrix(gene_means, mean_p0_table, max_cells)
 
-        
+
     ## integrate into expr data and count data matrices
     ncol_begin = ncol(infercnv_obj@expr.data) + 1
     ncol_end = ncol_begin + max_cells - 1
-    
+
     infercnv_obj@expr.data = cbind( infercnv_obj@expr.data, sim_matrix )
     infercnv_obj@count.data = cbind( infercnv_obj@count.data, sim_matrix ) # just so it validates... not useful, otherwise
-    
+
     infercnv_obj@observation_grouped_cell_indices[['SPIKE']] = ncol_begin:ncol_end
 
     validate_infercnv_obj(infercnv_obj)
 
-    
+
     return(infercnv_obj)
 }
 
@@ -122,9 +122,9 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' Cells are simulated as so:
 ##'    The mean for genes in the normal cells are computed
 ##'    A random expression value is chosen for each gene using a negative binomial distribution with dispersion = 0.1
-##' 
+##'
 ##' Genes are named according to the input expression matrix, and cells are named 'spike_{number}'.
-##' 
+##'
 ##' @param mean_var_table : a data.frame containing three columns: group_name, mean, variance of expression per gene per grouping.
 ##'
 ##' @param normal_cell_expr : expression matrix of normal cells to guide the simulation. Should be total sum normalized.
@@ -135,34 +135,34 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 ##' @keywords internal
 ##' @noRd
-##' 
+##'
 
 .get_simulated_cell_matrix <- function(gene_means, mean_p0_table, num_cells, common_dispersion) {
-    
+
     # should be working on the total sum count normalized data.
     # model the mean variance relationship
-            
+
     ngenes = length(gene_means)
 
     dropout_logistic_params <- NULL
     if (! is.null(mean_p0_table)) {
         tryCatch (
             dropout_logistic_params <- .get_logistic_params(mean_p0_table),
-            error=function(x) { cat(sprintf("(%s), zero inflation couldn't be estimated from data. Using just neg binom now\n", x)) } 
+            error=function(x) { cat(sprintf("(%s), zero inflation couldn't be estimated from data. Using just neg binom now\n", x)) }
         )
     }
-    
+
     spike_cell_names = paste0('spike_cell_', 1:num_cells)
-    
+
     sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
     rownames(sim_cell_matrix) = names(gene_means)
     colnames(sim_cell_matrix) = spike_cell_names
-        
+
     sim_expr_vals <- function(gene_idx) {
         m = gene_means[gene_idx]
         return(.sim_expr_val(m, dropout_logistic_params, common_dispersion=common_dispersion))
     }
-    
+
     for (i in 1:num_cells) {
         newvals = sapply(1:ngenes, FUN=sim_expr_vals)
         sim_cell_matrix[,i] = newvals
@@ -173,17 +173,17 @@ spike_in_variation_chrs <- function(infercnv_obj,
 
 ##' @keywords internal
 ##' @noRd
-##' 
+##'
 
 .sim_expr_val <- function(m,  dropout_logistic_params, common_dispersion, use_spline=TRUE) {
-    
+
     # include drop-out prediction
-    
+
     val = 0
     if (m > 0) {
-        
+
         val = rnbinom(n=1, mu=m, size=1/common_dispersion)
-        
+
         if (! is.null(dropout_logistic_params)) {
 
             #message(sprintf("log(m) %g -> spline: %g, logistic: %g\n", log(m),
@@ -195,7 +195,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
             #if (abs( predict(dropout_logistic_params$spline, log(m))$y[1] - .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)) > 0.5) {
             #    stop("Error!!")
             #}
-            
+
             if (use_spline) {
                 dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
             } else {
@@ -207,7 +207,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
             }
         }
     }
-    
+
     return(val)
 }
 
@@ -219,7 +219,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @param infercnv_obj An infercnv object populated with raw count data
 ##'
 ##' @return data.frame with 3 columns: group_name, mean, variance
-##' 
+##'
 ##'
 ##' @keywords internal
 ##' @noRd
@@ -230,7 +230,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
     group_indices = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
 
     mean_var_table = NULL
-    
+
     for (group_name in names(group_indices)) {
         flog.info(sprintf("processing group: %s", group_name))
         expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
@@ -242,7 +242,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
             mean_var_table = rbind(mean_var_table, data.frame(g=group_name, m=m, v=v))
         }
     }
-        
+
     return(mean_var_table)
 }
 
@@ -253,7 +253,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @param infercnv_obj An infercnv object populated with raw count data
 ##'
 ##' @return c(left_bound, right_bound)
-##' 
+##'
 ##' @keywords internal
 ##' @noRd
 ##'
@@ -276,22 +276,22 @@ spike_in_variation_chrs <- function(infercnv_obj,
 #'
 #' @param infercnv_obj An infercnv object populated with raw count data
 #'
-#' @return infercnv_obj 
+#' @return infercnv_obj
 #'
 #' @export
 
 remove_spike <- function(infercnv_obj) {
 
     flog.info("Removing spike")
-    
+
     spike_in_cell_idx = infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]]
 
     if (! is.null(spike_in_cell_idx)) {
         infercnv_obj@expr.data = infercnv_obj@expr.data[, -spike_in_cell_idx]
-        
+
         infercnv_obj@observation_grouped_cell_indices[[ 'SPIKE' ]] <- NULL # deletes it.
     }
-    
+
     if (! is.null(infercnv_obj@tumor_subclusters)) {
 
         spike_cluster_names = grep(x=names(infercnv_obj@tumor_subclusters[["subclusters"]]), pattern="SPIKE", value=T)
@@ -325,7 +325,7 @@ remove_spike <- function(infercnv_obj) {
 scale_cnv_by_spike <- function(infercnv_obj) {
 
     # everything here should be centered at 1 (no change).
-    
+
     spike_bounds = .get_spike_in_average_bounds(infercnv_obj)
 
     left_bound = spike_bounds[1]
@@ -353,7 +353,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 #' selects the specified number of chrs having the largest number of (expressed) genes
 #' @keywords internal
 #' @noRd
-#' 
+#'
 
 .select_longest_chrs <- function(infercnv_obj, num_chrs_want) {
 
@@ -361,53 +361,53 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     counts = infercnv_obj@gene_order %>% count(.data$chr, sort=TRUE)
 
     return(counts$chr[1:num_chrs_want])
-        
+
 }
 
 #' Computes probability of seeing a zero expr val as a function of the mean gene expression
 #' The p(0 | mean_expr) is computed separately for each sample grouping.
-#' 
+#'
 #' @keywords internal
 #' @noRd
-#' 
+#'
 
 .get_mean_vs_p0_table <- function(infercnv_obj) {
 
     group_indices = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
 
     mean_p0_table = NULL
-    
+
     for (group_name in names(group_indices)) {
         flog.info(sprintf("processing group: %s", group_name))
         expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
 
         group_mean_p0_table <- .get_mean_vs_p0_from_matrix(expr.data)
         group_mean_p0_table[[ 'group_name' ]] <- group_name
-        
+
         if (is.null(mean_p0_table)) {
             mean_p0_table = group_mean_p0_table
         } else {
             mean_p0_table = rbind(mean_p0_table, group_mean_p0_table)
         }
     }
-    
+
     return(mean_p0_table)
 }
 
 #' Computes probability of seeing a zero expr val as a function of the mean gene expression
 #' based on the input expression  matrix.
-#' 
+#'
 #' @keywords internal
 #' @noRd
-#' 
+#'
 
 .get_mean_vs_p0_from_matrix <- function(expr.data) {
     ncells = ncol(expr.data)
     m = rowMeans(expr.data)
     numZeros = apply(expr.data, 1, function(x) { sum(x==0) })
-    
+
     pZero = numZeros/ncells
-    
+
     mean_p0_table = data.frame(m=m, p0=pZero)
 
     return(mean_p0_table)
@@ -419,8 +419,8 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 #'
 #' InferCNV note: Standard function here, but lifted from
 #' Splatter (Zappia, Phipson, and Oshlack, 2017)
-#' https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1305-0 
-#' 
+#' https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1305-0
+#'
 #' Implementation of the logistic function
 #'
 #' @param x value to apply the function to.
@@ -431,7 +431,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 #'
 #' @keywords internal
 #' @noRd
-#' 
+#'
 .logistic <- function(x, midpt, slope) {
     1 / (1 + exp(-slope * (x - midpt)))
 }
@@ -440,26 +440,26 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
 #' Given the mean, p0 table, fits the data to a logistic function to compute
 #' the shape of the logistic distribution.
-#' 
+#'
 #' @keywords internal
 #' @noRd
-#' 
+#'
 
 .get_logistic_params <- function(mean_p0_table) {
 
     mean_p0_table <- mean_p0_table[mean_p0_table$m > 0, ] # remove zeros, can't take log.
-    
+
     x = log(mean_p0_table$m)
     y = mean_p0_table$p0
 
     df = data.frame(x,y)
 
     #write.table(df, "_logistic_params", quote=F, sep="\t")  # debugging...
-    
+
     fit <- nls(y ~ .logistic(x, midpt = x0, slope = k),
                data = df,
                start = list(x0 = mean(x), k = -1)) # borrowed/updated from splatter
-    
+
     logistic_params = list()
 
     logistic_params[[ 'midpt' ]] <- summary(fit)$coefficients["x0", "Estimate"]
@@ -468,155 +468,25 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     ## also fit a spline
     s = smooth.spline(x, mean_p0_table$p0)
     logistic_params[[ 'spline' ]] = s
-    
-    
+
+
     return(logistic_params)
 }
 
 
 
-.get_hspike_chr_info <- function(num_genes_each, num_total) {
-
-    num_remaining = num_total - 10*num_genes_each
-    if (num_remaining < num_genes_each) {
-        num_remaining = num_genes_each
-    }
-    
-    ## design for fake chr
-    chr_info = list(list(name='chrA',
-                         cnv=1,
-                         ngenes=num_genes_each),
-                    list(name='chr_0',
-                         cnv=0.01,
-                         ngenes=num_genes_each),
-                    list(name='chr_B',
-                         cnv=1,
-                         ngenes=num_genes_each),
-                    list(name='chr_0pt5',
-                         cnv=0.5,
-                         ngenes=num_genes_each),
-                    list(name='chr_C',
-                         cnv=1,
-                         ngenes=num_genes_each),
-                    list(name='chr_1pt5',
-                         cnv=1.5,
-                         ngenes=num_genes_each),
-                    list(name='chr_D',
-                         cnv=1,
-                         ngenes=num_genes_each),
-                    list(name='chr_2pt0',
-                         cnv=2.0,
-                         ngenes=num_genes_each),
-                    list(name='chr_E',
-                         cnv=1,
-                         ngenes=num_genes_each),
-                    list(name='chr_3pt0',
-                         cnv=3,
-                         ngenes=num_genes_each),
-                    list(name='chr_F',
-                         cnv=1,
-                         ngenes=num_remaining)
-                    )
-
-    return(chr_info)
-    
-}
-
-.build_and_add_hspike <- function(infercnv_obj) {
-
-    flog.info("Adding h-spike")
-
-    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
-
-    params = .estimateSingleCellParamsSplatterScrape(counts=infercnv_obj@count.data[,normal_cells_idx])
-            
-        
-    ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
-    
-    num_cells = 100
-    num_genes_per_chr = 250
-
-    num_total_genes = nrow(infercnv_obj@expr.data)
-    
-    chr_info <- .get_hspike_chr_info(num_genes_per_chr, num_total_genes)
-    
-    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:x$ngenes, end=1:x$ngenes) }))
-    num_genes = nrow(gene_order)
-    rownames(gene_order) <- paste0("gene_", 1:num_genes)
-    
-    ## sample gene info from the normal data    
-    normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
-    gene_means = rowMeans(normal_cells_expr)
-    ## remove zeros (might not be zero in the non-normal cells)
-    gene_means = gene_means[gene_means>0]
-    
-    gene_means = sample(x=gene_means, size=num_genes, replace=T)
-
-    names(gene_means) = rownames(gene_order)
-    
-    ## simulate normals:
-    params[["nGenes"]] <- num_genes
-    params[["nCells"]] <- num_cells
-    
-    sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
-
-    sim_normal_matrix = counts(sim.scExpObj)
-    
-    colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
-    rownames(sim_normal_matrix) = rownames(gene_order)
-    
-    ## apply spike-in multiplier vec
-    hspike_gene_means = gene_means
-    for (info in chr_info) {
-        chr_name = info$name
-        cnv = info$cnv
-        if (cnv != 1) {
-            gene_idx = which(gene_order$chr == chr_name)
-            hspike_gene_means[gene_idx] =  hspike_gene_means[gene_idx] * cnv
-        }
-    }
-
-    
-    sim_spiked_cnv.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params,
-                                                                            use.genes.means=hspike_gene_means) 
-    sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
-    
-    colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
-    rownames(sim_spiked_cnv_matrix) = rownames(gene_order)
-    
-    sim.counts.matrix = cbind(sim_normal_matrix, sim_spiked_cnv_matrix)
-    reference_grouped_cell_indices = list('simnormal'=1:num_cells)
-    observation_grouped_cell_indices = list('SPIKE'=(num_cells+1):(2*num_cells))
-
-    .hspike <- new( Class="infercnv",
-                   expr.data=sim.counts.matrix,
-                   count.data=sim.counts.matrix,
-                   gene_order=gene_order,
-                   reference_grouped_cell_indices=reference_grouped_cell_indices,
-                   observation_grouped_cell_indices=observation_grouped_cell_indices)
-        
-    validate_infercnv_obj(.hspike)
-
-    .hspike <- normalize_counts_by_seq_depth(.hspike)
-    
-    infercnv_obj@.hspike <- .hspike
-    
-    return(infercnv_obj)
-}
-
-
 .estimate_common_dispersion <- function(expr.data) {
-    
+
     ## estimate common disp from these data:
     ## creds to splatter
     design <- matrix(1, ncol(expr.data), 1)
-        
+
     disps <- edgeR::estimateDisp(expr.data, design = design)
-    
+
     common_dispersion = disps$common.dispersion
 
     flog.info(sprintf("-edgeR::estimateDisp() -> %g", common_dispersion))
-    
+
     return(common_dispersion)
-    
+
 }

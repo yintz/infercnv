@@ -1,0 +1,132 @@
+
+
+
+.get_hspike_chr_info <- function(num_genes_each, num_total) {
+
+    num_remaining = num_total - 10*num_genes_each
+    if (num_remaining < num_genes_each) {
+        num_remaining = num_genes_each
+    }
+
+    ## design for fake chr
+    chr_info = list(list(name='chrA',
+                         cnv=1,
+                         ngenes=num_genes_each),
+                    list(name='chr_0',
+                         cnv=0.01,
+                         ngenes=num_genes_each),
+                    list(name='chr_B',
+                         cnv=1,
+                         ngenes=num_genes_each),
+                    list(name='chr_0pt5',
+                         cnv=0.5,
+                         ngenes=num_genes_each),
+                    list(name='chr_C',
+                         cnv=1,
+                         ngenes=num_genes_each),
+                    list(name='chr_1pt5',
+                         cnv=1.5,
+                         ngenes=num_genes_each),
+                    list(name='chr_D',
+                         cnv=1,
+                         ngenes=num_genes_each),
+                    list(name='chr_2pt0',
+                         cnv=2.0,
+                         ngenes=num_genes_each),
+                    list(name='chr_E',
+                         cnv=1,
+                         ngenes=num_genes_each),
+                    list(name='chr_3pt0',
+                         cnv=3,
+                         ngenes=num_genes_each),
+                    list(name='chr_F',
+                         cnv=1,
+                         ngenes=num_remaining)
+                    )
+
+    return(chr_info)
+
+}
+
+.build_and_add_hspike <- function(infercnv_obj) {
+
+    flog.info("Adding h-spike")
+
+    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
+
+    params = .estimateSingleCellParamsSplatterScrape(counts=infercnv_obj@count.data[,normal_cells_idx])
+
+
+    ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
+
+    num_cells = 100
+    num_genes_per_chr = 250
+
+    num_total_genes = nrow(infercnv_obj@expr.data)
+
+    chr_info <- .get_hspike_chr_info(num_genes_per_chr, num_total_genes)
+
+    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:x$ngenes, end=1:x$ngenes) }))
+    num_genes = nrow(gene_order)
+    rownames(gene_order) <- paste0("gene_", 1:num_genes)
+
+    ## sample gene info from the normal data
+    normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
+    gene_means = rowMeans(normal_cells_expr)
+    ## remove zeros (might not be zero in the non-normal cells)
+    gene_means = gene_means[gene_means>0]
+
+    gene_means = sample(x=gene_means, size=num_genes, replace=T)
+
+    names(gene_means) = rownames(gene_order)
+
+    ## simulate normals:
+    params[["nGenes"]] <- num_genes
+    params[["nCells"]] <- num_cells
+
+    sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
+
+    sim_normal_matrix = counts(sim.scExpObj)
+
+    colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
+    rownames(sim_normal_matrix) = rownames(gene_order)
+
+    ## apply spike-in multiplier vec
+    hspike_gene_means = gene_means
+    for (info in chr_info) {
+        chr_name = info$name
+        cnv = info$cnv
+        if (cnv != 1) {
+            gene_idx = which(gene_order$chr == chr_name)
+            hspike_gene_means[gene_idx] =  hspike_gene_means[gene_idx] * cnv
+        }
+    }
+
+
+    sim_spiked_cnv.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params,
+                                                                            use.genes.means=hspike_gene_means)
+    sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
+
+    colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
+    rownames(sim_spiked_cnv_matrix) = rownames(gene_order)
+
+    sim.counts.matrix = cbind(sim_normal_matrix, sim_spiked_cnv_matrix)
+    reference_grouped_cell_indices = list('simnormal'=1:num_cells)
+    observation_grouped_cell_indices = list('SPIKE'=(num_cells+1):(2*num_cells))
+
+    .hspike <- new( Class="infercnv",
+                   expr.data=sim.counts.matrix,
+                   count.data=sim.counts.matrix,
+                   gene_order=gene_order,
+                   reference_grouped_cell_indices=reference_grouped_cell_indices,
+                   observation_grouped_cell_indices=observation_grouped_cell_indices)
+
+    validate_infercnv_obj(.hspike)
+
+    .hspike <- normalize_counts_by_seq_depth(.hspike)
+
+    infercnv_obj@.hspike <- .hspike
+
+    return(infercnv_obj)
+}
+

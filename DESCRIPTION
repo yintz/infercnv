@@ -25,6 +25,7 @@ Collate:
     'inferCNV_mask_non_DE.R'
     'inferCNV_ops.R'
     'inferCNV_spike.R'
+    'inferCNV_hidden_spike.R'
     'noise_reduction.R'
     'inferCNV_HMM.R'
     'inferCNV_tumor_subclusters.R'
