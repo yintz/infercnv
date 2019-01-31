@@ -121,7 +121,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##'
 ##' Cells are simulated as so:
 ##'    The mean for genes in the normal cells are computed
-##'    A random expression value is chosen for each gene using a negative binomial distribution with dispersion = 0.1
+##'    A random expression value is chosen for each gene using a negative binomial distribution with specified common dispersion
 ##'
 ##' Genes are named according to the input expression matrix, and cells are named 'spike_{number}'.
 ##'
@@ -130,6 +130,8 @@ spike_in_variation_chrs <- function(infercnv_obj,
 ##' @param normal_cell_expr : expression matrix of normal cells to guide the simulation. Should be total sum normalized.
 ##'
 ##' @param num_cells : number of cells to simulate
+##'
+##' @param common_dispersion: in rnbinom(size=1/common_dispersion).  Set to very small number to achieve Poisson.
 ##'
 ##' @return matrix containing simulated expression values.
 ##'

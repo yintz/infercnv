@@ -17,8 +17,6 @@
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
-#' @param smooth_rounds Number of rounds of chromosome level smoothing of gene intensities
-#'
 #' @param num_ref_groups The number of reference groups or a list of
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs. (default: NULL)
@@ -128,7 +126,6 @@ run <- function(infercnv_obj,
 
                 out_dir=".",
                 window_length=101,
-                smooth_rounds = 1,
 
                 num_ref_groups=NULL,
 
@@ -579,38 +576,36 @@ run <- function(infercnv_obj,
     ###########################################################################
     ## Step: For each cell, smooth the data along chromosome with gene windows
 
-    for (smooth_round in 1:smooth_rounds) {
+    step_count = step_count + 1
+    flog.info(sprintf("\n\n\tSTEP %02d: Smoothing data per cell by chromosome\n", step_count))
 
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Smoothing data per cell by chromosome\n", step_count))
+    infercnv_obj_file = file.path(out_dir, sprintf("%02d_smoothed_by_chr.infercnv_obj", step_count))
 
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_smoothed_by_chr.infercnv_obj", step_count))
+    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+        infercnv_obj <- readRDS(infercnv_obj_file)
+    } else {
 
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
+        infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
 
-            infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
-
-            #infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj)
+                                        #infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj)
 
 
-            saveRDS(infercnv_obj, file=infercnv_obj_file)
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
 
-            ## Plot incremental steps.
-            if (plot_steps){
+        ## Plot incremental steps.
+        if (plot_steps){
 
-                plot_cnv(infercnv_obj,
+            plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_smoothed_by_chr",step_count),
-                         output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
-                         write_expr_matrix=TRUE)
-            }
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_smoothed_by_chr",step_count),
+                     output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
+                     write_expr_matrix=TRUE)
         }
     }
+
 
     ##
     ## Step:
@@ -1700,9 +1695,6 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         chr_genes_indices = which(gene_chr_listing == chr)
         flog.info(paste0("smooth_by_chromosome: chr: ",chr))
 
-        input_data = data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
-        flog.debug(paste0("dim subset:", paste(dim(input_data), collapse=",")))
-
         chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
 
         if (nrow(chr_data) > 1) {
@@ -2326,3 +2318,4 @@ cross_cell_normalize <- function(infercnv_obj) {
 
 
 }
+
