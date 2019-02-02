@@ -37,8 +37,9 @@
 #'
 #' @param max_centered_threshold The maximum value a value can have after
 #'                                   centering. Also sets a lower bound of
-#'                                   -1 * this value. (default: NA),
+#'                                   -1 * this value. (default: 3),
 #'                               can set to a numeric value or "auto" to bound by the mean bounds across cells.
+#'                               Set to NA to turn off.
 #'
 #' #########################################################################
 #' ## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters
@@ -51,6 +52,9 @@
 #'
 #'
 #' @param HMM_report_by   cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
+#'
+#' @param sim_method    method used for simulating internal spike-ins and calibrating CNV levels.
+#'                      Options: 'splatter' or 'simple'  (default: 'splatter')
 #'
 #' #############################
 #' ## de-noising parameters ####
@@ -129,7 +133,7 @@ run <- function(infercnv_obj,
 
                 num_ref_groups=NULL,
 
-                max_centered_threshold=NA, # or set to a specific value or "auto"
+                max_centered_threshold=3, # or set to a specific value or "auto", or NA to turn off
 
 
                 ## HMM and tumor subclustering options
@@ -179,7 +183,9 @@ run <- function(infercnv_obj,
                 final_scale_limits = NULL,
                 final_center_val = NULL,
 
-                reuse_subtracted = TRUE
+                reuse_subtracted = TRUE,
+
+                sim_method=c('splatter', 'simple')
 
                 ) {
 
@@ -187,7 +193,7 @@ run <- function(infercnv_obj,
     HMM_report_by = match.arg(HMM_report_by)
     HMM_mode = match.arg(HMM_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
-
+    sim_method = match.arg(sim_method)
 
     if (debug) {
         flog.threshold(DEBUG)
@@ -260,7 +266,7 @@ run <- function(infercnv_obj,
         infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj)
 
         # add in the hidden spike needed by the HMM
-        infercnv_obj <- .build_and_add_hspike(infercnv_obj)
+        infercnv_obj <- .build_and_add_hspike(infercnv_obj, sim_method=sim_method)
 
         saveRDS(infercnv_obj, infercnv_obj_file)
     }
@@ -523,8 +529,6 @@ run <- function(infercnv_obj,
     }
 
 
-    max_centered_threshold = 1
-
     if (! is.na(max_centered_threshold)) {
 
         ## #####################################################
@@ -586,9 +590,9 @@ run <- function(infercnv_obj,
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
 
-        infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+        #infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
 
-                                        #infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj)
+        infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj, window_length)
 
 
         saveRDS(infercnv_obj, file=infercnv_obj_file)
@@ -1839,7 +1843,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 }
 
 
-smooth_by_chromosome_runmeans <- function(infercnv_obj) {
+smooth_by_chromosome_runmeans <- function(infercnv_obj, window_length) {
 
     gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
     chrs = unlist(unique(gene_chr_listing))
@@ -1851,19 +1855,15 @@ smooth_by_chromosome_runmeans <- function(infercnv_obj) {
         chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
 
         if (nrow(chr_data) > 1) {
-            #kvals = c(3,11,31,101)
+            chr_data = apply(chr_data, 2, caTools::runmean, k=window_length)
 
-            kvals=c(101)
-            for (k in kvals) {
-                chr_data = apply(chr_data, 2, caTools::runmean, k=k)
-            }
             infercnv_obj@expr.data[chr_genes_indices, ] <- chr_data
         }
     }
 
     if (! is.null(infercnv_obj@.hspike)) {
         flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- smooth_by_chromosome_runmeans(infercnv_obj@.hspike)
+        infercnv_obj@.hspike <- smooth_by_chromosome_runmeans(infercnv_obj@.hspike, window_length)
     }
 
 

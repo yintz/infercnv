@@ -48,7 +48,9 @@
 
 }
 
-.build_and_add_hspike <- function(infercnv_obj) {
+.build_and_add_hspike <- function(infercnv_obj, sim_method=c('splatter', 'simple')) {
+
+    sim_method = match.arg(sim_method)
 
     flog.info("Adding h-spike")
 
@@ -60,7 +62,7 @@
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
 
     num_cells = 100
-    num_genes_per_chr = 250
+    num_genes_per_chr = 400
 
     num_total_genes = nrow(infercnv_obj@expr.data)
 
@@ -84,9 +86,17 @@
     params[["nGenes"]] <- num_genes
     params[["nCells"]] <- num_cells
 
-    sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
+    if (sim_method == 'splatter') {
+        sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
 
-    sim_normal_matrix = counts(sim.scExpObj)
+        sim_normal_matrix = counts(sim.scExpObj)
+    } else {
+        ## using simple
+        sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
+                                                                   mean_p0_table=NULL,
+                                                                   num_cells=num_cells,
+                                                                   common_dispersion=0.1)
+    }
 
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
     rownames(sim_normal_matrix) = rownames(gene_order)
@@ -103,9 +113,17 @@
     }
 
 
-    sim_spiked_cnv.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params,
+    if (sim_method == 'splatter') {
+        sim_spiked_cnv.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params,
                                                                             use.genes.means=hspike_gene_means)
-    sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
+        sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
+    } else {
+        ## using simple
+        sim_spiked_cnv_matrix <- infercnv:::.get_simulated_cell_matrix(hspike_gene_means,
+                                                                       mean_p0_table=NULL,
+                                                                       num_cells=num_cells,
+                                                                       common_dispersion=0.1)
+    }
 
     colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
     rownames(sim_spiked_cnv_matrix) = rownames(gene_order)

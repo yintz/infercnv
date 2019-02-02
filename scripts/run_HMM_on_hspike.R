@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages(library("argparse"))
-    
+
 parser = ArgumentParser()
 parser$add_argument("--infercnv_obj", help="infercnv_obj file", required=TRUE, nargs=1)
 args = parser$parse_args()
@@ -23,7 +23,7 @@ hspike.hmm = infercnv:::predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj=hs
                                                                  hclust_method='ward.D2'
                                                                  )
 
-plot_cnv(hspike.hmm, x.center=3, x.range=c(0,6), output_filename="hspike.hmm")
+plot_cnv(hspike.hmm, x.center=3, x.range=c(0,6), output_filename=paste0(basename(infercnv_obj_file), ".hspike.hmm"), out_dir=dirname(infercnv_obj_file))
 
 saveRDS(hspike.hmm, file=sprintf("%s-HMM.obj", infercnv_obj_file))
 
