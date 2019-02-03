@@ -54,7 +54,7 @@
 
     dropout_logistic_params <- NULL
     if (include.dropout) {
-        mean_vs_p0_table <- .get_mean_vs_p0_from_matrix(normal_counts_matrix, cell_groupings)
+        mean_vs_p0_table <- .get_mean_vs_p0_table_from_matrix(normal_counts_matrix, cell_groupings)
         dropout_logistic_params <- .get_logistic_params(mean_vs_p0_table)
     }
 

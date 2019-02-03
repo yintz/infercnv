@@ -48,7 +48,7 @@
 
 }
 
-.build_and_add_hspike <- function(infercnv_obj, sim_method=c('splatter', 'simple')) {
+.build_and_add_hspike <- function(infercnv_obj, sim_method=c('splatter', 'simple', 'meanvar')) {
 
     sim_method = match.arg(sim_method)
 
@@ -90,12 +90,16 @@
         sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
 
         sim_normal_matrix = counts(sim.scExpObj)
-    } else {
+    } else if (sim_method == 'simple') {
         ## using simple
         sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
                                                                    mean_p0_table=NULL,
                                                                    num_cells=num_cells,
                                                                    common_dispersion=0.1)
+    } else if (sim_method == 'meanvar') {
+        ## using mean,var trend
+        sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
+
     }
 
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
@@ -117,12 +121,15 @@
         sim_spiked_cnv.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params,
                                                                             use.genes.means=hspike_gene_means)
         sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
-    } else {
+    } else if (sim_method == 'simple') {
         ## using simple
         sim_spiked_cnv_matrix <- infercnv:::.get_simulated_cell_matrix(hspike_gene_means,
                                                                        mean_p0_table=NULL,
                                                                        num_cells=num_cells,
                                                                        common_dispersion=0.1)
+    } else if (sim_method == 'meanvar') {
+
+        sim_spiked_cnv_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, hspike_gene_means, num_cells, include.dropout=TRUE)
     }
 
     colnames(sim_spiked_cnv_matrix) = paste0('spike_cell_', 1:num_cells)
