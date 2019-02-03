@@ -343,11 +343,20 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     group_indices = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
 
+
+    mean_vs_p0_table <- .get_mean_vs_p0_table_from_matrix(infercnv_obj@expr.data, group_indices)
+
+    return(mean_vs_p0_table)
+
+}
+
+.get_mean_vs_p0_table_from_matrix <- function(expr.matrix, cell_groupings_list) {
+
     mean_p0_table = NULL
 
-    for (group_name in names(group_indices)) {
+    for (group_name in names(cell_groupings_list)) {
         flog.info(sprintf("processing group: %s", group_name))
-        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
+        expr.data = expr.matrix[, cell_groupings_list[[ group_name ]] ]
 
         group_mean_p0_table <- .get_mean_vs_p0_from_matrix(expr.data)
         group_mean_p0_table[[ 'group_name' ]] <- group_name
@@ -400,7 +409,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 #' @keywords internal
 #' @noRd
 #'
-.logistic <- function(x, midpt, slope) {
+.logistic_midpt_slope <- function(x, midpt, slope) {
     1 / (1 + exp(-slope * (x - midpt)))
 }
 
@@ -422,9 +431,9 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
     df = data.frame(x,y)
 
-    #write.table(df, "_logistic_params", quote=F, sep="\t")  # debugging...
+    write.table(df, "_logistic_params", quote=F, sep="\t")  # debugging...
 
-    fit <- nls(y ~ .logistic(x, midpt = x0, slope = k),
+    fit <- nls(y ~ .logistic_midpt_slope(x, midpt = x0, slope = k),
                data = df,
                start = list(x0 = mean(x), k = -1)) # borrowed/updated from splatter
 
