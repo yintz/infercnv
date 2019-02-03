@@ -214,40 +214,6 @@ spike_in_variation_chrs <- function(infercnv_obj,
 }
 
 
-##' .get_mean_var_table()
-##'
-##' Computes the gene mean/variance table based on all defined cell groupings (reference and observations)
-##'
-##' @param infercnv_obj An infercnv object populated with raw count data
-##'
-##' @return data.frame with 3 columns: group_name, mean, variance
-##'
-##'
-##' @keywords internal
-##' @noRd
-##'
-
-.get_mean_var_table <- function(infercnv_obj) {
-
-    group_indices = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
-
-    mean_var_table = NULL
-
-    for (group_name in names(group_indices)) {
-        flog.info(sprintf("processing group: %s", group_name))
-        expr.data = infercnv_obj@expr.data[, group_indices[[ group_name ]] ]
-        m = rowMeans(expr.data)
-        v = apply(expr.data, 1, var)
-        if (is.null(mean_var_table)) {
-            mean_var_table = data.frame(g=group_name, m=m, v=v)
-        } else {
-            mean_var_table = rbind(mean_var_table, data.frame(g=group_name, m=m, v=v))
-        }
-    }
-
-    return(mean_var_table)
-}
-
 ##' .get_spike_in_average_bounds()
 ##'
 ##' return mean bounds for expression of all cells in the spike-in
@@ -490,5 +456,39 @@ scale_cnv_by_spike <- function(infercnv_obj) {
     flog.info(sprintf("-edgeR::estimateDisp() -> %g", common_dispersion))
 
     return(common_dispersion)
+
+}
+
+
+
+KS_plot <- function(title, tumor_expr, hspike_expr) {
+
+    tumor_ecdf = ecdf(tumor_expr)
+    hspike_ecdf = ecdf(hspike_expr)
+    val_range = range(tumor_expr, hspike_expr)
+    step = (val_range[2] - val_range[1])/100
+    vals = seq(val_range[1], val_range[2], step)
+
+    tumor_cdf = tumor_ecdf(vals)
+    hspike_cdf = hspike_ecdf(vals)
+
+    cdfs = data.frame(vals,
+                      tumor_cdf,
+                      hspike_cdf)
+    ks_point = which.max(abs(cdfs$tumor_cdf - cdfs$hspike_cdf))
+    ks_point_info = cdfs[ks_point,]
+    ##message("KS point info: ", paste(ks_point_info, collapse=', '))
+
+    cdfs = cdfs %>% gather('tumor_cdf', 'hspike_cdf', key='type', value='cdf')
+
+    p = ggplot(cdfs, aes(x=vals, y=cdf)) +
+        geom_line(aes(color=type, linetype=type)) +
+        geom_segment(aes(x=ks_point_info$vals,
+                         y=ks_point_info$tumor_cdf,
+                         xend=ks_point_info$vals,
+                         yend=ks_point_info$hspike_cdf), color='magenta', size=2) +
+        ggtitle(title) + xlab("expr.val") + ylab("cdf")
+
+    plot(p)
 
 }

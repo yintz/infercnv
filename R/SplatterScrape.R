@@ -255,8 +255,8 @@
 
     sim <- .splatSimSingleCellMeans(sim, params)
 
-    #message("Simulating BCV...")
-    #sim <- .splatSimBCVMeans(sim, params)
+    message("Simulating BCV...")
+    sim <- .splatSimBCVMeans(sim, params)
 
     message("Simulating counts...")
     sim <- .splatSimTrueCounts(sim, params)
