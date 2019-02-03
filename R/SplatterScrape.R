@@ -18,13 +18,13 @@
                                                     include.dropout=FALSE,
                                                     use.spline.dropout.fit=FALSE # logistic is default.
                                                     ) {
-    
+
     # scraped from splatter
     params = list()
 
     params[['include.dropout']] <- include.dropout
     params[['use.spline.dropout.fit']] <- use.spline.dropout.fit
-    
+
     ## Normalise for library size and remove all zero genes
     lib.sizes <- colSums(counts)
     lib.med <- median(lib.sizes)
@@ -40,12 +40,12 @@
     params <- .splatEstBCV(counts, params)
 
     params <- .splatEstDropout(norm.counts, params)
-    
+
     params[['nGenes']] <- nrow(counts)
     params[['nCells']] <- ncol(counts)
 
     print(params)
-    
+
     return(params)
 }
 
@@ -53,7 +53,7 @@
 .splatEstMean <- function(norm.counts, params) {
 
     library(fitdistrplus)
-    
+
     means <- rowMeans(norm.counts)
     means <- means[means != 0]
 
@@ -66,10 +66,10 @@
                 "using the Method of Moments instead")
         fit <- fitdistrplus::fitdist(means, "gamma", method = "mme")
     }
-    
+
     params[['mean.shape']] <- unname(fit$estimate["shape"])
     params[['mean.rate']] <- unname(fit$estimate["rate"])
-    
+
     return(params)
 }
 
@@ -88,7 +88,7 @@
 
 
 .splatEstLib <- function(counts, params) {
-    
+
     lib.sizes <- colSums(counts)
 
     if (length(lib.sizes) > 5000) {
@@ -118,7 +118,7 @@
     params[['lib.loc']] <- lib.loc
     params[['lib.scale']] <- lib.scale
     params[['lib.norm']] <- lib.norm
-    
+
     return(params)
 }
 
@@ -138,7 +138,7 @@
     prob <- length(outs) / nrow(norm.counts)
 
     params[['out.prob']] <- prob
-    
+
     if (length(outs) > 1) {
         facs <- means[outs] / median(means)
         fit <- fitdistrplus::fitdist(facs, "lnorm")
@@ -146,7 +146,7 @@
         params[['out.facLoc']] <- unname(fit$estimate["meanlog"])
         params[['out.facScale']] <- unname(fit$estimate["sdlog"])
     }
-    
+
     return(params)
 }
 
@@ -161,7 +161,7 @@
     ## linear adjustment to bcv is based on somulations as per splatter code documentation.
     params[['bcv.common']] <- 0.1 + 0.25 * disps$common.dispersion
     params[['bcv.df']] <- disps$prior.df
-    
+
     return(params)
 }
 
@@ -183,15 +183,15 @@
     plot(df$log_means, df$pct_zeros)
 
     x_approx_mid <- median(x[which(y>0.2 & y < 0.8)]) # bhaas-added to avoid error: Error in nls(y ~ .logistic(x, x0 = x0, k = k), data = df, start = list(x0 = 0,  : singular gradient
-    
+
     fit <- nls(y ~ .logistic(x, x0 = x0, k = k), data = df,
                start = list(x0 = x_approx_mid, k = -1))
-    
+
     mid <- summary(fit)$coefficients["x0", "Estimate"]
     shape <- summary(fit)$coefficients["k", "Estimate"]
 
     points(x, predict(fit, newdata=x), col='green')
-    
+
     params[['dropout.mid']] <- mid
     params[['dropout.shape']] <- shape
 
@@ -203,7 +203,7 @@
     points(spline.pts$x, spline.pts$y, col='magenta')
     legend('topright', c('logistic', 'spline'), col=c('green', 'magenta'), pch=1)
 
-        
+
     return(params)
 }
 
@@ -221,17 +221,17 @@
 .simulateSingleCellCountsMatrixSplatterScrape <- function(params,
                                                           use.genes.means=NULL
                                                           ) {
-    
+
     if ( (! is.null(use.genes.means)) && length(use.genes.means) != params[['nGenes']]) {
         stop("Error, use.genes.means provided but not matching the params nGenes count")
     }
 
     library(SingleCellExperiment)
-    
+
     ## Get the parameters we are going to use
     nCells <- params[["nCells"]]
     nGenes <- params[["nGenes"]]
-        
+
     # Set up name vectors
     cell.names <- paste0("Cell", seq_len(nCells))
     gene.names <- paste0("Gene", seq_len(nGenes))
@@ -255,8 +255,8 @@
 
     sim <- .splatSimSingleCellMeans(sim, params)
 
-    message("Simulating BCV...")
-    sim <- .splatSimBCVMeans(sim, params)
+    #message("Simulating BCV...")
+    #sim <- .splatSimBCVMeans(sim, params)
 
     message("Simulating counts...")
     sim <- .splatSimTrueCounts(sim, params)
@@ -281,7 +281,7 @@
     } else {
         exp.lib.sizes <- rlnorm(nCells, lib.loc, lib.scale)
     }
-    
+
     colData(sim)$ExpLibSize <- exp.lib.sizes
 
     return(sim)
@@ -296,7 +296,7 @@
     out.prob <- params[["out.prob"]]
     out.facLoc <- params[["out.facLoc"]]
     out.facScale <- params[["out.facScale"]]
-    
+
     if (! is.null(use.genes.means)) {
         base.means.gene <- use.genes.means
     } else {
@@ -311,11 +311,11 @@
     is.outlier <- outlier.facs != 1
     means.gene <- base.means.gene
     means.gene[is.outlier] <- outlier.means[is.outlier]
-    
+
     rowData(sim)$BaseGeneMean <- base.means.gene
     rowData(sim)$OutlierFactor <- outlier.facs
     rowData(sim)$GeneMean <- means.gene
-    
+
     return(sim)
 }
 
@@ -341,9 +341,9 @@
 
     nCells <- params[["nCells"]]
     nGenes <- params[["nGenes"]]
-    
+
     batch.facs.cell <- matrix(1, ncol = nCells, nrow = nGenes)
-    
+
     batch.means.cell <- batch.facs.cell * gene.means
 
     colnames(batch.means.cell) <- cell.names
@@ -371,6 +371,8 @@
     colnames(base.means.cell) <- cell.names
     rownames(base.means.cell) <- gene.names
     assays(sim)$BaseCellMeans <- base.means.cell
+
+    assays(sim)$CellMeans <- base.means.cell # default, updated under .splatSimBCVMeans()
 
     return(sim)
 }
@@ -441,7 +443,7 @@
     nGroups <- params[["nGroups"]]
     cell.means <- assays(sim)$CellMeans
     dropout.spline.fit <- params[['dropout.spline.fit']]
-    
+
     if (include.dropout) {
 
         if ( params[['use.spline.dropout.fit']] ) {
@@ -454,13 +456,13 @@
                 pvals[pvals>1] <- 1
                 return(pvals)
             })
-            
-            
+
+
         } else {
-            # using logistic 
+            # using logistic
             dropout.mid <- rep(dropout.mid, nCells)
             dropout.shape <- rep(dropout.shape, nCells)
-            
+
             ## Generate probabilites based on expression
             drop.prob <- sapply(seq_len(nCells), function(idx) {
                 eta <- log(cell.means[, idx])
@@ -469,7 +471,7 @@
         }
 
         print(drop.prob)
-        
+
         # Decide which counts to keep
         keep <- matrix(rbinom(nCells * nGenes, 1, 1 - drop.prob),
                        nrow = nGenes, ncol = nCells)
@@ -486,7 +488,7 @@
     } else {
         counts <- true.counts
     }
-    
+
     BiocGenerics::counts(sim) <- counts
 
     return(sim)
