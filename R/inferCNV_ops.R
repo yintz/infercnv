@@ -185,7 +185,8 @@ run <- function(infercnv_obj,
 
                 reuse_subtracted = TRUE,
 
-                sim_method=c('splatter', 'simple', 'meanvar')
+                sim_method=c('splatter', 'simple', 'meanvar'),
+                sim_foreground=FALSE
 
                 ) {
 
@@ -267,6 +268,10 @@ run <- function(infercnv_obj,
 
         # add in the hidden spike needed by the HMM
         infercnv_obj <- .build_and_add_hspike(infercnv_obj, sim_method=sim_method)
+
+        if (sim_foreground) {
+            infercnv_obj <- .sim_foreground(infercnv_obj, sim_method=sim_method)
+        }
 
         saveRDS(infercnv_obj, infercnv_obj_file)
     }

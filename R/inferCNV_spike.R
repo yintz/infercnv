@@ -475,7 +475,7 @@ scale_cnv_by_spike <- function(infercnv_obj) {
 
 
 
-KS_plot <- function(title, tumor_expr, hspike_expr) {
+KS_plot <- function(title, tumor_expr, hspike_expr, names=NULL) {
 
     tumor_ecdf = ecdf(tumor_expr)
     hspike_ecdf = ecdf(hspike_expr)
@@ -489,20 +489,34 @@ KS_plot <- function(title, tumor_expr, hspike_expr) {
     cdfs = data.frame(vals,
                       tumor_cdf,
                       hspike_cdf)
-    ks_point = which.max(abs(cdfs$tumor_cdf - cdfs$hspike_cdf))
+
+    if  ( (! is.null(names)) & length(names) == 2) {
+
+        colnames(cdfs)[2] <- names[1]
+        colnames(cdfs)[3] <- names[2]
+
+        name1 <- names[1]
+        name2 <- names[2]
+    } else {
+        name1 = 'tumor_cdf'
+        name2 = 'hspike_cdf'
+    }
+
+    ks_point = which.max(abs(cdfs[,2] - cdfs[,3]))
     ks_point_info = cdfs[ks_point,]
     ##message("KS point info: ", paste(ks_point_info, collapse=', '))
 
-    cdfs = cdfs %>% gather('tumor_cdf', 'hspike_cdf', key='type', value='cdf')
+    cdfs = cdfs %>% gather(name1, name2, key='type', value='cdf')
 
     p = ggplot(cdfs, aes(x=vals, y=cdf)) +
         geom_line(aes(color=type, linetype=type)) +
         geom_segment(aes(x=ks_point_info$vals,
-                         y=ks_point_info$tumor_cdf,
+                         y=ks_point_info[[name1]],
                          xend=ks_point_info$vals,
-                         yend=ks_point_info$hspike_cdf), color='magenta', size=2) +
+                         yend=ks_point_info[[name2]]), color='magenta', size=2) +
         ggtitle(title) + xlab("expr.val") + ylab("cdf")
 
     plot(p)
 
 }
+

@@ -148,9 +148,63 @@
 
     validate_infercnv_obj(.hspike)
 
-    .hspike <- normalize_counts_by_seq_depth(.hspike)
+    .hspike <- normalize_counts_by_seq_depth(.hspike, median(colSums(normal_cells_expr))) # make same target counts/cell as normals
 
     infercnv_obj@.hspike <- .hspike
+
+    return(infercnv_obj)
+}
+
+
+##
+.sim_foreground <- function(infercnv_obj, sim_method) {
+
+    flog.info("## simulating foreground")
+
+    expr.matrix <- infercnv_obj@expr.data
+
+    samples <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+
+    target_total_counts <- median(colSums(expr.matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)]))
+
+    params <- NULL
+    if (sim_method == 'splatter') {
+        params <- infercnv:::.estimateSingleCellParamsSplatterScrape(infercnv_obj@count.data[, unlist(infercnv_obj@reference_grouped_cell_indices)])
+    }
+
+    for (sample_name in names(samples)) {
+
+        cell_idx = samples[[ sample_name ]]
+
+        sample_expr_data = expr.matrix[, cell_idx]
+        gene_means = rowMeans(sample_expr_data)
+
+        num_cells = ncol(sample_expr_data)
+
+        ## sim the tumor matrix
+        if (sim_method == 'simple') {
+            sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
+                                                                mean_p0_table=NULL,
+                                                                num_cells=num_cells,
+                                                                common_dispersion=0.1)
+        } else if (sim_method == 'splatter') {
+            params[['nCells']] <- num_cells
+            sim_matrix <- infercnv:::.simulateSingleCellCountsMatrixSplatterScrape(params, gene_means)
+            sim_matrix <- counts(sim_matrix)
+        } else if (sim_method == 'meanvar') {
+            ##tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend_given_normal_matrix(gene_means, data, args$num_tumor_cells)
+            sim_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
+        } else {
+            stop(sprintf("not recognizing --sim_method: %s", args$sim_method))
+        }
+
+        expr.matrix[, cell_idx] <- sim_matrix
+
+    }
+
+    infercnv_obj@expr.data <- expr.matrix
+
+    infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj, target_total_counts)
 
     return(infercnv_obj)
 }
