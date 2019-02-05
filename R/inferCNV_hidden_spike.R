@@ -192,8 +192,10 @@
             sim_matrix <- infercnv:::.simulateSingleCellCountsMatrixSplatterScrape(params, gene_means)
             sim_matrix <- counts(sim_matrix)
         } else if (sim_method == 'meanvar') {
-            ##tumor_sim_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend_given_normal_matrix(gene_means, data, args$num_tumor_cells)
-            sim_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
+            sim_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj,
+                                                                         gene_means,
+                                                                         num_cells,
+                                                                         include.dropout=TRUE)
         } else {
             stop(sprintf("not recognizing --sim_method: %s", args$sim_method))
         }

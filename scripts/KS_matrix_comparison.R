@@ -20,7 +20,7 @@ data1 = as.matrix(read.table(args$matrix1, header=T, row.names=1))
 data2 = as.matrix(read.table(args$matrix2, header=T, row.names=1))
 
 
-pdf(args$output)
+png(args$output)
 if (args$log) {
     data1 = log(data1+1)
     data2 = log(data2+1)
@@ -41,7 +41,7 @@ vals = seq(val_range[1], val_range[2], step)
 m1_cdf = m1_ecdf(vals)
 m2_cdf = m2_ecdf(vals)
 
-cdfs = data.frame(vals, 
+cdfs = data.frame(vals,
                   m1_cdf,
                   m2_cdf)
 
@@ -52,10 +52,10 @@ ks_point_info = cdfs[ks_point,]
 cdfs = cdfs %>% gather('m1_cdf', 'm2_cdf', key='type', value='cdf')
 
 
-ggplot(cdfs, aes(x=vals, y=cdf)) +  
-    geom_line(aes(color=type, linetype=type)) +  
-    geom_segment(aes(x=ks_point_info$vals, 
-                     y=ks_point_info$m1_cdf, 
+ggplot(cdfs, aes(x=vals, y=cdf)) +
+    geom_line(aes(color=type, linetype=type)) +
+    geom_segment(aes(x=ks_point_info$vals,
+                     y=ks_point_info$m1_cdf,
                      xend=ks_point_info$vals,
                      yend=ks_point_info$m2_cdf), color='magenta', size=2) +
     ggtitle(sprintf("%s vs. %s KS", args$matrix1, args$matrix2)) + xlab("number") + ylab("cdf")
