@@ -174,7 +174,7 @@
         params <- infercnv:::.estimateSingleCellParamsSplatterScrape(infercnv_obj@count.data[, unlist(infercnv_obj@reference_grouped_cell_indices)])
     }
 
-    mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(data)
+
     if (sim_method == 'simple') {
         mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(normal_data)
     }
