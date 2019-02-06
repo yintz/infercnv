@@ -178,6 +178,7 @@
 
         sample_expr_data = expr.matrix[, cell_idx]
         gene_means = rowMeans(sample_expr_data)
+        gene_means[gene_means==0] <- 1e-3 #avoid zeros, breaks splatter sim
 
         num_cells = ncol(sample_expr_data)
 
