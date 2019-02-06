@@ -514,8 +514,8 @@ plot_cnv <- function(infercnv_obj,
     orig_row_names <- row.names(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
 
-    output_path = paste(output_filename_prefix, "heatmap_thresholds.txt", sep=".")
-    write.table(breaksList, output_path, row.names=FALSE, col.names=FALSE)
+    heatmap_thresholds_file_name <- file.path(file_base_name, sprintf("%s.heatmap_thresholds.txt", output_filename_prefix))
+    write.table(breaksList, heatmap_thresholds_file_name, row.names=FALSE, col.names=FALSE)
 
     data_observations <- heatmap.cnv(obs_data,
                                         Rowv=obs_dendrogram,
