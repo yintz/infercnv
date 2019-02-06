@@ -1,5 +1,15 @@
 #!/usr/bin/env Rscript
 
+# To use inferCNV via command-line interface, first install inferCNV, then run
+# a command like the following example:
+#
+# cd scripts
+# ./inferCNV.R \
+#     --output_dir=output_cli \
+#     --ref_groups="Microglia/Macrophage","Oligodendrocytes (non-malignant)" \
+#     --annotations_file=../example/oligodendroglioma_annotations_downsampled.txt \
+#     ../example/oligodendroglioma_expression_downsampled.counts.matrix \
+#     ../example/gencode_downsampled.txt
 
 # Load libraries
 library(ape)
