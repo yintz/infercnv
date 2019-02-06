@@ -165,13 +165,20 @@
 
     samples <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
 
-    target_total_counts <- median(colSums(expr.matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)]))
+
+    normal_data <- expr.matrix[, unlist(infercnv_obj@reference_grouped_cell_indices)]
+    target_total_counts <- median(colSums(normal_data))
 
     params <- NULL
     if (sim_method == 'splatter') {
         params <- infercnv:::.estimateSingleCellParamsSplatterScrape(infercnv_obj@count.data[, unlist(infercnv_obj@reference_grouped_cell_indices)])
     }
 
+    mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(data)
+    if (sim_method == 'simple') {
+        mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(normal_data)
+    }
+    
     for (sample_name in names(samples)) {
 
         cell_idx = samples[[ sample_name ]]
@@ -184,8 +191,9 @@
 
         ## sim the tumor matrix
         if (sim_method == 'simple') {
+            
             sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
-                                                                mean_p0_table=NULL,
+                                                                mean_p0_table=mean_p0_table,
                                                                 num_cells=num_cells,
                                                                 common_dispersion=0.1)
         } else if (sim_method == 'splatter') {

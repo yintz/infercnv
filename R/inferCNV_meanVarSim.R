@@ -81,10 +81,10 @@
 
         val = round(max(rnorm(n=1, mean=m, sd=sqrt(var)), 0))
 
-        if (! is.null(dropout_logistic_params)) {
+        if ( (! is.null(dropout_logistic_params)) & val > 0) {
 
-            dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
-
+            dropout_prob <- predict(dropout_logistic_params$spline, log(val))$y[1]
+            
             if (runif(1) <= dropout_prob) {
                 ## a drop-out
                 val = 0

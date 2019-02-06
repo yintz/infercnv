@@ -186,7 +186,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
 
         val = rnbinom(n=1, mu=m, size=1/common_dispersion)
 
-        if (! is.null(dropout_logistic_params)) {
+        if ( (! is.null(dropout_logistic_params)) & val > 0) {
 
             #message(sprintf("log(m) %g -> spline: %g, logistic: %g\n", log(m),
             #                predict(dropout_logistic_params$spline, log(m))$y[1],
@@ -201,7 +201,7 @@ spike_in_variation_chrs <- function(infercnv_obj,
             if (use_spline) {
                 dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
             } else {
-                dropout_prob <- .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
+                dropout_prob <- .logistic(x=log(val), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
             }
             if (runif(1) <= dropout_prob) {
                 ## a drop-out
