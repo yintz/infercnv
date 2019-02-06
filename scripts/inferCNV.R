@@ -83,14 +83,14 @@ check_arguments <- function(arguments){
         stop("error, must specify acceptable --hclust_method")
     }
 
-    # Warn that an average of the samples is used in the absence of
-    # normal / reference samples
-    if (is.null(arguments$reference_observations)){
-        logging::logwarn(paste(":: --reference_observations: No reference ",
-                      "samples were given, the average of the samples ",
-                      "will be used.",
-                      sep=""))
-    }
+    # # Warn that an average of the samples is used in the absence of
+    # # normal / reference samples
+    # if (is.null(arguments$reference_observations)){
+    #     logging::logwarn(paste(":: --reference_observations: No reference ",
+    #                   "samples were given, the average of the samples ",
+    #                   "will be used.",
+    #                   sep=""))
+    # }
 
     # Make sure the threshold is centered.
     arguments$max_centered_expression <- abs(arguments$max_centered_expression)
@@ -112,46 +112,9 @@ check_arguments <- function(arguments){
     # if (! is.na(suppressWarnings(as.integer(arguments$name_ref_groups)))){
     #     arguments$name_ref_groups <- list(as.integer(arguments$name_ref_groups))
     # } else {
+
     if (! is.na(arguments$name_ref_groups)) {
-        # Warn references must be given.
-        if (is.null(arguments$reference_observations)){
-            logging::logerror(paste(":: --ref_groups to use this function ",
-                                    "references must be given. "))
-            stop(979)
-        }
-
-        # TODO need to check and make sure all reference indices are given.
         arguments$name_ref_groups <- unlist(strsplit(arguments$name_ref_groups,","))
-        # if (length(num_str) == 1){
-        #     logging::logerror(paste(":: --ref_groups. If explicitly giving ",
-        #                             "indices, make sure to give atleast ",
-        #                             "two groups", sep =""))
-        #     stop(990)
-        # }
-
-        # name_ref_groups <- list()
-        # for (name_token in name_str){
-        #     # token_numbers <- unlist(strsplit(num_token, ":"))
-        #     # number_count <- length(token_numbers)
-        #     if (number_count == 1){
-        #         singleton <- as.integer(number_count)
-        #         name_ref_groups[[length(name_ref_groups) + 1]] <- singleton
-        #     } else if (number_count == 2){
-        #         from <- as.integer(token_numbers[1])
-        #         to <- as.integer(token_numbers[2])
-        #         name_ref_groups[[length(name_ref_groups) + 1]] <- seq(from, to)
-        #     } else {
-        #         logging::logerror(paste(":: --ref_groups is expecting either ",
-        #                                 "one number or a comma delimited list ",
-        #                                 "of numbers or spans using ':'. ",
-        #                                 "Examples include: --ref_groups 3 or ",
-        #                                 " --ref_groups 1,3,5,6,3 or ",
-        #                                 " --ref_groups 1:5,6:20 or ",
-        #                                 " --ref_groups 1,2:5,6,7:10 .", sep=""))
-        #         stop(999)
-        #     }
-        # }
-        # arguments$name_ref_groups <- name_ref_groups
     }
     else {
         if(!is.null(arguments$num_ref_groups)) {
@@ -163,7 +126,6 @@ check_arguments <- function(arguments){
     }
     return(arguments)
 }
-
 
 # Command line arguments
 pargs <- optparse::OptionParser(usage=paste("%prog [options]",
@@ -475,6 +437,14 @@ pargs <- optparse::add_option(pargs, c("--gene_symbol"),
                                    "genes. Possible gene label types to choose from are specified on",
                                    "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
 
+pargs <- optparse::add_option(pargs, c("--annotations_file"),
+                              type="character",
+                              action="store",
+                              default=NULL,
+                              dest="annotations_file",
+                              metavar="Annotations_File",
+                              help=paste("Path to file describing the cells, indicating the cell type classifications"))
+
 
 args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
 args <- args_parsed$options
@@ -521,230 +491,17 @@ for (arg_name in names(args)){
 }
 logging::loginfo(paste("::Input arguments. End."))
 
-# Manage inputs
-logging::loginfo(paste("::Reading data matrix.", sep=""))
-# Row = Genes/Features, Col = Cells/Observations
-expression_data <- read.table(args$input_matrix, sep=args$delim, header=T, row.names=1, check.names=FALSE)
-logging::loginfo(paste("Original matrix dimensions (r,c)=",
-                 paste(dim(expression_data), collapse=",")))
+infercnv_obj = CreateInfercnvObject(raw_counts_matrix=args$input_matrix,
+                                    annotations_file=args$annotations_file,
+                                    delim=args$delim,
+                                    gene_order_file=args$gene_order,
+                                    ref_group_names=args$name_ref_groups)
 
-# Read in the gen_pos file
-input_gene_order <- seq(1, nrow(expression_data), 1)
-if (args$gene_order != ""){
-    input_gene_order <- read.table(args$gene_order, header=FALSE, row.names=1, sep="\t")
-    names(input_gene_order) <- c(CHR, START, STOP)
-}
-logging::loginfo(paste("::Reading gene order.", sep=""))
-logging::logdebug(paste(head(args$gene_order[1]), collapse=","))
-
-# Default the reference samples to all
-input_reference_samples <- colnames(expression_data)
-observations_annotations_names = NULL
-
-if (!is.null(args$reference_observations)){
-
-    ## replaces OLD args$num_groups
-    input_classifications <- read.table(args$reference_observations, header=FALSE, row.names=1, sep="\t", stringsAsFactors = FALSE)
-    # sort input classifications to same order as expression_data
-    input_classifications <- input_classifications[order(match(row.names(input_classifications), colnames(expression_data))), , drop=FALSE]
-
-    # make a list of list of positions that are going to be refs for each classification
-    name_ref_groups_indices <- list()
-    refs <- c()
-    for (name_group in args$name_ref_groups) {
-        name_ref_groups_indices[length(name_ref_groups_indices) + 1] <- list(which(input_classifications[,1] == name_group))
-        refs <- c(refs, row.names(input_classifications[which(input_classifications[,1] == name_group), , drop=FALSE]))
-    }
-    input_reference_samples <- unique(refs)
-
-    all_annotations = unique(input_classifications[,1])
-    observations_annotations_names = setdiff(all_annotations, args$name_ref_groups)
-
-    # # This argument can be either a list of column labels
-    # # which is a comma delimited list of column labels
-    # # holding a comma delimited list of column labels
-    # refs <- args$reference_observations
-    # if (file.exists(args$reference_observations)){
-    #     refs <- scan(args$reference_observations,
-    #                  what="character",
-    #                  quiet=TRUE)
-    #     refs <- paste(refs, collapse=",")
-    # }
-    # # Split on comma
-    # refs <- unique(unlist(strsplit(refs, ",", fixed=FALSE)))
-    # # Remove multiple spaces to single spaces
-    # refs <- unique(unlist(strsplit(refs, " ", fixed=FALSE)))
-    # refs <- refs[refs != ""]
-    # # Normalize names with make.names so they are treated
-    # # as the matrix column names
-    # refs <- make.names(refs)
-    # if (length(refs) > 0){
-    #     input_reference_samples <- refs
-    # }
-    logging::logdebug(paste("::Reference observations set to: ", input_reference_samples, collapse="\n"))
-}
-
-# Make sure the given reference samples are in the matrix.
-if (length(input_reference_samples) !=
-    length(intersect(input_reference_samples, colnames(expression_data)))){
-    missing_reference_sample <- setdiff(input_reference_samples,
-                                        colnames(expression_data))
-    error_message <- paste("Please make sure that all the reference sample",
-                           "names match a sample in your data matrix.",
-                           "Attention to: ",
-                           paste(missing_reference_sample, collapse=","))
-    logging::logdebug(paste("::colnames(expression_data): ", colnames(expression_data), collapse="\n"))
-    logging::logerror(error_message)
-    stop(error_message)
-}
-
-# Order and reduce the expression to the genomic file.
-order_ret <- infercnv::order_reduce(data=expression_data,
-                                    genomic_position=input_gene_order)
-expression_data <- order_ret$expr
-input_gene_order <- order_ret$order
-if(is.null(expression_data)){
-    error_message <- paste("None of the genes in the expression data",
-                           "matched the genes in the reference genomic",
-                           "position file. Analysis Stopped.")
-    stop(error_message)
-}
-
-obs_annotations_groups <- input_classifications[,1]
-counter <- 1
-for (classification in observations_annotations_names) {
-  obs_annotations_groups[which(obs_annotations_groups == classification)] <- counter
-  counter <- counter + 1
-}
-names(obs_annotations_groups) <- rownames(input_classifications)
-obs_annotations_groups <- obs_annotations_groups[input_classifications[,1] %in% observations_annotations_names]  # filter based on initial input in case some input annotations were numbers overlaping with new format
-obs_annotations_groups <- as.integer(obs_annotations_groups)
-
-if (args$save) {
-    logging::loginfo("Saving workspace")
-    save.image("infercnv.Rdata")
-}
-
-# Make sure the required java application ShaidyMapGen.jar exists. 
-if (args$ngchm){
-    ## if argument is passed, check if file exists
-    if (!is.null(args$path_to_shaidyMapGen)) {
-        if (!file.exists(args$path_to_shaidyMapGen)){
-            error_message <- paste("Cannot find the file ShaidyMapGen.jar using path_to_shaidyMapGen.", 
-                                   "Make sure the entire pathway is being used.")
-            logging::logerror(error_message)
-            stop(error_message)
-        } else {
-            shaidy.path <- unlist(strsplit(args$path_to_shaidyMapGen, split = .Platform$file.sep))
-            if (tail(shaidy.path, n = 1L) != "ShaidyMapGen.jar") {
-                stop("Check pathway to ShaidyMapGen: ", args$path_to_shaidyMapGen, 
-                     "\n Make sure to add 'ShaidyMapGen.jar' to the end of the path.")
-            }
-        }
-    } else { 
-        ## check if envionrmental variable is passed and check if file exists
-        if(exists("SHAIDYMAPGEN")) {
-            if (!file.exists(SHAIDYMAPGEN)){
-                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
-                                       "Make sure the entire pathway is being used.")
-                logging::logerror(error_message)
-                stop(error_message)
-            } else {
-                args$path_to_shaidyMapGen <- SHAIDYMAPGEN
-            }
-        }
-        if (Sys.getenv("SHAIDYMAPGEN") != "") {
-            if (!file.exists(Sys.getenv("SHAIDYMAPGEN"))){
-                error_message <- paste("Cannot find the file ShaidyMapGen.jar using SHAIDYMAPGEN.", 
-                                       "Make sure the entire pathway is being used.")
-                logging::logerror(error_message)
-                stop(error_message)
-            } else {
-                args$path_to_shaidyMapGen <- Sys.getenv("SHAIDYMAPGEN")
-            }
-        }
-    }    
-}
-
-# Run CNV inference
-ret_list = infercnv::infer_cnv(data=expression_data,
-                               gene_order=input_gene_order,
-                               cutoff=args$cutoff,
-                               reference_obs=input_reference_samples,
-                               transform_data=args$log_transform,
-                               window_length=args$window_length,
-                               max_centered_threshold=args$max_centered_expression,
-                               noise_threshold=args$magnitude_filter,
-                               name_ref_groups=args$name_ref_groups,
-                               num_ref_groups=name_ref_groups_indices,
-                               obs_annotations_groups=obs_annotations_groups,
-                               out_path=args$output_dir,
-                               k_obs_groups=args$num_obs_groups,
-                               plot_steps=args$plot_steps,
-                               contig_tail=args$contig_tail,
-                               method_bound_vis=args$bound_method_vis,
-                               lower_bound_vis=bounds_viz[1],
-                               upper_bound_vis=bounds_viz[2],
-                               ref_subtract_method=args$ref_subtract_method,
-                               hclust_method=args$hclust_method)
-
-# Log output
-logging::loginfo(paste("::infer_cnv:Writing final data to ",
-                       file.path(args$output_dir,
-                       "expression_pre_vis_transform.txt"), sep="_"))
-# Output data before viz outlier
-write.table(ret_list["PREVIZ"], sep=args$delim,
-            file=file.path(args$output_dir,
-                       "expression_pre_vis_transform.txt"))
-# Output data after viz outlier
-write.table(ret_list["VIZ"], sep=args$delim,
-            file=file.path(args$output_dir,
-                       "expression_post_viz_transform.txt"))
-logging::loginfo(paste("::infer_cnv:Current data dimensions (r,c)=",
-                       paste(dim(ret_list[["VIZ"]]), collapse=","), sep=""))
-
-logging::loginfo(paste("::infer_cnv:Drawing plots to file:",
-                           args$output_dir, sep=""))
-
-
-if (args$save) {
-    logging::loginfo("Saving workspace")
-    save.image("infercnv.Rdata")
-}
-
-
-if (args$plot_steps) {
-    logging::loginfo("See results from each stage plotted separately")
-}  else {
-
-    infercnv::plot_cnv(plot_data=ret_list[["VIZ"]],
-                       contigs=ret_list[["CONTIGS"]],
-                       k_obs_groups=args$num_obs_groups,
-                       obs_annotations_groups=obs_annotations_groups,
-                       reference_idx=ret_list[["REF_OBS_IDX"]],
-                       ref_contig=args$clustering_contig,
-                       contig_cex=args$contig_label_size,
-                       ref_groups=ret_list[["REF_GROUPS"]],
-                       out_dir=args$output_dir,
-                       color_safe_pal=args$use_color_safe,
-                       hclust_method=args$hclust_method,
-                       title=args$fig_main,
-                       obs_title=args$obs_main,
-                       ref_title=args$ref_main)
-
-}
-
-if (args$ngchm) {
-    logging::loginfo("Creating NGCHM as infercnv.ngchm")
-    infercnv::Create_NGCHM(plot_data = ret_list[["VIZ"]],
-                           path_to_shaidyMapGen = args$path_to_shaidyMapGen,
-                           reference_idx = ret_list[["REF_OBS_IDX"]],
-                           ref_index = name_ref_groups_indices,
-                           location_data = input_gene_order,
-                           out_dir = args$output_dir,
-                           contigs = ret_list[["CONTIGS"]],
-                           ref_groups = ret_list[["REF_GROUPS"]],
-                           title = args$fig_main,
-                           gene_symbol = ards$gene_symbol) 
-}
-
+infercnv_obj = infercnv::run(infercnv_obj,
+                             cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
+                             out_dir=args$output_dir,
+                             cluster_by_groups=T,
+                             plot_steps=F,
+                             mask_nonDE_genes=T,
+                             include.spike=T  # used for final scaling to fit range (0,2) centered at 1.
+                             )
