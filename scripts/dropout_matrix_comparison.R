@@ -19,6 +19,11 @@ args = parser$parse_args()
 data1 = as.matrix(read.table(args$matrix1, header=T, row.names=1))
 data2 = as.matrix(read.table(args$matrix2, header=T, row.names=1))
 
+## total sum normalize each:
+median_cs = median(colSums(data1), colSums(data2))
+data1 <- infercnv:::.normalize_data_matrix_by_seq_depth(data1, median_cs)
+data2 <- infercnv:::.normalize_data_matrix_by_seq_depth(data2, median_cs)
+
 
 pdf(args$output)
 

@@ -520,3 +520,38 @@ KS_plot <- function(title, tumor_expr, hspike_expr, names=NULL) {
 
 }
 
+
+
+.mean_vs_p0_to_stats <- function(mean_vs_p0_table) {
+
+    logm <- log(mean_vs_p0_table$m + 1)
+    p0 <- mean_vs_p0_table$p0
+
+    x_approx_mid <- median(logm[which(p0>0.2 & p0 < 0.8)])
+
+    x <- logm
+    y <- p0
+    df <- data.frame(x,y)
+
+    fit <- nls(y ~ infercnv:::.logistic(x, x0 = x0, k = k), data = df,
+               start = list(x0 = x_approx_mid, k = -1))
+
+    logistic_x <- x
+    logistic_y <- predict(fit, newdata=x)
+ 
+    ## also try fitting a spline
+    spline.fit <- smooth.spline(x,y)
+    spline.pts = predict(spline.fit, newdata=x)
+ 
+    ret = list(logistic_x = logistic_x,
+               logistic_y = logistic_y,
+               spline_x <- spline.pts$x,
+               spline_y <- spline.pts$y,
+               spline.fit <- spline.fit,
+               logistic.fit <- fit)
+    
+
+    return(ret)
+}
+
+

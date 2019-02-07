@@ -84,6 +84,8 @@ sim_matrix_filename <- sprintf("sim.%s.counts.matrix", sim_method)
 message("-writing matrix")
 write.table(sim_matrix, sim_matrix_filename, quote=F, sep="\t")
 
+## total sum normalize sim matrix before plotting
+sim_matrix <- infercnv:::.normalize_data_matrix_by_seq_depth(sim_matrix, median_cs)
 
 message("-plotting QQ plot")
 png(sprintf("sim_vs_orig_counts.%s.qqplots.png", sim_method))

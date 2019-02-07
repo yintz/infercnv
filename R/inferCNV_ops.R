@@ -2215,6 +2215,21 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
     data <- infercnv_obj@expr.data
 
+    normalized_data <- .normalize_data_matrix_by_seq_depth(data, normalize_factor)
+
+    
+    infercnv_obj@expr.data <- normalized_data
+
+    return(infercnv_obj)
+
+}
+
+.normalize_data_matrix_by_seq_depth <- function(counts.matrix, normalize_factor=NA) {
+
+    flog.info("normalizing counts matrix by depth")
+    
+    data <- counts.matrix
+    
     cs = colSums(data)
 
     print(cs)
@@ -2238,10 +2253,8 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 
     data <- data * normalize_factor
 
-    infercnv_obj@expr.data <- data
-
-    return(infercnv_obj)
-
+    return(data)
+    
 }
 
 

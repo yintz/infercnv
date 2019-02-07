@@ -82,6 +82,11 @@
 
     names(gene_means) = rownames(gene_order)
 
+    mean_p0_table <- NULL
+    if (sim_method == 'simple') {
+        mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(normal_cells_expr)
+    }
+    
     ## simulate normals:
     params[["nGenes"]] <- num_genes
     params[["nCells"]] <- num_cells
@@ -92,8 +97,9 @@
         sim_normal_matrix = counts(sim.scExpObj)
     } else if (sim_method == 'simple') {
         ## using simple
+        
         sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
-                                                                   mean_p0_table=NULL,
+                                                                   mean_p0_table=mean_p0_table,
                                                                    num_cells=num_cells,
                                                                    common_dispersion=0.1)
     } else if (sim_method == 'meanvar') {
@@ -124,7 +130,7 @@
     } else if (sim_method == 'simple') {
         ## using simple
         sim_spiked_cnv_matrix <- infercnv:::.get_simulated_cell_matrix(hspike_gene_means,
-                                                                       mean_p0_table=NULL,
+                                                                       mean_p0_table=mean_p0_table,
                                                                        num_cells=num_cells,
                                                                        common_dispersion=0.1)
     } else if (sim_method == 'meanvar') {
@@ -175,6 +181,7 @@
     }
 
 
+    mean_p0_table <- NULL
     if (sim_method == 'simple') {
         mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(normal_data)
     }
