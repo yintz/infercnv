@@ -31,6 +31,10 @@ hmm.data = expr.data
 hmm.data[,] = -1 #init to invalid state
 
 tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
+if (is.null(tumor_subclusters)) {
+    message("No subclusters defined, running per-sample instead")
+    tumor_subclusters <- infercnv_obj@observation_grouped_cell_indices
+}
 
 if (! is.null(args$chr)) {
    chrs = c(args$chr)
@@ -53,7 +57,7 @@ getj <- function (x, j)  {
 }
 
 
-local.Viterbi.dthmm <- function (object, ...){
+local.Viterbi.dthmm <- function (object, ...) {
     x <- object$x
     dfunc <- HiddenMarkov:::makedensity(object$distn)
     n <- length(x)
@@ -83,7 +87,7 @@ local.Viterbi.dthmm <- function (object, ...){
     logPi <- log(object$Pi) # convert transition matrix to log(p)
     
     for (i in 2:n) {
-        
+
         matrixnu <- matrix(nu[i - 1, ], nrow = m, ncol = m)
         
         #nu[i, ] <- apply(matrixnu + logPi, 2, max) +
@@ -145,7 +149,7 @@ for (chr in chrs) {
                 
         gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F])
         ##gene_expr_vals = apply(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F], 1, median)
-        
+        if (length(gene_expr_vals) < 2) { next; }
         num_cells = length(tumor_subcluster_cells_idx)
         
         state_emission_params <- infercnv:::.get_state_emission_params(num_cells, cnv_mean_sd, cnv_level_to_mean_sd_fit)

@@ -571,6 +571,8 @@ generate_cnv_region_reports <- function(infercnv_obj,
     chrs = unique(gene_order$chr)
     for (chr in chrs) {
         gene_idx = which(gene_order$chr==chr)
+        if (length(gene_idx) < 2) { break; }
+        
         chr_states = state_consensus[gene_idx]
         prev_state = chr_states[1]
         ## pos_begin = paste(gene_order[gene_idx[1],,drop=T], collapse=",")
@@ -584,7 +586,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
                                         start=pos_begin$start,
                                         end=pos_begin$stop) 
         regions[[cnv_region_name]] = current_cnv_region
-
+        
         for (i in seq(2,length(gene_idx))) {
             state = chr_states[i]
             pos_end = gene_order[gene_idx[i-1],,drop=T]
@@ -640,6 +642,12 @@ generate_cnv_region_reports <- function(infercnv_obj,
 ## Adapted from the HiddenMarkov package:
 Viterbi.dthmm.adj <- function (object, ...){
     x <- object$x
+
+    if (length(x) < 2) {
+        ## not enough run a trace on
+        return(3); # neutral state
+    }
+    
     dfunc <- HiddenMarkov:::makedensity(object$distn)
     n <- length(x)
     m <- nrow(object$Pi) # transition matrix
