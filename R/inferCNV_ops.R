@@ -54,7 +54,7 @@
 #' @param HMM_report_by   cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
 #'
 #' @param sim_method    method used for simulating internal spike-ins and calibrating CNV levels.
-#'                      Options: c('splatter','simple','meanvar')  (default: 'splatter')
+#'                      Options: c('meanvar','simple','splatter')  (default: 'meanvar')
 #'
 #' #############################
 #' ## de-noising parameters ####
