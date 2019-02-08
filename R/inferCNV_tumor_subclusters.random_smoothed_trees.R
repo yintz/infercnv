@@ -1,0 +1,299 @@
+
+
+define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, window_size=101) {
+
+    ## the state of the infercnv object here should be:
+    ## log transformed, normal subtracted.
+    ## but *NOT* smoothed.
+    ## TODO: -include check for smoothed property so will not run this if already smoothed.
+        
+    infercnv_copy = infercnv_obj  ## don't want to change the original data .... just want to add subcluster info.
+    
+    flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
+
+    infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)  # important, remove normal from tumor before testing clusters.
+    
+    tumor_groups <- infercnv_obj@observation_grouped_cell_indices
+    
+    res = list()
+    
+    normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
+    
+    for (tumor_group in names(tumor_groups)) {
+        
+        flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
+        
+        tumor_group_idx <- tumor_groups[[ tumor_group ]]
+        tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
+        
+        tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size)
+        
+        res$hc[[tumor_group]] <- tumor_subcluster_info$hc
+        res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
+        
+    }
+    
+    infercnv_copy@tumor_subclusters <- res
+    
+    if (! is.null(infercnv_copy@.hspike)) {
+        flog.info("-mirroring for hspike")
+
+        infercnv_copy@.hspike <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_copy@.hspike, p_val, hclust_method)
+    }
+    
+    
+    return(infercnv_copy)
+}
+
+
+
+.single_tumor_subclustering_smoothed_tree <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size) {
+
+
+    tumor_subcluster_info = list()
+
+    sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=window_size)
+    sm_tumor_expr_data = scale(sm_tumor_expr_data, center=T, scale=F)
+    
+    hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
+    
+    tumor_subcluster_info$hc = hc
+    
+    heights = hc$height
+
+    grps <- .partition_by_random_smoothed_trees(tumor_name, tumor_expr_data, hclust_method, p_val, window_size)
+
+            
+    cluster_ids = unique(grps)
+    flog.info(sprintf("cut tree into: %g groups", length(cluster_ids)))
+    
+    tumor_subcluster_info$subclusters = list()
+    
+    for (g in cluster_ids) {
+        split_subcluster = paste0(tumor_name, "_s", g)
+        flog.info(sprintf("-processing %s,%s", tumor_name, split_subcluster))
+        
+        subcluster_indices = tumor_group_idx[which(grps == g)]
+        
+        tumor_subcluster_info$subclusters[[ split_subcluster ]] = subcluster_indices
+        
+    }
+    
+    return(tumor_subcluster_info)
+}
+
+
+## Random Trees
+
+.partition_by_random_smoothed_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val, window_size) {
+
+    grps <- rep(sprintf("%s.%d", tumor_name, 1), ncol(tumor_expr_data))
+    names(grps) <- colnames(tumor_expr_data)
+
+    grps <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data, hclust_method, p_val, grps, window_size)
+
+    
+    return(grps)
+
+}
+
+
+.single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, window_size, min_cluster_size_recurse=10) {
+
+    tumor_clade_name = unique(grps.adj[names(grps.adj) %in% colnames(tumor_expr_data)])
+    message("unique tumor clade name: ", tumor_clade_name)
+    if (length(tumor_clade_name) > 1) {
+        stop("Error, found too many names in current clade")
+    }
+
+    rand_params_info = .parameterize_random_cluster_heights_smoothed_trees(tumor_expr_data, hclust_method, window_size)
+    
+    h_obs = rand_params_info$h_obs
+    h = h_obs$height
+    max_height = rand_params_info$max_h
+    
+    max_height_pval = 1
+    if (max_height > 0) {
+        ## important... as some clades can be fully collapsed (all identical entries) with zero heights for all
+        e = rand_params_info$ecdf
+        max_height_pval = 1- e(max_height)
+    }
+
+    #message(sprintf("Lengths(h): %s", paste(h, sep=",", collapse=",")))
+    #message(sprintf("max_height_pval: %g", max_height_pval))
+    
+    if (max_height_pval <= p_val) {
+        ## keep on cutting.
+        cut_height = mean(c(h[length(h)], h[length(h)-1]))
+        message(sprintf("cutting at height: %g",  cut_height))
+        grps = cutree(h_obs, h=cut_height)
+        print(grps)
+        uniqgrps = unique(grps)
+        
+        message("unique grps: ", paste0(uniqgrps, sep=",", collapse=","))
+        
+        for (grp in uniqgrps) {
+            grp_idx = which(grps==grp)
+            
+            message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
+            df = tumor_expr_data[,grp_idx,drop=F]
+            ## define subset.
+            subset_cell_names = colnames(df)
+            
+            subset_clade_name = sprintf("%s.%d", tumor_clade_name, grp)
+            grps.adj[names(grps.adj) %in% subset_cell_names] <- subset_clade_name
+            
+
+            if (length(grp_idx) >= min_cluster_size_recurse) {
+                ## recurse
+                grps.adj <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data=df,
+                                                                                        hclust_method=hclust_method,
+                                                                                        p_val=p_val,
+                                                                                        grps.adj=grps.adj,
+                                                                                        window_size=window_size,
+                                                                                        min_cluster_size_recurse)
+            } else {
+                message(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
+            }
+            
+        }
+        
+    } else {
+        message("No cluster pruning: ", tumor_clade_name)
+    }
+    
+    return(grps.adj)
+}
+
+
+.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=T) {
+    
+    ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
+
+    sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=window_size)
+    sm_expr_data = scale(sm_expr_data, center=T, scale=F)
+    
+    d = dist(t(sm_expr_data))
+    
+    h_obs = hclust(d, method=hclust_method)
+    
+        
+    # permute by chromosomes
+    permute_col_vals <- function(df) {
+        ## cells as rows, features as columns
+        
+        num_cells = nrow(df)
+
+        for (i in seq(ncol(df) ) ) {
+            
+            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=F), i]
+        }
+        
+        df
+    }
+    
+    h_rand_ex = NULL
+    max_rand_heights = c()
+    num_rand_iters=100
+    for (i in 1:num_rand_iters) {
+        #message(sprintf("iter i:%d", i))
+        rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))
+        
+        ## smooth it and re-center:
+        sm.rand.tumor.expr.data = apply(rand.tumor.expr.data, 2, caTools::runmean, k=window_size)
+        sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=T, scale=F)
+        
+        rand.dist = dist(t(sm.rand.tumor.expr.data))
+        h_rand <- hclust(rand.dist, method=hclust_method)
+        h_rand_ex = h_rand
+        max_rand_heights = c(max_rand_heights, max(h_rand$height))
+    }
+    
+    h = h_obs$height
+
+    max_height = max(h)
+    
+    message(sprintf("Lengths for original tree branches (h): %s", paste(h, sep=",", collapse=",")))
+    message(sprintf("Max height: %g", max_height))
+
+    message(sprintf("Lengths for max heights: %s", paste(max_rand_heights, sep=",", collapse=",")))
+    
+    e = ecdf(max_rand_heights)
+    
+    pval = 1- e(max_height)
+    message(sprintf("pval: %g", pval))
+    
+    params_list <- list(h_obs=h_obs,
+                        max_h=max_height,
+                        rand_max_height_dist=max_rand_heights,
+                        ecdf=e,
+                        h_rand_ex = h_rand_ex
+                        )
+    
+    if (plot) {
+        .plot_tree_height_dist(params_list)
+    }
+    
+    
+    return(params_list)
+    
+}
+
+
+.plot_tree_height_dist <- function(params_list, plot_title='tree_heights') {
+
+    mf = par(mfrow=(c(3,1)))
+
+    ## density plot
+    rand_height_density = density(params_list$rand_max_height_dist)
+    
+    xlim=range(params_list$max_h, rand_height_density$x)
+    ylim=range(rand_height_density$y)
+    plot(rand_height_density, xlim=xlim, ylim=ylim, main=paste(plot_title, "density"))
+    abline(v=params_list$max_h, col='red')
+
+        
+    ## plot the clustering
+    h_obs = params_list$h_obs
+    h_obs$labels <- NULL #because they're too long to display
+    plot(h_obs)
+    
+    ## plot a random example:
+    h_rand_ex = params_list$h_rand_ex
+    h_rand_ex$labels <- NULL
+    plot(h_rand_ex)
+            
+    par(mf)
+        
+}
+
+.get_tree_height_via_ecdf <- function(p_val, params_list) {
+    
+    h = quantile(params_list$ecdf, probs=1-p_val)
+
+    return(h)
+}
+
+
+
+find_DE_stat_significance <- function(normal_matrix, tumor_matrix) {
+    
+    run_t_test<- function(idx) {
+        vals1 = unlist(normal_matrix[idx,,drop=T])
+        vals2 = unlist(tumor_matrix[idx,,drop=T])
+        
+        ## useful way of handling tests that may fail:
+        ## https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
+
+        res = try(t.test(vals1, vals2), silent=TRUE)
+        
+        if (is(res, "try-error")) return(NA) else return(res$p.value)
+        
+    }
+
+    pvals = sapply(seq(nrow(normal_matrix)), run_t_test)
+
+    return(pvals)
+}
+
+
