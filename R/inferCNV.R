@@ -27,7 +27,7 @@
 #' 
 #' @slot tumor_subclusters <list> stores subclustering of tumors if requested
 #'
-#' @slot hspike
+#' @slot .hspike
 #' 
 #' @export .hspike a hidden infercnv object populated with simulated spiked-in data
 #'
