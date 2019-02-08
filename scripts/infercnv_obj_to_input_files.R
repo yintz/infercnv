@@ -27,7 +27,9 @@ cell.annots = do.call(rbind, lapply(names(groupings), function(groupname) {
     return(data.frame(cells=group.cellnames, type=groupname))
 }))
 
-write.table(cell.annots, file="cell_annots.txt", quote=F, row.names=F, col.names=F)
+cell.annots = cell.annots[ cell.annots$cells %in% colnames(infercnv_obj@count.data), ]
+
+write.table(cell.annots, file="cell_annots.txt", quote=F, row.names=F, col.names=F, sep="\t")
 
 ## write infercnv runner:
 
