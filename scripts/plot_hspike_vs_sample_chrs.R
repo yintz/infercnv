@@ -21,7 +21,7 @@ gene_order = cbind(gene_order, gene=rownames(gene_order))
 
 cnv_to_expr_vals = list()
 
-pdf(sprintf("%s.cnv_expr_densities.pdf", infercnv_obj_file))
+pdf(sprintf("%s.cnv_expr_densities_each_chr.pdf", infercnv_obj_file))
 
 expr.data <- infercnv_obj@expr.data
 
