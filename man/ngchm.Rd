@@ -4,8 +4,9 @@
 \alias{ngchm}
 \title{ngchm() : generates next gen heatmap}
 \usage{
-ngchm(infercnv_obj, out_dir = ".", title = "NGCHM", gene_symbol = NULL,
-  path_to_shaidyMapGen = NULL, x.range = NA, x.center = NA)
+ngchm(infercnv_obj, out_dir = ".", title = "NGCHM",
+  gene_symbol = NULL, path_to_shaidyMapGen = NULL, x.range = NA,
+  x.center = NA)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object}

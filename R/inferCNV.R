@@ -24,8 +24,12 @@
 #' @slot reference_grouped_cell_indices <list>  mapping [['group_name']] to c(cell column indices) for reference (normal) cells
 #'
 #' @slot observation_grouped_cell_indices <list> mapping [['group_name']] to c(cell column indices) for observation (tumor) cells
+#' 
+#' @slot tumor_subclusters <list> stores subclustering of tumors if requested
 #'
-#' @export
+#' @slot .hspike a hidden infercnv object populated with simulated spiked-in data
+#' 
+#' @export .hspike 
 #'
 
 infercnv <- methods::setClass(
@@ -35,7 +39,9 @@ infercnv <- methods::setClass(
                              count.data = "ANY",
                              gene_order= "data.frame",
                              reference_grouped_cell_indices = "list",
-                             observation_grouped_cell_indices = "list") )
+                             observation_grouped_cell_indices = "list",
+                             tumor_subclusters  = "ANY",
+                             .hspike = "ANY") )
 
 
 
@@ -225,8 +231,9 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         count.data = raw.data,
         gene_order = input_gene_order,
         reference_grouped_cell_indices = ref_group_cell_indices,
-        observation_grouped_cell_indices = obs_group_cell_indices)
-
+        observation_grouped_cell_indices = obs_group_cell_indices,
+        tumor_subclusters = NULL,
+        .hspike = NULL)
 
     validate_infercnv_obj(object)
     

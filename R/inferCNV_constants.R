@@ -24,6 +24,7 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom Matrix Matrix rowMeans colSums
 #' @import coin
 #' @importFrom dplyr %>% count
+#' @import fitdistrplus
 
 NULL
 

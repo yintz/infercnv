@@ -7,9 +7,10 @@
 plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
   cluster_by_groups = TRUE, k_obs_groups = 3, contig_cex = 1,
-  x.center = 0, x.range = NA, hclust_method = "ward.D",
-  color_safe_pal = TRUE, output_filename = "infercnv",
-  output_format = "png", ref_contig = NULL, write_expr_matrix = FALSE)
+  x.center = mean(infercnv_obj@expr.data), x.range = "auto",
+  hclust_method = "ward.D", color_safe_pal = FALSE,
+  output_filename = "infercnv", output_format = "png",
+  ref_contig = NULL, write_expr_matrix = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}

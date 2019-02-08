@@ -5,7 +5,8 @@
 \title{mask_non_DE_genes_basic()}
 \usage{
 mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05,
-  test.use = "wilcoxon", center_val = mean(infercnv_obj@expr.data))
+  test.use = "wilcoxon", center_val = mean(infercnv_obj@expr.data),
+  require_DE_all_normals = "any")
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -15,6 +16,8 @@ mask_non_DE_genes_basic(infercnv_obj, p_val_thresh = 0.05,
 \item{test.use}{statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.}
 
 \item{center_val}{value to assign to those genes that are not found to be statistically DE.}
+
+\item{require_DE_all_normals}{mask gene if found significantly DE in each normal comparison (default="any") options("any", "most", "all")}
 }
 \value{
 infercnv_obj
