@@ -57,7 +57,6 @@ apply_median_filtering <- function(infercnv_obj,
 }
 
 
-
 .median_filter <- function(data,
                            window_size,
                            half_window) {
@@ -66,7 +65,7 @@ apply_median_filtering <- function(infercnv_obj,
     ydim = dim(data)[2]
     results = data
     
-    if (xdim >= window_size & ydim >= window_size) {
+    # if (xdim >= window_size & ydim >= window_size) {
         for (posx in 1:xdim) {
             posxa <- ifelse(posx <= (half_window + 1), 1, (posx - (half_window + 1)))
             posxb <- ifelse(posx >= (xdim - (half_window + 1)), xdim, (posx + (half_window + 1)))
@@ -76,7 +75,8 @@ apply_median_filtering <- function(infercnv_obj,
                 results[posx, posy] = median(data[posxa:posxb, posya:posyb])
             }
         }
-    }
+    #}
 
     return(results)
 }
+
