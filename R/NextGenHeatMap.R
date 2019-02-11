@@ -93,7 +93,7 @@ Create_NGCHM <- function(infercnv_obj,
     # Get the order of the rows (cell lines) from the dendrogram created by infer_cnv 
     
     # read the file containing the groupings created by infer_cnv
-    row_groups_path <- paste(out_dir, "observation_groupings.txt", sep=.Platform$file.sep)
+    row_groups_path <- paste(out_dir, "infercnv.observation_groupings.txt", sep=.Platform$file.sep)
     row_groups <- read.table(row_groups_path, header = TRUE, check.names = FALSE) # genes are the row names 
     obs_order <- rev(row.names(row_groups)) # Reveerse names to correct order 
     row_order <- c(as.vector(reference_idx), obs_order) # put the reference cells above the observed cells 
