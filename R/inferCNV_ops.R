@@ -46,7 +46,7 @@
 #'
 #' @param HMM  when set to True, runs HMM to predict CNV level (default: FALSE)
 #'
-#' @param HMM_mode options(samples|cells|subclusters), default: subclusters
+#' @param HMM_mode options(samples|cells|subclusters), default: samples (fastest, but subclusters is ideal)
 #'
 #' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
 #'
@@ -139,7 +139,7 @@ run <- function(infercnv_obj,
                 ## HMM and tumor subclustering options
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
-                HMM_mode=c('subclusters', 'samples', 'cells'),
+                HMM_mode=c('samples', 'subclusters', 'cells'),
                 tumor_subcluster_pval=0.05,
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
@@ -710,8 +710,7 @@ run <- function(infercnv_obj,
         }
     }
 
-
-    invert_logFC=T
+    invert_logFC=TRUE
     if (invert_logFC) {
         ## ###########################
         ## Step: invert log transform  (convert from log(FC) to FC)
@@ -827,74 +826,72 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
         if (HMM_mode == 'subclusters') {
-            infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
         } else if (HMM_mode == 'cells') {
-            infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
         } else {
             ## samples mode
-            infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj)
         }
-
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
+        
+        ## ##################################
+        ## Note, HMM invercnv object is only leveraged here, but stored as file for future use:
+        ## ##################################
+        
+        hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))
+        saveRDS(hmm.infercnv_obj, file=infercnv_obj_file)
 
         ## report predicted cnv regions:
-        generate_cnv_region_reports(infercnv_obj,
+        generate_cnv_region_reports(hmm.infercnv_obj,
                                     output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
                                     out_dir=out_dir,
                                     by=HMM_report_by)
 
-        final_center_val <- 3
-        final_scale_limits <- c(0,6)
 
+        ## Plot HMM pred img
+        plot_cnv(infercnv_obj=hmm.infercnv_obj,
+                 k_obs_groups=k_obs_groups,
+                 cluster_by_groups=cluster_by_groups,
+                 out_dir=out_dir,
+                 title=sprintf("%02d_HMM_preds",step_count),
+                 output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                 write_expr_matrix=TRUE,
+                 x.center=3,
+                 x.range=c(0,6)
+                 )
+    }
+
+    ## all processes that are alternatives to the HMM prediction wrt DE analysis and/or denoising
+    
+    ## Step: Filtering significantly DE genes
+    if (mask_nonDE_genes) {
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
+        
+        
+        infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj,
+                                                p_val_thresh=mask_nonDE_pval,
+                                                test.use = test.use,
+                                                center_val=mean(infercnv_obj@expr.data),
+                                                require_DE_all_normals=require_DE_all_normals)
+        
+        saveRDS(infercnv_obj,
+                file=file.path(out_dir, sprintf("%02d_mask_nonDE.infercnv_obj", step_count)))
+        
         ## Plot incremental steps.
-        if (plot_steps){
-
-            plot_cnv(infercnv_obj=infercnv_obj,
+        if (plot_steps) {
+            
+            plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
-                     title=sprintf("%02d_HMM_preds",step_count),
-                     output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
-                     write_expr_matrix=TRUE,
-                     x.center=final_center_val,
-                     x.range=final_scale_limits
-                     )
+                     title=sprintf("%02d_mask_nonDE",step_count),
+                     output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
+                     write_expr_matrix=TRUE)
+            
         }
-
-    } else {
-
-        ## all processes that are alternatives to the HMM prediction wrt DE analysis and/or denoising
-
-        ## Step: Filtering significantly DE genes
-        if (mask_nonDE_genes) {
-
-            step_count = step_count + 1
-            flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
-
-
-            infercnv_obj <- mask_non_DE_genes_basic(infercnv_obj,
-                                                    p_val_thresh=mask_nonDE_pval,
-                                                    test.use = test.use,
-                                                    center_val=mean(infercnv_obj@expr.data),
-                                                    require_DE_all_normals=require_DE_all_normals)
-
-            saveRDS(infercnv_obj,
-                    file=file.path(out_dir, sprintf("%02d_mask_nonDE.infercnv_obj", step_count)))
-
-            ## Plot incremental steps.
-            if (plot_steps) {
-
-                plot_cnv(infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_mask_nonDE",step_count),
-                         output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
-                         write_expr_matrix=TRUE)
-
-            }
-        }
+    }
 
         #if (include.spike) {
         #
@@ -921,55 +918,53 @@ run <- function(infercnv_obj,
         #}
 
 
-        if (denoise) {
-
-            ## ##############################
-            ## Step: de-noising
-
-            step_count = step_count + 1
-            flog.info(sprintf("\n\n\tSTEP %02d: Denoising\n", step_count))
-
-            if (! is.na(noise_filter)) {
-
-                if (noise_filter > 0) {
-                    flog.info(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
-                    infercnv_obj <- clear_noise(infercnv_obj,
-                                                threshold=noise_filter,
-                                                noise_logistic=noise_logistic)
-                }
-                else {
-                    ## noise == 0 or negative...
-                    ## don't remove noise.
-                }
-
+    if (denoise) {
+        
+        ## ##############################
+        ## Step: de-noising
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Denoising\n", step_count))
+        
+        if (! is.na(noise_filter)) {
+            
+            if (noise_filter > 0) {
+                flog.info(paste("::process_data:Remove noise, noise threshold at: ", noise_filter))
+                infercnv_obj <- clear_noise(infercnv_obj,
+                                            threshold=noise_filter,
+                                            noise_logistic=noise_logistic)
             }
             else {
-                ## default, use quantiles, if NA
-                flog.info(paste("::process_data:Remove noise, noise threshold defined via ref mean sd_amplifier: ", sd_amplifier))
-                infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj,
-                                                            sd_amplifier = sd_amplifier,
-                                                            noise_logistic=noise_logistic)
+                ## noise == 0 or negative...
+                ## don't remove noise.
             }
-
-            saveRDS(infercnv_obj,
-                    file=file.path(out_dir, sprintf("%02d_denoise.infercnv_obj", step_count)))
-
-
-            if (plot_steps){
-
-                plot_cnv(infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         color_safe_pal=FALSE,
-                         title=sprintf("%02d_denoised", step_count),
-                         output_filename=sprintf("infercnv.%02d_denoised", step_count),
-                         write_expr_matrix=TRUE)
-
-            }
-        } # end of non-HMM opts
+            
+        }
+        else {
+            ## default, use quantiles, if NA
+            flog.info(paste("::process_data:Remove noise, noise threshold defined via ref mean sd_amplifier: ", sd_amplifier))
+            infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj,
+                                                        sd_amplifier = sd_amplifier,
+                                                        noise_logistic=noise_logistic)
+        }
+        
+        saveRDS(infercnv_obj,
+                file=file.path(out_dir, sprintf("%02d_denoise.infercnv_obj", step_count)))
+        
+        
+        plot_cnv(infercnv_obj,
+                 k_obs_groups=k_obs_groups,
+                 cluster_by_groups=cluster_by_groups,
+                 out_dir=out_dir,
+                 color_safe_pal=FALSE,
+                 title=sprintf("%02d_denoised", step_count),
+                 output_filename=sprintf("infercnv.%02d_denoised", step_count),
+                 write_expr_matrix=TRUE)
+        
+        
+    
     }
-
+    
     saveRDS(infercnv_obj, file=file.path(out_dir, "run.final.infercnv_obj"))
 
     if (is.null(final_scale_limits)) {
