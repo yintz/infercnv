@@ -3,7 +3,7 @@
 define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, window_size=101) {
 
     ## the state of the infercnv object here should be:
-    ## log transformed, normal subtracted.
+    ## log transformed
     ## but *NOT* smoothed.
     ## TODO: -include check for smoothed property so will not run this if already smoothed.
         
@@ -16,8 +16,6 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     tumor_groups <- infercnv_obj@observation_grouped_cell_indices
     
     res = list()
-    
-    normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
     
     for (tumor_group in names(tumor_groups)) {
         

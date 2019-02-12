@@ -425,3 +425,6 @@ get_cell_name_by_grouping <- function(infercnv_obj) {
 }
 
 
+has_reference_cells <- function(infercnv_obj) {
+    return(length(infercnv_obj@reference_grouped_cell_indices) != 0)
+}

@@ -54,9 +54,14 @@
 
     flog.info("Adding h-spike")
 
-    normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
-
-    params = .estimateSingleCellParamsSplatterScrape(counts=infercnv_obj@count.data[,normal_cells_idx])
+    if (has_reference_cells(infercnv_obj)) {
+        normal_cells_idx = infercnv::get_reference_grouped_cell_indices(infercnv_obj)
+    } else {
+        normal_cells_idx = unlist(infercnv_obj@observation_grouped_cell_indices)
+        flog.info("-no normals defined, using all observation cells as proxy") 
+    }
+    
+    params = list()
 
 
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
@@ -88,10 +93,10 @@
     }
     
     ## simulate normals:
-    params[["nGenes"]] <- num_genes
-    params[["nCells"]] <- num_cells
-
     if (sim_method == 'splatter') {
+        params = .estimateSingleCellParamsSplatterScrape(counts=infercnv_obj@count.data[,normal_cells_idx])
+        params[["nGenes"]] <- num_genes
+        params[["nCells"]] <- num_cells
         sim.scExpObj = .simulateSingleCellCountsMatrixSplatterScrape(params, use.genes.means=gene_means)
 
         sim_normal_matrix = counts(sim.scExpObj)
@@ -107,7 +112,7 @@
         sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
 
     }
-
+    
     colnames(sim_normal_matrix) = paste0('simnorm_cell_', 1:num_cells)
     rownames(sim_normal_matrix) = rownames(gene_order)
 
