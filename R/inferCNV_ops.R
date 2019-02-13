@@ -14,9 +14,14 @@
 #'
 #' @param out_dir path to directory to deposit outputs (default: '.')
 #'
+#' ## Smoothing params
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
+#' @param smooth_mething Method to use for smoothing: c(runmeans,pyramidinal)  default: runmeans
+#'
+#' #####
+#' 
 #' @param num_ref_groups The number of reference groups or a list of
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs. (default: NULL)
@@ -122,8 +127,12 @@ run <- function(infercnv_obj,
                 min_cells_per_gene=3,
 
                 out_dir=".",
-                window_length=101,
 
+                                        #
+                ## smoothing params
+                window_length=101,
+                smooth_method=c('runmeans', 'pyramidinal'),
+                
                 num_ref_groups=NULL,
 
                 max_centered_threshold=3, # or set to a specific value or "auto", or NA to turn off
@@ -183,6 +192,7 @@ run <- function(infercnv_obj,
                 ) {
 
 
+    smooth_method = match.arg(smooth_method)
     HMM_report_by = match.arg(HMM_report_by)
     HMM_mode = match.arg(HMM_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
@@ -446,12 +456,17 @@ run <- function(infercnv_obj,
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
+        
+        if (smooth_method == 'runmeans') {
 
-        #infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+            infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj, window_length)
+        } else if (smooth_method == 'pyramidinal') {
 
-        infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj, window_length)
-
-
+            infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+        } else {
+            stop(sprintf("Error, don't recognize smoothing method: %s", smooth_method))
+        }
+        
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
         ## Plot incremental steps.
