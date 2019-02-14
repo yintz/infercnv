@@ -36,10 +36,7 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
     
     tumor_groupings = infercnv_obj@observation_grouped_cell_indices
 
-    #if (subcluster==TRUE) {
-    #    tumor_groupings = subcluster_tumors(infercnv_obj, tumor_groupings, cut_tree_height_ratio, hclust_method)
-    #}
-    
+        
     all_DE_results = get_DE_genes_basic(infercnv_obj,
                                         p_val_thresh=p_val_thresh,
                                         test.use=test.use)
@@ -50,10 +47,10 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
     
     infercnv_obj <- .mask_DE_genes(infercnv_obj,
                                    tumor_groupings,
-                                   all_DE_results,
+                                   all_DE_results=all_DE_results,
                                    mask_val=center_val,
                                    require_DE_all_normals=require_DE_all_normals)
-
+    
     return(infercnv_obj)
 }
 
