@@ -5,7 +5,8 @@
 \title{CreateInfercnvObject}
 \usage{
 CreateInfercnvObject(raw_counts_matrix, gene_order_file, annotations_file,
-  ref_group_names, delim = "\\t", max_cells_per_group = NULL)
+  ref_group_names, delim = "\\t", max_cells_per_group = NULL,
+  chr_exclude = c("chrX", "chrY", "chrM"))
 }
 \arguments{
 \item{raw_counts_matrix}{the matrix of genes (rows) vs. cells (columns) containing the raw counts

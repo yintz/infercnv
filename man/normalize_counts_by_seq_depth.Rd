@@ -15,6 +15,5 @@ normalize_counts_by_seq_depth(infercnv_obj, normalize_factor = NA)
 Normalizes count data by total sum scaling
 
 For single cell data, a typical normalization factor is 1e5, providing counts per 100k total counts.
-If a normalization factor is not provided, one is estimated based on:
-    10^round(log10(mean(column_sums)))
+If a normalization factor is not provided, the median lib size is used.:
 }

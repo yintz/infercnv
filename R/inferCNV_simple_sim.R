@@ -62,8 +62,8 @@
 ##' @noRd
 ##'
 
-.sim_expr_val <- function(m,  dropout_logistic_params, common_dispersion, use_spline=TRUE) {
-
+.sim_expr_val <- function(m,  dropout_logistic_params, common_dispersion=0.1, use_spline=TRUE) {
+    
     # include drop-out prediction
 
     val = 0
@@ -86,7 +86,7 @@
             if (use_spline) {
                 dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
             } else {
-                dropout_prob <- .logistic(x=log(val), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
+                dropout_prob <- .logistic_midpt_slope(x=log(val), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
             }
             if (runif(1) <= dropout_prob) {
                 ## a drop-out

@@ -9,7 +9,7 @@ Divides tumor groupings according to clades by cutting the hierarchical cluster 
 .subcluster_tumors_general(infercnv_obj, cluster_by_groups = TRUE,
   tumor_groupings = infercnv_obj@observation_grouped_cell_indices,
   cut_tree_height_ratio = 0.9, hclust_method = "ward.D",
-  min_median_tree_height_ratio = 2.5)
+  min_median_tree_height_ratio = 2.5, recursive = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{}
