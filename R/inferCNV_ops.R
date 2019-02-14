@@ -143,7 +143,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering opts
                 HMM_mode=c('subclusters', 'samples', 'cells'),
                 tumor_subcluster_pval=0.05,
-                tumor_subcluster_partition_method=c('qnorm', 'random_trees', 'pheight', 'qgamma', 'shc'),
+                tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
                 
                 ## some experimental params
@@ -708,8 +708,8 @@ run <- function(infercnv_obj,
         ## ##################################
         
         hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))
-        saveRDS(hmm.infercnv_obj, file=infercnv_obj_file)
-
+        saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
+        
         ## report predicted cnv regions:
         generate_cnv_region_reports(hmm.infercnv_obj,
                                     output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
