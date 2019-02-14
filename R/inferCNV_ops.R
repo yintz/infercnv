@@ -1627,21 +1627,22 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         return(data)
     }
 
-    num_genes <- nrow(data)
-    flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
-
-                                        # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
-        # data_sm <- apply(data_sm,
+    ## Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
+    
     data_sm <- apply(data,
                      2,
                      .smooth_helper,
                      window_length=window_length)
-#                    tail_length=tail_length)
-
-    # Set back row and column names
+    
+    
+    ## Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
 
+
+    flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
+
+    
     return(data_sm)
 }
 
