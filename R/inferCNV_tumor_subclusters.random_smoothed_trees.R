@@ -123,13 +123,20 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     if (max_height_pval <= p_val) {
         ## keep on cutting.
         cut_height = mean(c(h[length(h)], h[length(h)-1]))
-        message(sprintf("cutting at height: %g",  cut_height))
+        flog.info(sprintf("cutting at height: %g",  cut_height))
         grps = cutree(h_obs, h=cut_height)
         print(grps)
         uniqgrps = unique(grps)
         
         message("unique grps: ", paste0(uniqgrps, sep=",", collapse=","))
-        
+
+        if (all(lapply(uniqgrps, function(grp) {
+            (sum(grps==grp) < min_cluster_size_recurse)
+        } ))) {
+            flog.warn("none of the split subclusters exceed min cluster size. Not recursing here.")
+            return(grps.adj)
+        }
+                
         for (grp in uniqgrps) {
             grp_idx = which(grps==grp)
             
@@ -151,7 +158,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
                                                                                         window_size=window_size,
                                                                                         min_cluster_size_recurse)
             } else {
-                message(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
+                flog.warn(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
             }
             
         }

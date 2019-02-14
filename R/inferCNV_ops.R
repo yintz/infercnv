@@ -141,11 +141,11 @@ run <- function(infercnv_obj,
                 ## HMM and tumor subclustering options
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
-                HMM_mode=c('samples', 'subclusters', 'cells'),
+                HMM_mode=c('subclusters', 'samples', 'cells'),
                 tumor_subcluster_pval=0.05,
-                tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
+                tumor_subcluster_partition_method=c('qnorm', 'random_trees', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
-
+                
                 ## some experimental params
                 #sim_method=c('meanvar', 'simple', 'splatter'), ## only meanvar supported, others experimental
                 sim_method='meanvar',

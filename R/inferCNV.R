@@ -117,8 +117,9 @@ CreateInfercnvObject <- function(raw_counts_matrix,
                                  annotations_file,
                                  ref_group_names,
                                  delim="\t",
-                                 max_cells_per_group=NULL) {
-
+                                 max_cells_per_group=NULL,
+                                 chr_exclude=c('chrX', 'chrY', 'chrM') ) {
+    
     ## input expression data
     if (class(raw_counts_matrix) == "character") {
         flog.info(sprintf("Parsing matrix: %s", raw_counts_matrix)) 
@@ -135,6 +136,9 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     flog.info(sprintf("Parsing gene order file: %s", gene_order_file))
     gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
     names(gene_order) <- c(C_CHR, C_START, C_STOP)
+    if (! is.null(chr_exclude)) {
+        gene_order = gene_order[-which(gene_order$chr %in% chr_exclude),]
+    }
     
     ## read annotations file
     flog.info(sprintf("Parsing cell annotations file: %s", annotations_file))
