@@ -29,9 +29,6 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
                                     test.use="wilcoxon",
                                     center_val=mean(infercnv_obj@expr.data),
                                     require_DE_all_normals="any"
-                                    #subcluster=TRUE,
-                                    #cut_tree_height_ratio=0.9,
-                                    #hclust_method="ward.D"
                                     ) {
     
     tumor_groupings = infercnv_obj@observation_grouped_cell_indices
@@ -46,7 +43,6 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
     
     
     infercnv_obj <- .mask_DE_genes(infercnv_obj,
-                                   tumor_groupings,
                                    all_DE_results=all_DE_results,
                                    mask_val=center_val,
                                    require_DE_all_normals=require_DE_all_normals)
