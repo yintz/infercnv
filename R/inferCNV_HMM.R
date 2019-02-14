@@ -714,3 +714,21 @@ Viterbi.dthmm.adj <- function (object, ...){
     return(y)
 }
 
+
+assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
+
+    expr.data = infercnv_obj@expr.data
+
+    expr.data[expr.data == 1] <- 0
+    expr.data[expr.data == 2] <- 0.5
+    expr.data[expr.data == 3] <- 1
+    expr.data[expr.data == 4] <- 1.5
+    expr.data[expr.data == 5] <- 2
+    expr.data[expr.data == 6] <- 3
+
+    infercnv_obj@expr.data <- expr.data
+
+    return(infercnv_obj)
+
+}
+

@@ -714,20 +714,45 @@ run <- function(infercnv_obj,
                                     out_dir=out_dir,
                                     by=HMM_report_by)
 
+        
+        
+        
+        if (plot_steps) {
+            
+            ## Plot HMM pred img
+            plot_cnv(infercnv_obj=hmm.infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_HMM_preds",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                     write_expr_matrix=TRUE,
+                     x.center=3,
+                     x.range=c(0,6)
+                     )
+        }
 
+        ## convert from states to representative  intensity values
+        
+        hmm.infercnv_obj <- assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
+
+        hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities.infercnv_obj", step_count))
+        saveRDS(hmm.infercnv_obj, file=infercnv_obj_file)
+        
         ## Plot HMM pred img
         plot_cnv(infercnv_obj=hmm.infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
                  out_dir=out_dir,
-                 title=sprintf("%02d_HMM_preds",step_count),
-                 output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                 title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
+                 output_filename=sprintf("infercnv.%02d_HMM_pred.repr_intensities",step_count),
                  write_expr_matrix=TRUE,
-                 x.center=3,
-                 x.range=c(0,6)
+                 x.center=1,
+                 x.range=c(-1,3)
                  )
     }
-
+    
+    
     ## all processes that are alternatives to the HMM prediction wrt DE analysis and/or denoising
     
     ## Step: Filtering significantly DE genes
