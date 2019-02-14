@@ -200,8 +200,10 @@ run <- function(infercnv_obj,
     
     if (debug) {
         flog.threshold(DEBUG)
+    } else {
+        flog.threshold(INFO)
     }
-
+    
     flog.info(paste("::process_data:Start", sep=""))
 
     if(out_dir != "." & !file.exists(out_dir)){
