@@ -787,30 +787,6 @@ run <- function(infercnv_obj,
         }
     }
 
-        #if (include.spike) {
-        #
-        #    step_count = step_count + 1
-        #    flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
-        #
-        #    ## normalize by spike
-        #    infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
-        #
-        #    saveRDS(infercnv_obj,
-        #            file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
-        #
-        #
-        #    if (plot_steps) {
-        #
-        #        plot_cnv(infercnv_obj,
-        #                 k_obs_groups=k_obs_groups,
-        #                 cluster_by_groups=cluster_by_groups,
-        #                 out_dir=out_dir,
-        #                 title=sprintf("%02d_scaled_by_spike",step_count),
-        #                 output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count),
-        #                 write_expr_matrix=TRUE)
-        #    }
-        #}
-
 
     if (denoise) {
         
