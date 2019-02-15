@@ -106,8 +106,15 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 .single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, window_size,
                                                                         max_recursion_depth,
-                                                                        min_cluster_size_recurse) {
+                                                                        min_cluster_size_recurse,
+                                                                        recursion_depth=1) {
 
+
+    if (recursion_depth > max_recursion_depth) {
+        flog.warn("-not exceeding max recursion depth.")
+        return(grps.adj)
+    }
+    
     tumor_clade_name = unique(grps.adj[names(grps.adj) %in% colnames(tumor_expr_data)])
     message("unique tumor clade name: ", tumor_clade_name)
     if (length(tumor_clade_name) > 1) {
@@ -140,7 +147,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
         message("unique grps: ", paste0(uniqgrps, sep=",", collapse=","))
 
-        if (all(lapply(uniqgrps, function(grp) {
+        if (all(sapply(uniqgrps, function(grp) {
             (sum(grps==grp) < min_cluster_size_recurse)
         } ))) {
             flog.warn("none of the split subclusters exceed min cluster size. Not recursing here.")
@@ -166,7 +173,9 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
                                                                                         p_val=p_val,
                                                                                         grps.adj=grps.adj,
                                                                                         window_size=window_size,
-                                                                                        min_cluster_size_recurse)
+                                                                                        max_recursion_depth=max_recursion_depth,
+                                                                                        min_cluster_size_recurse=min_cluster_size_recurse,
+                                                                                        recursion_depth = recursion_depth + 1 )
             } else {
                 flog.warn(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
             }

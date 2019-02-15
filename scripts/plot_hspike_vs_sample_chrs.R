@@ -21,10 +21,7 @@ gene_order = cbind(gene_order, gene=rownames(gene_order))
 
 cnv_to_expr_vals = list()
 
-pdf(sprintf("%s.cnv_expr_densities_each_chr.pdf", infercnv_obj_file))
-
 expr.data <- infercnv_obj@expr.data
-
 
 cnv_mean_sd = infercnv:::get_spike_dists(infercnv_obj@.hspike)
 
@@ -33,7 +30,7 @@ chrs = unique(infercnv_obj@gene_order$chr)
 samples = names(infercnv_obj@observation_grouped_cell_indices)
 
 for (sample in samples) {
-    pdf_name = sprintf("%s-%s.dists.pdf", infercnv_obj_file, sample)
+    pdf_name = sprintf("%s-%s.cnv_expr_densities_each_chr.pdf", infercnv_obj_file, sample)
     pdf(pdf_name)
 
     message(sprintf("plotting sample: %s", sample))
