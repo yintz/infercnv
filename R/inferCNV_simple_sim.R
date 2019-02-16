@@ -204,7 +204,7 @@
 
     df = data.frame(x,y)
 
-    write.table(df, "_logistic_params", quote=F, sep="\t")  # debugging...
+    # write.table(df, "_logistic_params", quote=F, sep="\t")  # debugging...
 
     fit <- nls(y ~ .logistic_midpt_slope(x, midpt = x0, slope = k),
                data = df,
