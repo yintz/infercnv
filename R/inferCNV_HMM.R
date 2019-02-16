@@ -542,7 +542,13 @@ generate_cnv_region_reports <- function(infercnv_obj,
     gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
     flog.info(sprintf("-writing per-gene cnv report: %s", gene_cnv_outfile))
     write.table(gene_cnv_df, gene_cnv_outfile, row.names=F, sep="\t", quote=F)
-        
+
+    ## write file containing all genes that were leveraged in the predictions:
+    gene_order_outfile = paste(out_dir, paste0(output_filename_prefix, ".genes_used.dat"), sep="/")
+    flog.info(sprintf("-writing gene ordering info: %s", gene_order_outfile))
+    write.table(infercnv_obj@gene_order, file=gene_order_outfile, quote=F, sep="\t")
+    
+    
     return
     
 }

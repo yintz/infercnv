@@ -18,7 +18,7 @@
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
-#' @param smooth_mething Method to use for smoothing: c(runmeans,pyramidinal)  default: runmeans
+#' @param smooth_mething Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
 #'
 #' #####
 #' 
@@ -131,7 +131,7 @@ run <- function(infercnv_obj,
                                         #
                 ## smoothing params
                 window_length=101,
-                smooth_method=c('runmeans', 'pyramidinal'),
+                smooth_method=c('pyramidinal', 'runmeans'),
                 
                 num_ref_groups=NULL,
 
@@ -739,7 +739,7 @@ run <- function(infercnv_obj,
         hmm.infercnv_obj <- assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
 
         hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities.infercnv_obj", step_count))
-        saveRDS(hmm.infercnv_obj, file=infercnv_obj_file)
+        saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
         
         ## Plot HMM pred img
         plot_cnv(infercnv_obj=hmm.infercnv_obj,
