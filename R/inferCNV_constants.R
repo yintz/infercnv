@@ -14,7 +14,6 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom graphics abline axis boxplot hist image layout lines mtext par plot points rect text title legend
 #' @importFrom stats as.dendrogram as.dist cutree density dist filter median order.dendrogram quantile reorder sd complete.cases cor t.test p.adjust predict rnorm runif smooth.spline var wilcox.test
 #' @importFrom utils flush.console read.table write.table tail
-#' @importFrom binhf ansc
 #' @import futile.logger
 #' @importFrom methods setClass new is
 #' @importFrom gplots bluered
@@ -22,7 +21,6 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom fastcluster hclust
 #' @import RColorBrewer
 #' @importFrom Matrix Matrix rowMeans colSums
-#' @import coin
 #' @importFrom dplyr %>% count
 #' @import fitdistrplus
 

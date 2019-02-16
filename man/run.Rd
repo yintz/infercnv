@@ -5,11 +5,11 @@
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
 run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
-  window_length = 101, smooth_method = c("runmeans", "pyramidinal"),
+  window_length = 101, smooth_method = c("pyramidinal", "runmeans"),
   num_ref_groups = NULL, max_centered_threshold = 3, HMM = FALSE,
   HMM_mode = c("subclusters", "samples", "cells"),
   tumor_subcluster_pval = 0.05,
-  tumor_subcluster_partition_method = c("qnorm", "random_trees",
+  tumor_subcluster_partition_method = c("random_trees", "qnorm",
   "pheight", "qgamma", "shc"), HMM_report_by = c("subcluster",
   "consensus", "cell"), sim_method = "meanvar", sim_foreground = FALSE,
   denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
@@ -125,7 +125,7 @@ the mean value for the complete data set (default: 0.05)}
 
 \item{final_center_val}{Center value for final heatmap output by the run() method.}
 
-\item{smooth_mething}{Method to use for smoothing: c(runmeans,pyramidinal)  default: runmeans
+\item{smooth_mething}{Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
 
 #####}
 }
