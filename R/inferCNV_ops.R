@@ -115,6 +115,8 @@
 #'
 #' @param debug If true, output debug level logging.
 #'
+#' @param num_threads (int) number of threads for parallel steps (default: 4)
+#' 
 #' @return infercnv_obj containing filtered and transformed data
 #'
 #' @export
@@ -188,7 +190,7 @@ run <- function(infercnv_obj,
                 
                 reuse_subtracted = TRUE,
 
-                num_threads = 1
+                num_threads = 4
 
 
                 ) {
