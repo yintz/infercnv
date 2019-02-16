@@ -10,6 +10,11 @@ C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcq
 C_OUTPUT_FORMAT <- c("pdf", "png")
 
 
+## also including some globals:
+infercnv.env <- new.env()
+infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
+
+
 #' @importFrom grDevices col2rgb colorRampPalette dev.off pdf png rgb
 #' @importFrom graphics abline axis boxplot hist image layout lines mtext par plot points rect text title legend
 #' @importFrom stats as.dendrogram as.dist cutree density dist filter median order.dendrogram quantile reorder sd complete.cases cor t.test p.adjust predict rnorm runif smooth.spline var wilcox.test
@@ -23,6 +28,9 @@ C_OUTPUT_FORMAT <- c("pdf", "png")
 #' @importFrom Matrix Matrix rowMeans colSums
 #' @importFrom dplyr %>% count
 #' @import fitdistrplus
+#' @import doParallel
+#' @import future
+
 
 NULL
 

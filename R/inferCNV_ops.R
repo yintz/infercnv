@@ -186,7 +186,9 @@ run <- function(infercnv_obj,
                 final_scale_limits = NULL,
                 final_center_val = NULL,
                 
-                reuse_subtracted = TRUE
+                reuse_subtracted = TRUE,
+
+                num_threads = 1
 
 
                 ) {
@@ -206,6 +208,7 @@ run <- function(infercnv_obj,
     
     flog.info(paste("::process_data:Start", sep=""))
 
+    infercnv.env$GLOBAL_NUM_THREADS <- num_threads
     if(out_dir != "." & !file.exists(out_dir)){
         dir.create(out_dir)
     }

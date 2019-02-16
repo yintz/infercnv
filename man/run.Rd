@@ -20,7 +20,7 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   mask_nonDE_pval = 0.05, test.use = "wilcoxon",
   require_DE_all_normals = "any", plot_steps = FALSE, debug = FALSE,
   prune_outliers = FALSE, final_scale_limits = NULL,
-  final_center_val = NULL, reuse_subtracted = TRUE)
+  final_center_val = NULL, reuse_subtracted = TRUE, num_threads = 1)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}

@@ -190,7 +190,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 }
 
 
-.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=T) {
+.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=F) {
     
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
@@ -216,11 +216,19 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         df
     }
     
-    h_rand_ex = NULL
-    max_rand_heights = c()
+    
+    flog.info(sprintf("random trees, using %g parallel threads", infercnv.env$GLOBAL_NUM_THREADS))
+    if (infercnv.env$GLOBAL_NUM_THREADS > future::availableCores()) {
+        flog.warn(sprintf("not enough cores available, setting to num avail cores: %g", future::availableCores()))
+        infercnv.env$GLOBAL_NUM_THREADS <- future::availableCores()
+    }
+    
+    library(doParallel)
+    registerDoParallel(cores=infercnv.env$GLOBAL_NUM_THREADS)
     num_rand_iters=100
-    for (i in 1:num_rand_iters) {
-        #message(sprintf("iter i:%d", i))
+    max_rand_heights <- foreach (i=1:num_rand_iters) %dopar% {
+        #message("rand iteration: ", i)
+        
         rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))
         
         ## smooth it and re-center:
@@ -229,12 +237,15 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
         rand.dist = dist(t(sm.rand.tumor.expr.data))
         h_rand <- hclust(rand.dist, method=hclust_method)
-        h_rand_ex = h_rand
-        max_rand_heights = c(max_rand_heights, max(h_rand$height))
+        max_rand_height <- max(h_rand$height)
+
+        max_rand_height
     }
     
+    max_rand_heights <- as.numeric(max_rand_heights)
+    
     h = h_obs$height
-
+    
     max_height = max(h)
     
     message(sprintf("Lengths for original tree branches (h): %s", paste(h, sep=",", collapse=",")))
@@ -250,8 +261,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     params_list <- list(h_obs=h_obs,
                         max_h=max_height,
                         rand_max_height_dist=max_rand_heights,
-                        ecdf=e,
-                        h_rand_ex = h_rand_ex
+                        ecdf=e
                         )
     
     if (plot) {
@@ -266,8 +276,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 .plot_tree_height_dist <- function(params_list, plot_title='tree_heights') {
 
-    mf = par(mfrow=(c(3,1)))
-
+    mf = par(mfrow=(c(2,1)))
+    
     ## density plot
     rand_height_density = density(params_list$rand_max_height_dist)
     
@@ -281,12 +291,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     h_obs = params_list$h_obs
     h_obs$labels <- NULL #because they're too long to display
     plot(h_obs)
-    
-    ## plot a random example:
-    h_rand_ex = params_list$h_rand_ex
-    h_rand_ex$labels <- NULL
-    plot(h_rand_ex)
-            
+                
     par(mf)
         
 }

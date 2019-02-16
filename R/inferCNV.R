@@ -29,7 +29,7 @@
 #'
 #' @slot .hspike a hidden infercnv object populated with simulated spiked-in data
 #' 
-#' @export .hspike 
+#' @export
 #'
 
 infercnv <- methods::setClass(
