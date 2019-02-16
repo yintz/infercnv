@@ -735,9 +735,13 @@ run <- function(infercnv_obj,
         }
 
         ## convert from states to representative  intensity values
+
+        ## 
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Converting HMM-based CNV states to repr expr vals\n", step_count))
         
         hmm.infercnv_obj <- assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
-
+        
         hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities.infercnv_obj", step_count))
         saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
         
