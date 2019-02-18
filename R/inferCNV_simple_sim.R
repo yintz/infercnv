@@ -73,18 +73,8 @@
 
         if ( (! is.null(dropout_logistic_params)) & val > 0) {
 
-            #message(sprintf("log(m) %g -> spline: %g, logistic: %g\n", log(m),
-            #                predict(dropout_logistic_params$spline, log(m))$y[1],
-            #                .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
-            #                )
-            #        )
-
-            #if (abs( predict(dropout_logistic_params$spline, log(m))$y[1] - .logistic(x=log(m), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)) > 0.5) {
-            #    stop("Error!!")
-            #}
-
             if (use_spline) {
-                dropout_prob <- predict(dropout_logistic_params$spline, log(m))$y[1]
+                dropout_prob <- predict(dropout_logistic_params$spline, log(val))$y[1]
             } else {
                 dropout_prob <- .logistic_midpt_slope(x=log(val), midpt=dropout_logistic_params$midpt, slope=dropout_logistic_params$slope)
             }
