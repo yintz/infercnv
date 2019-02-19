@@ -26,6 +26,9 @@
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs. (default: NULL)
 #'
+#' @param ref_subtract_use_mean_bounds   Determine means separately for each ref group, then remove intensities within bounds of means (default: TRUE)
+#'                                       Otherwise, uses mean of the means across groups.
+#'
 #' #############################
 #'
 #' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
@@ -53,6 +56,8 @@
 #'
 #' @param HMM_mode options(samples|cells|subclusters), default: samples (fastest, but subclusters is ideal)
 #'
+#' @param HMM_transition_prob   transition probability in HMM (default: 1e-6)
+#' 
 #' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
 #'
 #'
@@ -136,7 +141,8 @@ run <- function(infercnv_obj,
                 smooth_method=c('pyramidinal', 'runmeans'),
                 
                 num_ref_groups=NULL,
-
+                ref_subtract_use_mean_bounds=TRUE,
+                
                 max_centered_threshold=3, # or set to a specific value or "auto", or NA to turn off
 
 
@@ -144,6 +150,7 @@ run <- function(infercnv_obj,
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
                 HMM_mode=c('subclusters', 'samples', 'cells'),
+                HMM_transition_prob=1e-6,
                 tumor_subcluster_pval=0.05,
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
@@ -345,7 +352,7 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
 
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.%s.infercnv_obj", step_count, tumor_subcluster_partition_method))
-
+        
         if (reuse_subtracted && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
@@ -387,7 +394,7 @@ run <- function(infercnv_obj,
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE)
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
 
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
@@ -536,7 +543,7 @@ run <- function(infercnv_obj,
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE)
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
 
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
@@ -700,12 +707,12 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
         if (HMM_mode == 'subclusters') {
-            hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method, t=HMM_transition_prob)
         } else if (HMM_mode == 'cells') {
-            hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj, t=HMM_transition_prob)
         } else {
             ## samples mode
-            hmm.infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, t=HMM_transition_prob)
         }
         
         ## ##################################
@@ -951,7 +958,7 @@ ngchm <- function(infercnv_obj,
 #' @export
 #'
 
-subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
+subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=TRUE) {
                                             # r = genes, c = cells
     flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
 
@@ -963,30 +970,27 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
         ref_groups = list('proxyNormal' = unlist(infercnv_obj@observation_grouped_cell_indices))
         flog.info("-no reference cells specified... using mean of all cells as proxy")
     }
+
+    ref_grp_gene_means <- .get_normal_gene_mean_bounds(infercnv_obj@expr.data, ref_groups, inv_log=inv_log)
     
-    subtr_data <- .subtract_expr(infercnv_obj@expr.data, ref_groups, inv_log)
-
-    colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
-
-    infercnv_obj@expr.data <- subtr_data
-
-
+    infercnv_obj@expr.data <- .subtract_expr(infercnv_obj@expr.data, ref_grp_gene_means, inv_log=inv_log, use_bounds=use_bounds)
+    
     if (! is.null(infercnv_obj@.hspike)) {
         flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- subtract_ref_expr_from_obs(infercnv_obj@.hspike, inv_log)
+        infercnv_obj@.hspike <- subtract_ref_expr_from_obs(infercnv_obj@.hspike, inv_log=inv_log, use_bounds=use_bounds)
     }
-
-
+    
     return(infercnv_obj)
-
+    
 }
 
-.subtract_expr <- function(expr_matrix, ref_groups, inv_log=FALSE) {
 
-    subtract_normal_expr_fun <- function(x) {
 
-        grp_min = NA
-        grp_max = NA
+.get_normal_gene_mean_bounds <- function(expr.data, ref_groups, inv_log=FALSE) {
+
+    get_indiv_gene_group_means_bounds_fun <- function(x) {
+
+        grp_means = c()
 
         for (ref_group in ref_groups) {
 
@@ -996,24 +1000,59 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
                 ref_grp_mean = mean(x[ref_group])
             }
 
-            grp_min = min(grp_min, ref_grp_mean, na.rm=T)
-            grp_max = max(grp_max, ref_grp_mean, na.rm=T)
+            grp_means = c(grp_means, ref_grp_mean)
 
         }
+        
+        names(grp_means) <- names(ref_groups)
+        
+        return(as.data.frame(t(data.frame(grp_means))))
+    }
+    
+    gene_ref_grp_means <- do.call(rbind, apply(expr.data, 1, get_indiv_gene_group_means_bounds_fun))
 
-        row_init = rep(0, length(x))
+    rownames(gene_ref_grp_means) <- rownames(expr.data)
+    
+    return(gene_ref_grp_means)
+}
 
+
+
+.subtract_expr <- function(expr_matrix, ref_grp_gene_means, inv_log=FALSE, use_bounds=TRUE) {
+
+    my.rownames = rownames(expr_matrix)
+    my.colnames = colnames(expr_matrix)
+
+    flog.info(sprintf("-subtracting expr per gene, use_bounds=%s", use_bounds))
+    
+    subtract_normal_expr_fun <- function(row_idx) {
+
+        gene_means <- as.numeric(ref_grp_gene_means[row_idx, , drop=T])
+
+        if (use_bounds) {
+            
+            grp_min = min(gene_means)
+            grp_max = max(gene_means)
+        } else {
+            grp_min = grp_max = mean(gene_means)
+        }
+        
+        x <- as.numeric(expr_matrix[row_idx, , drop=T])
+        
         above_max = which(x>grp_max)
         below_min = which(x<grp_min)
 
+        row_init <- x
         row_init[above_max] <- x[above_max] - grp_max
         row_init[below_min] <- x[below_min] - grp_min
 
         return(row_init)
     }
-
-    subtr_data <- t(apply(expr_matrix, 1, subtract_normal_expr_fun))
-
+    
+    subtr_data <- do.call(rbind, lapply(1:nrow(expr_matrix), subtract_normal_expr_fun))
+    rownames(subtr_data) <- my.rownames
+    colnames(subtr_data) <- my.colnames
+    
     return(subtr_data)
 
 }
