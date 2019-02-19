@@ -14,7 +14,7 @@ infercnv_obj_file = args$infercnv_obj
 
 infercnv_obj = readRDS(infercnv_obj_file)
 
-pdf('ladeda.pdf')
+pdf(sprintf("%s.chr_lineplots.pdf", infercnv_obj_file))
 
 normal_groups = infercnv_obj@reference_grouped_cell_indices
 tumor_groups = infercnv_obj@observation_grouped_cell_indices
@@ -23,7 +23,9 @@ expr.data = infercnv_obj@expr.data
 
 num_tumor_groups = length(tumor_groups)
 
-par(mfrow=c(num_tumor_groups, 1))
+windowsizes = c(25,50,75,100)
+num_windowsizes = length(windowsizes)
+par(mfrow=c(num_windowsizes, 1))
 
 library(tidyverse)
 
@@ -70,7 +72,7 @@ plot_chr_smooths <- function(tumor_type) {
     
     tumor_pts = tumor_groups[[tumor_type]]
     
-    windowsizes = c(25,50,75,100)
+    
     for (windowsize in windowsizes) {
         message(sprintf("\t-plotting %s", tumor_type))
 
