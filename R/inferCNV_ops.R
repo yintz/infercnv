@@ -197,9 +197,10 @@ run <- function(infercnv_obj,
                 
                 reuse_subtracted = TRUE,
 
-                num_threads = 4
-
-
+                num_threads = 4,
+                
+                hspike_aggregate_normals = FALSE
+                
                 ) {
 
 
@@ -274,8 +275,8 @@ run <- function(infercnv_obj,
         infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj)
 
         # add in the hidden spike needed by the HMM
-        infercnv_obj <- .build_and_add_hspike(infercnv_obj, sim_method=sim_method)
-
+        infercnv_obj <- .build_and_add_hspike(infercnv_obj, sim_method=sim_method, aggregate_normals=hspike_aggregate_normals)
+        
         if (sim_foreground) {
             infercnv_obj <- .sim_foreground(infercnv_obj, sim_method=sim_method)
         }

@@ -1,28 +1,29 @@
 
 
-.build_and_add_hspike <- function(infercnv_obj, sim_method=c('splatter', 'simple', 'meanvar')) {
-
+.build_and_add_hspike <- function(infercnv_obj, sim_method=c('splatter', 'simple', 'meanvar'), aggregate_normals=FALSE) {
+    
     sim_method = match.arg(sim_method)
 
     flog.info("Adding h-spike")
 
     if (has_reference_cells(infercnv_obj)) {
-        normal_cells_idx_lists = infercnv_obj@reference_grouped_cell_indices
+        if (aggregate_normals) {
+            ## for experimental use / data exploration
+            normal_cells_idx_lists = list();
+            normal_cells_idx_lists[[ 'normalsToUse' ]] = unlist(infercnv_obj@reference_grouped_cell_indices)
+        } else {
+            ## the usual method to use
+            normal_cells_idx_lists = infercnv_obj@reference_grouped_cell_indices
+        }
     } else {
+        ## the reference-less case:
         idx = unlist(infercnv_obj@observation_grouped_cell_indices)
         normal_cells_idx_lists = list()
         normal_cells_idx_lists[[ 'normalsToUse' ]] = idx 
         flog.info("-no normals defined, using all observation cells as proxy") 
     }
 
-
-    ############# DEBUGGING!!!
-    #normal_cells_idx_lists = list(); normal_cells_idx_lists[[ 'normalsToUse' ]] = unlist(infercnv_obj@reference_grouped_cell_indices) #### DEBUGGING
-    ############# EODEBUGGING !!!
-    
-    
     params = list()
-
 
     ## build a fake genome with fake chromosomes, alternate between 'normal' and 'variable' regions.
 
