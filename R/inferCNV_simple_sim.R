@@ -118,7 +118,7 @@
     mean_p0_table = NULL
 
     for (group_name in names(cell_groupings)) {
-        flog.info(sprintf("processing group: %s", group_name))
+        #flog.info(sprintf("processing group: %s", group_name))
         expr.data = expr.matrix[, cell_groupings[[ group_name ]] ]
 
         group_mean_p0_table <- .get_mean_vs_p0_from_matrix(expr.data)

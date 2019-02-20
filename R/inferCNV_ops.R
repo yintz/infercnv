@@ -343,11 +343,11 @@ run <- function(infercnv_obj,
         }
 
     }
-
-
-
+    
+    
+    
     if (HMM_mode == 'subclusters' & tumor_subcluster_partition_method == 'random_trees') {
-
+        
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
 
@@ -958,10 +958,10 @@ ngchm <- function(infercnv_obj,
 #' @export
 #'
 
-subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=TRUE) {
+subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=FALSE) {
                                             # r = genes, c = cells
-    flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
-
+    flog.info(sprintf("::subtract_ref_expr_from_obs:Start inv_log=%s, use_bounds=%s", inv_log, use_bounds))
+    
 
     if (has_reference_cells(infercnv_obj)) {
         ref_groups = infercnv_obj@reference_grouped_cell_indices
@@ -1018,7 +1018,7 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
 
 
 
-.subtract_expr <- function(expr_matrix, ref_grp_gene_means, inv_log=FALSE, use_bounds=TRUE) {
+.subtract_expr <- function(expr_matrix, ref_grp_gene_means, inv_log=FALSE, use_bounds=FALSE) {
 
     my.rownames = rownames(expr_matrix)
     my.colnames = colnames(expr_matrix)
@@ -1029,23 +1029,30 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
 
         gene_means <- as.numeric(ref_grp_gene_means[row_idx, , drop=T])
 
+        gene_means_mean <- mean(gene_means)
+        
+        x <- as.numeric(expr_matrix[row_idx, , drop=T])
+        
+        row_init = rep(0, length(x))
+        
         if (use_bounds) {
             
             grp_min = min(gene_means)
             grp_max = max(gene_means)
+
+            above_max = which(x>grp_max)
+            below_min = which(x<grp_min)
+                    
+            row_init[above_max] <- x[above_max] - grp_max
+            row_init[below_min] <- x[below_min] - grp_min
+            ## note, in-between values are left at zero!
+            
         } else {
-            grp_min = grp_max = mean(gene_means)
+            
+            row_init <- x - gene_means_mean
+
         }
-        
-        x <- as.numeric(expr_matrix[row_idx, , drop=T])
-        
-        above_max = which(x>grp_max)
-        below_min = which(x<grp_min)
-
-        row_init <- x
-        row_init[above_max] <- x[above_max] - grp_max
-        row_init[below_min] <- x[below_min] - grp_min
-
+                
         return(row_init)
     }
     

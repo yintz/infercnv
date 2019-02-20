@@ -665,7 +665,10 @@ Viterbi.dthmm.adj <- function (object, ...){
     
     ## ###############################
     ## restrict to constant variance to avoid nonsensical results:
-    object$pm$sd = max(object$pm$sd)
+
+    ## object$pm$sd = max(object$pm$sd)
+    object$pm$sd = median(object$pm$sd) # max is too high
+    
     ## ###############################    
 
 

@@ -14,6 +14,12 @@
         normal_cells_idx_lists[[ 'normalsToUse' ]] = idx 
         flog.info("-no normals defined, using all observation cells as proxy") 
     }
+
+
+    ############# DEBUGGING!!!
+    #normal_cells_idx_lists = list(); normal_cells_idx_lists[[ 'normalsToUse' ]] = unlist(infercnv_obj@reference_grouped_cell_indices) #### DEBUGGING
+    ############# EODEBUGGING !!!
+    
     
     params = list()
 
@@ -50,8 +56,11 @@
         normal_cells_expr = infercnv_obj@expr.data[,normal_cells_idx]
         gene_means_orig = rowMeans(normal_cells_expr)
         gene_means = gene_means_orig[genes_means_use_idx]
+
+        write.table(gene_means, sprintf("gene_means.before.%s",sub(pattern="[^A-Za-z0-9]", replacement="_",  x=normal_type, perl=T)), quote=F, sep="\t", row.names=F, col.names=F);
         
         gene_means[gene_means==0] = 1e-3 # just make small nonzero values
+
         
         names(gene_means) = rownames(gene_order)        
         

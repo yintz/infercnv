@@ -196,7 +196,7 @@
     mean_var_table <- NULL
 
     for (group_name in names(cell_cluster_groupings)) {
-        flog.info(sprintf("processing group: %s", group_name))
+        
         expr.data = expr.matrix[, cell_cluster_groupings[[ group_name ]] ]
         m = rowMeans(expr.data)
         v = apply(expr.data, 1, var)
