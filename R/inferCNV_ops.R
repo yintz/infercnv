@@ -335,32 +335,35 @@ run <- function(infercnv_obj,
 
     if (scale_data) {
 
-        infercnv_obj <- scale_infercnv_expr(infercnv_obj)
-
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: scaling all expression data\n", step_count))
 
         infercnv_obj_file=file.path(out_dir, sprintf("%02d_scaled%s.infercnv_obj", step_count, resume_file_token))
+
+        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            
+            infercnv_obj <- scale_infercnv_expr(infercnv_obj)
         
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
 
-        ## Plot incremental steps.
-        if (plot_steps){
-
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_scaled",step_count),
-                     output_filename=sprintf("infercnv.%02d_scaled",step_count),
-                     write_expr_matrix=TRUE)
-
+            ## Plot incremental steps.
+            if (plot_steps){
+                
+                plot_cnv(infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_scaled",step_count),
+                         output_filename=sprintf("infercnv.%02d_scaled",step_count),
+                         write_expr_matrix=TRUE)
+                
+            }
         }
-
     }
-
-
-
+    
     
     ## #################################################
     ## Step: Split the reference data into groups if requested
@@ -824,6 +827,10 @@ run <- function(infercnv_obj,
     
     ## Step: Filtering significantly DE genes
     if (mask_nonDE_genes) {
+
+        if (!has_reference_cells(infercnv_obj)) {
+            stop("Error, cannot mask non-DE genes when there are no normal references set")
+        }
         
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: Identify and mask non-DE genes\n", step_count))
@@ -1530,11 +1537,15 @@ clear_noise <- function(infercnv_obj, threshold, noise_logistic=FALSE) {
         return(infercnv_obj); # nothing to do
     }
 
-    ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
-    vals = infercnv_obj@expr.data[,ref_idx]
-
-    mean_ref_vals = mean(vals)
-
+    if (has_reference_cells(infercnv_obj)) {
+        ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
+        mean_ref_vals = mean(infercnv_obj@expr.data[,ref_idx])
+    } else {
+        ## no reference
+        ## use mean of all data
+        mean_ref_vals = mean(infercnv_obj@expr.data)
+    }
+    
     if (noise_logistic) {
 
         infercnv_obj <- depress_log_signal_midpt_val(infercnv_obj, mean_ref_vals, threshold)
