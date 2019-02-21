@@ -18,7 +18,7 @@
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
-#' @param smooth_mething Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
+#' @param smooth_method  Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
 #'
 #' #####
 #' 
@@ -43,18 +43,24 @@
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
 #' default("ward.D")
 #'
+#' @param analysis_mode options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
+#'                                                          default: samples (fastest, but subclusters is ideal)
+#'
 #' @param max_centered_threshold The maximum value a value can have after
 #'                                   centering. Also sets a lower bound of
 #'                                   -1 * this value. (default: 3),
 #'                               can set to a numeric value or "auto" to bound by the mean bounds across cells.
 #'                               Set to NA to turn off.
 #'
+#' @param scale_data  perform Z-scaling of logtransformed data (default: FALSE).  This may be turned on if you have
+#'                    very different kinds of data for your normal and tumor samples. For example, you need to use GTEx
+#'                    representative normal expression profiles rather than being able to leverage normal single cell data
+#'                    that goes with your experiment.
+#' 
 #' #########################################################################
 #' ## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters
 #'
 #' @param HMM  when set to True, runs HMM to predict CNV level (default: FALSE)
-#'
-#' @param HMM_mode options(samples|cells|subclusters), default: samples (fastest, but subclusters is ideal)
 #'
 #' @param HMM_transition_prob   transition probability in HMM (default: 1e-6)
 #' 
@@ -135,7 +141,8 @@ run <- function(infercnv_obj,
 
                 out_dir=".",
 
-                                        #
+                analysis_mode=c('samples', 'subclusters', 'cells'), # for filtering and HMM
+                        #
                 ## smoothing params
                 window_length=101,
                 smooth_method=c('pyramidinal', 'runmeans'),
@@ -149,7 +156,6 @@ run <- function(infercnv_obj,
                 ## HMM and tumor subclustering options
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
-                HMM_mode=c('subclusters', 'samples', 'cells'),
                 HMM_transition_prob=1e-6,
                 tumor_subcluster_pval=0.05,
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
@@ -159,7 +165,8 @@ run <- function(infercnv_obj,
                 #sim_method=c('meanvar', 'simple', 'splatter'), ## only meanvar supported, others experimental
                 sim_method='meanvar',
                 sim_foreground=FALSE, ## experimental
-                
+
+                scale_data=FALSE,
                 
                 ## noise settings
                 denoise=FALSE,
@@ -206,7 +213,7 @@ run <- function(infercnv_obj,
 
     smooth_method = match.arg(smooth_method)
     HMM_report_by = match.arg(HMM_report_by)
-    HMM_mode = match.arg(HMM_mode)
+    analysis_mode = match.arg(analysis_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
     #sim_method = match.arg(sim_method)
     
@@ -324,6 +331,37 @@ run <- function(infercnv_obj,
     }
 
 
+
+
+    if (scale_data) {
+
+        infercnv_obj <- scale_infercnv_expr(infercnv_obj)
+
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: scaling all expression data\n", step_count))
+
+        infercnv_obj_file=file.path(out_dir, sprintf("%02d_scaled%s.infercnv_obj", step_count, resume_file_token))
+        
+        saveRDS(infercnv_obj, file=infercnv_obj_file)
+
+        ## Plot incremental steps.
+        if (plot_steps){
+
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_scaled",step_count),
+                     output_filename=sprintf("infercnv.%02d_scaled",step_count),
+                     write_expr_matrix=TRUE)
+
+        }
+
+    }
+
+
+
+    
     ## #################################################
     ## Step: Split the reference data into groups if requested
 
@@ -352,7 +390,7 @@ run <- function(infercnv_obj,
     
     
     
-    if (HMM_mode == 'subclusters' & tumor_subcluster_partition_method == 'random_trees') {
+    if (analysis_mode == 'subclusters' & tumor_subcluster_partition_method == 'random_trees') {
         
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
@@ -634,7 +672,7 @@ run <- function(infercnv_obj,
     ## Done restoring infercnv_obj's from files now under reuse_subtracted
     ## ###################################################################
 
-    if (HMM_mode == 'subclusters' & tumor_subcluster_partition_method != 'random_trees') {
+    if (analysis_mode == 'subclusters' & tumor_subcluster_partition_method != 'random_trees') {
 
         resume_file_token = paste0(resume_file_token, '.', tumor_subcluster_partition_method)
         
@@ -715,9 +753,9 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
-        if (HMM_mode == 'subclusters') {
+        if (analysis_mode == 'subclusters') {
             hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method, t=HMM_transition_prob)
-        } else if (HMM_mode == 'cells') {
+        } else if (analysis_mode == 'cells') {
             hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj, t=HMM_transition_prob)
         } else {
             ## samples mode
@@ -728,7 +766,7 @@ run <- function(infercnv_obj,
         ## Note, HMM invercnv object is only leveraged here, but stored as file for future use:
         ## ##################################
 
-        hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", HMM_mode)
+        hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", analysis_mode)
         
         hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred%s.infercnv_obj", step_count, hmm_resume_file_token))
         saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
