@@ -14,12 +14,20 @@
 #'
 #' @param out_dir path to directory to deposit outputs (default: '.')
 #'
+#' ## Smoothing params
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
+#' @param smooth_mething Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
+#'
+#' #####
+#' 
 #' @param num_ref_groups The number of reference groups or a list of
 #'                           indices for each group of reference indices in
 #'                           relation to reference_obs. (default: NULL)
+#'
+#' @param ref_subtract_use_mean_bounds   Determine means separately for each ref group, then remove intensities within bounds of means (default: TRUE)
+#'                                       Otherwise, uses mean of the means across groups.
 #'
 #' #############################
 #'
@@ -48,13 +56,12 @@
 #'
 #' @param HMM_mode options(samples|cells|subclusters), default: samples (fastest, but subclusters is ideal)
 #'
+#' @param HMM_transition_prob   transition probability in HMM (default: 1e-6)
+#' 
 #' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
 #'
 #'
 #' @param HMM_report_by   cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
-#'
-#' @param sim_method    method used for simulating internal spike-ins and calibrating CNV levels.
-#'                      Options: c('meanvar','simple','splatter')  (default: 'meanvar')
 #'
 #' #############################
 #' ## de-noising parameters ####
@@ -75,13 +82,9 @@
 #' #######################
 #' ## Experimental options
 #'
-#' @param anscombe_normalize  experimental option: Perform anscombe normalization on normalized counts before log transformation. (default: F)
-#'
-#' @param use_zscores experimental option: If true, converts log(expression) data to zscores based on reference cell expr distribution.
 #'
 #' @param remove_genes_at_chr_ends experimental option: If true, removes the window_length/2 genes at both ends of the chromosome.
 #'
-#' @param pseudocount  Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)  (an experimental option, not meant for routine use)
 #'
 #' @param prune_outliers  Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.
 #'
@@ -117,6 +120,8 @@
 #'
 #' @param debug If true, output debug level logging.
 #'
+#' @param num_threads (int) number of threads for parallel steps (default: 4)
+#' 
 #' @return infercnv_obj containing filtered and transformed data
 #'
 #' @export
@@ -129,21 +134,33 @@ run <- function(infercnv_obj,
                 min_cells_per_gene=3,
 
                 out_dir=".",
+
+                                        #
+                ## smoothing params
                 window_length=101,
-
+                smooth_method=c('pyramidinal', 'runmeans'),
+                
                 num_ref_groups=NULL,
-
+                ref_subtract_use_mean_bounds=TRUE,
+                
                 max_centered_threshold=3, # or set to a specific value or "auto", or NA to turn off
 
 
                 ## HMM and tumor subclustering options
                 HMM=FALSE, # turn on to auto-run the HMM prediction of CNV levels
                 ## tumor subclustering opts
-                HMM_mode=c('samples', 'subclusters', 'cells'),
+                HMM_mode=c('subclusters', 'samples', 'cells'),
+                HMM_transition_prob=1e-6,
                 tumor_subcluster_pval=0.05,
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 HMM_report_by=c("subcluster","consensus","cell"),
-
+                
+                ## some experimental params
+                #sim_method=c('meanvar', 'simple', 'splatter'), ## only meanvar supported, others experimental
+                sim_method='meanvar',
+                sim_foreground=FALSE, ## experimental
+                
+                
                 ## noise settings
                 denoise=FALSE,
                 noise_filter=NA,
@@ -160,10 +177,7 @@ run <- function(infercnv_obj,
                 outlier_upper_bound=NA,
 
                 hclust_method='ward.D2',
-
-                anscombe_normalize=FALSE,
-                use_zscores=FALSE,
-                scale_data=FALSE,
+                                
                 remove_genes_at_chr_ends=FALSE,
 
                 mask_nonDE_genes=FALSE,
@@ -178,30 +192,33 @@ run <- function(infercnv_obj,
 
                 prune_outliers=FALSE,
 
-                pseudocount = 0,
-
                 final_scale_limits = NULL,
                 final_center_val = NULL,
-
+                
                 reuse_subtracted = TRUE,
 
-                sim_method=c('splatter', 'simple', 'meanvar'),
-                sim_foreground=FALSE
-
+                num_threads = 4,
+                
+                hspike_aggregate_normals = FALSE
+                
                 ) {
 
 
+    smooth_method = match.arg(smooth_method)
     HMM_report_by = match.arg(HMM_report_by)
     HMM_mode = match.arg(HMM_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
-    sim_method = match.arg(sim_method)
-
+    #sim_method = match.arg(sim_method)
+    
     if (debug) {
         flog.threshold(DEBUG)
+    } else {
+        flog.threshold(INFO)
     }
-
+    
     flog.info(paste("::process_data:Start", sep=""))
 
+    infercnv.env$GLOBAL_NUM_THREADS <- num_threads
     if(out_dir != "." & !file.exists(out_dir)){
         dir.create(out_dir)
     }
@@ -242,15 +259,6 @@ run <- function(infercnv_obj,
     }
 
 
-    ## ##################################################
-    ##  Adding pseudocounts
-
-    if (pseudocount != 0) {
-        flog.info(sprintf("Adding pseudocount: %g", pseudocount))
-        infercnv_obj <- add_pseudocount(infercnv_obj, pseudocount)
-    }
-
-
     ###########################################
     ### STEP: normalization by sequencing depth
 
@@ -267,88 +275,13 @@ run <- function(infercnv_obj,
         infercnv_obj <- normalize_counts_by_seq_depth(infercnv_obj)
 
         # add in the hidden spike needed by the HMM
-        infercnv_obj <- .build_and_add_hspike(infercnv_obj, sim_method=sim_method)
-
+        infercnv_obj <- .build_and_add_hspike(infercnv_obj, sim_method=sim_method, aggregate_normals=hspike_aggregate_normals)
+        
         if (sim_foreground) {
             infercnv_obj <- .sim_foreground(infercnv_obj, sim_method=sim_method)
         }
 
         saveRDS(infercnv_obj, infercnv_obj_file)
-    }
-
-
-    ##################################
-    ##### STEP: anscombe normalization
-
-    if (anscombe_normalize) {
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: anscombe normalization\n", step_count))
-
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_anscombe_normalization.infercnv_obj", step_count))
-
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
-
-            infercnv_obj <- anscombe_transform(infercnv_obj)
-
-            saveRDS(infercnv_obj,
-                    file=infercnv_obj_file)
-
-            if (plot_steps) {
-
-                plot_cnv(infercnv_obj=infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         color_safe_pal=FALSE,
-                         title=sprintf("%02d_anscombe_norm",step_count),
-                         output_filename=sprintf("infercnv.%02d_anscombe_norm",step_count),
-                         write_expr_matrix=TRUE
-                         )
-
-            }
-        }
-
-    }
-
-
-    ## ##############################
-    ## Step: Cross-cell normalization
-
-    CROSS_NORMALIZE=FALSE
-    if (CROSS_NORMALIZE) {
-
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: cross-sample normalize data\n", step_count))
-
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_cross_norm.infercnv_obj", step_count))
-
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
-
-            infercnv_obj <- cross_cell_normalize(infercnv_obj)
-
-            saveRDS(infercnv_obj,
-                    file=infercnv_obj_file)
-
-
-            ## Plot incremental steps.
-            if (plot_steps){
-
-                plot_cnv(infercnv_obj=infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_cross_norm",step_count),
-                         output_filename=sprintf("infercnv.%02d_cross_norm",step_count),
-                         write_expr_matrix=TRUE
-                         )
-            }
-        }
     }
 
 
@@ -385,72 +318,16 @@ run <- function(infercnv_obj,
         }
     }
 
-    ###############################
-    ### STEP: ZScore transformation
-
-    if (use_zscores) {
-
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Z-score transformation of data\n", step_count))
-
-        infercnv_obj_file = file=file.path(out_dir, sprintf("%02d_Z-scores.infercnv_obj", step_count))
-
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
-            infercnv_obj <- transform_to_reference_based_Zscores(infercnv_obj)
-
-            saveRDS(infercnv_obj, infercnv_obj_file)
-
-            if (plot_steps){
-
-                plot_cnv(infercnv_obj=infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         out_dir=out_dir,
-                         title=sprintf("%02d_centering_gene_expr",step_count),
-                         output_filename=sprintf("infercnv.%02d_centering_gene_expr",step_count),
-                         write_expr_matrix=TRUE)
-
-            }
-        }
-    }
-
-
-    if (scale_data) {
-
-        infercnv_obj <- scale_infercnv_expr(infercnv_obj)
-
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: scaling all expression data\n", step_count))
-
-        infercnv_obj_file=file.path(out_dir, sprintf("%02d_scaled.infercnv_obj", step_count))
-
-        saveRDS(infercnv_obj, file=infercnv_obj_file)
-
-        ## Plot incremental steps.
-        if (plot_steps){
-
-            plot_cnv(infercnv_obj,
-                     k_obs_groups=k_obs_groups,
-                     cluster_by_groups=cluster_by_groups,
-                     out_dir=out_dir,
-                     title=sprintf("%02d_scaled",step_count),
-                     output_filename=sprintf("infercnv.%02d_scaled",step_count),
-                     write_expr_matrix=TRUE)
-
-        }
-
-    }
-
-
 
     ## #################################################
     ## Step: Split the reference data into groups if requested
 
     if (!is.null(num_ref_groups)) {
 
+        if (! has_reference_cells(infercnv_obj)) {
+            stop("Error, no reference cells defined. Cannot split them into groups as requested")
+        }
+        
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: splitting reference data into %d clusters\n", step_count, num_ref_groups))
 
@@ -467,24 +344,24 @@ run <- function(infercnv_obj,
         }
 
     }
-
-
-
+    
+    
+    
     if (HMM_mode == 'subclusters' & tumor_subcluster_partition_method == 'random_trees') {
-
+        
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
 
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters.%s.infercnv_obj", step_count, tumor_subcluster_partition_method))
-
+        
         if (reuse_subtracted && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
-            infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
-                                                                                       p_val=tumor_subcluster_pval,
-                                                                                       hclust_method=hclust_method)
-
+            infercnv_obj <- infercnv:::define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
+                                                                                                  p_val=tumor_subcluster_pval,
+                                                                                                  hclust_method=hclust_method)
+            
             saveRDS(infercnv_obj, file=infercnv_obj_file)
 
             if (plot_steps) {
@@ -518,7 +395,7 @@ run <- function(infercnv_obj,
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE)
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
 
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
@@ -594,12 +471,17 @@ run <- function(infercnv_obj,
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
+        
+        if (smooth_method == 'runmeans') {
 
-        #infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+            infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj, window_length)
+        } else if (smooth_method == 'pyramidinal') {
 
-        infercnv_obj <- smooth_by_chromosome_runmeans(infercnv_obj, window_length)
-
-
+            infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+        } else {
+            stop(sprintf("Error, don't recognize smoothing method: %s", smooth_method))
+        }
+        
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
         ## Plot incremental steps.
@@ -662,7 +544,7 @@ run <- function(infercnv_obj,
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
-        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE)
+        infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
 
         saveRDS(infercnv_obj, file=infercnv_obj_file)
 
@@ -826,12 +708,12 @@ run <- function(infercnv_obj,
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
         if (HMM_mode == 'subclusters') {
-            hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj, p_val=tumor_subcluster_pval, hclust_method=hclust_method, t=HMM_transition_prob)
         } else if (HMM_mode == 'cells') {
-            hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj, t=HMM_transition_prob)
         } else {
             ## samples mode
-            hmm.infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj)
+            hmm.infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, t=HMM_transition_prob)
         }
         
         ## ##################################
@@ -839,28 +721,57 @@ run <- function(infercnv_obj,
         ## ##################################
         
         hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.infercnv_obj", step_count))
-        saveRDS(hmm.infercnv_obj, file=infercnv_obj_file)
-
+        saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
+        
         ## report predicted cnv regions:
         generate_cnv_region_reports(hmm.infercnv_obj,
                                     output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
                                     out_dir=out_dir,
                                     by=HMM_report_by)
 
+        
+        
+        
+        if (plot_steps) {
+            
+            ## Plot HMM pred img
+            plot_cnv(infercnv_obj=hmm.infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     out_dir=out_dir,
+                     title=sprintf("%02d_HMM_preds",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                     write_expr_matrix=TRUE,
+                     x.center=3,
+                     x.range=c(0,6)
+                     )
+        }
 
+        ## convert from states to representative  intensity values
+
+        ## 
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Converting HMM-based CNV states to repr expr vals\n", step_count))
+        
+        hmm.infercnv_obj <- assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
+        
+        hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities.infercnv_obj", step_count))
+        saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
+        
         ## Plot HMM pred img
         plot_cnv(infercnv_obj=hmm.infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
                  out_dir=out_dir,
-                 title=sprintf("%02d_HMM_preds",step_count),
-                 output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                 title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
+                 output_filename=sprintf("infercnv.%02d_HMM_pred.repr_intensities",step_count),
                  write_expr_matrix=TRUE,
-                 x.center=3,
-                 x.range=c(0,6)
+                 x.center=1,
+                 x.range=c(-1,3)
                  )
     }
-
+    
+    
     ## all processes that are alternatives to the HMM prediction wrt DE analysis and/or denoising
     
     ## Step: Filtering significantly DE genes
@@ -892,30 +803,6 @@ run <- function(infercnv_obj,
             
         }
     }
-
-        #if (include.spike) {
-        #
-        #    step_count = step_count + 1
-        #    flog.info(sprintf("\n\n\tSTEP %02d: Scaling according to spike\n", step_count))
-        #
-        #    ## normalize by spike
-        #    infercnv_obj <- scale_cnv_by_spike(infercnv_obj)
-        #
-        #    saveRDS(infercnv_obj,
-        #            file=file.path(out_dir, sprintf("%02d_scaled_by_spike.infercnv_obj", step_count)))
-        #
-        #
-        #    if (plot_steps) {
-        #
-        #        plot_cnv(infercnv_obj,
-        #                 k_obs_groups=k_obs_groups,
-        #                 cluster_by_groups=cluster_by_groups,
-        #                 out_dir=out_dir,
-        #                 title=sprintf("%02d_scaled_by_spike",step_count),
-        #                 output_filename=sprintf("infercnv.%02d_scaled_by_spike", step_count),
-        #                 write_expr_matrix=TRUE)
-        #    }
-        #}
 
 
     if (denoise) {
@@ -1072,37 +959,39 @@ ngchm <- function(infercnv_obj,
 #' @export
 #'
 
-subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
+subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=FALSE) {
                                             # r = genes, c = cells
-    flog.info(paste("::subtract_ref_expr_from_obs:Start", sep=""))
+    flog.info(sprintf("::subtract_ref_expr_from_obs:Start inv_log=%s, use_bounds=%s", inv_log, use_bounds))
+    
 
-    ref_groups = infercnv_obj@reference_grouped_cell_indices
-
-    flog.info("subtracting mean(normal) per gene per cell across all data")
-
-    subtr_data <- .subtract_expr(infercnv_obj@expr.data, ref_groups, inv_log)
-
-    colnames(subtr_data) <- colnames(infercnv_obj@expr.data)
-
-    infercnv_obj@expr.data <- subtr_data
-
-
-    if (! is.null(infercnv_obj@.hspike)) {
-        flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- subtract_ref_expr_from_obs(infercnv_obj@.hspike, inv_log)
+    if (has_reference_cells(infercnv_obj)) {
+        ref_groups = infercnv_obj@reference_grouped_cell_indices
+        flog.info("subtracting mean(normal) per gene per cell across all data")
+    } else {
+        ref_groups = list('proxyNormal' = unlist(infercnv_obj@observation_grouped_cell_indices))
+        flog.info("-no reference cells specified... using mean of all cells as proxy")
     }
 
-
+    ref_grp_gene_means <- .get_normal_gene_mean_bounds(infercnv_obj@expr.data, ref_groups, inv_log=inv_log)
+    
+    infercnv_obj@expr.data <- .subtract_expr(infercnv_obj@expr.data, ref_grp_gene_means, inv_log=inv_log, use_bounds=use_bounds)
+    
+    if (! is.null(infercnv_obj@.hspike)) {
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- subtract_ref_expr_from_obs(infercnv_obj@.hspike, inv_log=inv_log, use_bounds=use_bounds)
+    }
+    
     return(infercnv_obj)
-
+    
 }
 
-.subtract_expr <- function(expr_matrix, ref_groups, inv_log=FALSE) {
 
-    subtract_normal_expr_fun <- function(x) {
 
-        grp_min = NA
-        grp_max = NA
+.get_normal_gene_mean_bounds <- function(expr.data, ref_groups, inv_log=FALSE) {
+
+    get_indiv_gene_group_means_bounds_fun <- function(x) {
+
+        grp_means = c()
 
         for (ref_group in ref_groups) {
 
@@ -1112,24 +1001,66 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE) {
                 ref_grp_mean = mean(x[ref_group])
             }
 
-            grp_min = min(grp_min, ref_grp_mean, na.rm=T)
-            grp_max = max(grp_max, ref_grp_mean, na.rm=T)
+            grp_means = c(grp_means, ref_grp_mean)
 
         }
+        
+        names(grp_means) <- names(ref_groups)
+        
+        return(as.data.frame(t(data.frame(grp_means))))
+    }
+    
+    gene_ref_grp_means <- do.call(rbind, apply(expr.data, 1, get_indiv_gene_group_means_bounds_fun))
 
+    rownames(gene_ref_grp_means) <- rownames(expr.data)
+    
+    return(gene_ref_grp_means)
+}
+
+
+
+.subtract_expr <- function(expr_matrix, ref_grp_gene_means, inv_log=FALSE, use_bounds=FALSE) {
+
+    my.rownames = rownames(expr_matrix)
+    my.colnames = colnames(expr_matrix)
+
+    flog.info(sprintf("-subtracting expr per gene, use_bounds=%s", use_bounds))
+    
+    subtract_normal_expr_fun <- function(row_idx) {
+
+        gene_means <- as.numeric(ref_grp_gene_means[row_idx, , drop=T])
+
+        gene_means_mean <- mean(gene_means)
+        
+        x <- as.numeric(expr_matrix[row_idx, , drop=T])
+        
         row_init = rep(0, length(x))
+        
+        if (use_bounds) {
+            
+            grp_min = min(gene_means)
+            grp_max = max(gene_means)
 
-        above_max = which(x>grp_max)
-        below_min = which(x<grp_min)
+            above_max = which(x>grp_max)
+            below_min = which(x<grp_min)
+                    
+            row_init[above_max] <- x[above_max] - grp_max
+            row_init[below_min] <- x[below_min] - grp_min
+            ## note, in-between values are left at zero!
+            
+        } else {
+            
+            row_init <- x - gene_means_mean
 
-        row_init[above_max] <- x[above_max] - grp_max
-        row_init[below_min] <- x[below_min] - grp_min
-
+        }
+                
         return(row_init)
     }
-
-    subtr_data <- t(apply(expr_matrix, 1, subtract_normal_expr_fun))
-
+    
+    subtr_data <- do.call(rbind, lapply(1:nrow(expr_matrix), subtract_normal_expr_fun))
+    rownames(subtr_data) <- my.rownames
+    colnames(subtr_data) <- my.colnames
+    
     return(subtr_data)
 
 }
@@ -1730,21 +1661,22 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         return(data)
     }
 
-    num_genes <- nrow(data)
-    flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
-
-                                        # Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
-        # data_sm <- apply(data_sm,
+    ## Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
+    
     data_sm <- apply(data,
                      2,
                      .smooth_helper,
                      window_length=window_length)
-#                    tail_length=tail_length)
-
-    # Set back row and column names
+    
+    
+    ## Set back row and column names
     row.names(data_sm) <- row.names(data)
     colnames(data_sm) <- colnames(data)
 
+
+    flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
+
+    
     return(data_sm)
 }
 

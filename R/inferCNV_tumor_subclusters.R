@@ -83,7 +83,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         gamma_fit = fitdist(heights, 'gamma')
         shape = gamma_fit$estimate[1]
         rate = gamma_fit$estimate[2]
-        cut_height=qgamma(p=0.9, shape=shape, rate=rate)
+        cut_height=qgamma(p=1-p_val, shape=shape, rate=rate)
         flog.info(sprintf("cut height based on p_val(%g) = %g and partition_method: %s", p_val, cut_height, partition_method))
         grps <- cutree(hc, h=cut_height) # will just be one cluster if height > max_height
         

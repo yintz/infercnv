@@ -542,7 +542,13 @@ generate_cnv_region_reports <- function(infercnv_obj,
     gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
     flog.info(sprintf("-writing per-gene cnv report: %s", gene_cnv_outfile))
     write.table(gene_cnv_df, gene_cnv_outfile, row.names=F, sep="\t", quote=F)
-        
+
+    ## write file containing all genes that were leveraged in the predictions:
+    gene_order_outfile = paste(out_dir, paste0(output_filename_prefix, ".genes_used.dat"), sep="/")
+    flog.info(sprintf("-writing gene ordering info: %s", gene_order_outfile))
+    write.table(infercnv_obj@gene_order, file=gene_order_outfile, quote=F, sep="\t")
+    
+    
     return
     
 }
@@ -659,7 +665,10 @@ Viterbi.dthmm.adj <- function (object, ...){
     
     ## ###############################
     ## restrict to constant variance to avoid nonsensical results:
-    object$pm$sd = max(object$pm$sd)
+
+    ## object$pm$sd = max(object$pm$sd)
+    object$pm$sd = median(object$pm$sd) # max is too high
+    
     ## ###############################    
 
 
@@ -712,5 +721,23 @@ Viterbi.dthmm.adj <- function (object, ...){
         y[i] <- which.max(logPi[, y[i + 1]] + nu[i, ])
 
     return(y)
+}
+
+
+assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
+
+    expr.data = infercnv_obj@expr.data
+
+    expr.data[expr.data == 1] <- 0
+    expr.data[expr.data == 2] <- 0.5
+    expr.data[expr.data == 3] <- 1
+    expr.data[expr.data == 4] <- 1.5
+    expr.data[expr.data == 5] <- 2
+    expr.data[expr.data == 6] <- 3
+
+    infercnv_obj@expr.data <- expr.data
+
+    return(infercnv_obj)
+
 }
 
