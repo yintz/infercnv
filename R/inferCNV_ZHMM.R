@@ -10,27 +10,28 @@
 
     normal_samples = infercnv_obj@reference_grouped_cell_indices
     
-    expr_vals <- infercnv_obj@expr.data[,unlist(normal_samples)]
+    normal_expr_vals <- infercnv_obj@expr.data[,unlist(normal_samples)]
     
-    mu = mean(expr_vals)
-    sigma = sd(expr_vals)
+    mu = mean(normal_expr_vals)
+    sigma = sd(normal_expr_vals)
     nrounds = 100
     sds = c()
-    ngenes = nrow(expr_vals)
+    ngenes = nrow(normal_expr_vals)
 
     num_normal_samples = length(normal_samples)
-    
+    message("-got ", num_normal_samples, " samples") 
     for (ncells in seq_len(100)) {
         means = c()
         
         for(i in 1:nrounds) {
             ## pick a random gene
-            rand.gene = sample(1:ngenes)
+            rand.gene = sample(1:ngenes, size=1)
             
             ## pick a random normal cell type
-            rand.sample = sample(num_normal_samples)
+            rand.sample = sample(1:num_normal_samples, size=1)
+            #message("rand.sample: " , rand.sample)
             
-            vals = sample(expr_vals[rand.gene, normal_samples[[rand.sample]] ], size=ncells, replace=T)
+            vals = sample(infercnv_obj@expr.data[rand.gene, normal_samples[[rand.sample]] ], size=ncells, replace=T)
             m_val = mean(vals)
             means = c(means,  m_val)
         }
