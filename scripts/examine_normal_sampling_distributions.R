@@ -117,6 +117,8 @@ for (ncells in ncells_partitions) {
 
     sigma <- exp(predict(normal_sd_trend$fit,
                          newdata=data.frame(num_cells=ncells))[[1]]) 
+
+    message("ncells:", ncells, " sigma: ", sigma)
     
     p = p +
         stat_function(fun=dnorm, color='black', args=list('mean'=1,'sd'=sigma))  +
@@ -124,6 +126,23 @@ for (ncells in ncells_partitions) {
 
     p = p +
         stat_function(fun=dnorm, color='magenta', args=list('mean'=1,'sd'=num_cells_to_empirical_sd[[ ncells]] )) 
+
+
+    pval=0.01
+    
+    left_mean = 1 - 2 * (1-qnorm(p=pval, mean=1, sd=sigma))
+    message("left_mean: ", left_mean)
+    p = p +
+        stat_function(fun=dnorm, color='blue', args=list('mean'=left_mean,'sd'=sigma))
+
+
+    right_mean = 1 + 2 * (qnorm(p=1-pval, mean=1, sd=sigma)-1)
+    message("right_mean: ", right_mean)        
+        p = p +
+            stat_function(fun=dnorm, color='blue', args=list('mean'=right_mean,'sd'=sigma))  
+    
+    
+
     
 
     if (FALSE) {
