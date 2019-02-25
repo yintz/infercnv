@@ -31,6 +31,10 @@
 #'
 #' @return Returns a MCMC_inferCNV_obj
 #' @export
+#' 
+# Requires:
+#	infercnv, rjags, ggplot2, parallel, futile.logger, reshape
+## build off of the present S4 object inferCNV_obj to add more slots 
 MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
                                                      sig = "numeric",
                                                      mu = "numeric",
@@ -216,7 +220,7 @@ plot_cnv_prob <- function(df){
 
 inferCNVBayesNet <- function( 
                               file_dir,
-                              model_file,
+                              model_file = system.file("BUGS_Mixture_Model",package = "infercnv"),
                               CORES = NULL,
                               output_dir) {
     

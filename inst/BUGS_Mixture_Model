@@ -18,7 +18,6 @@ model {
                     mu[4] * (equals(epsilon[j], 4 )) +
                     mu[5] * (equals(epsilon[j], 5 )) +
                     mu[6] * (equals(epsilon[j], 6 )) 
-                    #gamma[grouping[j]] 
 
         tau.1[j] <- sig[1] * (equals( epsilon[j], 1 )) +
                     sig[2] * (equals( epsilon[j], 2 )) +
@@ -35,10 +34,6 @@ model {
         epsilon[j] ~ dcat(theta[])    
     }
 
-    ## PRIOR for Random Effect
-#    for(i in 1:num_groups){
-#        gamma[i] ~ dnorm(0,sigma)
-#    }
 
     # HYPERPARAMETERS 
     ## hyperparameter for for gamma, a flat gamma distribution 
