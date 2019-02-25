@@ -4,7 +4,8 @@
 \alias{subtract_ref_expr_from_obs}
 \title{subtract_ref_expr_from_obs()}
 \usage{
-subtract_ref_expr_from_obs(infercnv_obj, inv_log = FALSE)
+subtract_ref_expr_from_obs(infercnv_obj, inv_log = FALSE,
+  use_bounds = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
