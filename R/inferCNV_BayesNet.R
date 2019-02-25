@@ -222,7 +222,9 @@ inferCNVBayesNet <- function(
                               file_dir,
                               model_file = system.file("BUGS_Mixture_Model",package = "infercnv"),
                               CORES = NULL,
-                              output_dir) {
+                              output_dir,
+                              postMcmcMethod = NULL,
+                              plotingProbs = TRUE) {
     
     ################
     # CHECK INPUTS #
@@ -256,7 +258,9 @@ inferCNVBayesNet <- function(
     args_parsed <- list("file_dir" = file_dir,
                       "model_file" = model_file,
                       "CORES" = CORES,
-                      "output_dir"= output_dir)
+                      "output_dir"= output_dir,
+                      "plotingProbs" = TRUE,
+                      "postMcmcMethod"=postMcmcMethod)
     #################################
     # LOAD DATA & INITIALIZE OBJECT #
     #################################
