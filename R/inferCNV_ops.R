@@ -1640,7 +1640,14 @@ clear_noise <- function(infercnv_obj, threshold, noise_logistic=FALSE) {
 
 clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_logistic=FALSE) {
 
-    ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
+    if (has_reference_cells(infercnv_obj)) {
+        ref_idx = get_reference_grouped_cell_indices(infercnv_obj)
+        flog.info("denoising using mean(normal) +- sd_amplifier * sd(normal) per gene per cell across all data")
+    }
+    else {
+        ref_idx = unlist(infercnv_obj@observation_grouped_cell_indices)
+        flog.info("-no reference cells specified... using mean and sd of all cells as proxy for denoising")
+    }
     vals = infercnv_obj@expr.data[,ref_idx]
 
     mean_ref_vals = mean(vals)
