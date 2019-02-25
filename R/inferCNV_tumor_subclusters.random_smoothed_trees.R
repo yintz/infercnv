@@ -1,9 +1,10 @@
 
 
-define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, window_size=101) {
-
+define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, window_size=101,
+                                                                       max_recursion_depth=3, min_cluster_size_recurse=10) {
+    
     ## the state of the infercnv object here should be:
-    ## log transformed, normal subtracted.
+    ## log transformed
     ## but *NOT* smoothed.
     ## TODO: -include check for smoothed property so will not run this if already smoothed.
         
@@ -12,12 +13,11 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
 
     infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)  # important, remove normal from tumor before testing clusters.
-    
-    tumor_groups <- infercnv_obj@observation_grouped_cell_indices
+
+    ## must treat normals same way!
+    tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
     
     res = list()
-    
-    normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
     
     for (tumor_group in names(tumor_groups)) {
         
@@ -26,7 +26,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
         tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
         
-        tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size)
+        tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size,
+                                                                           max_recursion_depth, min_cluster_size_recurse)
         
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
         res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
@@ -38,7 +39,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     if (! is.null(infercnv_copy@.hspike)) {
         flog.info("-mirroring for hspike")
 
-        infercnv_copy@.hspike <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_copy@.hspike, p_val, hclust_method)
+        infercnv_copy@.hspike <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_copy@.hspike, p_val, hclust_method,
+                                                                                            window_size, max_recursion_depth, min_cluster_size_recurse)
     }
     
     
@@ -47,7 +49,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 
 
-.single_tumor_subclustering_smoothed_tree <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size) {
+.single_tumor_subclustering_smoothed_tree <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size,
+                                                      max_recursion_depth, min_cluster_size_recurse) {
 
 
     tumor_subcluster_info = list()
@@ -61,7 +64,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     
     heights = hc$height
 
-    grps <- .partition_by_random_smoothed_trees(tumor_name, tumor_expr_data, hclust_method, p_val, window_size)
+    grps <- .partition_by_random_smoothed_trees(tumor_name, tumor_expr_data, hclust_method, p_val, window_size,
+                                                max_recursion_depth, min_cluster_size_recurse)
 
             
     cluster_ids = unique(grps)
@@ -85,12 +89,14 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 ## Random Trees
 
-.partition_by_random_smoothed_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val, window_size) {
+.partition_by_random_smoothed_trees <- function(tumor_name, tumor_expr_data, hclust_method, p_val, window_size,
+                                                max_recursion_depth, min_cluster_size_recurse) {
 
     grps <- rep(sprintf("%s.%d", tumor_name, 1), ncol(tumor_expr_data))
     names(grps) <- colnames(tumor_expr_data)
 
-    grps <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data, hclust_method, p_val, grps, window_size)
+    grps <- .single_tumor_subclustering_recursive_random_smoothed_trees(tumor_expr_data, hclust_method, p_val, grps, window_size,
+                                                                        max_recursion_depth, min_cluster_size_recurse)
 
     
     return(grps)
@@ -98,8 +104,17 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 }
 
 
-.single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, window_size, min_cluster_size_recurse=10) {
+.single_tumor_subclustering_recursive_random_smoothed_trees <- function(tumor_expr_data, hclust_method, p_val, grps.adj, window_size,
+                                                                        max_recursion_depth,
+                                                                        min_cluster_size_recurse,
+                                                                        recursion_depth=1) {
 
+
+    if (recursion_depth > max_recursion_depth) {
+        flog.warn("-not exceeding max recursion depth.")
+        return(grps.adj)
+    }
+    
     tumor_clade_name = unique(grps.adj[names(grps.adj) %in% colnames(tumor_expr_data)])
     message("unique tumor clade name: ", tumor_clade_name)
     if (length(tumor_clade_name) > 1) {
@@ -125,13 +140,20 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     if (max_height_pval <= p_val) {
         ## keep on cutting.
         cut_height = mean(c(h[length(h)], h[length(h)-1]))
-        message(sprintf("cutting at height: %g",  cut_height))
+        flog.info(sprintf("cutting at height: %g",  cut_height))
         grps = cutree(h_obs, h=cut_height)
         print(grps)
         uniqgrps = unique(grps)
         
         message("unique grps: ", paste0(uniqgrps, sep=",", collapse=","))
-        
+
+        if (all(sapply(uniqgrps, function(grp) {
+            (sum(grps==grp) < min_cluster_size_recurse)
+        } ))) {
+            flog.warn("none of the split subclusters exceed min cluster size. Not recursing here.")
+            return(grps.adj)
+        }
+                
         for (grp in uniqgrps) {
             grp_idx = which(grps==grp)
             
@@ -151,9 +173,11 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
                                                                                         p_val=p_val,
                                                                                         grps.adj=grps.adj,
                                                                                         window_size=window_size,
-                                                                                        min_cluster_size_recurse)
+                                                                                        max_recursion_depth=max_recursion_depth,
+                                                                                        min_cluster_size_recurse=min_cluster_size_recurse,
+                                                                                        recursion_depth = recursion_depth + 1 )
             } else {
-                message(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
+                flog.warn(sprintf("%s size of %d is too small to recurse on", subset_clade_name, length(grp_idx)))
             }
             
         }
@@ -166,7 +190,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 }
 
 
-.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=T) {
+.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=F) {
     
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
@@ -192,11 +216,19 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         df
     }
     
-    h_rand_ex = NULL
-    max_rand_heights = c()
+    
+    flog.info(sprintf("random trees, using %g parallel threads", infercnv.env$GLOBAL_NUM_THREADS))
+    if (infercnv.env$GLOBAL_NUM_THREADS > future::availableCores()) {
+        flog.warn(sprintf("not enough cores available, setting to num avail cores: %g", future::availableCores()))
+        infercnv.env$GLOBAL_NUM_THREADS <- future::availableCores()
+    }
+    
+    library(doParallel)
+    registerDoParallel(cores=infercnv.env$GLOBAL_NUM_THREADS)
     num_rand_iters=100
-    for (i in 1:num_rand_iters) {
-        #message(sprintf("iter i:%d", i))
+    max_rand_heights <- foreach (i=1:num_rand_iters) %dopar% {
+        #message("rand iteration: ", i)
+        
         rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))
         
         ## smooth it and re-center:
@@ -205,12 +237,15 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
         rand.dist = dist(t(sm.rand.tumor.expr.data))
         h_rand <- hclust(rand.dist, method=hclust_method)
-        h_rand_ex = h_rand
-        max_rand_heights = c(max_rand_heights, max(h_rand$height))
+        max_rand_height <- max(h_rand$height)
+
+        max_rand_height
     }
     
+    max_rand_heights <- as.numeric(max_rand_heights)
+    
     h = h_obs$height
-
+    
     max_height = max(h)
     
     message(sprintf("Lengths for original tree branches (h): %s", paste(h, sep=",", collapse=",")))
@@ -226,8 +261,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     params_list <- list(h_obs=h_obs,
                         max_h=max_height,
                         rand_max_height_dist=max_rand_heights,
-                        ecdf=e,
-                        h_rand_ex = h_rand_ex
+                        ecdf=e
                         )
     
     if (plot) {
@@ -242,8 +276,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
 .plot_tree_height_dist <- function(params_list, plot_title='tree_heights') {
 
-    mf = par(mfrow=(c(3,1)))
-
+    mf = par(mfrow=(c(2,1)))
+    
     ## density plot
     rand_height_density = density(params_list$rand_max_height_dist)
     
@@ -257,12 +291,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     h_obs = params_list$h_obs
     h_obs$labels <- NULL #because they're too long to display
     plot(h_obs)
-    
-    ## plot a random example:
-    h_rand_ex = params_list$h_rand_ex
-    h_rand_ex$labels <- NULL
-    plot(h_rand_ex)
-            
+                
     par(mf)
         
 }

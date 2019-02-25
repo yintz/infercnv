@@ -21,25 +21,25 @@ gene_order = cbind(gene_order, gene=rownames(gene_order))
 
 cnv_to_expr_vals = list()
 
-pdf(sprintf("%s.cnv_expr_densities_each_chr.pdf", infercnv_obj_file))
-
 expr.data <- infercnv_obj@expr.data
-
 
 cnv_mean_sd = infercnv:::get_spike_dists(infercnv_obj@.hspike)
 
 chrs = unique(infercnv_obj@gene_order$chr)
 
-samples = names(infercnv_obj@observation_grouped_cell_indices)
+groups = c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+
+samples = names(groups)
+
 
 for (sample in samples) {
-    pdf_name = sprintf("%s-%s.dists.pdf", infercnv_obj_file, sample)
+    pdf_name = sprintf("%s-%s.cnv_expr_densities_each_chr.pdf", infercnv_obj_file, sub("[^A-Za-z0-9]", "_", sample, perl=TRUE))
     pdf(pdf_name)
-
+    
     message(sprintf("plotting sample: %s", sample))
 
-    sample_cells = infercnv_obj@observation_grouped_cell_indices[[ sample ]]
-
+    sample_cells = groups[[ sample ]]
+    
     sample_expr = expr.data[, sample_cells]
 
     for (chr in chrs) {
@@ -49,9 +49,9 @@ for (sample in samples) {
 
         normal_gene_expr = expr.data[chr_gene_idx, unlist(infercnv_obj@reference_grouped_cell_indices)]
 
-        df = rbind(data.frame(class='normal', vals=as.numeric(normal_gene_expr) ),
-                   data.frame(class='tumor', vals=as.numeric(sample_gene_expr)) )
-
+        df = rbind(data.frame(class='allnormal', vals=as.numeric(normal_gene_expr) ),
+                   data.frame(class='sample', vals=as.numeric(sample_gene_expr)) )
+        
         message(sprintf("plotting sample: %s, %s", sample, chr))
 
         p = df %>% ggplot(aes(vals, fill=class)) + geom_density(alpha=0.3) + ggtitle(sprintf("%s, %s", sample, chr))

@@ -179,8 +179,8 @@
     df <- data.frame(x, y)
 
     colnames(df) <- c('log_means', 'pct_zeros')
-    write.table(df, file="dropout.dat", quote=F, sep="\t")
-    plot(df$log_means, df$pct_zeros)
+    #write.table(df, file="dropout.dat", quote=F, sep="\t")
+    #plot(df$log_means, df$pct_zeros)
 
     x_approx_mid <- median(x[which(y>0.2 & y < 0.8)]) # bhaas-added to avoid error: Error in nls(y ~ .logistic(x, x0 = x0, k = k), data = df, start = list(x0 = 0,  : singular gradient
 
@@ -190,7 +190,7 @@
     mid <- summary(fit)$coefficients["x0", "Estimate"]
     shape <- summary(fit)$coefficients["k", "Estimate"]
 
-    points(x, predict(fit, newdata=x), col='green')
+    #points(x, predict(fit, newdata=x), col='green')
 
     params[['dropout.mid']] <- mid
     params[['dropout.shape']] <- shape
@@ -200,10 +200,10 @@
     spline.fit <- smooth.spline(x,y)
     params[['dropout.spline.fit']] <- spline.fit
     spline.pts = predict(spline.fit, newdata=x)
-    points(spline.pts$x, spline.pts$y, col='magenta')
-    legend('topright', c('logistic', 'spline'), col=c('green', 'magenta'), pch=1)
+    #points(spline.pts$x, spline.pts$y, col='magenta')
+    #legend('topright', c('logistic', 'spline'), col=c('green', 'magenta'), pch=1)
 
-
+    
     return(params)
 }
 

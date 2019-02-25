@@ -19,6 +19,7 @@
 }
 
 
+
 .get_simulated_cell_matrix_using_meanvar_trend_helper <- function(gene_means, mean_var_table, num_cells, dropout_logistic_params=NULL) {
 
     ngenes = length(gene_means)
@@ -37,7 +38,7 @@
 
     sim_expr_vals <- function(gene_idx) {
         m = gene_means[gene_idx]
-        return(.sim_expr_val_mean_var(m, mean_var_spline, dropout_logistic_params))
+        return(.sim_expr_val_mean_var_no_dropout(m, mean_var_spline))
     }
 
     for (i in 1:num_cells) {
@@ -45,6 +46,11 @@
         sim_cell_matrix[,i] = newvals
     }
 
+    ## apply dropout
+    if (!is.null(dropout_logistic_params)) {
+        sim_cell_matrix <- .apply_dropout(sim_cell_matrix, dropout_logistic_params)
+    }
+    
     return(sim_cell_matrix)
 }
 
@@ -71,7 +77,7 @@
 .sim_expr_val_mean_var <- function(m,  mean_var_spline, dropout_logistic_params) {
 
     # include drop-out prediction
-
+        
     val = 0
     if (m > 0) {
         logm = log(m+1)
@@ -94,6 +100,66 @@
 
     return(val)
 }
+
+
+.sim_expr_val_mean_var_no_dropout <- function(m,  mean_var_spline) {
+
+    val = 0
+    if (m > 0) {
+        logm = log(m+1)
+        pred_log_var = predict(mean_var_spline, logm)$y
+
+        var = max(exp(pred_log_var)-1, 0)
+
+        val = round(max(rnorm(n=1, mean=m, sd=sqrt(var)), 0))
+                
+    }
+    
+    return(val)
+}
+
+
+.apply_dropout <- function(counts.matrix, dropout_logistic_params) {
+    
+    
+    
+    counts.matrix <- apply(counts.matrix, 1, function(x) {
+
+        mean.val = mean(x)
+        dropout_prob <- predict(dropout_logistic_params$spline, log(mean.val))$y[1]
+
+        nzeros = sum(x==0)
+        ntotal = length(x)
+        nremaining = ntotal - nzeros
+
+        # padj = ( (pzero*total) - (current_nzero) ) / remaining
+
+        padj = ( (dropout_prob * ntotal) - (nzeros) ) / nremaining
+        padj = max(padj, 0)
+        
+        flog.debug(sprintf("mean.val: %g, dropout_prob: %g, adj_dropout_prob: %g",
+                           mean.val,
+                           dropout_prob,
+                           padj))
+
+        x.adj = sapply(x, function(y) {
+            if(runif(1) <= padj) {
+                return(0)
+            } else {
+                return(y)
+            }
+                        
+        } )
+
+        x.adj
+
+    })
+
+    return(t(counts.matrix))
+    
+
+}
+
 
 
 ##' .get_mean_var_table()
@@ -130,7 +196,7 @@
     mean_var_table <- NULL
 
     for (group_name in names(cell_cluster_groupings)) {
-        flog.info(sprintf("processing group: %s", group_name))
+        
         expr.data = expr.matrix[, cell_cluster_groupings[[ group_name ]] ]
         m = rowMeans(expr.data)
         v = apply(expr.data, 1, var)

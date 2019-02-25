@@ -143,10 +143,13 @@ plot_cnv <- function(infercnv_obj,
                                     c(2, 2))
     }
     
-    # Row separation based on reference
-    ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
-    ref_idx = ref_idx[order(ref_idx)]
-        
+    ## Row separation based on reference
+    ref_idx <- NULL
+    if (has_reference_cells(infercnv_obj)) {
+        ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
+        ref_idx = ref_idx[order(ref_idx)]
+    }
+    
     # Column seperation by contig and label axes with only one instance of name
     contig_tbl <- table(contigs)[unique_contigs]
     col_sep <- cumsum(contig_tbl)
@@ -178,7 +181,9 @@ plot_cnv <- function(infercnv_obj,
     }
     # restrict to just the obs indices
 
-    obs_annotations_groups <- obs_annotations_groups[-ref_idx]
+    if (! is.null(ref_idx)) {
+        obs_annotations_groups <- obs_annotations_groups[-ref_idx]
+    }
     
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
     if (grouping_key_coln[1] < 1) {

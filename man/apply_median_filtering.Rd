@@ -4,7 +4,8 @@
 \alias{apply_median_filtering}
 \title{apply_median_filtering}
 \usage{
-apply_median_filtering(infercnv_obj, window_size = 7)
+apply_median_filtering(infercnv_obj, window_size = 7,
+  on_observations = TRUE, on_references = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
