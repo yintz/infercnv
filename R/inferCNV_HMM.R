@@ -222,9 +222,7 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
 predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike),
                                                       cnv_level_to_mean_sd_fit=get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike),
-                                                      t=1e-6,
-                                                      p_val=0.05,
-                                                      hclust_method='ward.D2'
+                                                      t=1e-6
                                                       ) {
     
     
