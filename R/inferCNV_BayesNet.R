@@ -217,6 +217,9 @@ plot_cnv_prob <- function(df){
 #' @param out_dir (string) Path to where the output file should be saved to.
 #' @param method What actions to take after finishing the MCMC.
 #'
+#' @return Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
+#' (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM. 
+#' @export
 
 inferCNVBayesNet <- function( 
                               file_dir,
