@@ -557,6 +557,9 @@ plot_cnv <- function(infercnv_obj,
     orig_row_names <- row.names(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
 
+    heatmap_thresholds_file_name <- file.path(file_base_name, sprintf("%s.heatmap_thresholds.txt", output_filename_prefix))
+    write.table(breaksList, heatmap_thresholds_file_name, row.names=FALSE, col.names=FALSE)
+
     data_observations <- heatmap.cnv(obs_data,
                                         Rowv=obs_dendrogram,
                                         Colv=FALSE,
@@ -770,6 +773,7 @@ plot_cnv <- function(infercnv_obj,
 
     # Print controls
     flog.info("plot_cnv_references:Plotting heatmap.")
+
     data_references <- heatmap.cnv(ref_data,
                                    main=NULL, #NA,
                                    ylab=reference_ylab,

@@ -33,3 +33,5 @@ Collate:
     'inferCNV_tumor_subclusters.random_smoothed_trees.R'
     'noise_reduction.R'
     'inferCNV_ZHMM.R'
+    'inferCNV_BayesNet.R'
+    'setMethods.R'
