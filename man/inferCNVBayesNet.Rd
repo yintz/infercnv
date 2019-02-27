@@ -4,7 +4,9 @@
 \alias{inferCNVBayesNet}
 \title{inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States}
 \usage{
-inferCNVBayesNet(file_dir, model_file, CORES = NULL, output_dir)
+inferCNVBayesNet(file_dir, model_file = system.file("BUGS_Mixture_Model",
+  package = "infercnv"), CORES = NULL, output_dir,
+  postMcmcMethod = NULL, plotingProbs = TRUE)
 }
 \arguments{
 \item{infercnv_dir}{Location of the directory of the inferCNV outputs.}
@@ -16,6 +18,10 @@ inferCNVBayesNet(file_dir, model_file, CORES = NULL, output_dir)
 \item{out_dir}{(string) Path to where the output file should be saved to.}
 
 \item{method}{What actions to take after finishing the MCMC.}
+}
+\value{
+Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
+(states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM.
 }
 \description{
 Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterior 

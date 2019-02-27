@@ -137,11 +137,11 @@ run_gibb_sampling <- function( 	gene_exp,
     )
     # Create the model for rjags
     model <- rjags::jags.model(textConnection(MCMC_inferCNV_obj@bugs_model), 
-                        data=data, 
-                        inits=inits, # (Initialization) optional specification of initial values in the form of a list or a function
-                        n.chains=6,  # the number of parallel chains for the model
-                        n.adapt=500, # the number of iterations for adaptation (burn in)
-                        quiet=FALSE)
+                               data=data, 
+                               inits=inits, # (Initialization) optional specification of initial values in the form of a list or a function
+                               n.chains=6,  # the number of parallel chains for the model
+                               n.adapt=500, # the number of iterations for adaptation (burn in)
+                               quiet=FALSE)
     update(model, 200, progress.bar=ifelse(quiet,"none","text"))
     # run the rjags model 
     ## set the parameters to return from sampling 
@@ -155,24 +155,24 @@ run_gibb_sampling <- function( 	gene_exp,
 plot_cell_prob <- function(df, title){
     df$mag = c(1:6)
     long_data <- reshape::melt(df, id = "mag")
-    ggplot2::ggplot(long_data, aes(x = variable, y = value, fill = as.factor(mag)))+
-        geom_bar(stat="identity", width = 1) +
-        coord_flip() +
-        theme(
-            panel.grid = element_blank(), panel.background = element_blank(),panel.border = element_blank(),
-            axis.text=element_text(size=20),
-            plot.title = element_text(hjust = 0.5,size = 22),
+    ggplot2::ggplot(long_data, ggplot2::aes(x = variable, y = value, fill = as.factor(mag)))+
+        ggplot2::geom_bar(stat="identity", width = 1) +
+        ggplot2::coord_flip() +
+        ggplot2::theme(
+            panel.grid = ggplot2::element_blank(), panel.background = ggplot2::element_blank(),panel.border = ggplot2::element_blank(),
+            axis.text=ggplot2::element_text(size=20),
+            plot.title = ggplot2::element_text(hjust = 0.5,size = 22),
             #legend.position = "none",
             legend.position="bottom",
-            axis.text.x = element_text(size = 16),
-            axis.text.y = element_text(size = 16),
-            axis.title.x = element_text(size = 18),
-            axis.title.y = element_text(size = 18))+
-        labs(title = title) +
+            axis.text.x = ggplot2::element_text(size = 16),
+            axis.text.y = ggplot2::element_text(size = 16),
+            axis.title.x = ggplot2::element_text(size = 18),
+            axis.title.y = ggplot2::element_text(size = 18))+
+        ggplot2::labs(title = title) +
         #fill = "CNV States") + 
-        xlab("Cell") +
-        ylab("Probability")+
-        scale_x_discrete(breaks =seq(1, ncol(df), 9))
+        ggplot2::xlab("Cell") +
+        ggplot2::ylab("Probability")+
+        ggplot2::scale_x_discrete(breaks =seq(1, ncol(df), 9))
 }
 
 # Function for total CNV probaility of belonging to each state using THETA prior 
@@ -196,8 +196,8 @@ plot_cnv_prob <- function(df){
     means <- as.data.frame(colMeans(df))
     means$state <- c(1:6)
     colnames(means) <- c("Probability", "State")
-    ggplot2::ggplot(data = means, aes(y = Probability, x= State, fill = as.factor(State))) +
-        geom_bar(stat = "identity")
+    ggplot2::ggplot(data = means, ggplot2::aes(y = Probability, x= State, fill = as.factor(State))) +
+        ggplot2::geom_bar(stat = "identity")
 }
 
 
@@ -259,11 +259,11 @@ inferCNVBayesNet <- function(
         futile.logger::flog.info(paste("Creating the following Directory: ", out_dir))
     }
     args_parsed <- list("file_dir" = file_dir,
-                      "model_file" = model_file,
-                      "CORES" = CORES,
-                      "output_dir"= output_dir,
-                      "plotingProbs" = TRUE,
-                      "postMcmcMethod"=postMcmcMethod)
+                        "model_file" = model_file,
+                        "CORES" = CORES,
+                        "output_dir"= output_dir,
+                        "plotingProbs" = TRUE,
+                        "postMcmcMethod"=postMcmcMethod)
     #################################
     # LOAD DATA & INITIALIZE OBJECT #
     #################################
