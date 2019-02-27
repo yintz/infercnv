@@ -348,7 +348,7 @@ pargs <- optparse::add_option(pargs, c("--denoise"),
 
 pargs <- optparse::add_option(pargs, c("--noise_filter"),
                               type="numeric",
-                              default=NULL,
+                              default=NA,
                               action="store",
                               dest="noise_filter",
                               metavar="Noise Filter",
@@ -625,6 +625,8 @@ if (!is.null(args$final_scale_limits)) {
 
 if (!is.null(args$ref_group_names)) {
     args$ref_group_names = strsplit(args$ref_group_names, ",")[[1]]
+} else {
+    args$ref_group_names = c()
 }
 
 
@@ -704,7 +706,7 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             #require_DE_all_normals=args$require_DE_all_normals,
                             plot_steps=args$plot_steps,
                             debug=args$debug,
-                            prune_outliers=args$prune_outliers,
+                            #prune_outliers=args$prune_outliers,
                             final_scale_limits=args$final_scale_limits,
                             final_center_val=args$final_center_val,
                             #reuse_subtracted=args$reuse_subtracted,
