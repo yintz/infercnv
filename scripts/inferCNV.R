@@ -11,14 +11,11 @@
 #     example/gencode_downsampled.txt
 
 # Load libraries
-library(ape)
-library("RColorBrewer", character.only=TRUE)
-library(GMD)
 library(optparse)
 library(logging)
-if (!require('fastcluster')) {
-    warning("fastcluster library not available, using the default hclust method instead.")
-}
+#if (!require('fastcluster')) {
+#    warning("fastcluster library not available, using the default hclust method instead.")
+#}
 library(infercnv)
 
 # Logging level choices
@@ -141,48 +138,389 @@ pargs <- optparse::OptionParser(usage=paste("%prog [options]",
                                             "--output_dir directory",
                                             "data_matrix genomic_positions"))
 
-pargs <- optparse::add_option(pargs, c("--color_safe"),
-                              type="logical",
-                              default=FALSE,
-                              action="store_true",
-                              dest="use_color_safe",
-                              metavar="Color_Safe",
-                              help=paste("To support the needs of those who see ",
-                                         "colors differently, use this option to",
-                                         "change the colors to a palette visibly ",
-                                         "distinct to all color blindness. ",
-                                         " [Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--contig_lab_size"),
-                              type="integer",
-                              action="store",
-                              default=1,
-                              dest="contig_label_size",
-                              metavar="Contig_Label_Size",
-                              help=paste("Used to increase or decrease the text labels",
-                                         "for the X axis (contig names).",
-                                         "[Default %default]"))
-
 pargs <- optparse::add_option(pargs, c("--cutoff"),
                               type="numeric",
-                              default=0,
+                              default=1,
                               action="store",
                               dest="cutoff",
                               metavar="Cutoff",
-                              help=paste("A number >= 0 is expected. A cut off for",
-                                         "the average expression of genes to be used",
-                                         "for CNV inference (use the value before log2 transformation). [Default %default]"))
+                              help=paste("A number >= 0 is expected. Cut-off for the min",
+                                         "average read counts per gene among reference cells.",
+                                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--transform"),
+pargs <- optparse::add_option(pargs, c("--min_cells_per_gene"),
+                              type="numeric",
+                              default=3,
+                              action="store",
+                              dest="min_cells_per_gene",
+                              metavar="Minimum cells per gene",
+                              help=paste("minimum number of reference cells requiring ",
+                                         "expression measurements to include the ",
+                                         "corresponding gene. [Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--out_dir"),
+                              type="character",
+                              default=".",
+                              action="store",
+                              dest="out_dir",
+                              metavar="Output Directory",
+                              help=paste("Path to directory to deposit outputs. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--window_length"),
+                              type="numeric",
+                              default=101,
+                              action="store",
+                              dest="window_length",
+                              metavar="Window Length",
+                              help=paste("Length of the window for the moving average ",
+                                         "(smoothing). Should be an odd integer.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--smooth_method"),
+                              type="character",
+                              default="pyramidinal",
+                              action="store",
+                              dest="smooth_method",
+                              metavar="Smoothing Method",
+                              help=paste("Method to use for smoothing: c(runmeans,pyramidinal)",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--num_ref_groups"),
+                              type="numeric",
+                              default=NULL,
+                              action="store",
+                              dest="num_ref_groups",
+                              metavar="Number of reference groups",
+                              help=paste("The number of reference groups or a list of",
+                                         "indices for each group of reference indices in",
+                                         "relation to reference_obs. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--ref_subtract_use_mean_bounds"),
+                              type="logical",
+                              default=TRUE,
+                              action="store_false",
+                              dest="ref_subtract_use_mean_bounds",
+                              metavar="Reference Subtract use Mean Bounds",
+                              help=paste("Determine means separately for each ref group, ",
+                                         "then remove intensities within bounds of means",
+                                         "[Default %default]",
+                                         "Otherwise, uses mean of the means across groups."))
+
+pargs <- optparse::add_option(pargs, c("--cluster_by_groups"),
                               type="logical",
                               default=FALSE,
                               action="store_true",
-                              dest="log_transform",
-                              metavar="LogTransform",
-                              help=paste("Matrix is assumed to be Log2(TPM+1) ",
-                                         "transformed. If instead it is raw TPMs ",
-                                         "use this flag so that the data will be ",
-                                         "transformed. [Default %default]"))
+                              dest="cluster_by_groups",
+                              metavar="Cluster by Groups",
+                              help=paste("If observations are defined according to groups ",
+                                         "(ie. patients), each group of cells will be ",
+                                         "clustered separately. ([Default %default]",
+                                         ", instead will use k_obs_groups setting)"))
+
+pargs <- optparse::add_option(pargs, c("--k_obs_groups"),
+                              type="numeric",
+                              default=1,
+                              action="store",
+                              dest="k_obs_groups",
+                              metavar="K number of Observation groups",
+                              help=paste("Number of groups in which to break the observations.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--hclust_method"),
+                              type="character",
+                              default="ward.D2",
+                              action="store",
+                              dest="hclust_method",
+                              metavar="Hierarchical Clustering Method",
+                              help=paste("Method used for hierarchical clustering of cells. ",
+                                         "Valid choices are: \"ward.D\", \"ward.D2\", \"single\"",
+                                         ", \"complete\", \"average\", \"mcquitty\", \"median\", \"centroid\". ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--analysis_mode"),
+                              type="character",
+                              default="samples",
+                              action="store",
+                              dest="analysis_mode",
+                              metavar="Analysis Mode",
+                              help=paste("options(samples|subclusters|cells), ",
+                                         "Grouping level for image filtering or HMM predictions.",
+                                         "[Default %default] (fastest, but subclusters is ideal)"))
+
+pargs <- optparse::add_option(pargs, c("--max_centered_threshold"),
+                              type="numeric",
+                              default=3,
+                              action="store",
+                              dest="max_centered_threshold",
+                              metavar="Max Centered Threshold",
+                              help=paste("The maximum value a value can have after",
+                                         "centering. Also sets a lower bound of -1 * this value. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--scale_data"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="scale_data",
+                              metavar="Scale Data",
+                              help=paste("perform Z-scaling of logtransformed data ",
+                                         "[Default %default]. ",
+                                         "This may be turned on if you have very different ",
+                                         "kinds of data for your normal and tumor samples. ",
+                                         "For example, you need to use GTEx representative ", 
+                                         "normal expression profiles rather than being able ",
+                                         "to leverage normal single cell data that ",
+                                         "goes with your experiment."))
+
+pargs <- optparse::add_option(pargs, c("--HMM"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="HMM",
+                              metavar="HMM",
+                              help=paste("when set to True, runs HMM to predict CNV level. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--HMM_transition_prob"),
+                              type="numeric",
+                              default=1e-6,
+                              action="store",
+                              dest="HMM_transition_prob",
+                              metavar="HMM Transition Probabiltie",
+                              help=paste("transition probability in HMM",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--tumor_subcluster_pval"),
+                              type="numeric",
+                              default=0.01,
+                              action="store",
+                              dest="tumor_subcluster_pval",
+                              metavar="Tumor Subcluster p-value",
+                              help=paste("Max p-value for defining a significant tumor subcluster. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--HMM_report_by"),
+                              type="character",
+                              default="subcluster",
+                              action="store",
+                              dest="HMM_report_by",
+                              metavar="HMM report by",
+                              help=paste("c(cell, consensus, subcluster)",
+                                         "[Default %default]",
+                                         "Note, reporting is performed entirely",
+                                         " separately from the HMM prediction.  ",
+                                         "So, you can predict on subclusters, but ",
+                                         "get per-cell level reporting (more voluminous output)."))
+
+pargs <- optparse::add_option(pargs, c("--HMM_type"),
+                              type="character",
+                              default=NULL,
+                              action="store",
+                              dest="HMM_type",
+                              metavar="HMM type",
+                              help=paste("HMM model type. Options: (i6 or i3):",
+                                         "i6: infercnv 6-state model (0, 0.5, 1,",
+                                         " 1.5, 2, >2) where state emissions are ",
+                                         "calibrated based on simulated CNV levels.\n",
+                                         "i3: infercnv 3-state model (del, neutral, amp) ",
+                                         "configured based on normal cells and HMM_i3_z_pval.\n",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--HMM_i3_z_pval"),
+                              type="numeric",
+                              default=0.05,
+                              action="store",
+                              dest="HMM_i3_z_pval",
+                              metavar="HMM i3 z p-value",
+                              help=paste("p-value for HMM i3 state overlap",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--denoise"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="denoise",
+                              metavar="Denoise",
+                              help=paste("If True, turns on denoising according to options below",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--noise_filter"),
+                              type="numeric",
+                              default=NULL,
+                              action="store",
+                              dest="noise_filter",
+                              metavar="Noise Filter",
+                              help=paste("Values +- from the reference cell mean will ",
+                                         "be set to zero (whitening effect)",
+                                         "[Default %default, instead will use ",
+                                         "sd_amplifier below.]"))
+
+pargs <- optparse::add_option(pargs, c("--sd_amplifier"),
+                              type="numeric",
+                              default=1.0,
+                              action="store",
+                              dest="sd_amplifier",
+                              metavar="SD denoise amplifier",
+                              help=paste("Noise is defined as mean(reference_cells) ",
+                                         "+- sdev(reference_cells) * sd_amplifier ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--noise_logistic"),
+                              type="logical",
+                              default=TRUE,
+                              action="store_false",
+                              dest="noise_logistic",
+                              metavar="Noise Logistic",
+                              help=paste("use the noise_filter or sd_amplifier ",
+                                         "based threshold (whichever is invoked) ",
+                                         "as the midpoint in alogistic model for ",
+                                         "downscaling values close to the mean. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--outlier_method_bound"),
+                              type="character",
+                              default="average_bound",
+                              action="store",
+                              dest="outlier_method_bound",
+                              metavar="Outlier Method Bound",
+                              help=paste("Method to use for bounding outlier values. ",
+                                         "[Default %default]",
+                                         "Will preferentially use outlier_lower_bound ",
+                                         "and outlier_upper_bound if set."))
+
+pargs <- optparse::add_option(pargs, c("--outlier_lower_bound"),
+                              type="numeric",
+                              default=NA,
+                              action="store",
+                              dest="outlier_lower_bound",
+                              metavar="Outlier Lower Bound",
+                              help=paste("Outliers below this lower bound ",
+                                         "will be set to this value.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--outlier_upper_bound"),
+                              type="numeric",
+                              default=NA,
+                              action="store",
+                              dest="outlier_upper_bound",
+                              metavar="Outlier Upper Bound",
+                              help=paste("Outliers above this upper bound ",
+                                         "will be set to this value.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--plot_steps"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="plot_steps",
+                              metavar="Plot Steps",
+                              help=paste("If true, saves infercnv objects and ",
+                                         "plots data at the intermediate steps.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--final_scale_limits"),
+                              type="character",
+                              default=NULL,
+                              action="store",
+                              dest="final_scale_limits",
+                              metavar="Final Scale Limits",
+                              help=paste("The scale limits for the final heatmap ",
+                                         "output by the run() method. ",
+                                         "[Default %default] ",
+                                         " Alt, c(low,high)"))
+
+pargs <- optparse::add_option(pargs, c("--final_center_val"),
+                              type="numeric",
+                              default=NULL,
+                              action="store",
+                              dest="final_center_val",
+                              metavar="Final Center Value",
+                              help=paste("Center value for final heatmap output ",
+                                         "by the run() method.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--debug"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="debug",
+                              metavar="Debug",
+                              help=paste("If true, output debug level logging.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--num_threads"),
+                              type="numeric",
+                              default=4,
+                              action="store",
+                              dest="num_threads",
+                              metavar="Number of Threads",
+                              help=paste("(int) number of threads for parallel steps. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--raw_counts_matrix"),
+                              type="character",
+                              default=NULL,
+                              action="store",
+                              dest="raw_counts_matrix",
+                              metavar="Raw Counts Expression Data",
+                              help=paste("the matrix of genes (rows) vs. cells (columns) ",
+                                         "containing the raw counts. It'll be read via read.table()",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--gene_order_file"),
+                              type="character",
+                              default=NULL,
+                              action="store",
+                              dest="gene_order_file",
+                              metavar="Gene Order File",
+                              help=paste("data file containing the positions of ",
+                                         "each gene along each chromosome in the genome. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--annotations_file"),
+                              type="character",
+                              default=NULL,
+                              action="store",
+                              dest="annotations_file",
+                              metavar="Annotation File",
+                              help=paste("a description of the cells, indicating ",
+                                         "the cell type classifications. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--ref_group_names"),
+                              type="character",
+                              default=NULL,
+                              action="store",
+                              dest="ref_group_names",
+                              metavar="Reference Groups Names",
+                              help=paste("Names of groups from raw_counts_matrix whose cells",
+                                         "are to be used as reference groups.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--delim"),
+                              type="character",
+                              action="store",
+                              default="\t",
+                              dest="delim",
+                              metavar="Delimiter",
+                              help=paste("Delimiter for reading expression matrix",
+                                         " and writing matrices output.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--max_cells_per_group"),
+                              type="numeric",
+                              default=NULL,
+                              action="store",
+                              dest="max_cells_per_group",
+                              metavar="Max Cells per group",
+                              help=paste("maximun number of cells to use per group. ",
+                                         "[Default %default] using all cells defined ",
+                                         "in the annotations_file. This option is useful ",
+                                         "for randomly subsetting the existing data ",
+                                         "for a quicker preview run, such as using ",
+                                         "50 cells per group instead of hundreds."))
 
 pargs <- optparse::add_option(pargs, c("--log_file"),
                               type="character",
@@ -194,303 +532,124 @@ pargs <- optparse::add_option(pargs, c("--log_file"),
                                          "logging will occur to console.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--delim"),
-                              type="character",
-                              action="store",
-                              default="\t",
-                              dest="delim",
-                              metavar="Delimiter",
-                              help=paste("Delimiter for reading expression matrix",
-                                        " and writing matrices output.",
-                                         "[Default %default]"))
+#pargs <- optparse::add_option(pargs, c("--contig_lab_size"),
+#                              type="integer",
+#                              action="store",
+#                              default=1,
+#                              dest="contig_label_size",
+#                              metavar="Contig_Label_Size",
+#                              help=paste("Used to increase or decrease the text labels",
+#                                         "for the X axis (contig names).",
+#                                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--log_level"),
-                              type="character",
-                              action="store",
-                              default="INFO",
-                              dest="log_level",
-                              metavar="LogLevel",
-                              help=paste("Logging level. Valid choices are",
-                                         paste(C_LEVEL_CHOICES,collapse=", "),
-                                         "[Default %default]"))
+#pargs <- optparse::add_option(pargs, c("--color_safe"),
+#                              type="logical",
+#                              default=FALSE,
+#                              action="store_true",
+#                              dest="use_color_safe",
+#                              metavar="Color_Safe",
+#                              help=paste("To support the needs of those who see ",
+#                                         "colors differently, use this option to",
+#                                         "change the colors to a palette visibly ",
+#                                         "distinct to all color blindness. ",
+#                                         " [Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--noise_filter"),
-                              type="numeric",
-                              default=0,
-                              action="store",
-                              dest="magnitude_filter",
-                              metavar="Magnitude_Filter",
-                              help=paste("A value must be atleast this much more or",
-                                         "less than the reference to be plotted",
-                                         "[Default %default]."))
+#pargs <- optparse::add_option(pargs, c("--title"),
+#                              type="character",
+#                              default="Copy Number Variation Inference",
+#                              action="store",
+#                              dest="fig_main",
+#                              metavar="Figure_Title",
+#                              help=paste("Title of the figure.",
+#                                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--max_centered_expression"),
-                              type="integer",
-                              default=3,
-                              action="store",
-                              dest="max_centered_expression",
-                              metavar="Max_centered_expression",
-                              help=paste("This value and -1 * this value are used",
-                                         "as the maximum value expression that can",
-                                         "exist after centering data. If a value is",
-                                         "outside of this range, it is truncated to",
-                                         "be within this range [Default %default]."))
+#pargs <- optparse::add_option(pargs, c("--title_obs"),
+#                              type="character",
+#                              default="Observations (Cells)",
+#                              action="store",
+#                              dest="obs_main",
+#                              metavar="Observations_Title",
+#                              help=paste("Title of the observations matrix Y-axis.",
+#                                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--obs_groups"),
-                              type="character",
-                              default=1,
-                              action="store",
-                              dest="num_obs_groups",
-                              metavar="Number_of_observation_groups",
-                              help=paste("Number of groups in which to break ",
-                                         "the observations.",
-                                         "[Default %default]"))
+#pargs <- optparse::add_option(pargs, c("--title_ref"),
+#                              type="character",
+#                              default="References (Cells)",
+#                              action="store",
+#                              dest="ref_main",
+#                              metavar="References_Title",
+#                              help=paste("Title of the references matrix Y-axis (if used).",
+#                                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--output_dir"),
-                              type="character",
-                              action="store",
-                              dest="output_dir",
-                              metavar="Output_Directory",
-                              help=paste("Output directory for analysis products.",
-                                         "[Default %default][REQUIRED]"))
+#pargs <- optparse::add_option(pargs, c("--ngchm"),
+#                              type="logical",
+#                              action="store_true",
+#                              default=FALSE,
+#                              dest="ngchm",
+#                              metavar="NextGen_HeatMap",
+#                              help=paste("Create a Next Generation Clustered Heat Map"))
 
-pargs <- optparse::add_option(pargs, c("--ref"),
-                              type="character",
-                              default=NULL,
-                              action="store",
-                              dest="reference_observations",
-                              metavar="Input_reference_observations",
-                              help=paste("Tab delimited characters are expected.",
-                                         "Names of the subset each sample ( data's",
-                                         "columns ) is part of.",
-                                         "[Default %default]"))
+#pargs <- optparse::add_option(pargs, c("--path_to_shaidyMapGen"),
+#                              type="character",
+#                              action="store",
+#                              default=NULL,
+#                              dest="path_to_shaidyMapGen",
+#                              metavar="Path_To_ShaidyMapGenp",
+#                              help=paste("This is the pathway to the java application ShaidyMapGen.jar.",
+#                                    "If this is not assigned, then an enviornmental variable that ",
+#                                    "contains the "))
 
-pargs <- optparse::add_option(pargs, c("--num_ref_groups"),
-                              type="integer",
-                              default=NULL,
-                              action="store",
-                              dest="num_ref_groups",
-                              metavar="Number_of_reference_groups",
-                              help=paste("Define a number of groups to",
-                                         "make automatically by unsupervised",
-                                         "clustering. This ignores annotations",
-                                         "within references, but does not",
-                                         "mix them with observations.",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--ref_groups"),
-                              type="character",
-                              default=NULL,
-                              action="store",
-                              dest="name_ref_groups",
-                              metavar="Name_of_reference_groups",
-                              help=paste("Names of groups from --ref table whose cells",
-                                         "are to be used as reference groups.",
-                                         "[REQUIRED]"))
-
-pargs <- optparse::add_option(pargs, c("--ref_subtract_method"),
-                              type="character",
-                              default="by_mean",
-                              action="store",
-                              dest="ref_subtract_method",
-                              metavar="Reference_Subtraction_Method",
-                              help=paste("Method used to subtract the reference values from the observations. Valid choices are: ",
-                                         paste(C_REF_SUBTRACT_METHODS, collapse=", "),
-                                         " [Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--hclust_method"),
-                              type="character",
-                              default="complete",
-                              action="store",
-                              dest="hclust_method",
-                              metavar="Hierarchical_Clustering_Method",
-                              help=paste("Method used for hierarchical clustering of cells. Valid choices are: ",
-                                         paste(C_HCLUST_METHODS, collapse=", "),
-                                         " [Default %default]"))
+#pargs <- optparse::add_option(pargs, c("--gene_symbol"),
+#                              type="character",
+#                              action="store",
+#                              default=NULL,
+#                              dest="gene_symbol",
+#                              metavar="Gene_Symbol",
+#                              help=paste("The labeling type used to represent the genes in the expression",
+#                                   "data. This needs to be passed in order to add linkouts to the ",
+#                                   "genes. Possible gene label types to choose from are specified on",
+#                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
 
 
 
-pargs <- optparse::add_option(pargs,c("--obs_cluster_contig"),
-                              type="character",
-                              default=NULL,
-                              action="store",
-                              dest="clustering_contig",
-                              metavar="Clustering_Contig",
-                              help=paste("When clustering observation samples, ",
-                                         "all genomic locations are used unless ",
-                                         "this option is given. The expected value ",
-                                         "is one of the contigs (Chr) in the genomic ",
-                                         "positions file (case senstive). All genomic ",
-                                         "positions will be plotted but only the given ",
-                                         "contig will be used in clustering / group ",
-                                         "creation."))
-
-pargs <- optparse::add_option(pargs, c("--steps"),
-                              type="logical",
-                              default=FALSE,
-                              action="store_true",
-                              dest="plot_steps",
-                              metavar="plot_steps",
-                              help=paste("Using this argument turns on plotting ",
-                                         "intemediate steps. The plots will occur ",
-                                         "in the same directory as the output pdf. ",
-                                         "Please note this option increases the time",
-                                         " needed to run [Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--vis_bound_method"),
-                              type="character",
-                              default="average_bound",
-                              action="store",
-                              dest="bound_method_vis",
-                              metavar="Outlier_Removal_Method_Vis",
-                              help=paste("Method to automatically detect and bound",
-                                         "outliers. Used for visualizing. If both",
-                                         "this argument and ",
-                                         "--vis_bound_threshold are given, this will",
-                                         "not be used. Valid choices are",
-                                         paste(C_VIS_OUTLIER_CHOICES, collapse=", "),
-                                         " [Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--vis_bound_threshold"),
-                              type="character",
-                              default=NA,
-                              action="store",
-                              dest="bound_threshold_vis",
-                              metavar="Outlier_Removal_Threshold_Vis",
-                              help=paste("Used as upper and lower bounds for values",
-                                         "in the visualization. If a value is",
-                                         "outside this bound it will be replaced by",
-                                         "the closest bound. Should be given in",
-                                         "the form of 1,1 (upper bound, lower bound)",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--window"),
-                              type="integer",
-                              default=101,
-                              action="store",
-                              dest="window_length",
-                              metavar="Window_Lengh",
-                              help=paste("Window length for the smoothing.",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--tail"),
-                              type="integer",
-                              default=NA,
-                              action="store",
-                              dest="contig_tail",
-                              metavar="contig_tail",
-                              help=paste("Contig tail to be removed.",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--title"),
-                              type="character",
-                              default="Copy Number Variation Inference",
-                              action="store",
-                              dest="fig_main",
-                              metavar="Figure_Title",
-                              help=paste("Title of the figure.",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--title_obs"),
-                              type="character",
-                              default="Observations (Cells)",
-                              action="store",
-                              dest="obs_main",
-                              metavar="Observations_Title",
-                              help=paste("Title of the observations matrix Y-axis.",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--title_ref"),
-                              type="character",
-                              default="References (Cells)",
-                              action="store",
-                              dest="ref_main",
-                              metavar="References_Title",
-                              help=paste("Title of the references matrix Y-axis (if used).",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--save"),
-                              type="logical",
-                              action="store_true",
-                              default=FALSE,
-                              dest="save",
-                              metavar="save",
-                              help="Save workspace as infercnv.Rdata")
-
-pargs <- optparse::add_option(pargs, c("--ngchm"),
-                              type="logical",
-                              action="store_true",
-                              default=FALSE,
-                              dest="ngchm",
-                              metavar="NextGen_HeatMap",
-                              help=paste("Create a Next Generation Clustered Heat Map"))
-
-pargs <- optparse::add_option(pargs, c("--path_to_shaidyMapGen"),
-                              type="character",
-                              action="store",
-                              default=NULL,
-                              dest="path_to_shaidyMapGen",
-                              metavar="Path_To_ShaidyMapGenp",
-                              help=paste("This is the pathway to the java application ShaidyMapGen.jar.",
-                                    "If this is not assigned, then an enviornmental variable that ",
-                                    "contains the "))
-
-pargs <- optparse::add_option(pargs, c("--gene_symbol"),
-                              type="character",
-                              action="store",
-                              default=NULL,
-                              dest="gene_symbol",
-                              metavar="Gene_Symbol",
-                              help=paste("The labeling type used to represent the genes in the expression",
-                                   "data. This needs to be passed in order to add linkouts to the ",
-                                   "genes. Possible gene label types to choose from are specified on",
-                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
-
-pargs <- optparse::add_option(pargs, c("--annotations_file"),
-                              type="character",
-                              action="store",
-                              default=NULL,
-                              dest="annotations_file",
-                              metavar="Annotations_File",
-                              help=paste("Path to file describing the cells, indicating the cell type classifications"))
-
-
-args_parsed <- optparse::parse_args(pargs, positional_arguments=2)
-args <- args_parsed$options
-args["input_matrix"] <- args_parsed$args[1]
-args["gene_order"] <- args_parsed$args[2]
+args <- optparse::parse_args(pargs)
 
 # Check arguments
-args <- check_arguments(args)
+#args <- check_arguments(args)
 
-
-# Make sure the output directory exists
-if(!file.exists(args$output_dir)){
-    dir.create(args$output_dir)
+if (!is.null(args$final_scale_limits)) {
+    if (grepl(',', args$final_scale_limits)) {
+        args$final_scale_limits = as.double(strsplit(args$final_scale_limits, ","))
+    }
 }
+
+if (!is.null(args$ref_group_names)) {
+    args$ref_group_names = strsplit(args$ref_group_names, ",")[[1]]
+}
+
 
 # Parse bounds
-bounds_viz <- c(NA,NA)
-if (!is.na(args$bound_threshold_vis)){
-    bounds_viz <- as.numeric(unlist(strsplit(args$bound_threshold_vis,",")))
-}
-if (length(bounds_viz) != 2){
-    error_message <- paste("Please use the correct format for the argument",
-                           "--vis_bound_threshold . Two numbers seperated",
-                           "by a comma is expected (lowerbound,upperbound)",
-                           ". As an example, to indicate that outliers are",
-                           "outside of -1 and 1 give the following.",
-                           "--vis_bound_threshold -1,1")
-    stop(error_message)
-}
+#bounds_viz <- c(NA,NA)
+#if (!is.na(args$bound_threshold_vis)){
+#    bounds_viz <- as.numeric(unlist(strsplit(args$bound_threshold_vis,",")))
+#}
+#if (length(bounds_viz) != 2){
+#    error_message <- paste("Please use the correct format for the argument",
+#                           "--vis_bound_threshold . Two numbers seperated",
+#                           "by a comma is expected (lowerbound,upperbound)",
+#                           ". As an example, to indicate that outliers are",
+#                           "outside of -1 and 1 give the following.",
+#                           "--vis_bound_threshold -1,1")
+#    stop(error_message)
+#}
 
 # Set up logging file
-logging::basicConfig(level=args$log_level)
-if (!is.na(args$log_file)){
-    logging::addHandler(logging::writeToFile,
-                        file=args$log_file,
-                        level=args$log_level)
-}
+#logging::basicConfig(level=args$log_level)
+#if (!is.na(args$log_file)){
+#    logging::addHandler(logging::writeToFile,
+#                        file=args$log_file,
+#                        level=args$log_level)
+#}
 
 # Log the input parameters
 logging::loginfo(paste("::Input arguments. Start."))
@@ -500,17 +659,57 @@ for (arg_name in names(args)){
 }
 logging::loginfo(paste("::Input arguments. End."))
 
-infercnv_obj = CreateInfercnvObject(raw_counts_matrix=args$input_matrix,
-                                    annotations_file=args$annotations_file,
-                                    delim=args$delim,
-                                    gene_order_file=args$gene_order,
-                                    ref_group_names=args$name_ref_groups)
+infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=args$raw_counts_matrix,
+                                               gene_order_file=args$gene_order_file,
+                                               annotations_file=args$annotations_file,
+                                               ref_group_names=args$ref_group_names,
+                                               delim=args$delim,
+                                               max_cells_per_group=args$max_cells_per_group,
+                                               chr_exclude=args$chr_exclude)
 
-infercnv_obj = infercnv::run(infercnv_obj,
-                             cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
-                             out_dir=args$output_dir,
-                             cluster_by_groups=T,
-                             plot_steps=F,
-                             denoise=T,
-                             HMM=T
-                             )
+infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
+                            cutoff=args$cutoff,
+                            min_cells_per_gene=args$min_cells_per_gene,
+                            out_dir=args$out_dir,
+                            analysis_mode=args$analysis_mode,
+                            window_length=args$window_length,
+                            smooth_method=args$smooth_method,
+                            num_ref_groups=args$num_ref_groups,
+                            ref_subtract_use_mean_bounds=args$ref_subtract_use_mean_bounds,
+                            max_centered_threshold=args$max_centered_threshold,
+                            tumor_subcluster_pval=args$tumor_subcluster_pval,
+                            tumor_subcluster_partition_method=args$tumor_subcluster_partition_method,
+                            HMM=args$HMM,
+                            HMM_transition_prob=args$HMM_transition_prob,
+                            HMM_report_by=args$HMM_report_by,
+                            HMM_type=args$HMM_type,
+                            HMM_i3_z_pval=args$HMM_i3_z_pval,
+                            #sim_method=args$sim_method,
+                            #sim_foreground=args$sim_foreground,
+                            scale_data=args$scale_data,
+                            denoise=args$denoise,
+                            noise_filter=args$noise_filter,
+                            sd_amplifier=args$sd_amplifier,
+                            noise_logistic=args$noise_logistic,
+                            cluster_by_groups=args$cluster_by_groups,
+                            k_obs_groups=args$k_obs_groups,
+                            outlier_method_bound=args$outlier_method_bound,
+                            outlier_lower_bound=args$outlier_lower_bound,
+                            outlier_upper_bound=args$outlier_upper_bound,
+                            hclust_method=args$hclust_method,
+                            #remove_genes_at_chr_ends=args$remove_genes_at_chr_ends,
+                            #mask_nonDE_genes=args$mask_nonDE_genes,
+                            #mask_nonDE_pval=args$mask_nonDE_pval,
+                            #test.use=args$test.use,
+                            #require_DE_all_normals=args$require_DE_all_normals,
+                            plot_steps=args$plot_steps,
+                            debug=args$debug,
+                            prune_outliers=args$prune_outliers,
+                            final_scale_limits=args$final_scale_limits,
+                            final_center_val=args$final_center_val,
+                            #reuse_subtracted=args$reuse_subtracted,
+                            num_threads=args$num_threads#,
+                            #hspike_aggregate_normals =args$hspike_aggregate_normals
+                            )
+
+
