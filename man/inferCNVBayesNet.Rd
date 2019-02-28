@@ -4,18 +4,19 @@
 \alias{inferCNVBayesNet}
 \title{inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States}
 \usage{
-inferCNVBayesNet(file_dir, model_file = system.file("BUGS_Mixture_Model",
-  package = "infercnv"), CORES = NULL, output_dir,
-  postMcmcMethod = NULL, plotingProbs = TRUE)
+inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, BayesMaxPNormal,
+  model_file = system.file("BUGS_Mixture_Model", package = "infercnv"),
+  CORES = NULL, out_dir, postMcmcMethod = NULL, plotingProbs = TRUE,
+  quietly = TRUE)
 }
 \arguments{
+\item{out_dir}{(string) Path to where the output file should be saved to.}
+
 \item{infercnv_dir}{Location of the directory of the inferCNV outputs.}
 
 \item{model}{Path to the BUGS Model file.}
 
 \item{parallel}{Option to run parallel by specifying the number of cores to be used.}
-
-\item{out_dir}{(string) Path to where the output file should be saved to.}
 
 \item{method}{What actions to take after finishing the MCMC.}
 }
