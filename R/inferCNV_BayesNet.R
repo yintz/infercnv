@@ -885,7 +885,7 @@ inferCNVBayesNet <- function(
     start_time <- Sys.time()
     MCMC_inferCNV_obj <- runMCMC(MCMC_inferCNV_obj)
     end_time <- Sys.time()
-    futile.logger::flog.info("Gibbs sampling time: ", difftime(end_time, start_time, units = "min")[[1]], " Minutes")
+    futile.logger::flog.info(paste("Gibbs sampling time: ", difftime(end_time, start_time, units = "min")[[1]], " Minutes"))
     
     ########
     # Plot #
