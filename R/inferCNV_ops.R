@@ -170,6 +170,7 @@ run <- function(infercnv_obj,
                 HMM_report_by=c("subcluster","consensus","cell"),
                 HMM_type=c('i6', 'i3'),
                 HMM_i3_z_pval=0.05,
+                BayesMaxPNormal=0,
                 
                 
                 ## some experimental params
@@ -839,7 +840,40 @@ run <- function(infercnv_obj,
                      x.range=c(0,6)
                      )
         }
-
+        
+        ##############################################################
+        # Bayesian Network Mixture Model 
+        ##############################################################
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
+        if (HMM_type == 'i6' & BayesMaxPNormal > 0) {
+            hmm.infercnv_obj <- infercnv::inferCNVBayesNet( infercnv_obj    = infercnv_obj_prelim,
+                                                            HMM_obj         = hmm.infercnv_obj,
+                                                            BayesMaxPNormal = BayesMaxPNormal,
+                                                            file_dir        = out_dir,
+                                                            postMcmcMethod  = "removeCNV",
+                                                            out_dir         = file.path(out_dir, "BayesNetOutput"),
+                                                            quietly = TRUE)
+            mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.infercnv_obj",
+                                                               step_count, hmm_resume_file_token))
+            saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)
+            
+            if (plot_steps) {
+                ## Plot HMM pred img after cnv removal
+                plot_cnv(infercnv_obj=hmm.infercnv_obj,
+                         k_obs_groups=k_obs_groups,
+                         cluster_by_groups=cluster_by_groups,
+                         out_dir=out_dir,
+                         title=sprintf("%02d_HMM_preds_Bayes_Net",step_count),
+                         output_filename=sprintf("infercnv.%02d_HMM_pred.Bayes_Net",step_count),
+                         write_expr_matrix=TRUE,
+                         x.center=3,
+                         x.range=c(0,6)
+                )
+            }    
+        }
+        
+        
         ## convert from states to representative  intensity values
 
         ## 
