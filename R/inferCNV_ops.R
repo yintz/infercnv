@@ -70,9 +70,9 @@
 #'
 #' @param HMM_type  HMM model type. Options: (i6 or i3):
 #'                          i6: infercnv 6-state model (0, 0.5, 1, 1.5, 2, >2) where state emissions are calibrated based on simulated CNV levels.
-#'                          i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells and HMM_i3_z_pval
+#'                          i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells and HMM_i3_pval
 #'
-#' @param HMM_i3_z_pval     p-value for HMM i3 state overlap (default: 0.05)
+#' @param HMM_i3_pval     p-value for HMM i3 state overlap (default: 0.05)
 #' 
 #' 
 #' #############################
@@ -169,7 +169,7 @@ run <- function(infercnv_obj,
                 HMM_transition_prob=1e-6,
                 HMM_report_by=c("subcluster","consensus","cell"),
                 HMM_type=c('i6', 'i3'),
-                HMM_i3_z_pval=0.05,
+                HMM_i3_pval=0.05,
                 BayesMaxPNormal=0,
                 
                 
@@ -773,8 +773,8 @@ run <- function(infercnv_obj,
                 hmm.infercnv_obj <- predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
                                                                              t=HMM_transition_prob)
             } else if (HMM_type == 'i3') {
-                hmm.infercnv_obj <- ZHMM_predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
-                                                                                  z_p_val=HMM_i3_z_pval,
+                hmm.infercnv_obj <- i3HMM_predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
+                                                                                  i3_p_val=HMM_i3_pval,
                                                                                   t=HMM_transition_prob)
             } else {
                 stop("Error, not recognizing HMM_type")
@@ -785,8 +785,8 @@ run <- function(infercnv_obj,
             if (HMM_type == 'i6') {
                 hmm.infercnv_obj <- predict_CNV_via_HMM_on_indiv_cells(infercnv_obj, t=HMM_transition_prob)
             } else if (HMM_type == 'i3') {
-                hmm.infercnv_obj <- ZHMM_predict_CNV_via_HMM_on_indiv_cells(infercnv_obj,
-                                                                            z_p_val=HMM_i3_z_pval,
+                hmm.infercnv_obj <- i3HMM_predict_CNV_via_HMM_on_indiv_cells(infercnv_obj,
+                                                                            i3_p_val=HMM_i3_pval,
                                                                             t=HMM_transition_prob)
             } else {
                 stop("Error, not recognizing HMM_type")
@@ -795,12 +795,12 @@ run <- function(infercnv_obj,
 
         } else {
             ## samples mode
-
+            
             if (HMM_type == 'i6') {
                 hmm.infercnv_obj <- predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, t=HMM_transition_prob)
             } else if (HMM_type == 'i3') {
-                hmm.infercnv_obj <- ZHMM_predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
-                                                                                  z_p_val=HMM_i3_z_pval,
+                hmm.infercnv_obj <- i3HMM_predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
+                                                                                  i3_p_val=HMM_i3_pval,
                                                                                   t=HMM_transition_prob)
             } else {
                 stop("Error, not recognizing HMM_type")
@@ -888,7 +888,7 @@ run <- function(infercnv_obj,
         if (HMM_type == 'i6') {
             hmm.infercnv_obj <- assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
         } else if (HMM_type == 'i3') {
-            hmm.infercnv_obj <- ZHMM_assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
+            hmm.infercnv_obj <- i3HMM_assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
         }
         
         hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities%s.infercnv_obj",

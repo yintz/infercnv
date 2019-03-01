@@ -1,6 +1,6 @@
 
 ## Based on number of cells in a clade
-.ZHMM_get_normal_sd_trend_by_num_cells_fit <- function(infercnv_obj, z_p_val=0.05, plot=TRUE) {
+.i3HMM_get_normal_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=TRUE) {
     
     if (!has_reference_cells(infercnv_obj)) {
         stop("Error, cannot tune parameters without reference 'normal' cells defined")
@@ -17,7 +17,7 @@
     ngenes = nrow(normal_expr_vals)
 
     num_normal_samples = length(normal_samples)
-    flog.info(".ZHMM_get_normal_sd_trend_by_num_cells_fit:: -got ", num_normal_samples, " samples") 
+    flog.info(".i3HMM_get_normal_sd_trend_by_num_cells_fit:: -got ", num_normal_samples, " samples") 
     
     for (ncells in seq_len(100)) {
         means = c()
@@ -46,13 +46,13 @@
     }
     
     ## get distribution position according to p_val in a qnorm
-    mean_delta = determine_mean_delta_via_Z(sigma, p=z_p_val)    
+    mean_delta = determine_mean_delta_via_Z(sigma, p=i3_p_val)    
 
     ## do this HBadger style in case that option is to be used.
-    KS_delta = get_HoneyBADGER_setGexpDev(gexp.sd=sigma, alpha=z_p_val)
+    KS_delta = get_HoneyBADGER_setGexpDev(gexp.sd=sigma, alpha=i3_p_val)
     
-    message("mean_delta: ", mean_delta, ", at sigma: ", sigma, ", and pval: ", z_p_val)
-    
+    message("mean_delta: ", mean_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
+q    
     normal_sd_trend = list(mu=mu,
                            sigma=sigma,
                            fit=fit,
@@ -64,7 +64,7 @@
 }
 
 
-.ZHMM_get_HMM <- function(normal_sd_trend, num_cells, t, z_p_val=0.05, use_KS=FALSE) {
+.i3HMM_get_HMM <- function(normal_sd_trend, num_cells, t, i3_p_val=0.05, use_KS) {
 
     ## Here we do something very similar to HoneyBadger
     ## which is to estimate the mean/var for the CNV states
@@ -84,7 +84,7 @@
     mu = normal_sd_trend$mu # normal cell mean
     
     mean_delta = ifelse(use_KS, normal_sd_trend$KS_delta, normal_sd_trend$mean_delta)
-    #flog.info(sprintf("-.ZHMM_get_HMM, mean_delta=%g, use_KS=%s", mean_delta, use_KS))
+    #flog.info(sprintf("-.i3HMM_get_HMM, mean_delta=%g, use_KS=%s", mean_delta, use_KS))
     
     if (num_cells == 1) {
         sigma = normal_sd_trend$sigma
@@ -115,9 +115,9 @@
 }
 
 
-ZHMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
-                                                     z_p_val=0.05,
-                                                     normal_sd_trend=.ZHMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, z_p_val),
+i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
+                                                     i3_p_val=0.05,
+                                                     normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
                                                      t=1e-6,
                                                      use_KS=TRUE) {
     
@@ -130,7 +130,7 @@ ZHMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
     hmm.data = expr.data
     hmm.data[,] = -1 #init to invalid state
 
-    HMM_info  <- .ZHMM_get_HMM(normal_sd_trend, num_cells = 1, t=t, z_p_val=z_p_val, use_KS=use_KS)
+    HMM_info  <- .i3HMM_get_HMM(normal_sd_trend, num_cells = 1, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
 
     message(HMM_info)
     
@@ -162,19 +162,19 @@ ZHMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
     
 }
             
-ZHMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
-                                                           z_p_val=0.05,
-                                                           normal_sd_trend=.ZHMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, z_p_val),
+i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
+                                                           i3_p_val=0.05,
+                                                           normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
                                                            t=1e-6,
                                                            use_KS=TRUE
                                                            ) {
     
     
-    flog.info(sprintf("ZHMM_predict_CNV_via_HMM_on_tumor_subclusters(z_p_val=%g, use_KS=%s)", z_p_val, use_KS))
+    flog.info(sprintf("i3HMM_predict_CNV_via_HMM_on_tumor_subclusters(i3_p_val=%g, use_KS=%s)", i3_p_val, use_KS))
     
     if (is.null(infercnv_obj@tumor_subclusters)) {
         flog.warn("No subclusters defined, so instead running on whole samples")
-        return(ZHMM_predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, z_p_val, normal_sd_trend, t, use_KS));
+        return(i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, i3_p_val, normal_sd_trend, t, use_KS));
     }
     
     chrs = unique(infercnv_obj@gene_order$chr)
@@ -200,7 +200,7 @@ ZHMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
             
             num_cells = length(tumor_subcluster_cells_idx)
 
-            HMM_info  <- .ZHMM_get_HMM(normal_sd_trend, num_cells=num_cells, t=t, z_p_val=z_p_val, use_KS=use_KS)
+            HMM_info  <- .i3HMM_get_HMM(normal_sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
                                                 
             hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                        HMM_info[['state_transitions']],
@@ -225,9 +225,9 @@ ZHMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 
 
 
-ZHMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
-                                                        z_p_val=0.05,
-                                                        normal_sd_trend=.ZHMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, z_p_val),
+i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
+                                                        i3_p_val=0.05,
+                                                        normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
                                                         t=1e-6,
                                                         use_KS=TRUE
                                                         ) {
@@ -257,7 +257,7 @@ ZHMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
             
             num_cells = length(tumor_sample_cells_idx)
             
-            HMM_info  <- .ZHMM_get_HMM(normal_sd_trend, num_cells=num_cells, t=t, z_p_val=z_p_val, use_KS=use_KS)
+            HMM_info  <- .i3HMM_get_HMM(normal_sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
             
             hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                        HMM_info[['state_transitions']],
@@ -279,7 +279,7 @@ ZHMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
     
 }
 
-ZHMM_assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
+i3HMM_assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
     
     expr.data = infercnv_obj@expr.data
     
