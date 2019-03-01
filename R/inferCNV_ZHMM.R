@@ -119,7 +119,7 @@ ZHMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
                                                      z_p_val=0.05,
                                                      normal_sd_trend=.ZHMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, z_p_val),
                                                      t=1e-6,
-                                                     use_KS=FALSE) {
+                                                     use_KS=TRUE) {
     
     flog.info("predict_CNV_via_HMM_on_indiv_cells()")
     
@@ -166,7 +166,7 @@ ZHMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                            z_p_val=0.05,
                                                            normal_sd_trend=.ZHMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, z_p_val),
                                                            t=1e-6,
-                                                           use_KS=FALSE
+                                                           use_KS=TRUE
                                                            ) {
     
     
@@ -229,7 +229,7 @@ ZHMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
                                                         z_p_val=0.05,
                                                         normal_sd_trend=.ZHMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, z_p_val),
                                                         t=1e-6,
-                                                        use_KS=FALSE
+                                                        use_KS=TRUE
                                                         ) {
     
     
