@@ -844,9 +844,12 @@ run <- function(infercnv_obj,
         ##############################################################
         # Bayesian Network Mixture Model 
         ##############################################################
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
+        
         if (HMM_type == 'i6' & BayesMaxPNormal > 0) {
+            
+            step_count = step_count + 1
+            flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
+            
             hmm.infercnv_obj <- infercnv::inferCNVBayesNet( infercnv_obj    = infercnv_obj_prelim,
                                                             HMM_obj         = hmm.infercnv_obj,
                                                             BayesMaxPNormal = BayesMaxPNormal,
@@ -854,8 +857,10 @@ run <- function(infercnv_obj,
                                                             postMcmcMethod  = "removeCNV",
                                                             out_dir         = file.path(out_dir, "BayesNetOutput"),
                                                             quietly = TRUE)
+
             mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.infercnv_obj",
                                                                step_count, hmm_resume_file_token))
+
             saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)
             
             if (plot_steps) {
