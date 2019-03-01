@@ -118,6 +118,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
                                  ref_group_names,
                                  delim="\t",
                                  max_cells_per_group=NULL,
+                                 min_max_counts_per_cell=NULL, # can be c(low,high) for colsums
                                  chr_exclude=c('chrX', 'chrY', 'chrM') ) {
     
     ## input expression data
@@ -131,7 +132,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     } else {
         stop("CreateInfercnvObject:: Error, raw_counts_matrix isn't recognized as a matrix, data.frame, or filename")
     }
-    
+
     ## get gene order info
     flog.info(sprintf("Parsing gene order file: %s", gene_order_file))
     gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
@@ -161,6 +162,36 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         stop(error_message)
     }
 
+    ## Determine if we need to do filtering on counts per cell
+    if (! is.null(min_max_counts_per_cell)) {
+        min_counts_per_cell = min_max_counts_per_cell[1]
+        max_counts_per_cell = min_max_counts_per_cell[2]
+
+        cs = colSums(raw.data)
+
+        cells.keep <- which(cs >= min_counts_per_cell & cs <= max_counts_per_cell)
+
+        n_orig_cells <- ncol(raw.data)
+        n_to_remove <- n_orig_cells - length(cells.keep)
+        
+        flog.info(sprintf("-filtering out cells < %g or > %g, removing %g %% of cells",
+                          min_counts_per_cell,
+                          max_counts_per_cell,
+                          n_to_remove/n_orig_cells * 100) )
+        
+        raw.data <- raw.data[, cells.keep]
+        
+        input_classifications <- input_classifications[ rownames(input_classifications) %in% colnames(raw.data), , drop=F]
+
+        orig_ref_group_names = ref_group_names
+        ref_group_names <- ref_group_names[ ref_group_names %in% unique(input_classifications[,1]) ]
+        if (! all.equal(ref_group_names, orig_ref_group_names)) {
+            flog.warn(sprintf("-warning, at least one reference group has been removed due to cells lacking: %s",
+                              orig_ref_group_names[! orig_group_names %in% ref_group_names ] ))
+        }
+    }
+    
+    
     if (! is.null(max_cells_per_group)) {
         ## trim down where needed.
         grps = split(input_classifications, input_classifications[,1])
