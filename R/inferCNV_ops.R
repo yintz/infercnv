@@ -435,6 +435,13 @@ run <- function(infercnv_obj,
             }
         }
     }
+    
+    else if (analysis_mode != 'subclusters') {
+        infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
+                                                        p_val=tumor_subcluster_pval,
+                                                        hclust_method=hclust_method,
+                                                        partition_method='none')
+    }
 
 
 
