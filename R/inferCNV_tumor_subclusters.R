@@ -46,7 +46,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 
 .single_tumor_subclustering <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method,
-                                        partition_method=c('qnorm', 'pheight', 'qgamma', 'shc')
+                                        partition_method=c('qnorm', 'pheight', 'qgamma', 'shc', 'none')
                                         ) {
     
     partition_method = match.arg(partition_method)
@@ -95,20 +95,36 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     #    
     #    grps <- .partition_by_random_trees(tumor_name, tumor_expr_data, hclust_method, p_val)
     #    
+
+    } else if (partition_method == 'none') {
+        
+        grps <- cutree(hc, k=1)
+        
     } else {
         stop("Error, not recognizing parition_method")
     }
         
-    cluster_ids = unique(grps)
-    flog.info(sprintf("cut tree into: %g groups", length(cluster_ids)))
+    # cluster_ids = unique(grps)
+    # flog.info(sprintf("cut tree into: %g groups", length(cluster_ids)))
     
     tumor_subcluster_info$subclusters = list()
     
-    for (g in cluster_ids) {
+    ordered_idx = tumor_group_idx[hc$order]
+    s = split(grps,grps)
+    flog.info(sprintf("cut tree into: %g groups", length(s)))
+
+    start_idx = 1
+
+    # for (g in cluster_ids) {
+    for (g in names(s)) {
+        
         split_subcluster = paste0(tumor_name, "_s", g)
         flog.info(sprintf("-processing %s,%s", tumor_name, split_subcluster))
         
-        subcluster_indices = tumor_group_idx[which(grps == g)]
+        # subcluster_indices = tumor_group_idx[which(grps == g)]
+        end_idx = start_idx + length(s[[g]]) - 1
+        subcluster_indices = tumor_group_idx[hc$order[start_idx:end_idx]]
+        start_idx = end_idx + 1
         
         tumor_subcluster_info$subclusters[[ split_subcluster ]] = subcluster_indices
         
