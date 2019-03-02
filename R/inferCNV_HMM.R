@@ -226,7 +226,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       ) {
     
     
-    flog.info(sprintf("predict_CNV_via_HMM_on_tumor_subclusters(p_val=%g)", p_val))
+    flog.info("predict_CNV_via_HMM_on_tumor_subclusters") #(p_val=%g)", p_val))
 
     if (is.null(infercnv_obj@tumor_subclusters)) {
         flog.warn("No subclusters defined, so instead running on whole samples")
