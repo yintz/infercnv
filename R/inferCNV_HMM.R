@@ -226,7 +226,9 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       ) {
     
     
-    flog.info("predict_CNV_via_HMM_on_tumor_subclusters") #(p_val=%g)", p_val))
+
+
+    flog.info("predict_CNV_via_HMM_on_tumor_subclusters")
 
     if (is.null(infercnv_obj@tumor_subclusters)) {
         flog.warn("No subclusters defined, so instead running on whole samples")
@@ -445,7 +447,8 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
     }
     
     cnv_regions = list()
-    
+
+    cnv_counter_start = 0
     for (cell_group_name in names(cell_groups)) {
         
         cell_group = cell_groups[[cell_group_name]]
@@ -459,7 +462,7 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
         state_consensus <- .get_state_consensus(cell_group_mtx)
         
         names(state_consensus) <- rownames(cell_group_mtx)
-        cnv_gene_regions <- .define_cnv_gene_regions(state_consensus, infercnv_obj@gene_order)
+        cnv_gene_regions <- .define_cnv_gene_regions(state_consensus, infercnv_obj@gene_order, cnv_counter_start)
         cnv_ranges <- .get_cnv_gene_region_bounds(cnv_gene_regions)
 
         consensus_state_list = list(cell_group_name=cell_group_name,
@@ -468,6 +471,9 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
                                     cnv_ranges=cnv_ranges)
         
         cnv_regions[[length(cnv_regions)+1]] = consensus_state_list
+
+        cnv_counter_start = cnv_counter_start + length(cnv_gene_regions)
+        
     }
     
     return(cnv_regions)
@@ -564,11 +570,9 @@ generate_cnv_region_reports <- function(infercnv_obj,
 }
 
 
-.define_cnv_gene_regions <- function(state_consensus, gene_order) {
+.define_cnv_gene_regions <- function(state_consensus, gene_order, cnv_region_counter) {
 
     regions = list()
-
-    cnv_region_counter = 0
 
     gene_names = rownames(gene_order)
     
@@ -583,6 +587,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
         pos_begin = gene_order[gene_idx[1],,drop=T]
         
         cnv_region_counter = cnv_region_counter + 1
+
         cnv_region_name = sprintf("%s-region_%d", chr, cnv_region_counter)
         current_cnv_region = data.frame(state=prev_state,
                                         gene=gene_names[gene_idx[1]],

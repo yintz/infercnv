@@ -1,6 +1,6 @@
 
 
-.build_and_add_hspike <- function(infercnv_obj, sim_method=c('splatter', 'simple', 'meanvar'), aggregate_normals=FALSE) {
+.build_and_add_hspike <- function(infercnv_obj, sim_method=c('meanvar', 'simple', 'splatter'), aggregate_normals=FALSE) {
     
     sim_method = match.arg(sim_method)
 
