@@ -853,7 +853,8 @@ run <- function(infercnv_obj,
                                                             file_dir        = out_dir,
                                                             postMcmcMethod  = "removeCNV",
                                                             out_dir         = file.path(out_dir, "BayesNetOutput"),
-                                                            quietly = TRUE)
+                                                            quietly = TRUE,
+                                                            CORES = num_threads)
             mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.infercnv_obj",
                                                                step_count, hmm_resume_file_token))
             saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)
