@@ -479,7 +479,10 @@ setMethod(f="removeCells",
           }
 )
 
-#' Run simulations using rjags.
+#' Run simulations using rjags. 
+#' 
+#' Run MCMC simulations using rjags. Also returns a plot the probability of each CNV being 
+#' normal before running any kind of post MCMC modification. 
 #' 
 #' @param obj The MCMC_inferCNV_obj S4 object.
 #' 
@@ -509,19 +512,7 @@ setMethod(f="runMCMC",
               
               # Get the probability of of each cell line and complete CNV belonging to a specific state
               obj <- getProbabilities(obj)
-              if(obj@args$plotingProbs == TRUE){
-                  postProbNormal(obj)
-              }
-              if(!(is.null(obj@args$postMcmcMethod))){
-                  if(obj@args$postMcmcMethod == "removeCNV"){
-                      obj <- removeCNV(obj)
-                  } else {
-                      obj <- removeCells(obj)
-                  }
-              }
-              # if(obj@args$plotingProbs == TRUE){
-              #     postProbNormal(obj)
-              # }
+
               return(obj)
           }
 )
@@ -533,6 +524,7 @@ setMethod(f="runMCMC",
 #' Get the probability of each cnv being a normal state and plot these probabilities. 
 #' 
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param PNormal Option to add specific title to plot. 
 #' 
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #' 
@@ -540,7 +532,7 @@ setMethod(f="runMCMC",
 #' @rdname postProbNormal-method
 #' 
 setGeneric(name="postProbNormal",
-           def=function(obj)
+           def=function(obj, PNormal)
                { standardGeneric("postProbNormal") }
 )
 
@@ -549,26 +541,33 @@ setGeneric(name="postProbNormal",
 #' 
 setMethod(f="postProbNormal",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj, PNormal)
           {
-              # get probability of the cnv's belonging to each state 
-              cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
-              # Adjust the probabilities so greater probability corresponds to less likely to be normal 
-              normal_prob <- 1 - cnv_means[3,]
-              obj@expr.data[,] <- 0
-              lapply(1:length(normal_prob), function(i) { 
-                  ## change the states to normal states
-                  obj@expr.data[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- normal_prob[i]
-              })
-              infercnv::plot_cnv(infercnv_obj          = obj,
-                                 #k_obs_groups         = 4,
-                                 #cluster_by_groups    = cluster_by_groups,
-                                 title                 = sprintf("NormalProbabilities"),
-                                 output_filename       = file.path(file.path(obj@args$out_dir),"infercnv.NormalProbabilities"),
-                                 write_expr_matrix     = FALSE,
-                                 x.center              = 0,
-                                 x.range               = c(0,1)
-              )
+              if (obj@args$plotingProbs == TRUE){
+                  # get probability of the cnv's belonging to each state 
+                  cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
+                  # Adjust the probabilities so greater probability corresponds to less likely to be normal 
+                  normal_prob <- 1 - cnv_means[3,]
+                  obj@expr.data[,] <- 0
+                  lapply(1:length(normal_prob), function(i) { 
+                      ## change the states to normal states
+                      obj@expr.data[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- normal_prob[i]
+                  })
+                  if (!is.null(PNormal)){
+                      title <- sprintf("Probabilities of Normal With Threshold %s",obj@args$BayesMaxPNormal)
+                  }else{
+                      title <- sprintf("Probabilities of Normal Before Filtering")
+                  }
+                  infercnv::plot_cnv(infercnv_obj          = obj,
+                                     #k_obs_groups         = 4,
+                                     #cluster_by_groups    = cluster_by_groups,
+                                     title                 = title,
+                                     output_filename       = file.path(file.path(obj@args$out_dir),"infercnv.NormalProbabilities"),
+                                     write_expr_matrix     = FALSE,
+                                     x.center              = 0,
+                                     x.range               = c(0,1)
+                  )
+              }
           }
 )
 
@@ -594,26 +593,40 @@ setMethod(f="plotProbabilities",
           signature="MCMC_inferCNV",
           definition=function(obj)
           {
-              # Plotting
-              ## plots the probability of each cell line being a particular state
-              ## plots the probability of a cnv being a particular state 
-              
-              # Plot the probabilities of epsilons 
-              ep <- function(df){df[,grepl('epsilon', colnames(df))]}
-              epsilons <- lapply(obj@combined_mcmc, function(x) ep(x))
-              
-              pdf(file = file.path(file.path(obj@args$out_dir),"cellProbs.pdf"), onefile = TRUE)
-              lapply(1:length(obj@cell_probabilities), function(i){ 
-                  print(plot_cell_prob(as.data.frame(obj@cell_probabilities[[i]]), as.character(obj@cell_gene[[i]]$cnv_regions)))
-              })
-              dev.off()
-              
-              ## Plot the probability of each state for a CNV 
-              pdf(file = file.path(file.path(obj@args$out_dir),"cnvProbs.pdf"), onefile = TRUE)
-              lapply(1:length(obj@cell_probabilities), function(i){
-                  print(plot_cnv_prob(obj@cnv_probabilities[[i]], as.character(obj@cell_gene[[i]]$cnv_regions)))
-              })
-              dev.off()
+              if (obj@args$plotingProbs == TRUE){
+                  
+                  # Plotting
+                  ## plots the probability of each cell line being a particular state
+                  ## plots the probability of a cnv being a particular state 
+                  
+                  # Plot the probabilities of epsilons 
+                  ep <- function(df){df[,grepl('epsilon', colnames(df))]}
+                  epsilons <- lapply(obj@combined_mcmc, function(x) ep(x))
+                  ## add threshold to the plot title if given  
+                  if (!is.null(obj@args$BayesMaxPNormal)) { 
+                      file_CELLplot <- sprintf("cellProbs.%s.pdf",obj@args$BayesMaxPNormal)
+                  } else{
+                      file_CELLplot <- "cellProbs.pdf"
+                  }
+                  pdf(file = file.path(file.path(obj@args$out_dir),file_CELLplot), onefile = TRUE)
+                  lapply(1:length(obj@cell_probabilities), function(i){ 
+                      print(plot_cell_prob(as.data.frame(obj@cell_probabilities[[i]]), as.character(obj@cell_gene[[i]]$cnv_regions)))
+                  })
+                  dev.off()
+                  
+                  ## Plot the probability of each state for a CNV 
+                  ## add threshold to the plot title if given  
+                  if (!is.null(obj@args$BayesMaxPNormal)) { 
+                      file_CNVplot <- sprintf("cnvProbs.%s.pdf",obj@args$BayesMaxPNormal)
+                  } else{
+                      file_CNVplot <- "cnvProbs.pdf"
+                  }
+                  pdf(file = file.path(file.path(obj@args$out_dir), file_CNVplot), onefile = TRUE)
+                  lapply(1:length(obj@cell_probabilities), function(i){
+                      print(plot_cnv_prob(obj@cnv_probabilities[[i]], as.character(obj@cell_gene[[i]]$cnv_regions)))
+                  })
+                  dev.off()
+              }
           }
 )
 
@@ -800,9 +813,9 @@ plot_cnv_prob <- function(df,title){
 }
 
 
-#################
-# main function #
-#################
+###############################################
+# Main Function to run Bayesion Network Model #
+###############################################
 #' @title inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States
 #' 
 #' @description Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterior 
@@ -810,11 +823,16 @@ plot_cnv_prob <- function(df,title){
 #' inferCNV's HMM. Posterior probabilities are found for the entire CNV cluster and each individual
 #' cell line in the CNV. 
 #'
-#' @param infercnv_dir Location of the directory of the inferCNV outputs.
+#' @param file_dir Location of the directory of the inferCNV outputs.
+#' @param infercnv_obj InferCNV object.
+#' @param HMM_obj InferCNV object with HMM states in expression data.
+#' @param BayesMaxPNormal Option to filter CNV or cell lines by some probability threshold.
 #' @param model Path to the BUGS Model file.
-#' @param parallel Option to run parallel by specifying the number of cores to be used.
+#' @param CORES Option to run parallel by specifying the number of cores to be used.
 #' @param out_dir (string) Path to where the output file should be saved to.
-#' @param method What actions to take after finishing the MCMC.
+#' @param postMcmcMethod What actions to take after finishing the MCMC.
+#' @param plotingProbs Option for adding plots of Cell and CNV probabilities. 
+#' @param quiet Option to print descriptions along each step. 
 #'
 #' @return Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
 #' (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM. 
@@ -902,29 +920,53 @@ inferCNVBayesNet <- function(
     futile.logger::flog.info(paste("Gibbs sampling time: ", difftime(end_time, start_time, units = "min")[[1]], " Minutes"))
     
     saveRDS(MCMC_inferCNV_obj, file = file.path(MCMC_inferCNV_obj@args$out_dir, "MCMC_inferCNV_obj.rds"))
+    
     ########
     # Plot #
     ########
     
-    ## Chromosomes in which the cnv's are located in 
-    # chr_per_cnv <- lapply(cell_gene,function(x){
-    #     genes <- x$Genes
-    #     infercnv_obj@gene_order[which(row.names(infercnv_obj@gene_order) %in% genes),]$chr
-    # })
+    postProbNormal(MCMC_inferCNV_obj, 
+                   PNormal = NULL)
     
-    ## Plot the resuls 
-    if(args_parsed$plotingProbs == TRUE){
-        plotProbabilities(MCMC_inferCNV_obj)
-        # postProbNormal(MCMC_inferCNV_obj)
-    }
-    
-    ##############################
-    # Return new infercnv object #
-    ##############################
-    infercnv_obj <- returningInferCNV(MCMC_inferCNV_obj, infercnv_obj)
     
     # saveRDS(MCMC_inferCNV_obj, file = MCMC_inferCNV_obj@args$out_dir)
-    return(infercnv_obj)
+    return(MCMC_inferCNV_obj)
+}
+
+#############################################################
+# Function to modify CNV's identified base on probabilities #
+#############################################################
+#' @title filterHighPNormals: Filter the HMM identified CNV's by the CNV's posterior probability 
+#' of belonging to a normal state. 
+#' 
+#' @description The following function will filter the HMM identified CNV's by the CNV's posterior 
+#' probability of belonging to a normal state identified by the function inferCNVBayesNet(). Will filter 
+#' CNV's based on a user desired threshold probability. Any CNV with a probability of being normal above 
+#' the threshold will be removed.
+#'
+#' @param MCMC_inferCNV_obj MCMC infernCNV object.
+#'
+#' @return Returns a MCMC_inferCNV_obj With removed CNV's. 
+#' 
+#' @export
+
+filterHighPNormals <- function( MCMC_inferCNV_obj ) {
+    ## Either Remove CNV's based on CNV posterier probabilities ("removeCNV")
+    ## or remove cell lines based on cell line posterior probabilities ("removeCells")
+    if(!(is.null(MCMC_inferCNV_obj@args$postMcmcMethod))){
+        if(MCMC_inferCNV_obj@args$postMcmcMethod == "removeCNV"){
+            MCMC_inferCNV_obj <- removeCNV(MCMC_inferCNV_obj)
+        } else {
+            MCMC_inferCNV_obj <- removeCells(MCMC_inferCNV_obj)
+        }
+    }
+    
+    ## Plot the resuls 
+    plotProbabilities(MCMC_inferCNV_obj)
+    postProbNormal(MCMC_inferCNV_obj, 
+                   PNormal = TRUE)
+    
+    return(MCMC_inferCNV_obj)
 }
 
 ##########################
