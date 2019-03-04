@@ -79,7 +79,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         
     } else if (partition_method == 'qgamma') {
 
-        library(fitdistrplus)
+        # library(fitdistrplus)
         gamma_fit = fitdist(heights, 'gamma')
         shape = gamma_fit$estimate[1]
         rate = gamma_fit$estimate[2]
@@ -136,7 +136,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 .get_shc_clusters <- function(tumor_expr_data, hclust_method, p_val) { 
 
-    library(sigclust2)
+    # library(sigclust2)
     
     flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val))
     

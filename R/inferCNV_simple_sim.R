@@ -266,8 +266,8 @@ KS_plot <- function(title, tumor_expr, hspike_expr, names=NULL) {
 
     cdfs = cdfs %>% gather(name1, name2, key='type', value='cdf')
 
-    p = ggplot(cdfs, aes(x=vals, y=cdf)) +
-        geom_line(aes(color=type, linetype=type)) +
+    p = ggplot(cdfs, aes_string(x=vals, y='cdf')) +
+        geom_line(aes_string(color='type', linetype='type')) +
         geom_segment(aes(x=ks_point_info$vals,
                          y=ks_point_info[[name1]],
                          xend=ks_point_info$vals,
@@ -291,7 +291,7 @@ KS_plot <- function(title, tumor_expr, hspike_expr, names=NULL) {
     y <- p0
     df <- data.frame(x,y)
 
-    fit <- nls(y ~ infercnv:::.logistic(x, x0 = x0, k = k), data = df,
+    fit <- nls(y ~ .logistic(x, x0 = x0, k = k), data = df,
                start = list(x0 = x_approx_mid, k = -1))
 
     logistic_x <- x
