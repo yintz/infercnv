@@ -3,12 +3,15 @@
 # To use inferCNV via command-line interface, first install inferCNV per Wiki,
 # then run a command like the following:
 #
-# ./scripts/inferCNV.R \
-#     --output_dir=output_cli \
-#     --ref_groups="Microglia/Macrophage","Oligodendrocytes (non-malignant)" \
-#     --annotations_file=example/oligodendroglioma_annotations_downsampled.txt \
-#     example/oligodendroglioma_expression_downsampled.counts.matrix \
-#     example/gencode_downsampled.txt
+# ./inferCNV.R \
+#     --raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix" \
+#     --annotations_file="../example/oligodendroglioma_annotations_downsampled.txt" \
+#     --gene_order_file="../example/gencode_downsampled.txt" \
+#     --ref_group_names="Microglia/Macrophage,Oligodendrocytes (non-malignant)" \
+#     --cutoff=1 \
+#     --out_dir="output_cli" \
+#     --cluster_by_groups \
+#     --denoise
 
 # Load libraries
 library(optparse)
@@ -610,7 +613,15 @@ pargs <- optparse::add_option(pargs, c("--log_file"),
 #                                   "genes. Possible gene label types to choose from are specified on",
 #                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
 
-
+pargs <- optparse::add_option(pargs, c("--median_filter"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="median_filter",
+                              metavar="Median Filter",
+                              help=paste("If True, turns on additional median",
+                                         " filtering for an additional plot. ",
+                                         "[Default %default]"))
 
 args <- optparse::parse_args(pargs)
 
@@ -714,4 +725,25 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             #hspike_aggregate_normals =args$hspike_aggregate_normals
                             )
 
+if (args$median_filter) {
 
+    infercnv_obj = infercnv::apply_median_filtering(infercnv_obj)
+    
+    if (is.null(args$final_scale_limits)) {
+        args$final_scale_limits = "auto"
+    }
+    if (is.null(args$final_center_val)) {
+        args$final_center_val = 1
+    }
+    
+    plot_cnv(infercnv_obj,
+             k_obs_groups=args$k_obs_groups,
+             cluster_by_groups=args$cluster_by_groups,
+             out_dir=args$out_dir,
+             x.center=args$final_center_val,
+             x.range=args$final_scale_limits,
+             title="inferCNV",
+             output_filename="infercnv_median_filtered",
+             write_expr_matrix=TRUE)
+
+}

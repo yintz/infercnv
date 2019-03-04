@@ -5,22 +5,26 @@
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
 run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
+  analysis_mode = c("samples", "subclusters", "cells"),
   window_length = 101, smooth_method = c("pyramidinal", "runmeans"),
-  num_ref_groups = NULL, max_centered_threshold = 3, HMM = FALSE,
-  HMM_mode = c("subclusters", "samples", "cells"),
-  tumor_subcluster_pval = 0.05,
+  num_ref_groups = NULL, ref_subtract_use_mean_bounds = TRUE,
+  max_centered_threshold = 3, tumor_subcluster_pval = 0.05,
   tumor_subcluster_partition_method = c("random_trees", "qnorm",
-  "pheight", "qgamma", "shc"), HMM_report_by = c("subcluster",
-  "consensus", "cell"), sim_method = "meanvar", sim_foreground = FALSE,
-  denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
-  noise_logistic = TRUE, cluster_by_groups = FALSE, k_obs_groups = 1,
+  "pheight", "qgamma", "shc"), HMM = FALSE,
+  HMM_transition_prob = 1e-06, HMM_report_by = c("subcluster",
+  "consensus", "cell"), HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05,
+  BayesMaxPNormal = 0, sim_method = "meanvar",
+  sim_foreground = FALSE, scale_data = FALSE, denoise = FALSE,
+  noise_filter = NA, sd_amplifier = 1.5, noise_logistic = TRUE,
+  cluster_by_groups = FALSE, k_obs_groups = 1,
   outlier_method_bound = "average_bound", outlier_lower_bound = NA,
   outlier_upper_bound = NA, hclust_method = "ward.D2",
   remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = FALSE,
   mask_nonDE_pval = 0.05, test.use = "wilcoxon",
   require_DE_all_normals = "any", plot_steps = FALSE, debug = FALSE,
   prune_outliers = FALSE, final_scale_limits = NULL,
-  final_center_val = NULL, reuse_subtracted = TRUE, num_threads = 1)
+  final_center_val = NULL, reuse_subtracted = TRUE, num_threads = 4,
+  hspike_aggregate_normals = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -34,34 +38,56 @@ default: 3}
 
 ## Smoothing params}
 
+\item{analysis_mode}{options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
+default: samples (fastest, but subclusters is ideal)}
+
 \item{window_length}{Length of the window for the moving average
 (smoothing). Should be an odd integer. (default: 101)#'}
 
+\item{smooth_method}{Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
+
+#####}
+
 \item{num_ref_groups}{The number of reference groups or a list of
-                          indices for each group of reference indices in
-                          relation to reference_obs. (default: NULL)
+indices for each group of reference indices in
+relation to reference_obs. (default: NULL)}
+
+\item{ref_subtract_use_mean_bounds}{Determine means separately for each ref group, then remove intensities within bounds of means (default: TRUE)
+                                      Otherwise, uses mean of the means across groups.
 
 #############################}
 
 \item{max_centered_threshold}{The maximum value a value can have after
-                                  centering. Also sets a lower bound of
-                                  -1 * this value. (default: 3),
-                              can set to a numeric value or "auto" to bound by the mean bounds across cells.
-                              Set to NA to turn off.
-
-#########################################################################
-## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters}
-
-\item{HMM}{when set to True, runs HMM to predict CNV level (default: FALSE)}
-
-\item{HMM_mode}{options(samples|cells|subclusters), default: samples (fastest, but subclusters is ideal)}
+    centering. Also sets a lower bound of
+    -1 * this value. (default: 3),
+can set to a numeric value or "auto" to bound by the mean bounds across cells.
+Set to NA to turn off.}
 
 \item{tumor_subcluster_pval}{max p-value for defining a significant tumor subcluster (default: 0.01)}
 
-\item{HMM_report_by}{cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).
+\item{HMM}{when set to True, runs HMM to predict CNV level (default: FALSE)}
+
+\item{HMM_transition_prob}{transition probability in HMM (default: 1e-6)}
+
+\item{HMM_report_by}{cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).}
+
+\item{HMM_type}{HMM model type. Options: (i6 or i3):
+i6: infercnv 6-state model (0, 0.5, 1, 1.5, 2, >2) where state emissions are calibrated based on simulated CNV levels.
+i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells and HMM_i3_pval}
+
+\item{HMM_i3_pval}{p-value for HMM i3 state overlap (default: 0.05)
+
 
 #############################
 ## de-noising parameters ####}
+
+\item{scale_data}{perform Z-scaling of logtransformed data (default: FALSE).  This may be turned on if you have
+                   very different kinds of data for your normal and tumor samples. For example, you need to use GTEx
+                   representative normal expression profiles rather than being able to leverage normal single cell data
+                   that goes with your experiment.
+
+#########################################################################
+## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters}
 
 \item{denoise}{If True, turns on denoising according to options below}
 
@@ -125,9 +151,7 @@ the mean value for the complete data set (default: 0.05)}
 
 \item{final_center_val}{Center value for final heatmap output by the run() method.}
 
-\item{smooth_mething}{Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
-
-#####}
+\item{num_threads}{(int) number of threads for parallel steps (default: 4)}
 }
 \value{
 infercnv_obj containing filtered and transformed data

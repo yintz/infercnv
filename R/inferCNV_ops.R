@@ -860,7 +860,7 @@ run <- function(infercnv_obj,
             mcmc.infercnv_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc.infercnv_obj)
             
             # Create new inferCNV objecrt with CNV's removed 
-            hmm.infercnv_obj <- returningInferCNV(mcmc.infercnv_obj, hmm.infercnv_obj)
+            hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc.infercnv_obj, hmm.infercnv_obj)
             
             # Save the MCMC inferCNV object
             mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.infercnv_obj",

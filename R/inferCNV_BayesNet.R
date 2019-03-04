@@ -642,6 +642,8 @@ setMethod(f="plotProbabilities",
 #' @exportMethod returningInferCNV
 #' @rdname returningInferCNV-method
 #' 
+#' @export
+
 setGeneric(name = "returningInferCNV", 
            def = function(obj, infercnv_obj) 
                { standardGeneric("returningInferCNV") }
