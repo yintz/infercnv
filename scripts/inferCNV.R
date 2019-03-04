@@ -3,12 +3,15 @@
 # To use inferCNV via command-line interface, first install inferCNV per Wiki,
 # then run a command like the following:
 #
-# ./scripts/inferCNV.R \
-#     --output_dir=output_cli \
-#     --ref_groups="Microglia/Macrophage","Oligodendrocytes (non-malignant)" \
-#     --annotations_file=example/oligodendroglioma_annotations_downsampled.txt \
-#     example/oligodendroglioma_expression_downsampled.counts.matrix \
-#     example/gencode_downsampled.txt
+# ./inferCNV.R \
+#     --raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix" \
+#     --annotations_file="../example/oligodendroglioma_annotations_downsampled.txt" \
+#     --gene_order_file="../example/gencode_downsampled.txt" \
+#     --ref_group_names="Microglia/Macrophage,Oligodendrocytes (non-malignant)" \
+#     --cutoff=1 \
+#     --out_dir="output_cli" \
+#     --cluster_by_groups \
+#     --denoise
 
 # Load libraries
 library(optparse)
