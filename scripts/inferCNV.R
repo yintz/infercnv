@@ -725,10 +725,10 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             #hspike_aggregate_normals =args$hspike_aggregate_normals
                             )
 
-infercnv_obj = infercnv::apply_median_filtering(infercnv_obj)
-
 if (args$median_filter) {
 
+    infercnv_obj = infercnv::apply_median_filtering(infercnv_obj)
+    
     if (is.null(args$final_scale_limits)) {
         args$final_scale_limits = "auto"
     }
