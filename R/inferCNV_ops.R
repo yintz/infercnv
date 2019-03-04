@@ -417,7 +417,7 @@ run <- function(infercnv_obj,
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
-            infercnv_obj <- infercnv:::define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
+            infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
                                                                                                   p_val=tumor_subcluster_pval,
                                                                                                   hclust_method=hclust_method)
             saveRDS(infercnv_obj, file=infercnv_obj_file)

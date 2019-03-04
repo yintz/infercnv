@@ -52,7 +52,7 @@
 
 .splatEstMean <- function(norm.counts, params) {
 
-    library(fitdistrplus)
+    # library(fitdistrplus)
 
     means <- rowMeans(norm.counts)
     means <- means[means != 0]
@@ -226,7 +226,7 @@
         stop("Error, use.genes.means provided but not matching the params nGenes count")
     }
 
-    library(SingleCellExperiment)
+    # library(SingleCellExperiment)
 
     ## Get the parameters we are going to use
     nCells <- params[["nCells"]]

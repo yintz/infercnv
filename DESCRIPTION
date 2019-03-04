@@ -16,7 +16,7 @@ Suggests: BiocStyle, knitr, rmarkdown, testthat
 Enhances: NGCHM
 RoxygenNote: 6.1.1
 NeedsCompilation: no
-Imports: RColorBrewer, gplots, futile.logger, stats, utils, methods, ape, Matrix,  fastcluster, dplyr, HiddenMarkov, fitdistrplus, doParallel, future
+Imports: RColorBrewer, gplots, futile.logger, stats, utils, methods, ape, Matrix,  fastcluster, dplyr, HiddenMarkov, ggplot2, edgeR, coin, caTools, reshape, rjags, fitdistrplus, future, foreach, doParallel, BiocGenerics, SummarizedExperiment, SingleCellExperiment, tidyr, parallel
 Collate: 
     'NextGenHeatMap.R'
     'SplatterScrape.R'

@@ -407,7 +407,7 @@ plot_cnv <- function(infercnv_obj,
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
     obs_seps <- c()
-    sub_obs_seps <- c()
+    sub_obs_seps <- c()  # never use at this time? available if we want to add splits in the heatmap for subclusters
 
     if (!is.null(infercnv_obj@tumor_subclusters)) {
         # for (tumor in obs_annotations_names) { #tumor_subclusters$hc) {
@@ -517,7 +517,7 @@ plot_cnv <- function(infercnv_obj,
           }
         }
         obs_seps <- c(obs_seps, length(ordered_names))
-        sub_obs_seps = sub_ops_seps
+        sub_obs_seps = obs_seps
     }
     
     
@@ -2452,7 +2452,7 @@ depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, s
     adjust_value <- function(x) {
         newval = x
         val = abs(x - expr_mean)
-        p = infercnv:::.logistic(val, delta_midpt, slope)
+        p = .logistic(val, delta_midpt, slope)
         if (x > expr_mean) {
             newval = expr_mean + p*val
         } else if (x < expr_mean) {
