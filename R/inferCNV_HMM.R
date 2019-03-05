@@ -1,4 +1,15 @@
 
+#' @title get_spike_dists
+#'
+#' @description determines the N(mean,sd) parameters for each of the CNV states based on
+#' the in silico spike in data (hspike).
+#'
+#' @param hspike_obj hidden spike object
+#'
+#' @return cnv_mean_sd list
+#'
+#' @export
+
 get_spike_dists <- function(hspike_obj) {
     
     if (is.null(hspike_obj)) {
@@ -18,6 +29,16 @@ get_spike_dists <- function(hspike_obj) {
 }
 
 
+#' @title .get_gene_expr_by_cnv
+#'
+#' @description  builds a list containing all intensities corresponding to each of the
+#' spiked-in cnv levels.
+#'
+#' @param hspike_obj
+#'
+#' @return gene_expr_by_cnv  list, keyed on cnv level, value as vector of residual expr intensities
+#'
+#' @noRd
 
 .get_gene_expr_by_cnv <- function(hspike_obj) {
     
@@ -45,6 +66,19 @@ get_spike_dists <- function(hspike_obj) {
 }
 
 
+
+
+#' @title .get_gene_expr_mean_sd_by_cnv
+#'
+#' @description extracts the N(mean,sd) params for each of the cnv levels based
+#' on the list of residual expr intensities for each cnv level
+#'
+#' @param gene_expr_by_cnv data table
+#'
+#' @return cnv_mean_sd list
+#'
+#' @noRd
+
 .get_gene_expr_mean_sd_by_cnv <- function(gene_expr_by_cnv) {
 
     cnv_mean_sd = list()
@@ -61,6 +95,20 @@ get_spike_dists <- function(hspike_obj) {
     return(cnv_mean_sd)
     
 }
+
+
+#' @title .plot_gene_expr_by_cnv
+#'
+#' @description generates a plot showing the residual expresion intensity distribution along with the
+#' reference theoretical densities for each of the corresponding parameterized normal distributions.
+#'
+#' @param gene_expr_by_cnv list
+#'
+#' @param cnv_mean_sd list
+#'
+#' @return ggplot2_plot
+#'
+#' @noRd
 
 .plot_gene_expr_by_cnv <- function(gene_expr_by_cnv, cnv_mean_sd) {
     
@@ -80,7 +128,25 @@ get_spike_dists <- function(hspike_obj) {
 }
 
 
-## Based on number of cells in a clade
+#' @title get_hspike_cnv_mean_sd_trend_by_num_cells_fit
+#'
+#' @description determine the number of cells - to - variance fit for each of the cnv levels.
+#'
+#' Different numbers of cells are randomly selected from the distribution of residual intensitites at each
+#' corresponding CNV level, the variance is computed, and a linear model is then fit.
+#'
+#' Note, this is similar to what is done in HoneyBadger, but has many differences to how they're doing it there,
+#' which appears to involve cnv block length rather than cell number.  Here, block size is not relevant, but rather
+#' the number of cells in a pre-defined tumor subcluster.  Also, values are extracted from our in silico spike-in.
+#'
+#' @param hspike_obj hidden spike object
+#'
+#' @param plot (boolean flag, default FALSE)
+#'
+#' @return cnv_level_to_mean_sd_fit list
+#'
+#' @export
+
 get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
     
     gene_expr_by_cnv <- .get_gene_expr_by_cnv(hspike_obj)
@@ -135,7 +201,17 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
 
 
 
-
+#' @title .get_HMM
+#'
+#' @description retrieves parameters for the i6 HMM including state transition and state emission probabilities.
+#'
+#' @param cnv_mean_sd list containing the N(mean,sd) values per cnv state level
+#'
+#' @param t  the probability for transitioning to a different state.
+#'
+#' @return HMM_info list
+#'
+#' @noRd
 
 
 .get_HMM <- function(cnv_mean_sd, t) {
@@ -176,6 +252,19 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
 }
 
 
+#' @title predict_CNV_via_HMM_on_indiv_cells
+#'
+#' @description predict CNV levels at the individual cell level, using the i6 HMM
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
+#'
+#' @param t HMM alt state transition probability (default=1e-6)
+#'
+#' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
+#'
+#' @export
 
 predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike), t=1e-6) {
     
@@ -218,7 +307,24 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
     return(infercnv_obj)
     
 }
-            
+
+
+#' @title predict_CNV_via_HMM_on_tumor_subclusters
+#'
+#' @description predict CNV levels at the tumor subcluster level, using the i6 HMM
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
+#'
+#' @param cnv_level_to_mean_sd_fit (optional, by default automatically computed based on get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)
+#' 
+#' @param t HMM alt state transition probability (default=1e-6)
+#'
+#' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
+#'
+#' @export
+
 predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike),
                                                       cnv_level_to_mean_sd_fit=get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike),
@@ -284,6 +390,21 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     
 }
 
+#' @title predict_CNV_via_HMM_on_whole_tumor_samples
+#'
+#' @description predict CNV levels at the tumor sample level, using the i6 HMM
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
+#'
+#' @param cnv_level_to_mean_sd_fit (optional, by default automatically computed based on get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)
+#'
+#' @param t HMM alt state transition probability (default=1e-6)
+#'
+#' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
+#'
+#' @export
 
 
 predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
@@ -342,6 +463,22 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
 }
 
 
+#' @title .get_state_emission_params
+#'
+#' @description Given a specified number of cells, determines the standard deviation for each of the cnv states
+#' based on the linear model fit.
+#'
+#' @param num_cells  number of cells in the tumor subcluster
+#'
+#' @param cnv_mean_sd list of cnv mean,sd values
+#'
+#' @param cnv_level_to_mean_sd_fit  linear model that was fit for each cnv state level
+#'
+#' @param plot boolean (default=FALSE)
+#'
+#' @noRd
+
+
 .get_state_emission_params <- function(num_cells, cnv_mean_sd, cnv_level_to_mean_sd_fit, plot=FALSE) {
         
     for (cnv_level in names(cnv_mean_sd)) {
@@ -371,6 +508,21 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
     
     return(state_emission_params)
 }
+
+
+
+#' @title .plot_cnv_mean_sd_for_num_cells
+#'
+#' @description helper function for plotting the N(mean,sd) for each of the cnv states
+#' The plot is written to a file 'state_emissions.{num_cells}.pdf
+#' 
+#' @param num_cells number of cells. Only used to encode into the filename.
+#'
+#' @param cnv_mean_sd list containing the N(mean,sd) for each of the cnv states
+#'
+#' @return None
+#'
+#' @noRd
 
 .plot_cnv_mean_sd_for_num_cells <- function(num_cells, cnv_mean_sd) {
 
@@ -407,6 +559,12 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
 }
 
 
+
+#' @keywords internal
+#' @noRd
+#' 
+
+
 .compare_obs_vs_fit_sc_cnv_sd <- function(infercnv_obj,
                                           cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike),
                                           cnv_level_to_mean_sd_fit=get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)) {
@@ -423,6 +581,21 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
     return(df)
 }
 
+
+
+#' @title get_predicted_CNV_regions
+#'
+#' @description Given the infercnv_obj containing the HMM state assignments in the expr.data slot,
+#' retrieves a list of CNV regions.
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param by options("consensus", "subcluster", "cell"), determines the granularity at which to report
+#'           the CNV regions.  Ideally, set to the same level at which the HMM predictions were performed.
+#'
+#' @return cnv_regions list
+#'
+#' @export
 
 get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluster", "cell")) {
     by = match.arg(by)
@@ -480,6 +653,25 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
     return(cnv_regions)
     
 }
+
+
+#' @title generate_cnv_region_reports
+#'
+#' @description writes the CNV region report files
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param output_filename_prefix  prefix for output filename
+#' 
+#' @param out_dir output directory for report files to be written
+#'
+#' @param by options("consensus", "subcluster", "cell"), determines the granularity at which to report
+#'           the CNV regions.  Ideally, set to the same level at which the HMM predictions were performed.
+#'
+#' @return None
+#'
+#' @export
+
 
 
 generate_cnv_region_reports <- function(infercnv_obj,
@@ -557,7 +749,18 @@ generate_cnv_region_reports <- function(infercnv_obj,
     return
     
 }
-    
+
+
+#' @title .get_state_consensus
+#'
+#' @description gets the state consensus for each gene in the input matrix
+#'
+#' @param cell_group_matrix  matrix of [genes,cells] for which to apply consensus operation at gene level across cells.
+#'
+#' @return vector containing consensus state assignments for genes.
+#'
+#' @noRd
+
 .get_state_consensus <- function(cell_group_matrix) {
 
     consensus  = apply(cell_group_matrix, 1, function(x) {
@@ -570,6 +773,21 @@ generate_cnv_region_reports <- function(infercnv_obj,
     return(consensus)
 }
 
+
+#' @title .define_cnv_gene_regions
+#'
+#' @description Given the state consensus vector and gene order info, defines cnv regions
+#' based on consistent ordering and cnv state 
+#'
+#' @param state_consensus state consensus vector
+#'
+#' @param gene_order the infercnv_obj@gene_order info
+#'
+#' @param cnv_region_counter number x where counting starts at x+1, used to provide unique region names.
+#'
+#' @return regions  list containing the cnv regions defined.
+#'
+#' @noRd
 
 .define_cnv_gene_regions <- function(state_consensus, gene_order, cnv_region_counter) {
 
@@ -625,7 +843,17 @@ generate_cnv_region_reports <- function(infercnv_obj,
     return(regions)
 }
 
-# cnv_gene_regions = .define_cnv_bounds(hmm_path, infercnv_obj@gene_order)
+
+#' @title .get_cnv_gene_region_bounds
+#'
+#' @description  Given the cnv regions list, defines a data table containing
+#'               the cnv region name, state, chr, start, and end value.
+#'
+#' @param cnv_gene_regions
+#'
+#' @return data.frame containing the cnv region summary table
+#'
+#' @noRd
 
 .get_cnv_gene_region_bounds <- function(cnv_gene_regions) {
 
@@ -646,10 +874,17 @@ generate_cnv_region_reports <- function(infercnv_obj,
 }
 
 
-    
+#' @title Viterbi.dthmm.adj
+#'
+#' @description Viterbi method extracted from the HiddenMarkov package and modified
+#'              to use our scoring system.
+#'
+#' @param HiddenMarkov object
+#'
+#' @return vector containing the viterbi state assignments
+#'
+#' @noRd
 
-
-## Adapted from the HiddenMarkov package:
 Viterbi.dthmm.adj <- function (object, ...){
     x <- object$x
 
@@ -727,6 +962,16 @@ Viterbi.dthmm.adj <- function (object, ...){
     return(y)
 }
 
+
+#' @title assign_HMM_states_to_proxy_expr_vals
+#'
+#' @description Replaces the HMM state assignments with the cnv levels they represent.
+#' 
+#' @param infercnv_obj infercnv object
+#'
+#' @return infercnv_obj
+#'
+#' @export
 
 assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
 

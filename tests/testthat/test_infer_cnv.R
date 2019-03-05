@@ -1,6 +1,7 @@
 # Global data
 
-make_fake_infercnv_obj <- function(some_matrix) {
+
+make_fake_infercnv_obj_midpoint_ref <- function(some_matrix) {
 
     num_cells = ncol(some_matrix)
     num_genes = nrow(some_matrix)
@@ -14,7 +15,7 @@ make_fake_infercnv_obj <- function(some_matrix) {
                              stop=1:num_genes)
     
     midpt_cells = floor(num_cells/2)
-    
+
     normal_cells = 1:midpt_cells
     tumor_cells = (midpt_cells+1):num_cells
 
@@ -28,6 +29,40 @@ make_fake_infercnv_obj <- function(some_matrix) {
 
     return(infercnv_obj)
 
+}
+
+make_fake_infercnv_obj <- function(some_matrix, ref_idx, ref_names="a") {
+    
+    num_cells = ncol(some_matrix)
+    num_genes = nrow(some_matrix)
+    
+    if (num_cells < 2) {
+        stop("Error, need at least 2 cells in the matrix")
+    }
+    
+    gene_order <- data.frame(chr=rep("chr1", num_genes),
+                             start=1:num_genes,
+                             stop=1:num_genes)
+    
+    #normal_cells = ref_idx
+    tumor_cells = c(1:num_cells)[-unlist(ref_idx)]
+    
+    ref_group_cell_indices = list()
+    for (i in 1:length(ref_names)) {
+        ref_group_cell_indices[[ ref_names[i] ]] <- unlist(ref_idx[i])
+    }
+    
+    infercnv_obj <- new(
+        Class = "infercnv",
+        expr.data = some_matrix, 
+        count.data = some_matrix,
+        gene_order = gene_order,
+        #reference_grouped_cell_indices = list(normal=normal_cells),
+        reference_grouped_cell_indices = ref_group_cell_indices, 
+        observation_grouped_cell_indices = list(tumor=tumor_cells) )
+    
+    return(infercnv_obj)
+    
 }
 
 
@@ -78,38 +113,42 @@ matrix_averef_five_answer <- matrix(c(c(-1,0,0,0,0,-1,0,0,1,0),
                                     ncol=10,
                                     byrow=TRUE)
 
-test_that("subtract_ref works with one observation, one reference",{
-    expect_equal(infercnv:::.subtract_expr(t(matrix_one),
-                              ref_groups=list(c(1))),
-                 t(avref_answer_1))
-          })
-test_that("subtract_ref works with two observations, one reference",{
-    expect_equal(infercnv:::.subtract_expr(t(matrix_two),
-                                           ref_groups=list(c(1))),
-                 t(avref_answer_2))
-          })
 
-test_that("subtract_ref updated works with 3 observaions, two reference",{
-    expect_equal(infercnv:::.subtract_expr(t(matrix_three),
-                                           ref_groups=list(c(1,3))),
-                 t(avref_answer_3))
-    })
-test_that("subtract_ref works with 5 observations, two reference",{
-    expect_equal(infercnv:::.subtract_expr(t(matrix_five),
-                                   ref_groups=list(c(2,5))),
-                 t(avref_answer_4))
-          })
-test_that("subtract_ref works with 1 observation, 1 reference",{
-    expect_equal(infercnv:::.subtract_expr(t(matrix_zeros),
-                                           ref_groups=list(c(1))),
-                 t(avref_answer_5))
+test1_in = make_fake_infercnv_obj(t(matrix_one), list(c(1)))
+test1_out = infercnv::subtract_ref_expr_from_obs(test1_in)
+test_that("subtract_ref works with one observation, one reference",{
+    expect_equal(test1_out@expr.data, t(avref_answer_1))
 })
 
+test2_in = make_fake_infercnv_obj(t(matrix_two), list(c(1)))
+test2_out = infercnv::subtract_ref_expr_from_obs(test2_in)
+test_that("subtract_ref works with two observations, one reference",{
+    expect_equal(test2_out@expr.data, t(avref_answer_2))
+})
+
+test3_in = make_fake_infercnv_obj(t(matrix_three), list(c(1, 3)))
+test3_out = infercnv::subtract_ref_expr_from_obs(test3_in)
+test_that("subtract_ref updated works with 3 observaions, two reference",{
+    expect_equal(test3_out@expr.data, t(avref_answer_3))
+})
+
+test4_in = make_fake_infercnv_obj(t(matrix_five), list(c(2, 5)))
+test4_out = infercnv::subtract_ref_expr_from_obs(test4_in)
+test_that("subtract_ref works with 5 observations, two reference",{
+    expect_equal(test4_out@expr.data, t(avref_answer_4))    
+})
+
+test5_in = make_fake_infercnv_obj(t(matrix_zeros), list(c(1)))
+test5_out = infercnv::subtract_ref_expr_from_obs(test5_in)
+test_that("subtract_ref works with 1 observation, 1 reference",{
+    expect_equal(test5_out@expr.data, t(avref_answer_5)) 
+})
+
+test6_in = make_fake_infercnv_obj(t(matrix_averef_five), list(c(2),c(4,6,8),c(10)), ref_names=c("a", "b", "c"))
+test6_out = infercnv::subtract_ref_expr_from_obs(test6_in, use_bounds=TRUE)
 test_that("subtract_ref works with 10 obs, 5 references, 3 groups",{
-    expect_equal(infercnv:::.subtract_expr(t(matrix_averef_five),
-                                           ref_groups=list(c(2),c(4,6,8),c(10))),
-                 matrix_averef_five_answer)
-          })
+    expect_equal(test6_out@expr.data, matrix_averef_five_answer)
+})
 
 
 
