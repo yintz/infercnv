@@ -114,7 +114,7 @@ get_spike_dists <- function(hspike_obj) {
     
     df  = do.call(rbind, lapply(names(gene_expr_by_cnv), function(x) { data.frame(cnv=x, expr=gene_expr_by_cnv[[x]]) }))
 
-    p = df %>% ggplot(aes_string(expr,  fill='cnv', colour='cnv'))  +  geom_density(alpha=0.1)
+    p = df %>% ggplot(aes(expr,  fill='cnv', colour='cnv'))  +  geom_density(alpha=0.1)
 
     p = p +
         stat_function(fun=dnorm, color='black', args=list('mean'=cnv_mean_sd[["cnv:0.01"]]$mean,'sd'=cnv_mean_sd[["cnv:0.01"]]$sd)) +

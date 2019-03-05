@@ -23,7 +23,7 @@ if (! is.null(infercnv_obj@.hspike)) {
     hspike_obj = infercnv_obj@.hspike
     hspike_gene_expr_by_cnv <- infercnv:::.get_gene_expr_by_cnv(hspike_obj)
     hspike_cnv_mean_sd <- infercnv:::.get_gene_expr_mean_sd_by_cnv(hspike_gene_expr_by_cnv)
-    p = infercnv:::.plot_gene_expr_by_cnv(hspike_gene_expr_by_cnv, hspike_cnv_mean_sd)
+    p = infercnv:::.plot_gene_expr_by_cnv(gene_expr_by_cnv=hspike_gene_expr_by_cnv, cnv_mean_sd=hspike_cnv_mean_sd)
     pdf(paste0(infercnv_obj_file, '.hspike.dist.pdf'))
     plot(p)
     dev.off()

@@ -18,9 +18,7 @@ hspike = infercnv_obj@.hspike
 
 hspike.hmm = infercnv:::predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj=hspike,
                                                                  cnv_mean_sd=infercnv:::get_spike_dists(hspike),
-                                                                 cnv_level_to_mean_sd_fit=infercnv:::get_hspike_cnv_mean_sd_trend_by_num_cells_fit(hspike),
-                                                                 p_val=0.05,
-                                                                 hclust_method='ward.D2'
+                                                                 cnv_level_to_mean_sd_fit=infercnv:::get_hspike_cnv_mean_sd_trend_by_num_cells_fit(hspike)
                                                                  )
 
 plot_cnv(hspike.hmm, x.center=3, x.range=c(0,6), output_filename=paste0(basename(infercnv_obj_file), ".hspike.hmm"), out_dir=dirname(infercnv_obj_file))
