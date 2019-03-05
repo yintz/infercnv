@@ -62,6 +62,10 @@ infercnv <- methods::setClass(
 #'
 #' @param max_cells_per_group maximun number of cells to use per group. Default=NULL, using all cells defined in the annotations_file. This option is useful for randomly subsetting the existing data for a quicker preview run, such as using 50 cells per group instead of hundreds.
 #' 
+#' @param min_max_counts_per_cell minimum and maximum counts allowed per cell. Any cells outside this range will be removed from the counts matrix. default=NULL and uses all cells. If used, should be set as c(min_counts, max_counts)
+#'
+#' @param chr_exclude list of chromosomes in the reference genome annotations that should be excluded from analysis.  Default = c('chrX', 'chrY', 'chrM')
+#'
 #' @description Creation of an infercnv object. This requires the following inputs:
 #' A more detailed description of each input is provided below:
 #'
