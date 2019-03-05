@@ -77,14 +77,14 @@
             sim_normal_matrix = counts(sim.scExpObj)
         } else if (sim_method == 'simple') {
             ## using simple
-            mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(normal_cells_expr)    
-            sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
+            mean_p0_table <- .get_mean_vs_p0_from_matrix(normal_cells_expr)    
+            sim_normal_matrix <- .get_simulated_cell_matrix(gene_means,
                                                                        mean_p0_table=mean_p0_table,
                                                                        num_cells=num_cells,
                                                                        common_dispersion=0.1)
         } else if (sim_method == 'meanvar') {
             ## using mean,var trend
-            sim_normal_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
+            sim_normal_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
             
         }
 
@@ -111,13 +111,13 @@
             sim_spiked_cnv_matrix = counts(sim_spiked_cnv.scExpObj)
         } else if (sim_method == 'simple') {
             ## using simple
-            sim_spiked_cnv_matrix <- infercnv:::.get_simulated_cell_matrix(hspike_gene_means,
+            sim_spiked_cnv_matrix <- .get_simulated_cell_matrix(hspike_gene_means,
                                                                            mean_p0_table=mean_p0_table,
                                                                            num_cells=num_cells,
                                                                            common_dispersion=0.1)
         } else if (sim_method == 'meanvar') {
             
-            sim_spiked_cnv_matrix <- infercnv:::.get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, hspike_gene_means, num_cells, include.dropout=TRUE)
+            sim_spiked_cnv_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, hspike_gene_means, num_cells, include.dropout=TRUE)
         }
 
         spike_tumor_name = sprintf("spike_tumor_cell_%s", normal_type)
@@ -220,13 +220,13 @@
 
     params <- NULL
     if (sim_method == 'splatter') {
-        params <- infercnv:::.estimateSingleCellParamsSplatterScrape(infercnv_obj@count.data[, unlist(infercnv_obj@reference_grouped_cell_indices)])
+        params <- .estimateSingleCellParamsSplatterScrape(infercnv_obj@count.data[, unlist(infercnv_obj@reference_grouped_cell_indices)])
     }
 
 
     mean_p0_table <- NULL
     if (sim_method == 'simple') {
-        mean_p0_table <- infercnv:::.get_mean_vs_p0_from_matrix(normal_data)
+        mean_p0_table <- .get_mean_vs_p0_from_matrix(normal_data)
     }
     
     for (sample_name in names(samples)) {
@@ -242,13 +242,13 @@
         ## sim the tumor matrix
         if (sim_method == 'simple') {
             
-            sim_matrix <- infercnv:::.get_simulated_cell_matrix(gene_means,
+            sim_matrix <- .get_simulated_cell_matrix(gene_means,
                                                                 mean_p0_table=mean_p0_table,
                                                                 num_cells=num_cells,
                                                                 common_dispersion=0.1)
         } else if (sim_method == 'splatter') {
             params[['nCells']] <- num_cells
-            sim_matrix <- infercnv:::.simulateSingleCellCountsMatrixSplatterScrape(params, gene_means)
+            sim_matrix <- .simulateSingleCellCountsMatrixSplatterScrape(params, gene_means)
             sim_matrix <- counts(sim_matrix)
         } else if (sim_method == 'meanvar') {
             sim_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj,
