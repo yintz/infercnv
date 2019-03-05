@@ -12,6 +12,8 @@ getStates(obj, HMM_obj)
 }
 \arguments{
 \item{obj}{The MCMC_inferCNV_obj S4 object.}
+
+\item{HMM_obj}{The HMM inferCNV object.}
 }
 \value{
 obj The MCMC_inferCNV_obj S4 object.

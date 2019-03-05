@@ -13,6 +13,10 @@ getGenesCells(obj, pred_cnv_genes_df, cell_groups_df)
 }
 \arguments{
 \item{obj}{The MCMC_inferCNV_obj S4 object.}
+
+\item{pred_cnv_genes_df}{Data for genes in each predicted CNV.}
+
+\item{cell_groups_df}{Data for each cell in the predicted CNV's.}
 }
 \value{
 obj The MCMC_inferCNV_obj S4 object.

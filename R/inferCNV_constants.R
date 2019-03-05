@@ -30,6 +30,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @import fitdistrplus
 #' @import doParallel
 #' @import future
+#' @import coda
 
 
 NULL

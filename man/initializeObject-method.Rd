@@ -13,6 +13,12 @@ initializeObject(obj, args_parsed, infercnv_obj, HMM_obj)
 }
 \arguments{
 \item{obj}{The MCMC_inferCNV_obj S4 object.}
+
+\item{args_parsed}{The arguments given to the function.}
+
+\item{infercnv_obj}{InferCNV object.}
+
+\item{HMM_obj}{HMM InferCNV object.}
 }
 \value{
 obj The MCMC_inferCNV_obj S4 object.

@@ -118,6 +118,8 @@ setMethod(f="MeanSD",
 #' Create a list that holds Genes and Cells for each separate identified CNV 
 #' 
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param pred_cnv_genes_df Data for genes in each predicted CNV.
+#' @param cell_groups_df Data for each cell in the predicted CNV's.
 #' 
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #' 
@@ -160,6 +162,9 @@ setMethod(f="getGenesCells",
 #' Initialize the MCMC_inferCNV_obj object 
 #' 
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param args_parsed The arguments given to the function.
+#' @param infercnv_obj InferCNV object.
+#' @param HMM_obj HMM InferCNV object.
 #' 
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #' 
@@ -229,6 +234,7 @@ setMethod(f="initializeObject",
 #' Get the state values from the inferCNV HMM object 
 #' 
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param HMM_obj The HMM inferCNV object. 
 #' 
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #' 
@@ -594,7 +600,7 @@ setMethod(f="plotProbabilities",
           definition=function(obj)
           {
               if (obj@args$plotingProbs == TRUE){
-                  
+                  futile.logger::flog.info(paste("Creating Plots for CNV and cell Probabilities."))
                   # Plotting
                   ## plots the probability of each cell line being a particular state
                   ## plots the probability of a cnv being a particular state 
@@ -636,6 +642,7 @@ setMethod(f="plotProbabilities",
 #' Returns Infercnv Object 
 #' 
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param infercnv_obj Current inferCNV object that will be adjusted based on the results of the Bayesian Network Model. 
 #'
 #' @return An inferCNV object
 #'
@@ -654,6 +661,103 @@ setMethod(f = "returningInferCNV",
               NewStates <- obj@States
               infercnv_obj@expr.data <- NewStates
               return(infercnv_obj)
+          }
+)
+
+
+#' Create Diagnostic Plots And Summaries.
+#' 
+#' Create Diagnostic Plots And Summaries in order to determine if convergence has occured. 
+#' 
+#' @param obj The MCMC_inferCNV_obj S4 object.
+#' 
+#' @return obj The MCMC_inferCNV_obj S4 object.
+#' 
+#' @exportMethod mcmcDiagnosticPlots
+#' @rdname mcmcDiagnosticPlots-method
+#' 
+#' 
+setGeneric(name="mcmcDiagnosticPlots",
+           def=function(obj)
+           { standardGeneric("mcmcDiagnosticPlots") }
+)
+
+#' @rdname mcmcDiagnosticPlots-method
+#' @aliases mcmcDiagnosticPlots
+#' 
+#' 
+setMethod(f="mcmcDiagnosticPlots",
+          signature="MCMC_inferCNV",
+          definition=function(obj)
+          {
+              futile.logger::flog.info(paste("Creating Diagnostic Plots."))
+              ###########################
+              # trace and denisty plots 
+              ###########################
+              #-------------------------------------- 
+              # trace and denisty plots for each cnv 
+              #--------------------------------------
+              ## get the theta values 
+              if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Trace and Density Plots.")) }
+              cnvProb <- function(combined_samples) {
+                  thetas <- combined_samples[,grepl('theta', colnames(combined_samples))]
+              }
+              cnvMCMCList <- lapply(1:length(obj@mcmc), function(i){
+                  lapply(obj@mcmc[[i]], cnvProb)
+              })
+              # trace and denisty plots
+              pdf(file = file.path(file.path(obj@args$out_dir),"CNVDiagnosticPlots.pdf"), onefile = TRUE)
+              lapply(1:length(cnvMCMCList), function(i){ 
+                  plot(coda::mcmc.list(cnvMCMCList[[i]]))
+              })
+              dev.off()
+              
+              #---------------------------------------
+              # trace and denisty plots for each cell
+              #---------------------------------------
+              ## get the theta values 
+              if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Plotting Cell Trace and Density Plots.")) }
+              cellProb <- function(samples) {
+                  epsilons <- samples[,grepl('epsilon', colnames(samples))]
+              }
+
+              cellMCMCList <- lapply(1:length(obj@mcmc), function(i){
+                  lapply(obj@mcmc[[i]], cellProb)
+              })
+              # trace and denisty plots
+              pdf(file = file.path(file.path(obj@args$out_dir),"CellDiagnosticPlots.pdf"), onefile = TRUE)
+              lapply(1:length(cellMCMCList), function(i){
+                  plot(coda::mcmc.list(cellMCMCList[[i]]))
+              })
+              dev.off()
+              
+              
+              ###########################
+              # Auto Correlation Plots 
+              ###########################
+              #---------------------------------------
+              # Auto Correlation for each CNV
+              #---------------------------------------
+              if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Autocorrelation Plots.")) }
+              pdf(file = file.path(file.path(obj@args$out_dir),"CNVautocorrelationPlots.pdf"), onefile = TRUE)
+              lapply(1:length(cnvMCMCList), function(i){ 
+                  autocorr.plot(coda::mcmc.list(cnvMCMCList[[i]]))
+              })
+              dev.off()
+              
+              ###########################
+              # Gelman Plots 
+              ###########################
+              #---------------------------------------
+              # Gelman for each CNV
+              #---------------------------------------
+              if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Gelman Plots.")) }
+              pdf(file = file.path(file.path(obj@args$out_dir),"CNVGelmanPlots.pdf"), onefile = TRUE)
+              lapply(1:length(cellMCMCList), function(i){ 
+                  gelman.plot(coda::mcmc.list(cnvMCMCList[[i]]))
+              })
+              dev.off()
+              
           }
 )
 
@@ -721,7 +825,7 @@ pargs <- optparse::add_option(pargs, c("-x","--plot"),
 run_gibb_sampling <- function( 	gene_exp, 
                                 MCMC_inferCNV_obj
                                 ){
-    if(is.null(ncol(gene_exp))){
+    if (is.null(ncol(gene_exp))){
         gene_exp <- data.frame(gene_exp)
     } 
     C = ncol(gene_exp)
@@ -755,14 +859,13 @@ run_gibb_sampling <- function( 	gene_exp,
                                n.chains=6,  # the number of parallel chains for the model
                                n.adapt=500, # the number of iterations for adaptation (burn in)
                                quiet=MCMC_inferCNV_obj@args$quietly)
-    update(model, 200, progress.bar=ifelse(MCMC_inferCNV_obj@args$quietly,"none","text"))
+    stats::update(model, 200, progress.bar=ifelse(MCMC_inferCNV_obj@args$quietly,"none","text"))
     # run the rjags model 
     ## set the parameters to return from sampling 
     parameters <- c('theta', 'epsilon')
     samples <- rjags::coda.samples(model, parameters, n.iter=1000, progress.bar=ifelse(MCMC_inferCNV_obj@args$quietly,"none","text"))
     return(samples)
 }
-##########################################################################################################################################################
 
 # Function to plot the probability for each cell line of being in a particular state 
 plot_cell_prob <- function(df, title){
@@ -838,6 +941,7 @@ plot_cnv_prob <- function(df,title){
 #'
 #' @return Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
 #' (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM. 
+#' 
 #' @export
 
 inferCNVBayesNet <- function( 
@@ -916,22 +1020,22 @@ inferCNVBayesNet <- function(
     ################################
     # Run MCMC Sampling            #
     ################################
+    ## Run Gibbs sampling and time the process 
     start_time <- Sys.time()
     MCMC_inferCNV_obj <- runMCMC(MCMC_inferCNV_obj)
     end_time <- Sys.time()
     futile.logger::flog.info(paste("Gibbs sampling time: ", difftime(end_time, start_time, units = "min")[[1]], " Minutes"))
     
+    ## Save the MCMC.infercnv_object as an RDS
     saveRDS(MCMC_inferCNV_obj, file = file.path(MCMC_inferCNV_obj@args$out_dir, "MCMC_inferCNV_obj.rds"))
     
     ########
     # Plot #
     ########
-    
+    mcmcDiagnosticPlots(MCMC_inferCNV_obj)
     postProbNormal(MCMC_inferCNV_obj, 
                    PNormal = NULL)
     
-    
-    # saveRDS(MCMC_inferCNV_obj, file = MCMC_inferCNV_obj@args$out_dir)
     return(MCMC_inferCNV_obj)
 }
 
