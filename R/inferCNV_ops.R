@@ -128,6 +128,11 @@
 #'
 #' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
 #'
+#' @param resume_mode  leverage pre-computed and stored infercnv objects where possible. (default=TRUE)
+#' 
+#' @param no_plot   don't make any of the images. Instead, generate all non-image outputs as part of the run. (default: FALSE)
+#'
+#' @param no_prelim_plot  don't make the preliminary infercnv image (default: FALSE)
 #' 
 #' #######################
 #' ## Experimental options
@@ -147,12 +152,13 @@
 #'
 #' @param require_DE_all_normals If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")
 #'
-#' # other experimental opts
+#' other experimental opts
 #' 
 #' @param sim_method   method for calibrating CNV levels in the i6 HMM (default: 'meanvar')
 #'
 #' @param sim_foreground  don't use... for debugging, developer option.
 #' 
+#' @param hspike_aggregate_normals  instead of trying to model the different normal groupings individually, just merge them in the hspike.
 #' 
 #' @return infercnv_obj containing filtered and transformed data
 #'
@@ -222,6 +228,7 @@ run <- function(infercnv_obj,
                 debug=FALSE, #for debug level logging                
                 num_threads = 4,
                 plot_steps=FALSE,
+                resume_mode = TRUE,
                 
                 ## experimental options                
                 remove_genes_at_chr_ends=FALSE,
@@ -232,7 +239,6 @@ run <- function(infercnv_obj,
                 test.use='wilcoxon',
                 require_DE_all_normals="any",
                 
-                reuse_subtracted = TRUE,
                 
                 hspike_aggregate_normals = FALSE,
                 
@@ -267,7 +273,7 @@ run <- function(infercnv_obj,
     flog.info(sprintf("\n\n\tSTEP %d: incoming data\n", step_count))
 
     infercnv_obj_file=file.path(out_dir, sprintf("%02d_incoming_data.infercnv_obj", step_count))
-    if (! (reuse_subtracted && file.exists(infercnv_obj_file)) ) {
+    if (! (resume_mode && file.exists(infercnv_obj_file)) ) {
         saveRDS(infercnv_obj, infercnv_obj_file)
     }
 
@@ -282,7 +288,7 @@ run <- function(infercnv_obj,
 
     infercnv_obj_file = file.path(out_dir, sprintf("%02d_reduced_by_cutoff.infercnv_obj",step_count))
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file) ) {
+    if (resume_mode && file.exists(infercnv_obj_file) ) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj = readRDS(infercnv_obj_file)
     } else {
@@ -308,7 +314,7 @@ run <- function(infercnv_obj,
     
     infercnv_obj_file = file=file.path(out_dir, sprintf("%02d_normalized_by_depth%s.infercnv_obj", step_count, resume_file_token))
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+    if (resume_mode && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
 
@@ -336,7 +342,7 @@ run <- function(infercnv_obj,
 
     infercnv_obj_file = file.path(out_dir, sprintf("%02d_logtransformed%s.infercnv_obj", step_count, resume_file_token))
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+    if (resume_mode && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
@@ -369,7 +375,7 @@ run <- function(infercnv_obj,
 
         infercnv_obj_file=file.path(out_dir, sprintf("%02d_scaled%s.infercnv_obj", step_count, resume_file_token))
 
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        if (resume_mode && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
@@ -408,7 +414,7 @@ run <- function(infercnv_obj,
 
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_split_%02d_refs%s.infercnv_obj", step_count, resume_file_token, num_ref_groups))
 
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        if (resume_mode && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
@@ -430,7 +436,7 @@ run <- function(infercnv_obj,
         resume_file_token = paste0(resume_file_token, ".rand_trees")
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_tumor_subclusters%s.%s.infercnv_obj", step_count, resume_file_token, tumor_subcluster_partition_method))
         
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        if (resume_mode && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
@@ -473,7 +479,7 @@ run <- function(infercnv_obj,
     infercnv_obj_file = file.path(out_dir,
                                   sprintf("%02d_remove_ref_avg_from_obs_logFC%s.infercnv_obj", step_count, resume_file_token))
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+    if (resume_mode && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
@@ -504,7 +510,7 @@ run <- function(infercnv_obj,
 
         infercnv_obj_file=file.path(out_dir, sprintf("%02d_apply_max_centered_expr_threshold%s.infercnv_obj", step_count, resume_file_token))
 
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        if (resume_mode && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
@@ -549,7 +555,7 @@ run <- function(infercnv_obj,
 
     infercnv_obj_file = file.path(out_dir, sprintf("%02d_smoothed_by_chr%s.infercnv_obj", step_count, resume_file_token))
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+    if (resume_mode && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
@@ -589,7 +595,7 @@ run <- function(infercnv_obj,
     flog.info(sprintf("\n\n\tSTEP %02d: re-centering data across chromosome after smoothing\n", step_count))
 
     infercnv_obj_file = file.path(out_dir, sprintf("%02d_recentered_cells_by_chr%s.infercnv_obj", step_count, resume_file_token))
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+    if (resume_mode && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
@@ -622,7 +628,7 @@ run <- function(infercnv_obj,
     infercnv_obj_file = file.path(out_dir,
                            sprintf("%02d_remove_ref_avg_from_obs_adjust%s.infercnv_obj", step_count, resume_file_token))
 
-    if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+    if (resume_mode && file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
@@ -651,7 +657,7 @@ run <- function(infercnv_obj,
 
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_remove_gene_at_chr_ends%s.infercnv_obj", step_count, resume_file_token))
 
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        if (resume_mode && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
@@ -684,7 +690,7 @@ run <- function(infercnv_obj,
 
         infercnv_obj_file = file.path(out_dir, sprintf("%02d_invert_log_transform%s.infercnv_obj", step_count, resume_file_token))
 
-        if (reuse_subtracted && file.exists(infercnv_obj_file)) {
+        if (resume_mode && file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
             infercnv_obj <- readRDS(infercnv_obj_file)
         } else {
@@ -707,7 +713,7 @@ run <- function(infercnv_obj,
     }
 
     ## ###################################################################
-    ## Done restoring infercnv_obj's from files now under reuse_subtracted
+    ## Done restoring infercnv_obj's from files now under resume_mode
     ## ###################################################################
 
     if (analysis_mode == 'subclusters' & tumor_subcluster_partition_method != 'random_trees') {

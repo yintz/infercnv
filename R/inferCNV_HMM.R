@@ -317,6 +317,8 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
 #'
 #' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
 #'
+#' @param cnv_level_to_mean_sd_fit (optional, by default automatically computed based on get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)
+#' 
 #' @param t HMM alt state transition probability (default=1e-6)
 #'
 #' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
@@ -395,6 +397,8 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 #' @param infercnv_obj
 #'
 #' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
+#'
+#' @param cnv_level_to_mean_sd_fit (optional, by default automatically computed based on get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)
 #'
 #' @param t HMM alt state transition probability (default=1e-6)
 #'
@@ -657,6 +661,8 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
 #'
 #' @param infercnv_obj infercnv object
 #'
+#' @param output_filename_prefix  prefix for output filename
+#' 
 #' @param out_dir output directory for report files to be written
 #'
 #' @param by options("consensus", "subcluster", "cell"), determines the granularity at which to report
