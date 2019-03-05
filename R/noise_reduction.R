@@ -7,6 +7,10 @@
 #' 
 #' @param window_size Size of the window side centered on the data point to filter (default = 7).
 #' 
+#' @param on_observations  boolean (default=TRUE), run on observations data (tumor cells).
+#'
+#' @param on_references  boolean (default=TRUE), run on references (normal cells).
+#'
 #' @return infercnv_obj with median filtering applied to observations
 #'
 #' @export
@@ -35,8 +39,10 @@ apply_median_filtering <- function(infercnv_obj,
                 for (chr in chrs) {
                     chr_genes_indices = which(gene_chr_listing == chr)
                     working_data = infercnv_obj@expr.data[chr_genes_indices, tumor_indices, drop=FALSE]
-        
-                    infercnv_obj@expr.data[chr_genes_indices, tumor_indices] = .median_filter(data=working_data, window_size=window_size, half_window=half_window)
+                    
+                    infercnv_obj@expr.data[chr_genes_indices, tumor_indices] = .median_filter(data=working_data,
+                                                                                              window_size=window_size,
+                                                                                              half_window=half_window)
                 }
             }
         }
@@ -48,7 +54,9 @@ apply_median_filtering <- function(infercnv_obj,
                 chr_genes_indices = which(gene_chr_listing == chr)
                 working_data = infercnv_obj@expr.data[chr_genes_indices, ref_indices, drop=FALSE]
                 
-                infercnv_obj@expr.data[chr_genes_indices, ref_indices] = .median_filter(data=working_data, window_size=window_size, half_window=half_window)
+                infercnv_obj@expr.data[chr_genes_indices, ref_indices] = .median_filter(data=working_data,
+                                                                                        window_size=window_size,
+                                                                                        half_window=half_window)
             }
         }
     }
