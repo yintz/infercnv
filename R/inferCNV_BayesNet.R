@@ -96,8 +96,8 @@ setMethod(f="MeanSD",
           signature="MCMC_inferCNV",
           definition=function(obj)
           {
-              gene_expr_by_cnv = infercnv:::.get_gene_expr_by_cnv(obj@.hspike)
-              cnv_mean_sd = infercnv:::.get_gene_expr_mean_sd_by_cnv(gene_expr_by_cnv)
+              gene_expr_by_cnv = .get_gene_expr_by_cnv(obj@.hspike)
+              cnv_mean_sd = .get_gene_expr_mean_sd_by_cnv(gene_expr_by_cnv)
               cnv_sd <- cbind(lapply(cnv_mean_sd,function(x){x$sd}))
               cnv_mean <- cbind(lapply(cnv_mean_sd,function(x){x$mean}))
               ## Sort so in order of {x0,...,x1,..,x3} and get into a vector format
@@ -180,7 +180,7 @@ setMethod(f="initializeObject",
               files <- list.files(args_parsed$file_dir, full.names = TRUE)
               
               # Validate the inferCNV Object 
-              infercnv:::validate_infercnv_obj(infercnv_obj)
+              validate_infercnv_obj(infercnv_obj)
               
               ## create the S4 object
               obj <- MCMC_inferCNV(infercnv_obj)
@@ -319,13 +319,13 @@ setMethod(f="withParallel",
           signature="MCMC_inferCNV",
           definition=function(obj)
           {
-              futile.logger::flog.info(paste("Running Sampling Using Parallel with ",CORES,"Cores"))
+              futile.logger::flog.info(paste("Running Sampling Using Parallel with ",obj@args$CORES,"Cores"))
               obj@mcmc <- parallel::mclapply(1:length(obj@cell_gene), function(i){ 
                   if (obj@args$quietly == FALSE) {
                       futile.logger::flog.info(paste("Sampleing Number: ", i))
                   }
                   if(!(length(obj@cell_gene[[i]]$Cells) == 0)){
-                      tumor_grouping <- group_id[obj@cell_gene[[i]]$Cells] # subset the tumor ids for the cells wanted
+                      tumor_grouping <- obj@group_id[obj@cell_gene[[i]]$Cells] # subset the tumor ids for the cells wanted
                       gene_exp <- obj@expr.data[obj@cell_gene[[i]]$Genes, obj@cell_gene[[i]]$Cells]
                       return(run_gibb_sampling(gene_exp, obj))
                   } else {
@@ -740,7 +740,7 @@ run_gibb_sampling <- function( 	gene_exp,
 plot_cell_prob <- function(df, title){
     df$mag = c(1:6)
     long_data <- reshape::melt(df, id = "mag")
-    ggplot2::ggplot(long_data, ggplot2::aes(x = variable, y = value, fill = as.factor(mag)))+
+    ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = value, fill = as.factor('mag')))+
         ggplot2::geom_bar(stat="identity", width = 1) +
         ggplot2::coord_flip() +
         ggplot2::theme(
@@ -781,7 +781,7 @@ plot_cnv_prob <- function(df){
     means <- as.data.frame(colMeans(df))
     means$state <- c(1:6)
     colnames(means) <- c("Probability", "State")
-    ggplot2::ggplot(data = means, ggplot2::aes(y = Probability, x= State, fill = as.factor(State))) +
+    ggplot2::ggplot(data = means, ggplot2::aes_string(y = 'Probability', x= 'State', fill = as.factor('State'))) +
         ggplot2::geom_bar(stat = "identity")
 }
 
@@ -834,7 +834,7 @@ inferCNVBayesNet <- function(
         stop(error_message)
     }
     if (!is.null(CORES)){
-        if (as.integer(CORES) > parallel::detectCores()){
+        if (as.integer(CORES) > detectCores()){
             error_message <- paste("Too many cores previded. The following system has ",detectCores(), " cores.",
                                    "Please select an appropriate amount.")
             futile.logger::flog.error(error_message)
