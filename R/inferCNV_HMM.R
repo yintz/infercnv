@@ -66,7 +66,7 @@ get_spike_dists <- function(hspike_obj) {
     
     df  = do.call(rbind, lapply(names(gene_expr_by_cnv), function(x) { data.frame(cnv=x, expr=gene_expr_by_cnv[[x]]) }))
 
-    p = df %>% ggplot(aes(expr,  fill=cnv, colour=cnv))  +  geom_density(alpha=0.1)
+    p = df %>% ggplot(aes_string(expr,  fill='cnv', colour='cnv'))  +  geom_density(alpha=0.1)
 
     p = p +
         stat_function(fun=dnorm, color='black', args=list('mean'=cnv_mean_sd[["cnv:0.01"]]$mean,'sd'=cnv_mean_sd[["cnv:0.01"]]$sd)) +
@@ -110,7 +110,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
             data.frame(cnv=cnv_level, num_cells=1:length(sd), sd=sd)
         }))
 
-        p  = df %>% ggplot(aes(x=log(num_cells),y=log(sd), color=cnv)) + geom_point()
+        p  = df %>% ggplot(aes_string(x=log(num_cells),y=log(sd), color='cnv')) + geom_point()
         pdf("hspike_obs_mean_var_trend.pdf")
         flog.info("plotting: hspike_obs_mean_var_trend.pdf")
         plot(p)
@@ -376,7 +376,8 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
 
     pdf(sprintf("state_emissions.%d-cells.pdf", num_cells))
     
-    p = ggplot(data.frame(x=c(0,3)), aes(x)) +
+    # p = ggplot(data.frame(x=c(0,3)), aes(x)) +
+    p = ggplot(data.frame(x=c(0,3)), aes_string(x='x')) +
         stat_function(fun=dnorm,
                       args=list('mean'=cnv_mean_sd[["cnv:0.01"]]$mean,'sd'=cnv_mean_sd[["cnv:0.01"]]$sd),
                       aes(colour='cnv:0')) +
@@ -677,7 +678,7 @@ Viterbi.dthmm.adj <- function (object, ...){
 
     ## init first row
 
-    emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
+    emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log.p=T, lower.tail=F)
     emission <- 1 / (-1 * emission)
     emission <- emission / sum(emission)
     
@@ -704,7 +705,7 @@ Viterbi.dthmm.adj <- function (object, ...){
         #                    log=TRUE)
 
         
-        emission <- pnorm(abs(x[i]-object$pm$mean)/object$pm$sd, log=T, lower.tail=F)
+        emission <- pnorm(abs(x[i]-object$pm$mean)/object$pm$sd, log.p=T, lower.tail=F)
         emission <- 1 / (-1 * emission)
         emission <- emission / sum(emission)
         

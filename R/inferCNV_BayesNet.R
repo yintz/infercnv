@@ -98,8 +98,8 @@ setMethod(f="MeanSD",
           signature="MCMC_inferCNV",
           definition=function(obj)
           {
-              gene_expr_by_cnv = infercnv:::.get_gene_expr_by_cnv(obj@.hspike)
-              cnv_mean_sd = infercnv:::.get_gene_expr_mean_sd_by_cnv(gene_expr_by_cnv)
+              gene_expr_by_cnv = .get_gene_expr_by_cnv(obj@.hspike)
+              cnv_mean_sd = .get_gene_expr_mean_sd_by_cnv(gene_expr_by_cnv)
               cnv_sd <- cbind(lapply(cnv_mean_sd,function(x){x$sd}))
               cnv_mean <- cbind(lapply(cnv_mean_sd,function(x){x$mean}))
               ## Sort so in order of {x0,...,x1,..,x3} and get into a vector format
@@ -187,7 +187,7 @@ setMethod(f="initializeObject",
               files <- list.files(args_parsed$file_dir, full.names = TRUE)
               
               # Validate the inferCNV Object 
-              infercnv:::validate_infercnv_obj(infercnv_obj)
+              validate_infercnv_obj(infercnv_obj)
               
               ## create the S4 object
               obj <- MCMC_inferCNV(infercnv_obj)
@@ -871,7 +871,7 @@ run_gibb_sampling <- function( 	gene_exp,
 plot_cell_prob <- function(df, title){
     df$mag = c(1:6)
     long_data <- reshape::melt(df, id = "mag")
-    ggplot2::ggplot(long_data, ggplot2::aes(x = variable, y = value, fill = as.factor(mag)))+
+    ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = value, fill = as.factor('mag')))+
         ggplot2::geom_bar(stat="identity", width = 1) +
         ggplot2::coord_flip() +
         ggplot2::theme(
@@ -972,7 +972,7 @@ inferCNVBayesNet <- function(
         stop(error_message)
     }
     if (!is.null(CORES)){
-        if (as.integer(CORES) > parallel::detectCores()){
+        if (as.integer(CORES) > detectCores()){
             error_message <- paste("Too many cores previded. The following system has ",detectCores(), " cores.",
                                    "Please select an appropriate amount.")
             futile.logger::flog.error(error_message)

@@ -234,7 +234,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         infercnv.env$GLOBAL_NUM_THREADS <- future::availableCores()
     }
     
-    library(doParallel)
+    # library(doParallel)
     registerDoParallel(cores=infercnv.env$GLOBAL_NUM_THREADS)
     num_rand_iters=100
     max_rand_heights <- foreach (i=1:num_rand_iters) %dopar% {

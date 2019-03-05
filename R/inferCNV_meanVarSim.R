@@ -12,7 +12,7 @@
 
         mean_p0_table <- .get_mean_vs_p0_table(infercnv_obj)
 
-        dropout_logistic_params <- infercnv:::.get_logistic_params(mean_p0_table)
+        dropout_logistic_params <- .get_logistic_params(mean_p0_table)
     }
 
     return(.get_simulated_cell_matrix_using_meanvar_trend_helper(gene_means, mean_var_table, num_cells, dropout_logistic_params))
