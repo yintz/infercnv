@@ -4,7 +4,7 @@
 #' @description determines the N(mean,sd) parameters for each of the CNV states based on
 #' the in silico spike in data (hspike).
 #'
-#' @param hspike_obj
+#' @param hspike_obj hidden spike object
 #'
 #' @return cnv_mean_sd list
 #'
@@ -139,7 +139,7 @@ get_spike_dists <- function(hspike_obj) {
 #' which appears to involve cnv block length rather than cell number.  Here, block size is not relevant, but rather
 #' the number of cells in a pre-defined tumor subcluster.  Also, values are extracted from our in silico spike-in.
 #'
-#' @param hspike_obj
+#' @param hspike_obj hidden spike object
 #'
 #' @param plot (boolean flag, default FALSE)
 #'
@@ -256,7 +256,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
 #'
 #' @description predict CNV levels at the individual cell level, using the i6 HMM
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv object
 #'
 #' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
 #'
@@ -313,7 +313,7 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
 #'
 #' @description predict CNV levels at the tumor subcluster level, using the i6 HMM
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv object
 #'
 #' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
 #'
@@ -392,7 +392,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 #'
 #' @description predict CNV levels at the tumor sample level, using the i6 HMM
 #'
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv object
 #'
 #' @param cnv_mean_sd (optional, by default automatically computed based in the infercnv_obj@.hspike object)
 #'
@@ -961,7 +961,7 @@ Viterbi.dthmm.adj <- function (object, ...){
 #'
 #' @description Replaces the HMM state assignments with the cnv levels they represent.
 #' 
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv object
 #'
 #' @return infercnv_obj
 #'

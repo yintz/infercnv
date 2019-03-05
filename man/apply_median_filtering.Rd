@@ -11,6 +11,10 @@ apply_median_filtering(infercnv_obj, window_size = 7,
 \item{infercnv_obj}{infercnv_object}
 
 \item{window_size}{Size of the window side centered on the data point to filter (default = 7).}
+
+\item{on_observations}{boolean (default=TRUE), run on observations data (tumor cells).}
+
+\item{on_references}{boolean (default=TRUE), run on references (normal cells).}
 }
 \value{
 infercnv_obj with median filtering applied to observations
