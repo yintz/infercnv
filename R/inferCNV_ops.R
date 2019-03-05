@@ -1143,12 +1143,15 @@ ngchm <- function(infercnv_obj,
 #'
 #' @param inv_log mean values will be determined based on (2^x -1)
 #'
+#' @param use_bounds if multiple normal data sets are used, it takes the bounds of the means from each set for subtraction.
+#'                   Alternatively, will use the mean( mean(normal) for each normal)    default: TRUE
+#' 
 #' @return infercnv_obj containing the reference subtracted values.
 #'
 #' @export
 #'
 
-subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=FALSE) {
+subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=TRUE) {
                                             # r = genes, c = cells
     flog.info(sprintf("::subtract_ref_expr_from_obs:Start inv_log=%s, use_bounds=%s", inv_log, use_bounds))
     
