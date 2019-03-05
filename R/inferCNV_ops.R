@@ -856,7 +856,7 @@ run <- function(infercnv_obj,
             step_count = step_count + 1
             flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
             
-            hmm.infercnv_obj <- infercnv::inferCNVBayesNet( infercnv_obj    = infercnv_obj_prelim,
+            mcmc.infercnv_obj <- infercnv::inferCNVBayesNet( infercnv_obj    = infercnv_obj_prelim,
                                                             HMM_obj         = hmm.infercnv_obj,
                                                             BayesMaxPNormal = BayesMaxPNormal,
                                                             file_dir        = out_dir,

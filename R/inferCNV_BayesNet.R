@@ -871,7 +871,7 @@ run_gibb_sampling <- function( 	gene_exp,
 plot_cell_prob <- function(df, title){
     df$mag = c(1:6)
     long_data <- reshape::melt(df, id = "mag")
-    ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = value, fill = as.factor('mag')))+
+    ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = 'value', fill = as.factor('mag')))+
         ggplot2::geom_bar(stat="identity", width = 1) +
         ggplot2::coord_flip() +
         ggplot2::theme(
@@ -912,7 +912,7 @@ plot_cnv_prob <- function(df,title){
     means <- as.data.frame(colMeans(df))
     means$state <- c(1:6)
     colnames(means) <- c("Probability", "State")
-    ggplot2::ggplot(data = means, ggplot2::aes(y = Probability, x= State, fill = as.factor(State))) +
+    ggplot2::ggplot(data = means, ggplot2::aes_string(y = 'Probability', x= 'State', fill = as.factor('State'))) +
         ggplot2::geom_bar(stat = "identity")+
         ggplot2::labs(title = title)
 }
