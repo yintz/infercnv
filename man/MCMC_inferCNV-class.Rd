@@ -30,6 +30,8 @@ cell line in the CNV.
 
 \item{\code{mcmc}}{Simulation output from sampling.}
 
+\item{\code{combined_mcmc}}{Combined chains for simulation output from sampling.}
+
 \item{\code{cnv_probabilities}}{Probabilities of each CNV belonging to a particular state from 0 (least likely)to 1 (most likely).}
 
 \item{\code{cell_probabilities}}{Probabilities of each cell being in a particular state, from 0 (least likely)to 1 (most likely).}

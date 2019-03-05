@@ -31,6 +31,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @import foreach
 #' @import doParallel
 #' @import future
+#' @import coda
 #' @import ggplot2
 #' @importFrom edgeR estimateDisp
 #' @importFrom caTools runmean
