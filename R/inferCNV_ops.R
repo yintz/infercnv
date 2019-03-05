@@ -2012,6 +2012,19 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 }
 
 
+#' @title smooth_by_chromosome_runmeans
+#'
+#' @description uses the simpler caTools:runmeans() to perform smoothing operations.
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param window_length window length to use for smoothing.
+#'
+#' @return infercnv_obj
+#'
+#' @export
+
+
 smooth_by_chromosome_runmeans <- function(infercnv_obj, window_length) {
 
     gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
@@ -2476,6 +2489,17 @@ add_pseudocount <- function(infercnv_obj, pseudocount) {
 }
 
 
+#' @title scale_infercnv_expr
+#'
+#' @description performs scaling to expression values for each cell,
+#' assigning all values to a standard normal centered at zero.
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @return infercnv_obj
+#'
+#' @export
+
 scale_infercnv_expr <- function(infercnv_obj) {
 
     flog.info("-scaling expr data")
@@ -2489,6 +2513,11 @@ scale_infercnv_expr <- function(infercnv_obj) {
     return(infercnv_obj)
 }
 
+
+
+#' @keywords internal
+#' @noRd
+#' 
 
 cross_cell_normalize <- function(infercnv_obj) {
 
