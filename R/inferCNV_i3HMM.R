@@ -1,6 +1,21 @@
 
-## Based on number of cells in a clade
-.i3HMM_get_normal_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=TRUE) {
+#' @title .i3HMM_get_normal_sd_trend_by_num_cells_fit
+#'
+#' @description Determines the characteristics for the normal cell residual intensities, including
+#'              fitting the variance in mean intensity as a function of number of cells sampled.
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param i3_p_val  the p-value to use for defining the position of means for the alternate amp/del distributions.
+#'
+#' @param plot   boolean, set to TRUE to plot the mean/var fit.
+#'
+#' @return normal_sd_trend list
+#' 
+#' @export 
+
+
+.i3HMM_get_normal_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=FALSE) {
     
     if (!has_reference_cells(infercnv_obj)) {
         stop("Error, cannot tune parameters without reference 'normal' cells defined")
@@ -64,6 +79,24 @@ q
 }
 
 
+#' @title .i3HMM_get_HMM
+#'
+#' @description get the i3 HMM parameterization
+#'
+#' @param normal_sd_trend  the normal sd trend info list
+#'
+#' @param num_cells  number of cells in a subcluster
+#'
+#' @param t  alt state transition probability
+#'
+#' @param i3_p_val p-value used to define position of mean for amp/del dists (default: 0.05)
+#'
+#' @param use_KS  boolean : use the KS statistic (HBadger style) for determining the position of the mean for the amp/del dists.
+#'
+#' @return HMM_info list
+#'
+#' @noRd
+
 .i3HMM_get_HMM <- function(normal_sd_trend, num_cells, t, i3_p_val=0.05, use_KS) {
 
     ## Here we do something very similar to HoneyBadger
@@ -115,6 +148,26 @@ q
 }
 
 
+#' @title i3HMM_predict_CNV_via_HMM_on_indiv_cells
+#'
+#' @description use the i3 HMM for predicting CNV at the level of individual cells
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param i3_p_val  p-value used to determine mean for amp/del distributions
+#'
+#' @param normal_sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
+#'
+#' @param t alt state transition probability (default: 1e-6)
+#'
+#' @param use_KS boolean : use the KS test statistic to determine mean for amp/del dist HBadger style (default: TRUE)
+#'
+#' @return infercnv_obj where infercnv_obj@expr.data contains state assignments.
+#'
+#' @export
+#' 
+
+
 i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
                                                      i3_p_val=0.05,
                                                      normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
@@ -161,7 +214,28 @@ i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
     return(infercnv_obj)
     
 }
-            
+
+
+
+#' @title i3HMM_predict_CNV_via_HMM_on_tumor_subclusters
+#'
+#' @description use the i3 HMM for predicting CNV at the level of tumor subclusters
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param i3_p_val  p-value used to determine mean for amp/del distributions
+#'
+#' @param normal_sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
+#'
+#' @param t alt state transition probability (default: 1e-6)
+#'
+#' @param use_KS boolean : use the KS test statistic to determine mean for amp/del dist HBadger style (default: TRUE)
+#'
+#' @return infercnv_obj where infercnv_obj@expr.data contains state assignments.
+#'
+#' @export
+#' 
+
 i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                            i3_p_val=0.05,
                                                            normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
@@ -224,6 +298,25 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 }
 
 
+#' @title i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples
+#'
+#' @description use the i3 HMM for predicting CNV at the level of whole tumor samples
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param i3_p_val  p-value used to determine mean for amp/del distributions
+#'
+#' @param normal_sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
+#'
+#' @param t alt state transition probability (default: 1e-6)
+#'
+#' @param use_KS boolean : use the KS test statistic to determine mean for amp/del dist HBadger style (default: TRUE)
+#'
+#' @return infercnv_obj where infercnv_obj@expr.data contains state assignments.
+#'
+#' @export
+#' 
+
 
 i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
                                                         i3_p_val=0.05,
@@ -279,6 +372,18 @@ i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
     
 }
 
+
+#' @title i3HMM_assign_HMM_states_to_proxy_expr_vals
+#'
+#' @description replace i3 HMM state predictions with their represented CNV levels
+#' 
+#' @param infercnv_obj
+#'
+#' @return infercnv_obj
+#'
+#' @export
+
+
 i3HMM_assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
     
     expr.data = infercnv_obj@expr.data
@@ -294,6 +399,19 @@ i3HMM_assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
 }
 
 
+#' @title determine_mean_delta_via_Z
+#'
+#' @description determine means for amp/del distributions requiring that they cross the
+#'              given distribution based on sigma centered at zero and at the given p value
+#'
+#' @param sigma standard deviation for a Normal distribution
+#'
+#' @param p  the p-value at which the distributions should intersect
+#'
+#' @return delta_for_alt_mean
+#'
+#' @export
+
 determine_mean_delta_via_Z <- function(sigma, p) {
     
     ## want tails of the distribution to minimially overlap at the p-value
@@ -301,16 +419,34 @@ determine_mean_delta_via_Z <- function(sigma, p) {
     delta = abs(qnorm(p=p, mean=0, sd=sigma)) 
 
     flog.info(sprintf("determine mean delta (sigma: %g, p=%g) -> %g", sigma, p, delta))
+
+    delta_for_alt_mean = 2 * delta
     
-    return(2 * delta)
+    return(delta_for_alt_mean)
     
 }
 
 
-
-## This method is modified from HoneyBADGER's setGexpDev method
-## Essentially, using the KS test to determine where to set the
-## amp/del means for the distributions.
+#' @title get_HoneyBADGER_setGexpDev
+#'
+#' @description  This method is modified from HoneyBADGER's setGexpDev method
+#'               Essentially, using the KS test to determine where to set the
+#'               amp/del means for the distributions.
+#'               It is included here for testing and sanity checking only.
+#'
+#' @param gexp.sd standard deviation for all genes
+#'
+#' @param alpha the p-value
+#'
+#' @param n number random iterations for sampling from the distribution (default: 100)
+#'
+#' @param seed the seed setting to ensure reproducibility
+#'
+#' @param plot boolean, set to True to plot.
+#'
+#' @return optim.dev
+#'
+#' @noRd
 
 get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, n=100, seed=0, plot=FALSE) {
     k = 2 # set to 101 in HB.  Here we set it to the min num of cells needed for a ks test.
