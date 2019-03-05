@@ -886,17 +886,17 @@ run <- function(infercnv_obj,
             step_count = step_count + 1
             flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
             
-            mcmc.infercnv_obj <- infercnv::inferCNVBayesNet( infercnv_obj    = infercnv_obj_prelim,
+            mcmc.infercnv_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj_prelim,
                                                             HMM_obj         = hmm.infercnv_obj,
-                                                            BayesMaxPNormal = BayesMaxPNormal,
                                                             file_dir        = out_dir,
                                                             postMcmcMethod  = "removeCNV",
                                                             out_dir         = file.path(out_dir, "BayesNetOutput"),
-                                                            quietly = TRUE,
-                                                            CORES = num_threads)
+                                                            quietly         = TRUE,
+                                                            CORES           = num_threads)
             
             # Filter CNV's by posterior Probabilities 
-            mcmc.infercnv_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc.infercnv_obj)
+            mcmc.infercnv_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc.infercnv_obj,
+                                                               BayesMaxPNormal   = BayesMaxPNormal)
             
             # Create new inferCNV objecrt with CNV's removed 
             hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc.infercnv_obj, hmm.infercnv_obj)

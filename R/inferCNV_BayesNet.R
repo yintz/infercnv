@@ -68,6 +68,9 @@ MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
 #' 
 setGeneric(name = "cellGene", 
            def = function(obj) standardGeneric("cellGene"))
+#' @rdname cellGene-method
+#' @aliases cellGene
+#' 
 setMethod(f = "cellGene", 
           signature = "MCMC_inferCNV", 
           definition=function(obj) obj@cell_gene)
@@ -114,6 +117,26 @@ setMethod(f="MeanSD",
           }
 )
 
+#' Add the probability threshold for the arguments in the MCMC infercnv object.
+#' 
+#' This function adds the variable BayesMaxPNormal to the arguments slot of the the MCMC infercnv object. 
+#' 
+#' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param BayesMaxPNormal probability to be used as a threshold for CNV or cell removal.
+#'
+#' @return MCMC_inferCNV_obj S4 object.
+#'
+#' @exportMethod setBayesMaxPNormal
+#' @rdname setBayesMaxPNormal-method
+#' 
+setGeneric(name = "setBayesMaxPNormal", 
+           def = function(obj, BayesMaxPNormal) standardGeneric("setBayesMaxPNormal"))
+setMethod(f = "setBayesMaxPNormal", 
+          signature = "MCMC_inferCNV", 
+          definition=function(obj, BayesMaxPNormal) {
+              obj@args$BayesMaxPNormal <- BayesMaxPNormal
+              return(obj)
+              })
 
 #' Create a list that holds Genes and Cells for each separate identified CNV 
 #' 
@@ -510,7 +533,7 @@ setMethod(f="runMCMC",
           definition=function(obj)
           {
               # Run MCMC
-              if(is.null(obj@args$CORES)){
+              if(obj@args$CORES == 1){
                   obj <- nonParallel(obj)
               } else {
                   obj <- withParallel(obj)
@@ -655,6 +678,8 @@ setGeneric(name = "returningInferCNV",
            def = function(obj, infercnv_obj) 
                { standardGeneric("returningInferCNV") }
 )
+#' @rdname returningInferCNV-method
+#' @aliases returningInferCNV
 setMethod(f = "returningInferCNV", 
           signature = "MCMC_inferCNV", 
           definition=function(obj, infercnv_obj) {
@@ -931,13 +956,12 @@ plot_cnv_prob <- function(df,title){
 #' @param file_dir Location of the directory of the inferCNV outputs.
 #' @param infercnv_obj InferCNV object.
 #' @param HMM_obj InferCNV object with HMM states in expression data.
-#' @param BayesMaxPNormal Option to filter CNV or cell lines by some probability threshold.
-#' @param model Path to the BUGS Model file.
+#' @param model_file Path to the BUGS Model file.
 #' @param CORES Option to run parallel by specifying the number of cores to be used.
 #' @param out_dir (string) Path to where the output file should be saved to.
 #' @param postMcmcMethod What actions to take after finishing the MCMC.
 #' @param plotingProbs Option for adding plots of Cell and CNV probabilities. 
-#' @param quiet Option to print descriptions along each step. 
+#' @param quietly Option to print descriptions along each step. 
 #'
 #' @return Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
 #' (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM. 
@@ -948,9 +972,8 @@ inferCNVBayesNet <- function(
                               file_dir,
                               infercnv_obj,
                               HMM_obj,
-                              BayesMaxPNormal,
                               model_file = system.file("BUGS_Mixture_Model",package = "infercnv"),
-                              CORES = NULL,
+                              CORES = 1,
                               out_dir,
                               postMcmcMethod = NULL,
                               plotingProbs = TRUE,
@@ -971,7 +994,7 @@ inferCNVBayesNet <- function(
         futile.logger::flog.error(error_message)
         stop(error_message)
     }
-    if (!is.null(CORES)){
+    if (!(CORES == 1)){
         if (as.integer(CORES) > detectCores()){
             error_message <- paste("Too many cores previded. The following system has ",detectCores(), " cores.",
                                    "Please select an appropriate amount.")
@@ -991,8 +1014,8 @@ inferCNVBayesNet <- function(
                         "out_dir"= out_dir,
                         "plotingProbs" = TRUE,
                         "postMcmcMethod"=postMcmcMethod,
-                        "BayesMaxPNormal" = BayesMaxPNormal,
-                        "quietly" = quietly)
+                        "quietly" = quietly,
+                        "BayesMaxPNormal" = 0)
     #################################
     # LOAD DATA & INITIALIZE OBJECT #
     #################################
@@ -1051,12 +1074,16 @@ inferCNVBayesNet <- function(
 #' the threshold will be removed.
 #'
 #' @param MCMC_inferCNV_obj MCMC infernCNV object.
+#' @param BayesMaxPNormal Option to filter CNV or cell lines by some probability threshold.
 #'
 #' @return Returns a MCMC_inferCNV_obj With removed CNV's. 
 #' 
 #' @export
 
-filterHighPNormals <- function( MCMC_inferCNV_obj ) {
+filterHighPNormals <- function( MCMC_inferCNV_obj, 
+                                BayesMaxPNormal) {
+    MCMC_inferCNV_obj <- setBayesMaxPNormal( obj             = MCMC_inferCNV_obj, 
+                                             BayesMaxPNormal = BayesMaxPNormal )
     ## Either Remove CNV's based on CNV posterier probabilities ("removeCNV")
     ## or remove cell lines based on cell line posterior probabilities ("removeCells")
     if(!(is.null(MCMC_inferCNV_obj@args$postMcmcMethod))){
