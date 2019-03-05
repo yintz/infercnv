@@ -192,8 +192,8 @@ run <- function(infercnv_obj,
                 HMM_i3_pval=0.05,
                 HMM_i3_use_KS=TRUE,
                 BayesMaxPNormal=0,
-
-                                ## some experimental params
+                
+                ## some experimental params
                 #sim_method=c('meanvar', 'simple', 'splatter'), ## only meanvar supported, others experimental
                 sim_method='meanvar',
                 sim_foreground=FALSE, ## experimental
@@ -226,38 +226,28 @@ run <- function(infercnv_obj,
                 ## experimental options                
                 remove_genes_at_chr_ends=FALSE,
                 prune_outliers=FALSE,
-
                 
                 mask_nonDE_genes=FALSE,
                 mask_nonDE_pval=0.05, # use permissive threshold
                 test.use='wilcoxon',
                 require_DE_all_normals="any",
-
-
                 
-
-
-
-
                 reuse_subtracted = TRUE,
-
-                
                 
                 hspike_aggregate_normals = FALSE,
-
+                
                 no_plot = FALSE,
-                no_prelim_plot = FALSE,
+                no_prelim_plot = FALSE
                 
                 ) {
-
+    
 
     smooth_method = match.arg(smooth_method)
     HMM_report_by = match.arg(HMM_report_by)
     analysis_mode = match.arg(analysis_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
     HMM_type = match.arg(HMM_type)
-    
-    
+        
     if (debug) {
         flog.threshold(DEBUG)
     } else {

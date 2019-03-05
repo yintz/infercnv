@@ -1,5 +1,6 @@
 # Global data
 
+
 make_fake_infercnv_obj_midpoint_ref <- function(some_matrix) {
 
     num_cells = ncol(some_matrix)
@@ -144,7 +145,7 @@ test_that("subtract_ref works with 1 observation, 1 reference",{
 })
 
 test6_in = make_fake_infercnv_obj(t(matrix_averef_five), list(c(2),c(4,6,8),c(10)), ref_names=c("a", "b", "c"))
-test6_out = infercnv::subtract_ref_expr_from_obs(test6_in)
+test6_out = infercnv::subtract_ref_expr_from_obs(test6_in, use_bounds=TRUE)
 test_that("subtract_ref works with 10 obs, 5 references, 3 groups",{
     expect_equal(test6_out@expr.data, matrix_averef_five_answer)
 })
