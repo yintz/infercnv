@@ -140,7 +140,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     
     flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val))
     
-    shc_result = shc(t(tumor_expr_data), metric='euclidean', linkage=hclust_method, alpha=p_val)
+    shc_result = sigclust2::shc(t(tumor_expr_data), metric='euclidean', linkage=hclust_method, alpha=p_val)
 
     cluster_idx = which(shc_result$p_norm <= p_val)
         

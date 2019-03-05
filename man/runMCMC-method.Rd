@@ -17,5 +17,6 @@ runMCMC(obj)
 obj The MCMC_inferCNV_obj S4 object.
 }
 \description{
-Run simulations using rjags.
+Run MCMC simulations using rjags. Also returns a plot the probability of each CNV being 
+normal before running any kind of post MCMC modification.
 }

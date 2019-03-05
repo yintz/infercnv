@@ -8,6 +8,8 @@ returningInferCNV(obj, infercnv_obj)
 }
 \arguments{
 \item{obj}{The MCMC_inferCNV_obj S4 object.}
+
+\item{infercnv_obj}{Current inferCNV object that will be adjusted based on the results of the Bayesian Network Model.}
 }
 \value{
 An inferCNV object

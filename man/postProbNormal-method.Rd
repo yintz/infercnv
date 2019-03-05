@@ -6,12 +6,14 @@
 \alias{postProbNormal,MCMC_inferCNV-method}
 \title{Get the probability of each cnv being a normal state and plot these probabilities.}
 \usage{
-postProbNormal(obj)
+postProbNormal(obj, PNormal)
 
-\S4method{postProbNormal}{MCMC_inferCNV}(obj)
+\S4method{postProbNormal}{MCMC_inferCNV}(obj, PNormal)
 }
 \arguments{
 \item{obj}{The MCMC_inferCNV_obj S4 object.}
+
+\item{PNormal}{Option to add specific title to plot.}
 }
 \value{
 obj The MCMC_inferCNV_obj S4 object.

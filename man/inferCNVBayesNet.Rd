@@ -10,15 +10,25 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, BayesMaxPNormal,
   quietly = TRUE)
 }
 \arguments{
+\item{file_dir}{Location of the directory of the inferCNV outputs.}
+
+\item{infercnv_obj}{InferCNV object.}
+
+\item{HMM_obj}{InferCNV object with HMM states in expression data.}
+
+\item{BayesMaxPNormal}{Option to filter CNV or cell lines by some probability threshold.}
+
+\item{CORES}{Option to run parallel by specifying the number of cores to be used.}
+
 \item{out_dir}{(string) Path to where the output file should be saved to.}
 
-\item{infercnv_dir}{Location of the directory of the inferCNV outputs.}
+\item{postMcmcMethod}{What actions to take after finishing the MCMC.}
+
+\item{plotingProbs}{Option for adding plots of Cell and CNV probabilities.}
 
 \item{model}{Path to the BUGS Model file.}
 
-\item{parallel}{Option to run parallel by specifying the number of cores to be used.}
-
-\item{method}{What actions to take after finishing the MCMC.}
+\item{quiet}{Option to print descriptions along each step.}
 }
 \value{
 Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
