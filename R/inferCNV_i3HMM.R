@@ -377,7 +377,7 @@ i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
 #'
 #' @description replace i3 HMM state predictions with their represented CNV levels
 #' 
-#' @param infercnv_obj
+#' @param infercnv_obj infercnv object
 #'
 #' @return infercnv_obj
 #'
