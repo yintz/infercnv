@@ -62,12 +62,13 @@
     
     ## get distribution position according to p_val in a qnorm
     mean_delta = determine_mean_delta_via_Z(sigma, p=i3_p_val)    
-
+    message("mean_delta: ", mean_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
+    
     ## do this HBadger style in case that option is to be used.
     KS_delta = get_HoneyBADGER_setGexpDev(gexp.sd=sigma, alpha=i3_p_val)
+    message("KS_delta: ", KS_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
     
-    message("mean_delta: ", mean_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
-q    
+    
     normal_sd_trend = list(mu=mu,
                            sigma=sigma,
                            fit=fit,
@@ -143,6 +144,9 @@ q
     HMM_info = list(state_transitions=state_transitions,
                     delta=delta,
                     state_emission_params=state_emission_params)
+
+
+    #print(HMM_info)
     
     return(HMM_info)
 }
@@ -432,7 +436,7 @@ determine_mean_delta_via_Z <- function(sigma, p) {
 #' @description  This method is modified from HoneyBADGER's setGexpDev method
 #'               Essentially, using the KS test to determine where to set the
 #'               amp/del means for the distributions.
-#'               It is included here for testing and sanity checking only.
+#'               
 #'
 #' @param gexp.sd standard deviation for all genes
 #'

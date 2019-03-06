@@ -800,6 +800,15 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
+        if (HMM_type == 'i6') {
+            hmm_center = 3
+            hmm_state_range = c(0,6)
+        } else {
+                                        # i3
+            hmm_center = 2
+            hmm_state_range = c(1,3)
+        }
+        
         if (analysis_mode == 'subclusters') {
 
             if (HMM_type == 'i6') {
@@ -873,8 +882,8 @@ run <- function(infercnv_obj,
                      title=sprintf("%02d_HMM_preds",step_count),
                      output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
                      write_expr_matrix=TRUE,
-                     x.center=3,
-                     x.range=c(0,6)
+                     x.center=hmm_center,
+                     x.range=hmm_state_range
                      )
         }
         
