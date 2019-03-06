@@ -75,7 +75,7 @@
 #'
 #' ## Filtering low-conf HMM preds via BayesNet P(Normal)
 #'
-#' @param BayesMaxPNormal  maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0, essentially turned off)
+#' @param BayesMaxPNormal  maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)
 #'
 #' ######################
 #' ## Tumor subclustering
@@ -199,7 +199,7 @@ run <- function(infercnv_obj,
                 HMM_type=c('i6', 'i3'),
                 HMM_i3_pval=0.05,
                 HMM_i3_use_KS=TRUE,
-                BayesMaxPNormal=0,
+                BayesMaxPNormal=0.5,
                 
                 ## some experimental params
                 #sim_method=c('meanvar', 'simple', 'splatter'), ## only meanvar supported, others experimental
