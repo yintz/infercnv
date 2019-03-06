@@ -10,6 +10,8 @@ generate_cnv_region_reports(infercnv_obj, output_filename_prefix, out_dir,
 \arguments{
 \item{infercnv_obj}{infercnv object}
 
+\item{output_filename_prefix}{prefix for output filename}
+
 \item{out_dir}{output directory for report files to be written}
 
 \item{by}{options("consensus", "subcluster", "cell"), determines the granularity at which to report

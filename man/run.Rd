@@ -20,12 +20,12 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   noise_logistic = TRUE, outlier_method_bound = "average_bound",
   outlier_lower_bound = NA, outlier_upper_bound = NA,
   final_scale_limits = NULL, final_center_val = NULL, debug = FALSE,
-  num_threads = 4, plot_steps = FALSE,
+  num_threads = 4, plot_steps = FALSE, resume_mode = TRUE,
   remove_genes_at_chr_ends = FALSE, prune_outliers = FALSE,
   mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
   test.use = "wilcoxon", require_DE_all_normals = "any",
-  reuse_subtracted = TRUE, hspike_aggregate_normals = FALSE,
-  no_plot = FALSE, no_prelim_plot = FALSE)
+  hspike_aggregate_normals = FALSE, no_plot = FALSE,
+  no_prelim_plot = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -152,11 +152,9 @@ Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 
 \item{num_threads}{(int) number of threads for parallel steps (default: 4)}
 
-\item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.
+\item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
 
-
-#######################
-## Experimental options}
+\item{resume_mode}{leverage pre-computed and stored infercnv objects where possible. (default=TRUE)}
 
 \item{remove_genes_at_chr_ends}{experimental option: If true, removes the window_length/2 genes at both ends of the chromosome.}
 
@@ -173,7 +171,16 @@ the mean value for the complete data set (default: 0.05)}
 
 \item{require_DE_all_normals}{If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")
 
-# other experimental opts}
+other experimental opts}
+
+\item{hspike_aggregate_normals}{instead of trying to model the different normal groupings individually, just merge them in the hspike.}
+
+\item{no_plot}{don't make any of the images. Instead, generate all non-image outputs as part of the run. (default: FALSE)}
+
+\item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)
+
+#######################
+## Experimental options}
 }
 \value{
 infercnv_obj containing filtered and transformed data
