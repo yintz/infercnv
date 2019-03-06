@@ -87,7 +87,7 @@
 #'                                           random_trees: (default) slow but best. Uses permutation statistics w/ tree construction.
 #'                                           qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval
 #'
-#' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
+#' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.1)
 #'
 #' 
 #'
@@ -208,7 +208,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering options
                 analysis_mode=c('samples', 'subclusters', 'cells'), # for filtering and HMM
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
-                tumor_subcluster_pval=0.05,
+                tumor_subcluster_pval=0.1,
                 
                 
                 ## noise settings
