@@ -585,9 +585,9 @@ setMethod(f="postProbNormal",
                       obj@expr.data[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- normal_prob[i]
                   })
                   if (!is.null(PNormal)){
-                      title <- sprintf("Probabilities of Normal With Threshold %s",obj@args$BayesMaxPNormal)
+                      title <- sprintf(" (1 - Probabilities of Normal) With Threshold %s",obj@args$BayesMaxPNormal)
                   }else{
-                      title <- sprintf("Probabilities of Normal Before Filtering")
+                      title <- sprintf(" (1 - Probabilities of Normal) Before Filtering")
                   }
                   infercnv::plot_cnv(infercnv_obj          = obj,
                                      #k_obs_groups         = 4,
