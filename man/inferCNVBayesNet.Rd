@@ -4,10 +4,10 @@
 \alias{inferCNVBayesNet}
 \title{inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States}
 \usage{
-inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj,
+inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, out_dir,
   model_file = system.file("BUGS_Mixture_Model", package = "infercnv"),
-  CORES = 1, out_dir, postMcmcMethod = NULL, plotingProbs = TRUE,
-  quietly = TRUE)
+  CORES = 1, postMcmcMethod = NULL, plotingProbs = TRUE,
+  quietly = TRUE, diagnostics = FALSE)
 }
 \arguments{
 \item{file_dir}{Location of the directory of the inferCNV outputs.}
@@ -16,17 +16,19 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj,
 
 \item{HMM_obj}{InferCNV object with HMM states in expression data.}
 
+\item{out_dir}{(string) Path to where the output file should be saved to.}
+
 \item{model_file}{Path to the BUGS Model file.}
 
-\item{CORES}{Option to run parallel by specifying the number of cores to be used.}
-
-\item{out_dir}{(string) Path to where the output file should be saved to.}
+\item{CORES}{Option to run parallel by specifying the number of cores to be used. (Default: 1)}
 
 \item{postMcmcMethod}{What actions to take after finishing the MCMC.}
 
-\item{plotingProbs}{Option for adding plots of Cell and CNV probabilities.}
+\item{plotingProbs}{Option for adding plots of Cell and CNV probabilities. (Default: TRUE)}
 
-\item{quietly}{Option to print descriptions along each step.}
+\item{quietly}{Option to print descriptions along each step. (Default: TRUE)}
+
+\item{diagnostics}{Option to plot Diagnostic plots and tables. (Default: FALSE)}
 }
 \value{
 Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 

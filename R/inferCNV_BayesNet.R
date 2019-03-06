@@ -129,6 +129,10 @@ setMethod(f="MeanSD",
 #' 
 setGeneric(name = "setBayesMaxPNormal", 
            def = function(obj, BayesMaxPNormal) standardGeneric("setBayesMaxPNormal"))
+
+#' @rdname setBayesMaxPNormal-method
+#' @aliases setBayesMaxPNormal
+#' 
 setMethod(f = "setBayesMaxPNormal", 
           signature = "MCMC_inferCNV", 
           definition=function(obj, BayesMaxPNormal) {
@@ -678,6 +682,7 @@ setGeneric(name = "returningInferCNV",
 )
 #' @rdname returningInferCNV-method
 #' @aliases returningInferCNV
+#' 
 setMethod(f = "returningInferCNV", 
           signature = "MCMC_inferCNV", 
           definition=function(obj, infercnv_obj) {
@@ -781,6 +786,57 @@ setMethod(f="mcmcDiagnosticPlots",
               })
               dev.off()
               
+              ###########################
+              # Summary Tables
+              ###########################
+              if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Creating CNV Statistical Summary Tables.")) }
+              # Function to initialize the summary tables 
+              theta_table <- function(x,y,w){
+                  mu<- unlist(summary(x[[1]][,w])[[1]][,1])
+                  stdev<- unlist(summary(x[[1]][,w])[[1]][,2])
+                  q2.5<- unlist(summary(x[[1]][,w])[[2]][,1])
+                  q50<- unlist(summary(x[[1]][,w])[[2]][,3])
+                  q97.5<- unlist(summary(x[[1]][,w])[[2]][,5])
+                  gewek = unlist(geweke.diag(x[[1]][,w], frac1=0.1, frac2=0.5))[1:length(w)]
+                  df = data.frame(mu,stdev,q2.5,q50,q97.5,gewek)
+                  colnames(df) <- c('Mean','St.Dev','2.5%','50%','97.5%', "Geweke")
+                  rownames(df) <- c(w)
+                  #return(knitr::kable(df, caption = y))
+                  return(df)
+              }
+              # Function to get the theta (state CNV probabilities) values 
+              getThetas <- function(df){ df[,grepl('theta', colnames(df))] }
+              # List of statistical summary tables 
+              summary_table <- lapply(1:length(obj@mcmc), function(i) {
+                  title <- sprintf("CNV %s Summary Table", obj@cell_gene[[i]]$cnv_regions)
+                  thetas <- lapply(obj@mcmc[[i]], function(x) getThetas(x))
+                  w = row.names(summary(as.mcmc(thetas))[[1]])
+                  return(theta_table(coda::as.mcmc(thetas), title, w))
+              })
+              # Theme for the grob tables 
+              theme.1 <- gridExtra::ttheme_default(core = list(fg_params = list(parse=TRUE, cex = 0.5)),
+                                                   colhead = list(fg_params=list(parse=TRUE, cex = 0.5)),
+                                                   rowhead = list(fg_params=list(parse=TRUE, cex = 0.5)))
+              # List of tables, table for each CNV
+              plot_list <- lapply(1:length(summary_table), function(i) {
+                  ## Create table grob object 
+                  table <- gridExtra::tableGrob(summary_table[[i]],rows = c("State 1","State 2","State 3","State 4","State 5","State 6"), theme = theme.1)
+                  ## Create the title for the table as a seperate grob object 
+                  title <- sprintf("%s CNV Summary Table", obj@cell_gene[[i]]$cnv_regions)
+                  title <- gridExtra::tableGrob(summary_table[[i]][1,1],rows=NULL, cols=c(title))  
+                  ## Combine the summary table grob and the title grob 
+                  tab <- gridExtra::gtable_combine(title[1,], table, along=2)
+                  # Adjust the position of the title 
+                  tab$layout[1, c("l", "r")] <- c(7, 2)
+                  tab$layout[2, c("l", "r")] <- c(7, 2)
+                  return(tab)
+              })
+              # Combine all the tablles together as one column 
+              test <- gridExtra::gtable_combine(plot_list, along = 2)
+              # Save the tables to a PDF document 
+              pdf(file = file.path(file.path(obj@args$out_dir),"CNVSummaryTablels.pdf") , paper = "a4", onefile = TRUE, height = 0, width = 0)
+              print(gridExtra::marrangeGrob(grobs = test, nrow = 5, ncol = 1))
+              dev.off()
           }
 )
 
@@ -955,11 +1011,12 @@ plot_cnv_prob <- function(df,title){
 #' @param infercnv_obj InferCNV object.
 #' @param HMM_obj InferCNV object with HMM states in expression data.
 #' @param model_file Path to the BUGS Model file.
-#' @param CORES Option to run parallel by specifying the number of cores to be used.
+#' @param CORES Option to run parallel by specifying the number of cores to be used. (Default: 1)
 #' @param out_dir (string) Path to where the output file should be saved to.
 #' @param postMcmcMethod What actions to take after finishing the MCMC.
-#' @param plotingProbs Option for adding plots of Cell and CNV probabilities. 
-#' @param quietly Option to print descriptions along each step. 
+#' @param plotingProbs Option for adding plots of Cell and CNV probabilities. (Default: TRUE)
+#' @param quietly Option to print descriptions along each step. (Default: TRUE)
+#' @param diagnostics Option to plot Diagnostic plots and tables. (Default: FALSE)
 #'
 #' @return Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
 #' (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM. 
@@ -970,12 +1027,13 @@ inferCNVBayesNet <- function(
                               file_dir,
                               infercnv_obj,
                               HMM_obj,
-                              model_file = system.file("BUGS_Mixture_Model",package = "infercnv"),
-                              CORES = 1,
                               out_dir,
-                              postMcmcMethod = NULL,
-                              plotingProbs = TRUE,
-                              quietly = TRUE) {
+                              model_file      = system.file("BUGS_Mixture_Model",package = "infercnv"),
+                              CORES           = 1,
+                              postMcmcMethod  = NULL,
+                              plotingProbs    = TRUE,
+                              quietly         = TRUE,
+                              diagnostics     = FALSE) {
     
     ################
     # CHECK INPUTS #
@@ -1053,10 +1111,12 @@ inferCNVBayesNet <- function(
     ########
     # Plot #
     ########
-    mcmcDiagnosticPlots(MCMC_inferCNV_obj)
+    if (diagnostics == TRUE){
+        mcmcDiagnosticPlots(MCMC_inferCNV_obj)
+    }
     postProbNormal(MCMC_inferCNV_obj, 
-                   PNormal = NULL)
-    
+               PNormal = NULL)
+        
     return(MCMC_inferCNV_obj)
 }
 
@@ -1093,6 +1153,7 @@ filterHighPNormals <- function( MCMC_inferCNV_obj,
     }
     
     ## Plot the resuls 
+    
     plotProbabilities(MCMC_inferCNV_obj)
     postProbNormal(MCMC_inferCNV_obj, 
                    PNormal = TRUE)
