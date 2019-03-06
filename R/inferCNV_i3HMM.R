@@ -433,16 +433,18 @@ determine_mean_delta_via_Z <- function(sigma, p) {
 
 #' @title get_HoneyBADGER_setGexpDev
 #'
-#' @description  This method is modified from HoneyBADGER's setGexpDev method
+#' @description  This method is adapted from HoneyBADGER's setGexpDev method
 #'               Essentially, using the KS test to determine where to set the
 #'               amp/del means for the distributions.
 #'               
 #'
 #' @param gexp.sd standard deviation for all genes
 #'
-#' @param alpha the p-value
+#' @param alpha the targeted p-value
 #'
-#' @param n number random iterations for sampling from the distribution (default: 100)
+#' @param k_cells  number of cells to sample from the distribution
+#' 
+#' @param n_iter number random iterations for sampling from the distribution (default: 100)
 #'
 #' @param seed the seed setting to ensure reproducibility
 #'
@@ -452,14 +454,14 @@ determine_mean_delta_via_Z <- function(sigma, p) {
 #'
 #' @noRd
 
-get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, n=100, seed=0, plot=FALSE) {
-    k = 2 # set to 101 in HB.  Here we set it to the min num of cells needed for a ks test.
+get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, k_cells=2, n_iter=100, seed=0, plot=FALSE) {
+    
     set.seed(seed)
-
+    
     devs <- seq(0, gexp.sd, gexp.sd/10)
     pvs <- unlist(lapply(devs, function(dev) {
-        mean(unlist(lapply(seq_len(n), function(i) {
-            pv <- ks.test(rnorm(k, 0, gexp.sd), rnorm(k, dev, gexp.sd))
+        mean(unlist(lapply(seq_len(n_iter), function(i) {
+            pv <- ks.test(rnorm(k_cells, 0, gexp.sd), rnorm(k_cells, dev, gexp.sd))
             pv$p.value
         })))
     }))
