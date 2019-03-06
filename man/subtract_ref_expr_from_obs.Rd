@@ -5,12 +5,15 @@
 \title{subtract_ref_expr_from_obs()}
 \usage{
 subtract_ref_expr_from_obs(infercnv_obj, inv_log = FALSE,
-  use_bounds = FALSE)
+  use_bounds = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
 
 \item{inv_log}{mean values will be determined based on (2^x -1)}
+
+\item{use_bounds}{if multiple normal data sets are used, it takes the bounds of the means from each set for subtraction.
+Alternatively, will use the mean( mean(normal) for each normal)    default: TRUE}
 }
 \value{
 infercnv_obj containing the reference subtracted values.

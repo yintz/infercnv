@@ -14,6 +14,8 @@ predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj,
 
 \item{cnv_mean_sd}{(optional, by default automatically computed based in the infercnv_obj@.hspike object)}
 
+\item{cnv_level_to_mean_sd_fit}{(optional, by default automatically computed based on get_hspike_cnv_mean_sd_trend_by_num_cells_fit(infercnv_obj@.hspike)}
+
 \item{t}{HMM alt state transition probability (default=1e-6)}
 }
 \value{

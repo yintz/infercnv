@@ -29,6 +29,7 @@ get_group_color_palette <- function(){
 #' @param output_filename Filename to save the figure to.
 #' @param output_format format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
 #'                      If set to NA, will print graphics natively
+#' @param png_res Resolution for png output.
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
 #' 
@@ -53,6 +54,7 @@ plot_cnv <- function(infercnv_obj,
                      color_safe_pal=FALSE,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
+                     png_res=300,
                      ref_contig = NULL,
                      write_expr_matrix=FALSE) {
 
@@ -215,7 +217,7 @@ plot_cnv <- function(infercnv_obj,
                 width=10,
                 height=(8.13 + sum(grouping_key_height)),
                 units="in",
-                res=600)
+                res=png_res)
         }
     }
     

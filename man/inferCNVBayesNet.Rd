@@ -4,9 +4,9 @@
 \alias{inferCNVBayesNet}
 \title{inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States}
 \usage{
-inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, BayesMaxPNormal,
+inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj,
   model_file = system.file("BUGS_Mixture_Model", package = "infercnv"),
-  CORES = NULL, out_dir, postMcmcMethod = NULL, plotingProbs = TRUE,
+  CORES = 1, out_dir, postMcmcMethod = NULL, plotingProbs = TRUE,
   quietly = TRUE)
 }
 \arguments{
@@ -16,7 +16,7 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, BayesMaxPNormal,
 
 \item{HMM_obj}{InferCNV object with HMM states in expression data.}
 
-\item{BayesMaxPNormal}{Option to filter CNV or cell lines by some probability threshold.}
+\item{model_file}{Path to the BUGS Model file.}
 
 \item{CORES}{Option to run parallel by specifying the number of cores to be used.}
 
@@ -26,9 +26,7 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, BayesMaxPNormal,
 
 \item{plotingProbs}{Option for adding plots of Cell and CNV probabilities.}
 
-\item{model}{Path to the BUGS Model file.}
-
-\item{quiet}{Option to print descriptions along each step.}
+\item{quietly}{Option to print descriptions along each step.}
 }
 \value{
 Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 

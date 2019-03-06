@@ -9,7 +9,7 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   cluster_by_groups = TRUE, k_obs_groups = 3, contig_cex = 1,
   x.center = mean(infercnv_obj@expr.data), x.range = "auto",
   hclust_method = "ward.D", color_safe_pal = FALSE,
-  output_filename = "infercnv", output_format = "png",
+  output_filename = "infercnv", output_format = "png", png_res = 300,
   ref_contig = NULL, write_expr_matrix = FALSE)
 }
 \arguments{
@@ -41,6 +41,8 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
 
 \item{output_format}{format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
 If set to NA, will print graphics natively}
+
+\item{png_res}{Resolution for png output.}
 
 \item{ref_contig}{If given, will focus cluster on only genes in this contig.}
 
