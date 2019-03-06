@@ -918,7 +918,9 @@ run <- function(infercnv_obj,
                                                             postMcmcMethod  = "removeCNV",
                                                             out_dir         = file.path(out_dir, "BayesNetOutput"),
                                                             quietly         = TRUE,
-                                                            CORES           = num_threads)
+                                                            CORES           = num_threads,
+                                                            plotingProbs    = TRUE,
+                                                            diagnostics     = FALSE)
             
             # Filter CNV's by posterior Probabilities 
             mcmc.infercnv_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc.infercnv_obj,
