@@ -872,7 +872,7 @@ run <- function(infercnv_obj,
         
         
         
-        if (plot_steps) {
+        if (! no_plot) { 
             
             ## Plot HMM pred img
             plot_cnv(infercnv_obj=hmm.infercnv_obj,
@@ -880,7 +880,7 @@ run <- function(infercnv_obj,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
                      title=sprintf("%02d_HMM_preds",step_count),
-                     output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred%s",step_count, hmm_resume_file_token),
                      write_expr_matrix=TRUE,
                      x.center=hmm_center,
                      x.range=hmm_state_range
@@ -955,7 +955,7 @@ run <- function(infercnv_obj,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
                      title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
-                     output_filename=sprintf("infercnv.%02d_HMM_pred.repr_intensities",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred%s.repr_intensities", step_count, hmm_resume_file_token),
                      write_expr_matrix=TRUE,
                      x.center=1,
                      x.range=c(-1,3)

@@ -127,7 +127,7 @@
 
         
         mean_delta = ifelse(use_KS,
-                            get_HoneyBADGER_setGexpDev(gexp.sd=sigma, alpha=i3_p_val, k_cells=num_cells), 
+                            get_HoneyBADGER_setGexpDev(gexp.sd=sd_trend$sigma, alpha=i3_p_val, k_cells=num_cells), 
                             determine_mean_delta_via_Z(sigma, p=i3_p_val) )
     }
     
