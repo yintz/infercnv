@@ -4,7 +4,6 @@
 \name{MCMC_inferCNV-class}
 \alias{MCMC_inferCNV-class}
 \alias{MCMC_inferCNV}
-\alias{infercnv-package}
 \title{MCMC_inferCNV class}
 \value{
 Returns a MCMC_inferCNV_obj
