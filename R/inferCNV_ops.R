@@ -933,7 +933,7 @@ run <- function(infercnv_obj,
 
             saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)
             
-            if (plot_steps) {
+            if (! no_plot) {
                 ## Plot HMM pred img after cnv removal
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
