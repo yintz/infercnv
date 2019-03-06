@@ -9,8 +9,6 @@
 #' probability of being in one of six Copy Number Variation states (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by 
 #' inferCNV's HMM. Posterior probabilities are found for the entire CNV cluster and each individual
 #' cell line in the CNV. 
-#' 
-#' @aliases infercnv-package
 #'
 #' @slot bugs_model BUGS model. 
 #' @slot sig fitted values for cell lines, 1/standard deviation to be used for determining the distribution of each cell line 
