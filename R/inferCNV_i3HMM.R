@@ -478,7 +478,7 @@ get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, k_cells=2, n_iter=100, se
 
     optim.dev <- predict(fit, newdata=data.frame(pvs=alpha))
 
-    flog.info(sprintf("-get_HoneyBADGER_setGexpDev(sigma=%g, alpha=%g, k_cells=%g) = %g", gexp.sd, alpha, k_cells, optim.dev))
+    #flog.info(sprintf("-get_HoneyBADGER_setGexpDev(sigma=%g, alpha=%g, k_cells=%g) = %g", gexp.sd, alpha, k_cells, optim.dev))
     
     return(optim.dev)
 }
