@@ -6,7 +6,7 @@
 \usage{
 i3HMM_predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
   i3_p_val = 0.05,
-  normal_sd_trend = .i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj,
+  sd_trend = .i3HMM_get_sd_trend_by_num_cells_fit(infercnv_obj,
   i3_p_val), t = 1e-06, use_KS = TRUE)
 }
 \arguments{
@@ -14,7 +14,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters(infercnv_obj,
 
 \item{i3_p_val}{p-value used to determine mean for amp/del distributions}
 
-\item{normal_sd_trend}{(optional) by default, computed automatically based on infercnv_obj, i3_p_val}
+\item{sd_trend}{(optional) by default, computed automatically based on infercnv_obj, i3_p_val}
 
 \item{t}{alt state transition probability (default: 1e-6)}
 

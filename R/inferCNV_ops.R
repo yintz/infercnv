@@ -87,7 +87,7 @@
 #'                                           random_trees: (default) slow but best. Uses permutation statistics w/ tree construction.
 #'                                           qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval
 #'
-#' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.01)
+#' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.1)
 #'
 #' 
 #'
@@ -210,7 +210,7 @@ run <- function(infercnv_obj,
                 ## tumor subclustering options
                 analysis_mode=c('samples', 'subclusters', 'cells'), # for filtering and HMM
                 tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
-                tumor_subcluster_pval=0.05,
+                tumor_subcluster_pval=0.1,
                 
                 
                 ## noise settings
@@ -816,6 +816,15 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
 
+        if (HMM_type == 'i6') {
+            hmm_center = 3
+            hmm_state_range = c(0,6)
+        } else {
+                                        # i3
+            hmm_center = 2
+            hmm_state_range = c(1,3)
+        }
+        
         if (analysis_mode == 'subclusters') {
 
             if (HMM_type == 'i6') {
@@ -879,7 +888,7 @@ run <- function(infercnv_obj,
         
         
         
-        if (plot_steps) {
+        if (! no_plot) { 
             
             ## Plot HMM pred img
             plot_cnv(infercnv_obj=hmm.infercnv_obj,
@@ -887,10 +896,10 @@ run <- function(infercnv_obj,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
                      title=sprintf("%02d_HMM_preds",step_count),
-                     output_filename=sprintf("infercnv.%02d_HMM_pred",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred%s",step_count, hmm_resume_file_token),
                      write_expr_matrix=TRUE,
-                     x.center=3,
-                     x.range=c(0,6),
+                     x.center=hmm_center,
+                     x.range=hmm_state_range,
                      png_res=png_res
                      )
         }
@@ -924,7 +933,7 @@ run <- function(infercnv_obj,
 
             saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)
             
-            if (plot_steps) {
+            if (! no_plot) {
                 ## Plot HMM pred img after cnv removal
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
@@ -964,7 +973,7 @@ run <- function(infercnv_obj,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
                      title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
-                     output_filename=sprintf("infercnv.%02d_HMM_pred.repr_intensities",step_count),
+                     output_filename=sprintf("infercnv.%02d_HMM_pred%s.repr_intensities", step_count, hmm_resume_file_token),
                      write_expr_matrix=TRUE,
                      x.center=1,
                      x.range=c(-1,3),

@@ -1,7 +1,7 @@
 
-#' @title .i3HMM_get_normal_sd_trend_by_num_cells_fit
+#' @title .i3HMM_get_sd_trend_by_num_cells_fit
 #'
-#' @description Determines the characteristics for the normal cell residual intensities, including
+#' @description Determines the characteristics for the tumor cell residual intensities, including
 #'              fitting the variance in mean intensity as a function of number of cells sampled.
 #'
 #' @param infercnv_obj infercnv object
@@ -15,24 +15,21 @@
 #' @export 
 
 
-.i3HMM_get_normal_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=FALSE) {
-    
-    if (!has_reference_cells(infercnv_obj)) {
-        stop("Error, cannot tune parameters without reference 'normal' cells defined")
-    }
+.i3HMM_get_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=FALSE) {
 
-    normal_samples = infercnv_obj@reference_grouped_cell_indices
     
-    normal_expr_vals <- infercnv_obj@expr.data[,unlist(normal_samples)]
+    tumor_samples = infercnv_obj@observation_grouped_cell_indices
     
-    mu = mean(normal_expr_vals)
-    sigma = sd(normal_expr_vals)
+    tumor_expr_vals <- infercnv_obj@expr.data[,unlist(tumor_samples)]
+    
+    mu = mean(tumor_expr_vals)
+    sigma = sd(tumor_expr_vals)
     nrounds = 100
     sds = c()
-    ngenes = nrow(normal_expr_vals)
+    ngenes = nrow(tumor_expr_vals)
 
-    num_normal_samples = length(normal_samples)
-    flog.info(".i3HMM_get_normal_sd_trend_by_num_cells_fit:: -got ", num_normal_samples, " samples") 
+    num_tumor_samples = length(tumor_samples)
+    flog.info(".i3HMM_get_sd_trend_by_num_cells_fit:: -got ", num_tumor_samples, " samples") 
     
     for (ncells in seq_len(100)) {
         means = c()
@@ -42,10 +39,10 @@
             rand.gene = sample(1:ngenes, size=1)
             
             ## pick a random normal cell type
-            rand.sample = sample(1:num_normal_samples, size=1)
+            rand.sample = sample(1:num_tumor_samples, size=1)
             #message("rand.sample: " , rand.sample)
             
-            vals = sample(infercnv_obj@expr.data[rand.gene, normal_samples[[rand.sample]] ], size=ncells, replace=T)
+            vals = sample(infercnv_obj@expr.data[rand.gene, tumor_samples[[rand.sample]] ], size=ncells, replace=T)
             m_val = mean(vals)
             means = c(means,  m_val)
         }
@@ -62,19 +59,20 @@
     
     ## get distribution position according to p_val in a qnorm
     mean_delta = determine_mean_delta_via_Z(sigma, p=i3_p_val)    
-
+    message("mean_delta: ", mean_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
+    
     ## do this HBadger style in case that option is to be used.
     KS_delta = get_HoneyBADGER_setGexpDev(gexp.sd=sigma, alpha=i3_p_val)
+    message("KS_delta: ", KS_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
     
-    message("mean_delta: ", mean_delta, ", at sigma: ", sigma, ", and pval: ", i3_p_val)
-q    
-    normal_sd_trend = list(mu=mu,
-                           sigma=sigma,
-                           fit=fit,
-                           mean_delta=mean_delta,
-                           KS_delta=KS_delta)
     
-    return(normal_sd_trend)
+    sd_trend = list(mu=mu,
+                    sigma=sigma,
+                    fit=fit,
+                    mean_delta=mean_delta,
+                    KS_delta=KS_delta)
+    
+    return(sd_trend)
     
 }
 
@@ -83,7 +81,7 @@ q
 #'
 #' @description get the i3 HMM parameterization
 #'
-#' @param normal_sd_trend  the normal sd trend info list
+#' @param sd_trend  the normal sd trend info list
 #'
 #' @param num_cells  number of cells in a subcluster
 #'
@@ -97,7 +95,7 @@ q
 #'
 #' @noRd
 
-.i3HMM_get_HMM <- function(normal_sd_trend, num_cells, t, i3_p_val=0.05, use_KS) {
+.i3HMM_get_HMM <- function(sd_trend, num_cells, t, i3_p_val=0.05, use_KS) {
 
     ## Here we do something very similar to HoneyBadger
     ## which is to estimate the mean/var for the CNV states
@@ -114,19 +112,23 @@ q
     
     delta=c(t,     1-5*t,    t) # more likely normal,
     
-    mu = normal_sd_trend$mu # normal cell mean
+    mu = sd_trend$mu # normal cell mean
     
-    mean_delta = ifelse(use_KS, normal_sd_trend$KS_delta, normal_sd_trend$mean_delta)
+    
     #flog.info(sprintf("-.i3HMM_get_HMM, mean_delta=%g, use_KS=%s", mean_delta, use_KS))
     
     if (num_cells == 1) {
-        sigma = normal_sd_trend$sigma
-        
+        sigma = sd_trend$sigma
+        mean_delta = ifelse(use_KS, sd_trend$KS_delta, sd_trend$mean_delta)
     } else {
         ## use the var vs. num cells trend
-        sigma <- exp(predict(normal_sd_trend$fit,
+        sigma <- exp(predict(sd_trend$fit,
                              newdata=data.frame(num_cells=num_cells))[[1]])  
+
         
+        mean_delta = ifelse(use_KS,
+                            get_HoneyBADGER_setGexpDev(gexp.sd=sd_trend$sigma, alpha=i3_p_val, k_cells=num_cells), 
+                            determine_mean_delta_via_Z(sigma, p=i3_p_val) )
     }
     
     
@@ -143,6 +145,9 @@ q
     HMM_info = list(state_transitions=state_transitions,
                     delta=delta,
                     state_emission_params=state_emission_params)
+
+
+    #print(HMM_info)
     
     return(HMM_info)
 }
@@ -156,7 +161,7 @@ q
 #'
 #' @param i3_p_val  p-value used to determine mean for amp/del distributions
 #'
-#' @param normal_sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
+#' @param sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
 #'
 #' @param t alt state transition probability (default: 1e-6)
 #'
@@ -170,7 +175,7 @@ q
 
 i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
                                                      i3_p_val=0.05,
-                                                     normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
+                                                     sd_trend=.i3HMM_get_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
                                                      t=1e-6,
                                                      use_KS=TRUE) {
     
@@ -183,7 +188,7 @@ i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
     hmm.data = expr.data
     hmm.data[,] = -1 #init to invalid state
 
-    HMM_info  <- .i3HMM_get_HMM(normal_sd_trend, num_cells = 1, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
+    HMM_info  <- .i3HMM_get_HMM(sd_trend, num_cells = 1, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
 
     message(HMM_info)
     
@@ -225,7 +230,7 @@ i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
 #'
 #' @param i3_p_val  p-value used to determine mean for amp/del distributions
 #'
-#' @param normal_sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
+#' @param sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
 #'
 #' @param t alt state transition probability (default: 1e-6)
 #'
@@ -238,7 +243,7 @@ i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
 
 i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                            i3_p_val=0.05,
-                                                           normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
+                                                           sd_trend=.i3HMM_get_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
                                                            t=1e-6,
                                                            use_KS=TRUE
                                                            ) {
@@ -248,7 +253,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     
     if (is.null(infercnv_obj@tumor_subclusters)) {
         flog.warn("No subclusters defined, so instead running on whole samples")
-        return(i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, i3_p_val, normal_sd_trend, t, use_KS));
+        return(i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples(infercnv_obj, i3_p_val, sd_trend, t, use_KS));
     }
     
     chrs = unique(infercnv_obj@gene_order$chr)
@@ -274,7 +279,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
             
             num_cells = length(tumor_subcluster_cells_idx)
 
-            HMM_info  <- .i3HMM_get_HMM(normal_sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
+            HMM_info  <- .i3HMM_get_HMM(sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
                                                 
             hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                        HMM_info[['state_transitions']],
@@ -306,7 +311,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 #'
 #' @param i3_p_val  p-value used to determine mean for amp/del distributions
 #'
-#' @param normal_sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
+#' @param sd_trend (optional) by default, computed automatically based on infercnv_obj, i3_p_val
 #'
 #' @param t alt state transition probability (default: 1e-6)
 #'
@@ -320,7 +325,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 
 i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
                                                         i3_p_val=0.05,
-                                                        normal_sd_trend=.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
+                                                        sd_trend=.i3HMM_get_sd_trend_by_num_cells_fit(infercnv_obj, i3_p_val),
                                                         t=1e-6,
                                                         use_KS=TRUE
                                                         ) {
@@ -350,7 +355,7 @@ i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
             
             num_cells = length(tumor_sample_cells_idx)
             
-            HMM_info  <- .i3HMM_get_HMM(normal_sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
+            HMM_info  <- .i3HMM_get_HMM(sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
             
             hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                        HMM_info[['state_transitions']],
@@ -429,16 +434,18 @@ determine_mean_delta_via_Z <- function(sigma, p) {
 
 #' @title get_HoneyBADGER_setGexpDev
 #'
-#' @description  This method is modified from HoneyBADGER's setGexpDev method
+#' @description  This method is adapted from HoneyBADGER's setGexpDev method
 #'               Essentially, using the KS test to determine where to set the
 #'               amp/del means for the distributions.
-#'               It is included here for testing and sanity checking only.
+#'               
 #'
 #' @param gexp.sd standard deviation for all genes
 #'
-#' @param alpha the p-value
+#' @param alpha the targeted p-value
 #'
-#' @param n number random iterations for sampling from the distribution (default: 100)
+#' @param k_cells  number of cells to sample from the distribution
+#' 
+#' @param n_iter number random iterations for sampling from the distribution (default: 100)
 #'
 #' @param seed the seed setting to ensure reproducibility
 #'
@@ -448,14 +455,19 @@ determine_mean_delta_via_Z <- function(sigma, p) {
 #'
 #' @noRd
 
-get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, n=100, seed=0, plot=FALSE) {
-    k = 2 # set to 101 in HB.  Here we set it to the min num of cells needed for a ks test.
-    set.seed(seed)
+get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, k_cells=2, n_iter=100, seed=0, plot=FALSE) {
 
+    if (k_cells < 2) {
+        flog.warn("get_HoneyBADGER_setGexpDev:: k_cells must be at least 2, setting to 2")
+        k_cells = 2
+    }
+    
+    set.seed(seed)
+    
     devs <- seq(0, gexp.sd, gexp.sd/10)
     pvs <- unlist(lapply(devs, function(dev) {
-        mean(unlist(lapply(seq_len(n), function(i) {
-            pv <- ks.test(rnorm(k, 0, gexp.sd), rnorm(k, dev, gexp.sd))
+        mean(unlist(lapply(seq_len(n_iter), function(i) {
+            pv <- ks.test(rnorm(k_cells, 0, gexp.sd), rnorm(k_cells, dev, gexp.sd))
             pv$p.value
         })))
     }))
@@ -466,7 +478,7 @@ get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, n=100, seed=0, plot=FALSE
 
     optim.dev <- predict(fit, newdata=data.frame(pvs=alpha))
 
-    flog.info(sprintf("-get_HoneyBADGER_setGexpDev(sigma=%g, alpha=%g) = %g", gexp.sd, alpha, optim.dev))
+    #flog.info(sprintf("-get_HoneyBADGER_setGexpDev(sigma=%g, alpha=%g, k_cells=%g) = %g", gexp.sd, alpha, k_cells, optim.dev))
     
     return(optim.dev)
 }

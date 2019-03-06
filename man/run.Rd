@@ -21,11 +21,19 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   outlier_lower_bound = NA, outlier_upper_bound = NA,
   final_scale_limits = NULL, final_center_val = NULL, debug = FALSE,
   num_threads = 4, plot_steps = FALSE, resume_mode = TRUE,
+<<<<<<< HEAD
+  remove_genes_at_chr_ends = FALSE, prune_outliers = FALSE,
+  mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
+  test.use = "wilcoxon", require_DE_all_normals = "any",
+  hspike_aggregate_normals = FALSE, no_plot = FALSE,
+  no_prelim_plot = FALSE)
+=======
   png_res = 300, remove_genes_at_chr_ends = FALSE,
   prune_outliers = FALSE, mask_nonDE_genes = FALSE,
   mask_nonDE_pval = 0.05, test.use = "wilcoxon",
   require_DE_all_normals = "any", hspike_aggregate_normals = FALSE,
   no_plot = FALSE, no_prelim_plot = FALSE)
+>>>>>>> 6b50e54e23d9f620ff5f8190ed276264753a6d69
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -155,8 +163,11 @@ Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 \item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
 
 \item{resume_mode}{leverage pre-computed and stored infercnv objects where possible. (default=TRUE)}
+<<<<<<< HEAD
+=======
 
 \item{png_res}{Resolution for png output.}
+>>>>>>> 6b50e54e23d9f620ff5f8190ed276264753a6d69
 
 \item{remove_genes_at_chr_ends}{experimental option: If true, removes the window_length/2 genes at both ends of the chromosome.}
 
