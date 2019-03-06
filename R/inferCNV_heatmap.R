@@ -210,12 +210,12 @@ plot_cnv <- function(infercnv_obj,
             pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
                 useDingbats=FALSE,
                 width=10,
-                height=(8.13 + sum(grouping_key_height)),
+                height=(8.23 + sum(grouping_key_height)),
                 paper="USr")
         } else if (output_format == "png") {
             png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
                 width=10,
-                height=(8.13 + sum(grouping_key_height)),
+                height=(8.23 + sum(grouping_key_height)),
                 units="in",
                 res=png_res)
         }
@@ -657,7 +657,7 @@ plot_cnv <- function(infercnv_obj,
                    .5, .5, .5,
                    .5, .5, .5,
                    .5, .5, .5,
-                  0.03, grouping_key_height[1]+0.04, grouping_key_height[2]+0.04, 0.03)
+                  0.1, grouping_key_height[1], grouping_key_height[2], 0.13)
 
     return(list(lmat=obs_lmat,
            lhei=obs_lhei,
@@ -2207,6 +2207,8 @@ heatmap.cnv <-
       } else{
         title(key.title,cex.main=cex.key,font.main=1)
       }
+
+      par(mar=op.ori$mar, cex=op.ori$cex, mgp=op.ori$mgp, tcl=op.ori$tcl, usr=op.ori$usr)
     } else{
       if(!force_add){
       .plot.text()
