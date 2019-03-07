@@ -53,7 +53,7 @@ Default is 0, which disables the scaling. Try 1 first if you want to enable.}
 \item{write_expr_matrix}{Includes writing a matrix file containing the expression data that is plotted in the heatmap.}
 }
 \value{
-No return, void.
+A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
 }
 \description{
 Formats the data and sends it for plotting.

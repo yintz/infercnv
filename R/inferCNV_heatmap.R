@@ -36,8 +36,8 @@ get_group_color_palette <- function(){
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
 #' 
-#' @return
-#' No return, void.
+#' @return A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
+#'
 #'
 #' @export
 #'
@@ -112,6 +112,7 @@ plot_cnv <- function(infercnv_obj,
             delta = max( abs( c(x.center - quantiles[1],  quantiles[2] - x.center) ) )
             low_threshold = x.center - delta
             high_threshold = x.center + delta
+            x.range = c(low_threshold, high_threshold)
             
             flog.info(sprintf("plot_cnv(): auto thresholding at: (%f , %f)", low_threshold, high_threshold))
             
@@ -321,6 +322,17 @@ plot_cnv <- function(infercnv_obj,
     if (! is.na(output_format)) {
         dev.off()
     }
+
+    return(list(cluster_by_groups = cluster_by_groups,
+               k_obs_groups = k_obs_groups,
+               contig_cex = contig_cex,
+               x.center = x.center,
+               x.range = x.range,
+               hclust_method = hclust_method,
+               color_safe_pal = color_safe_pal,
+               output_format = output_format,
+               png_res = png_res,
+               dynamic_resize = dynamic_resize))
 }
 
 # TODO Tested, test make files so turned off but can turn on and should pass.

@@ -12,7 +12,7 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   scale_data = FALSE, HMM = FALSE, HMM_transition_prob = 1e-06,
   HMM_report_by = c("subcluster", "consensus", "cell"),
   HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05, HMM_i3_use_KS = TRUE,
-  BayesMaxPNormal = 0, sim_method = "meanvar",
+  BayesMaxPNormal = 0.5, sim_method = "meanvar",
   sim_foreground = FALSE, analysis_mode = c("samples", "subclusters",
   "cells"), tumor_subcluster_partition_method = c("random_trees",
   "qnorm", "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
@@ -95,7 +95,7 @@ i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells 
 
 ## Filtering low-conf HMM preds via BayesNet P(Normal)}
 
-\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0, essentially turned off)
+\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)
 
 ######################
 ## Tumor subclustering}
