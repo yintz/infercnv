@@ -192,7 +192,7 @@ plot_cnv <- function(infercnv_obj,
         obs_annotations_groups <- obs_annotations_groups[-ref_idx]
     }
     
-    if (.is.null(dynamic_resize) | dynamic_resize < 0) {
+    if (is.null(dynamic_resize) | dynamic_resize < 0) {
         flog.warn(paste("invalid dynamic_resize value: ", dynamic_resize, sep=""))
         dynamic_resize = 0
     }
