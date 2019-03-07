@@ -30,6 +30,9 @@ get_group_color_palette <- function(){
 #' @param output_format format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
 #'                      If set to NA, will print graphics natively
 #' @param png_res Resolution for png output.
+#' @param dynamic_resize Factor (>= 0) by which to scale the dynamic resize of the observation 
+#'                       heatmap and the overall plot based on how many cells there are.
+#'                       Default is 0, which disables the scaling. Try 1 first if you want to enable.
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
 #' 
@@ -55,6 +58,7 @@ plot_cnv <- function(infercnv_obj,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
                      png_res=300,
+                     dynamic_resize=0,
                      ref_contig = NULL,
                      write_expr_matrix=FALSE) {
 
@@ -187,10 +191,14 @@ plot_cnv <- function(infercnv_obj,
         obs_annotations_groups <- obs_annotations_groups[-ref_idx]
     }
     
+    if (.is.null(dynamic_resize) | dynamic_resize < 0) {
+        flog.warn(paste("invalid dynamic_resize value: ", dynamic_resize, sep=""))
+        dynamic_resize = 0
+    }
     dynamic_extension = 0
     nobs = length(unlist(infercnv_obj@observation_grouped_cell_indices))
     if (nobs > 200) {
-        dynamic_extension = 3.6 * (nobs - 200)/200 
+        dynamic_extension = dynamic_resize * 3.6 * (nobs - 200)/200 
     }
 
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
