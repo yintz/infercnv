@@ -958,14 +958,16 @@ run <- function(infercnv_obj,
                 flog.info(sprintf("-restoring mcmc_obj from %s", mcmc_obj_file))
                 mcmc_obj <- readRDS(mcmc_obj_file)
             } else {
-                
+
                 mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj_prelim,
-                                                       HMM_obj         = hmm.infercnv_obj,
-                                                       file_dir        = out_dir,
-                                                       postMcmcMethod  = "removeCNV",
-                                                       out_dir         = file.path(out_dir, "BayesNetOutput"),
-                                                       quietly         = TRUE,
-                                                       CORES           = num_threads)
+                                                            HMM_obj         = hmm.infercnv_obj,
+                                                            file_dir        = out_dir,
+                                                            postMcmcMethod  = "removeCNV",
+                                                            out_dir         = file.path(out_dir, "BayesNetOutput"),
+                                                            quietly         = TRUE,
+                                                            CORES           = num_threads,
+                                                            plotingProbs    = TRUE,
+                                                            diagnostics     = FALSE)
                 saveRDS(mcmc_obj, file=mcmc_obj_file)
             }
                 

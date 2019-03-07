@@ -41,8 +41,6 @@ Create_NGCHM <- function(infercnv_obj,
     # transpose the expression data so columns are the cell lines and rows are genes 
     plot_data <- t(infercnv_obj@expr.data)
     # create color map for the heat map and save it as a new data layer 
-    # cut_value is the value that represents cuts on the heatmap
-    cut_value <- -2147483648.0 
     # if specific center value is not given, set to 1 
     if (any(is.na(x.center))) {
         x.center <- 1
@@ -64,8 +62,8 @@ Create_NGCHM <- function(infercnv_obj,
         low_threshold <- as.numeric(bounds[1])
         high_threshold <- as.numeric(bounds[2])
     }
-    colMap <- NGCHM::chmNewColorMap(values        = c(cut_value, low_threshold, x.center, high_threshold),
-                                    colors        = c("grey45","darkblue","white","darkred"),
+    colMap <- NGCHM::chmNewColorMap(values        = c(low_threshold, x.center, high_threshold),
+                                    colors        = c("darkblue","white","darkred"),
                                     missing.color = "white", 
                                     type          = "linear") 
     layer <- NGCHM::chmNewDataLayer("DATA", as.matrix(plot_data), colMap, summarizationMethod = "average")
@@ -74,6 +72,8 @@ Create_NGCHM <- function(infercnv_obj,
         title = "inferCNV"
     }
     hm <- NGCHM::chmNew(title, layer)
+    hm@colTreeCuts <- as.integer(2)
+    hm@layers[[1]]@cuts_color <- "#5c5c5c"
     # set the column (gene) order 
     hm@colOrder <- colnames(plot_data)
     hm@colOrderMethod <- "User"
@@ -93,7 +93,7 @@ Create_NGCHM <- function(infercnv_obj,
     # Get the order of the rows (cell lines) from the dendrogram created by infer_cnv 
     
     # read the file containing the groupings created by infer_cnv
-    row_groups_path <- paste(out_dir, "observation_groupings.txt", sep=.Platform$file.sep)
+    row_groups_path <- paste(out_dir, "infercnv.observation_groupings.txt", sep=.Platform$file.sep)
     row_groups <- read.table(row_groups_path, header = TRUE, check.names = FALSE) # genes are the row names 
     obs_order <- rev(row.names(row_groups)) # Reveerse names to correct order 
     row_order <- c(as.vector(reference_idx), obs_order) # put the reference cells above the observed cells 
