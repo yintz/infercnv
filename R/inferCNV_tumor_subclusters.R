@@ -1,5 +1,5 @@
 
-define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, partition_method, restrict_to_DE_genes=TRUE) {
+define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, partition_method, restrict_to_DE_genes=FALSE) {
     
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
