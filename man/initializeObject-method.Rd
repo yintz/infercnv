@@ -6,10 +6,9 @@
 \alias{initializeObject,MCMC_inferCNV-method}
 \title{Initialize the MCMC_inferCNV_obj object}
 \usage{
-initializeObject(obj, args_parsed, infercnv_obj, HMM_obj)
+initializeObject(obj, args_parsed, infercnv_obj)
 
-\S4method{initializeObject}{MCMC_inferCNV}(obj, args_parsed, infercnv_obj,
-  HMM_obj)
+\S4method{initializeObject}{MCMC_inferCNV}(obj, args_parsed, infercnv_obj)
 }
 \arguments{
 \item{obj}{The MCMC_inferCNV_obj S4 object.}
