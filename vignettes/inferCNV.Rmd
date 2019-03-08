@@ -125,7 +125,8 @@ infercnv_obj_default = infercnv::run(
     denoise=T,
     HMM=T,
     no_prelim_plot=T,
-    png_res=60
+    png_res=60,
+    num_threads=2
 )
 
 ```
