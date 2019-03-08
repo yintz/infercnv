@@ -10,7 +10,7 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   x.center = mean(infercnv_obj@expr.data), x.range = "auto",
   hclust_method = "ward.D", color_safe_pal = FALSE,
   output_filename = "infercnv", output_format = "png", png_res = 300,
-  ref_contig = NULL, write_expr_matrix = FALSE)
+  dynamic_resize = 0, ref_contig = NULL, write_expr_matrix = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -44,12 +44,16 @@ If set to NA, will print graphics natively}
 
 \item{png_res}{Resolution for png output.}
 
+\item{dynamic_resize}{Factor (>= 0) by which to scale the dynamic resize of the observation 
+heatmap and the overall plot based on how many cells there are.
+Default is 0, which disables the scaling. Try 1 first if you want to enable.}
+
 \item{ref_contig}{If given, will focus cluster on only genes in this contig.}
 
 \item{write_expr_matrix}{Includes writing a matrix file containing the expression data that is plotted in the heatmap.}
 }
 \value{
-No return, void.
+A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
 }
 \description{
 Formats the data and sends it for plotting.

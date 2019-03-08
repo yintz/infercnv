@@ -30,11 +30,14 @@ get_group_color_palette <- function(){
 #' @param output_format format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
 #'                      If set to NA, will print graphics natively
 #' @param png_res Resolution for png output.
+#' @param dynamic_resize Factor (>= 0) by which to scale the dynamic resize of the observation 
+#'                       heatmap and the overall plot based on how many cells there are.
+#'                       Default is 0, which disables the scaling. Try 1 first if you want to enable.
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
 #' 
-#' @return
-#' No return, void.
+#' @return A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
+#'
 #'
 #' @export
 #'
@@ -55,6 +58,7 @@ plot_cnv <- function(infercnv_obj,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
                      png_res=300,
+                     dynamic_resize=0,
                      ref_contig = NULL,
                      write_expr_matrix=FALSE) {
 
@@ -108,6 +112,7 @@ plot_cnv <- function(infercnv_obj,
             delta = max( abs( c(x.center - quantiles[1],  quantiles[2] - x.center) ) )
             low_threshold = x.center - delta
             high_threshold = x.center + delta
+            x.range = c(low_threshold, high_threshold)
             
             flog.info(sprintf("plot_cnv(): auto thresholding at: (%f , %f)", low_threshold, high_threshold))
             
@@ -187,6 +192,16 @@ plot_cnv <- function(infercnv_obj,
         obs_annotations_groups <- obs_annotations_groups[-ref_idx]
     }
     
+    if (is.null(dynamic_resize) | dynamic_resize < 0) {
+        flog.warn(paste("invalid dynamic_resize value: ", dynamic_resize, sep=""))
+        dynamic_resize = 0
+    }
+    dynamic_extension = 0
+    nobs = length(unlist(infercnv_obj@observation_grouped_cell_indices))
+    if (nobs > 200) {
+        dynamic_extension = dynamic_resize * 3.6 * (nobs - 200)/200 
+    }
+
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
     if (grouping_key_coln[1] < 1) {
         grouping_key_coln[1] <- 1
@@ -210,12 +225,12 @@ plot_cnv <- function(infercnv_obj,
             pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
                 useDingbats=FALSE,
                 width=10,
-                height=(8.13 + sum(grouping_key_height)),
+                height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
                 paper="USr")
         } else if (output_format == "png") {
             png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
                 width=10,
-                height=(8.13 + sum(grouping_key_height)),
+                height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
                 units="in",
                 res=png_res)
         }
@@ -262,7 +277,7 @@ plot_cnv <- function(infercnv_obj,
 
 
     # Create file base for plotting output
-    force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height)
+    force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height, dynamic_extension=dynamic_extension)
     .plot_cnv_observations(infercnv_obj=infercnv_obj,
                           obs_data=obs_data_t,
                           file_base_name=out_dir,
@@ -307,6 +322,17 @@ plot_cnv <- function(infercnv_obj,
     if (! is.na(output_format)) {
         dev.off()
     }
+
+    return(list(cluster_by_groups = cluster_by_groups,
+               k_obs_groups = k_obs_groups,
+               contig_cex = contig_cex,
+               x.center = x.center,
+               x.range = x.range,
+               hclust_method = hclust_method,
+               color_safe_pal = color_safe_pal,
+               output_format = output_format,
+               png_res = png_res,
+               dynamic_resize = dynamic_resize))
 }
 
 # TODO Tested, test make files so turned off but can turn on and should pass.
@@ -630,7 +656,7 @@ plot_cnv <- function(infercnv_obj,
 #' @keywords internal
 #' @noRd
 #'
-.plot_observations_layout <- function(grouping_key_height)
+.plot_observations_layout <- function(grouping_key_height, dynamic_extension)
 {
     ## Plot observational samples
     obs_lmat <- c(0,  0,  0,  0,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
@@ -656,8 +682,8 @@ plot_cnv <- function(infercnv_obj,
     obs_lhei <- c(1.125, 2.215, .15,
                    .5, .5, .5,
                    .5, .5, .5,
-                   .5, .5, .5,
-                  0.03, grouping_key_height[1]+0.04, grouping_key_height[2]+0.04, 0.03)
+                   .5, .5, .5 + dynamic_extension,
+                  0.1, grouping_key_height[1], grouping_key_height[2], 0.13)
 
     return(list(lmat=obs_lmat,
            lhei=obs_lhei,
@@ -2207,6 +2233,8 @@ heatmap.cnv <-
       } else{
         title(key.title,cex.main=cex.key,font.main=1)
       }
+
+      par(mar=op.ori$mar, cex=op.ori$cex, mgp=op.ori$mgp, tcl=op.ori$tcl, usr=op.ori$usr)
     } else{
       if(!force_add){
       .plot.text()
