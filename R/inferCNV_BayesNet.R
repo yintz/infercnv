@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-#
+
 ##################################
 # create MCMC_inferCNV S4 object #
 ##################################
@@ -22,7 +22,6 @@
 #' @slot args Input arguments given by the user 
 #' @slot cnv_regions ID for each CNV found by the HMM
 #' @slot States States that are identified and (depending on posterior MCMC input methods) modified.
-#'
 #'
 #'
 #'
@@ -197,7 +196,7 @@ setMethod(f="getGenesCells",
 #' @rdname initializeObject-method
 #' 
 setGeneric(name="initializeObject",
-           def=function(obj, args_parsed, infercnv_obj, HMM_obj)
+           def=function(obj, args_parsed, infercnv_obj)
                { standardGeneric("initializeObject") }
 )
 
@@ -206,7 +205,7 @@ setGeneric(name="initializeObject",
 #' 
 setMethod(f="initializeObject",
           signature="MCMC_inferCNV",
-          definition=function(obj, args_parsed, infercnv_obj, HMM_obj)
+          definition=function(obj, args_parsed, infercnv_obj)
           {
               futile.logger::flog.info(paste("Initializing new MCM InferCNV Object."))
               files <- list.files(args_parsed$file_dir, full.names = TRUE)
@@ -223,7 +222,6 @@ setMethod(f="initializeObject",
               cell_groups_PATH <- files[grep(files, pattern = "_HMM_preds.cell_groupings")]
               pred_cnv_genes_PATH <- files[grep(files, pattern = "_HMM_preds.pred_cnv_genes.dat")]
               cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE)
-              # cell_groups_df <- read.csv(cell_groups_PATH, sep = "\t", header = T, check.names = FALSE)
               pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE)
               
               # cnv region id's 

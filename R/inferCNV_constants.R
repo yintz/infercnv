@@ -33,6 +33,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @import future
 #' @import coda
 #' @import ggplot2
+#' @import NGCHM
 #' @importFrom edgeR estimateDisp
 #' @importFrom caTools runmean
 #' @importFrom coin oneway_test pvalue
