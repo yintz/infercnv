@@ -137,7 +137,7 @@ knitr::include_graphics("../example_output/infercnv.png")
 
 HMM preditions
 ```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.12_HMM_pred.repr_intensities.png")
+knitr::include_graphics("../example_output/infercnv.14_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
 ```
 
 

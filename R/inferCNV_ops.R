@@ -796,7 +796,7 @@ run <- function(infercnv_obj,
                      cluster_by_groups=cluster_by_groups,
                      out_dir=out_dir,
                      title="Preliminary infercnv (pre-noise filtering)",
-                     output_filename=prelim_heatmap_png,
+                     output_filename="infercnv.preliminary", # png ext auto added
                      write_expr_matrix=TRUE,
                      png_res=png_res)
         }
