@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-#
+
 ##################################
 # create MCMC_inferCNV S4 object #
 ##################################
@@ -22,7 +22,6 @@
 #' @slot args Input arguments given by the user 
 #' @slot cnv_regions ID for each CNV found by the HMM
 #' @slot States States that are identified and (depending on posterior MCMC input methods) modified.
-#'
 #'
 #'
 #'
@@ -197,7 +196,7 @@ setMethod(f="getGenesCells",
 #' @rdname initializeObject-method
 #' 
 setGeneric(name="initializeObject",
-           def=function(obj, args_parsed, infercnv_obj, HMM_obj)
+           def=function(obj, args_parsed, infercnv_obj)
                { standardGeneric("initializeObject") }
 )
 
@@ -206,7 +205,7 @@ setGeneric(name="initializeObject",
 #' 
 setMethod(f="initializeObject",
           signature="MCMC_inferCNV",
-          definition=function(obj, args_parsed, infercnv_obj, HMM_obj)
+          definition=function(obj, args_parsed, infercnv_obj)
           {
               futile.logger::flog.info(paste("Initializing new MCM InferCNV Object."))
               files <- list.files(args_parsed$file_dir, full.names = TRUE)
@@ -223,7 +222,6 @@ setMethod(f="initializeObject",
               cell_groups_PATH <- files[grep(files, pattern = "_HMM_preds.cell_groupings")]
               pred_cnv_genes_PATH <- files[grep(files, pattern = "_HMM_preds.pred_cnv_genes.dat")]
               cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE)
-              # cell_groups_df <- read.csv(cell_groups_PATH, sep = "\t", header = T, check.names = FALSE)
               pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE)
               
               # cnv region id's 
@@ -845,48 +843,49 @@ setMethod(f="mcmcDiagnosticPlots",
 ##########################
 # Command line arguments #
 ##########################
-pargs <- optparse::OptionParser()
-pargs <- optparse::add_option(pargs, c("-f", "--infercnv_dir"),
+# pargs <- optparse::OptionParser()
+pargs <- argparse::ArgumentParser()
+pargs$add_argument(c("-f", "--infercnv_dir"),
+                   type="character",
+                   action='store_true',
+                   dest="file_dir",
+                   metavar="File_Directory",
+                   help=paste("Path to files created by inferCNV.",
+                              "[Default %default][REQUIRED]"))
+pargs$add_argument(c("-m", "--model"),
                               type="character",
-                              action="store",
-                              dest="file_dir",
-                              metavar="File_Directory",
-                              help=paste("Path to files created by inferCNV.",
-                                         "[Default %default][REQUIRED]"))
-pargs <- optparse::add_option(pargs, c("-m", "--model"),
-                              type="character",
-                              action="store",
+                              action='store_true',
                               dest="model_file",
                               metavar="Model_File_Path",
                               help=paste("Path to the BUGS Model file.",
                                          "[Default %default][REQUIRED]"))
-pargs <- optparse::add_option(pargs, c("-p","--parallel"),
+pargs$add_argument(c("-p","--parallel"),
                               type="character",
-                              action="store",
+                              action='store_true',
                               dest="CORES",
                               default = NULL,
                               metavar="Number_of_Cores",
                               help=paste("Option to run parallel by specifying the number of cores to be used.",
                                          "[Default %default]"))
-pargs <- optparse::add_option(pargs, c("-o","--out_dir"),
+pargs$add_argument(c("-o","--out_dir"),
                               type="character",
-                              action="store",
+                              action='store_true',
                               dest="out_dir",
                               default = NULL,
                               metavar="Output_Directory",
                               help=paste("Option to set the output directory to save the outputs.",
                                          "[Default %default]"))
-pargs <- optparse::add_option(pargs, c("-M","--method"),
+pargs$add_argument(c("-M","--method"),
                               type="character",
-                              action="store",
+                              action='store_true',
                               dest="postMcmcMethod",
                               default = NULL,
                               metavar="Posterior_MCMC_Method",
                               help=paste("What actions to take after finishing the MCMC.",
                                          "[Default %default]"))
-pargs <- optparse::add_option(pargs, c("-x","--plot"),
+pargs$add_argument(c("-x","--plot"),
                               type="logical",
-                              action="store",
+                              action='store_true',
                               dest="plotingProbs",
                               default = TRUE,
                               metavar="Plot_Probabilities",
@@ -950,7 +949,7 @@ run_gibb_sampling <- function( 	gene_exp,
 plot_cell_prob <- function(df, title){
     df$mag = c(1:6)
     long_data <- reshape::melt(df, id = "mag")
-    ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = 'value', fill = as.factor('mag')))+
+    ggplot2::ggplot(long_data, ggplot2::aes(x = variable, y = value, fill = as.factor(mag)))+
         ggplot2::geom_bar(stat="identity", width = 1) +
         ggplot2::coord_flip() +
         ggplot2::theme(
@@ -991,7 +990,7 @@ plot_cnv_prob <- function(df,title){
     means <- as.data.frame(colMeans(df))
     means$state <- c(1:6)
     colnames(means) <- c("Probability", "State")
-    ggplot2::ggplot(data = means, ggplot2::aes_string(y = 'Probability', x= 'State', fill = as.factor('State'))) +
+    ggplot2::ggplot(data = means, ggplot2::aes(y = Probability, x= State, fill = as.factor(State))) +
         ggplot2::geom_bar(stat = "identity")+
         ggplot2::labs(title = title)
 }

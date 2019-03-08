@@ -33,6 +33,8 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @import future
 #' @import coda
 #' @import ggplot2
+#' @import NGCHM
+#' @import argparse
 #' @importFrom edgeR estimateDisp
 #' @importFrom caTools runmean
 #' @importFrom coin oneway_test pvalue
@@ -43,6 +45,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom tidyr gather
 #' @importFrom parallel detectCores
+#' @importFrom gridExtra ttheme_default tableGrob gtable_combine marrangeGrob 
 
 
 
