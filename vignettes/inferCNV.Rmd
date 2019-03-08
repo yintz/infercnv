@@ -107,7 +107,7 @@ infercnv_obj = CreateInfercnvObject(
   raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix",
   annotations_file="../example/oligodendroglioma_annotations_downsampled.txt",
   delim="\t",
-  gene_order_file="../example/gencode_downsampled.txt",
+  gene_order_file="../example/gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt",
   ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
 
 ```
@@ -119,7 +119,7 @@ infercnv_obj = CreateInfercnvObject(
 infercnv_obj_default = infercnv::run(
     infercnv_obj,
     cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
-    out_dir="../example_output/", 
+    out_dir="../example_output", 
     cluster_by_groups=T, 
     plot_steps=F,
     denoise=T,
