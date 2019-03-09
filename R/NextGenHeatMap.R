@@ -291,7 +291,6 @@ setMethod(f="setNGCHMObject",
 #' Import the row groupings 
 #' 
 #' @param obj The NGCHM_inferCNV_obj S4 object.
-#' @param hm NGCHM object
 #' 
 #' @return table containing the grouping of the rows 
 #' 
@@ -375,7 +374,6 @@ setMethod(f="setRows",
 #' Get the unique contigs in the correct order
 #' 
 #' @param obj The NGCHM_inferCNV_obj S4 object.
-#' @param hm NGCHM object
 #' 
 #' @return hm: The NGCHM S4 object.
 #' 
@@ -401,7 +399,6 @@ setMethod(f="getUniqueChr",
 #' Get all the contigs in the correct order
 #' 
 #' @param obj The NGCHM_inferCNV_obj S4 object.
-#' @param hm NGCHM object
 #' 
 #' @return hm: The NGCHM S4 object.
 #' 
@@ -427,9 +424,8 @@ setMethod(f="getChr",
 #' Get the gene names
 #' 
 #' @param obj The NGCHM_inferCNV_obj S4 object.
-#' @param hm NGCHM object
 #' 
-#' @return hm: The NGCHM S4 object.
+#' @return Gene Locations
 #' 
 #' @exportMethod getGenes
 #' @rdname getGenes-method
@@ -741,6 +737,7 @@ setMethod(f="setCutsColor",
 #' Option to set the label display size 
 #' 
 #' @param hm NGCHM object
+#' @param size Size to use for the labels. 
 #' 
 #' @return hm: The NGCHM S4 object.
 #' 
@@ -768,6 +765,8 @@ setMethod(f="setLabelSize",
 #' Option to adjust the size of the heat map.
 #' 
 #' @param hm NGCHM object
+#' @param width Width of the heatmap
+#' @param hight Hight of the heatmap
 #' 
 #' @return hm: The NGCHM S4 object.
 #' 
