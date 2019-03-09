@@ -5,6 +5,7 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install r-cran-rjags 
 
-r_build_args: --no-build-vignettes --no-manual --no-resave-data
+# r_build_args: --no-build-vignettes --no-manual --no-resave-data
 r_check_args: --no-build-vignettes --no-manual
 
+script: travis_wait script
