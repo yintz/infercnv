@@ -1,5 +1,5 @@
 
-define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, partition_method, restrict_to_DE_genes=TRUE) {
+define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, partition_method, restrict_to_DE_genes=FALSE) {
     
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
@@ -87,15 +87,10 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         flog.info(sprintf("cut height based on p_val(%g) = %g and partition_method: %s", p_val, cut_height, partition_method))
         grps <- cutree(hc, h=cut_height) # will just be one cluster if height > max_height
         
-    } else if (partition_method == 'shc') {
+    #} else if (partition_method == 'shc') {
+    #    
+    #    grps <- .get_shc_clusters(tumor_expr_data, hclust_method, p_val)
         
-        grps <- .get_shc_clusters(tumor_expr_data, hclust_method, p_val)
-
-    #} else if (partition_method == 'random_trees') {
-    #    
-    #    grps <- .partition_by_random_trees(tumor_name, tumor_expr_data, hclust_method, p_val)
-    #    
-
     } else if (partition_method == 'none') {
         
         grps <- cutree(hc, k=1)
@@ -103,7 +98,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     } else {
         stop("Error, not recognizing parition_method")
     }
-        
+    
     # cluster_ids = unique(grps)
     # flog.info(sprintf("cut tree into: %g groups", length(cluster_ids)))
     
@@ -134,31 +129,31 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 }
 
 
-.get_shc_clusters <- function(tumor_expr_data, hclust_method, p_val) { 
-
-    # library(sigclust2)
-    
-    flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val))
-    
-    shc_result = sigclust2::shc(t(tumor_expr_data), metric='euclidean', linkage=hclust_method, alpha=p_val)
-
-    cluster_idx = which(shc_result$p_norm <= p_val)
-        
-    grps = rep(1, ncol(tumor_expr_data))
-    names(grps) <- colnames(tumor_expr_data)
-    
-    counter = 1
-    for (cluster_id in cluster_idx) {
-        labelsA = unlist(shc_result$idx_hc[cluster_id,1])
-
-        labelsB = unlist(shc_result$idx_hc[cluster_id,2])
-
-        counter = counter + 1
-        grps[labelsB] <- counter
-    }
-    
-    return(grps)
-}
+#.get_shc_clusters <- function(tumor_expr_data, hclust_method, p_val) { 
+#
+# library(sigclust2)
+#    
+#    flog.info(sprintf("defining groups using shc, hclust_method: %s, p_val: %g", hclust_method, p_val))
+#    
+#    shc_result = sigclust2::shc(t(tumor_expr_data), metric='euclidean', linkage=hclust_method, alpha=p_val)
+#
+#    cluster_idx = which(shc_result$p_norm <= p_val)
+#        
+#    grps = rep(1, ncol(tumor_expr_data))
+#    names(grps) <- colnames(tumor_expr_data)
+#    
+#    counter = 1
+#    for (cluster_id in cluster_idx) {
+#        labelsA = unlist(shc_result$idx_hc[cluster_id,1])
+#
+#        labelsB = unlist(shc_result$idx_hc[cluster_id,2])
+#
+#        counter = counter + 1
+#        grps[labelsB] <- counter
+#    }
+#    
+#    return(grps)
+#}
         
 
 

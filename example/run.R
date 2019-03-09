@@ -8,7 +8,7 @@ library("infercnv")
 infercnv_obj = CreateInfercnvObject(raw_counts_matrix="oligodendroglioma_expression_downsampled.counts.matrix",
                                     annotations_file="oligodendroglioma_annotations_downsampled.txt",
                                     delim="\t",
-                                    gene_order_file="gencode_downsampled.txt",
+                                    gene_order_file="gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt",
                                     ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
 
 out_dir="output_dir"
