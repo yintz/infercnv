@@ -147,8 +147,8 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     
     ## read annotations file
     flog.info(sprintf("Parsing cell annotations file: %s", annotations_file))
-    input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE)
-        
+    input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE, colClasses = 'character')
+    
     ## just in case the first line is a default header, remove it:
     if (rownames(input_classifications)[1] == "V1") {
         input_classifications = input_classifications[-1, , drop=F]
