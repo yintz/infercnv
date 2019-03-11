@@ -12,6 +12,7 @@
 #     --out_dir="output_cli" \
 #     --cluster_by_groups \
 #     --denoise
+#     --median_filter
 
 # Load libraries
 library(optparse)
@@ -613,6 +614,25 @@ pargs <- optparse::add_option(pargs, c("--log_file"),
 #                                   "genes. Possible gene label types to choose from are specified on",
 #                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
 
+pargs <- optparse::add_option(pargs, c("--no_plot"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="no_plot",
+                              metavar="No Plot",
+                              help=paste("don't make any of the images.",
+                                         "Instead, generate all non-image outputs as part of the run.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--no_prelim_plot"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="no_prelim_plot",
+                              metavar="No Preliminary Plot",
+                              help=paste("don't make the preliminary infercnv image",
+                                         "[Default %default]"))
+
 pargs <- optparse::add_option(pargs, c("--median_filter"),
                               type="logical",
                               default=FALSE,
@@ -716,6 +736,8 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             #test.use=args$test.use,
                             #require_DE_all_normals=args$require_DE_all_normals,
                             plot_steps=args$plot_steps,
+                            no_plot=args$no_plot,
+                            no_prelim_plot=args$no_prelim_plot,
                             debug=args$debug,
                             #prune_outliers=args$prune_outliers,
                             final_scale_limits=args$final_scale_limits,
