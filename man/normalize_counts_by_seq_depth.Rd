@@ -11,6 +11,9 @@ normalize_counts_by_seq_depth(infercnv_obj, normalize_factor = NA)
 
 \item{normalize_factor}{total counts to scale the normalization to (default: NA, computed as described above)}
 }
+\value{
+infercnv_obj
+}
 \description{
 Normalizes count data by total sum scaling
 

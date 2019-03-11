@@ -104,10 +104,10 @@ Reading in the raw counts matrix and meta data, populating the infercnv object
 
 ```{r}
 infercnv_obj = CreateInfercnvObject(
-  raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix",
-  annotations_file="../example/oligodendroglioma_annotations_downsampled.txt",
+  raw_counts_matrix="../inst/extdata/oligodendroglioma_expression_downsampled.counts.matrix.gz",
+  annotations_file="../inst/extdata/oligodendroglioma_annotations_downsampled.txt",
   delim="\t",
-  gene_order_file="../example/gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt",
+  gene_order_file="../inst/extdata/gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt",
   ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
 
 ```
@@ -120,13 +120,14 @@ infercnv_obj_default = infercnv::run(
     infercnv_obj,
     cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
     out_dir="../example_output", 
-    cluster_by_groups=T, 
-    plot_steps=F,
-    denoise=T,
-    HMM=T,
-    no_prelim_plot=T,
+    cluster_by_groups=TRUE, 
+    plot_steps=FALSE,
+    denoise=TRUE,
+    HMM=TRUE,
+    no_prelim_plot=TRUE,
     png_res=60,
-    num_threads=2
+    num_threads=2,
+    BayesMaxPNormal=0
 )
 
 ```
@@ -138,7 +139,7 @@ knitr::include_graphics("../example_output/infercnv.png")
 
 HMM preditions
 ```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.14_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
+knitr::include_graphics("../example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
 ```
 
 

@@ -20,7 +20,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
             p_vals <- .find_DE_stat_significance(normal_expr_data, tumor_expr_data)
             
             DE_gene_idx = which(p_vals < p_val)
-            tumor_expr_data = tumor_expr_data[DE_gene_idx, , drop=F]
+            tumor_expr_data = tumor_expr_data[DE_gene_idx, , drop=FALSE]
             
         }
         
@@ -161,8 +161,8 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 .find_DE_stat_significance <- function(normal_matrix, tumor_matrix) {
     
     run_t_test<- function(idx) {
-        vals1 = unlist(normal_matrix[idx,,drop=T])
-        vals2 = unlist(tumor_matrix[idx,,drop=T])
+        vals1 = unlist(normal_matrix[idx,,drop=TRUE])
+        vals2 = unlist(tumor_matrix[idx,,drop=TRUE])
         
         ## useful way of handling tests that may fail:
         ## https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
@@ -236,7 +236,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
             grp_idx = which(grps==grp)
             
             message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
-            df = tumor_expr_data[,grp_idx,drop=F]
+            df = tumor_expr_data[,grp_idx,drop=FALSE]
             ## define subset.
             subset_cell_names = colnames(df)
             
@@ -261,7 +261,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 }
 
 
-.parameterize_random_cluster_heights <- function(expr_matrix, hclust_method, plot=T) {
+.parameterize_random_cluster_heights <- function(expr_matrix, hclust_method, plot=TRUE) {
     
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
@@ -278,7 +278,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
         for (i in seq(ncol(df) ) ) {
             
-            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=F), i]
+            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=FALSE), i]
         }
         
         df

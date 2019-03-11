@@ -126,11 +126,19 @@ CreateInfercnvObject <- function(raw_counts_matrix,
                                  chr_exclude=c('chrX', 'chrY', 'chrM') ) {
     
     ## input expression data
-    if (class(raw_counts_matrix) == "character") {
+    if (Reduce("|", is(raw_counts_matrix) == "character")) {
         flog.info(sprintf("Parsing matrix: %s", raw_counts_matrix)) 
-        raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
+
+        if (substr(raw_counts_matrix, nchar(raw_counts_matrix)-2, nchar(raw_counts_matrix)) == ".gz") {
+            raw.data <- read.table(connection <- gzfile(raw_counts_matrix, 'rt'), sep=delim, header=TRUE, row.names=1, check.names=FALSE)
+            close(connection)
+        }
+        else {
+            raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
+        }
+        
         raw.data = as.matrix(raw.data)
-    } else if (class(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame")) {
+    } else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame"))) {
         # use as is:
         raw.data <- raw_counts_matrix
     } else {
@@ -151,7 +159,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     
     ## just in case the first line is a default header, remove it:
     if (rownames(input_classifications)[1] == "V1") {
-        input_classifications = input_classifications[-1, , drop=F]
+        input_classifications = input_classifications[-1, , drop=FALSE]
     }
     
     ## make sure all reference samples are accounted for:
@@ -185,7 +193,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         
         raw.data <- raw.data[, cells.keep]
         
-        input_classifications <- input_classifications[ rownames(input_classifications) %in% colnames(raw.data), , drop=F]
+        input_classifications <- input_classifications[ rownames(input_classifications) %in% colnames(raw.data), , drop=FALSE]
 
         orig_ref_group_names = ref_group_names
         ref_group_names <- ref_group_names[ ref_group_names %in% unique(input_classifications[,1]) ]
@@ -205,7 +213,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
             if (dim(df)[1] > max_cells_per_group) {
                 flog.info(sprintf("-reducing number of cells for grp %s from %g to %g",
                                   grp, dim(df)[1], max_cells_per_group))
-                grps[[grp]] = df[sample(1:dim(df)[1], max_cells_per_group),,drop=F]
+                grps[[grp]] = df[sample(1:dim(df)[1], max_cells_per_group),,drop=FALSE]
             }
         }
         input_classifications = data.frame(Reduce(rbind, grps))
@@ -386,11 +394,11 @@ CreateInfercnvObject <- function(raw_counts_matrix,
 
 remove_genes <- function(infercnv_obj, gene_indices_to_remove) {
 
-    infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, , drop=F]
+    infercnv_obj@expr.data <- infercnv_obj@expr.data[ -1 * gene_indices_to_remove, , drop=FALSE]
     
-    infercnv_obj@count.data <- infercnv_obj@count.data[ -1 * gene_indices_to_remove, , drop=F]
+    infercnv_obj@count.data <- infercnv_obj@count.data[ -1 * gene_indices_to_remove, , drop=FALSE]
 
-    infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * gene_indices_to_remove, , drop=F] 
+    infercnv_obj@gene_order <- infercnv_obj@gene_order[ -1 * gene_indices_to_remove, , drop=FALSE] 
 
     validate_infercnv_obj(infercnv_obj)
     

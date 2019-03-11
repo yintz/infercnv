@@ -3,10 +3,12 @@
 ^docker
 ^run_tests
 ^\.
+^inferCNV\.wiki
 ^infercnv.Rdata
 ^inferCNV.Rproj
 ^Rstudio_helpers
 ^__simulations
+^example
 ^example/full_precision
 ^example/example.html
 ^example/test_subdir

@@ -80,9 +80,9 @@ plot_cnv <- function(infercnv_obj,
     flog.info(paste("::plot_cnv:Start", sep=""))
     flog.info(paste("::plot_cnv:Current data dimensions (r,c)=",
                            paste(dim(plot_data), collapse=","),
-                           " Total=", sum(plot_data, na.rm=T),
-                           " Min=", min(plot_data, na.rm=T),
-                           " Max=", max(plot_data, na.rm=T),
+                           " Total=", sum(plot_data, na.rm=TRUE),
+                           " Min=", min(plot_data, na.rm=TRUE),
+                           " Max=", max(plot_data, na.rm=TRUE),
                            ".", sep=""))
     flog.info(paste("::plot_cnv:Depending on the size of the matrix",
                            " this may take a moment.",
@@ -94,7 +94,7 @@ plot_cnv <- function(infercnv_obj,
         expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
 
         if (class(plot_data) %in% c("matrix", "data.frame")) {
-            write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
+            write.table(plot_data, file=expr_dat_file, quote=FALSE, sep="\t")
         }
         
     }
@@ -482,7 +482,7 @@ plot_cnv <- function(infercnv_obj,
                 next
             }
             
-            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=F]
+            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=FALSE]
             flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
             group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
             ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])

@@ -29,7 +29,7 @@
 #' @export
 #' 
 # Requires:
-#	infercnv, rjags, ggplot2, parallel, futile.logger, reshape
+# infercnv, rjags, ggplot2, parallel, futile.logger, reshape
 ## build off of the present S4 object inferCNV_obj to add more slots 
 MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
                                                      sig = "numeric",
@@ -900,9 +900,9 @@ pargs$add_argument(c("-x","--plot"),
 #       return:
 #               samples     : Results of the sampleing process 
 #
-run_gibb_sampling <- function( 	gene_exp, 
-                                MCMC_inferCNV_obj
-                                ){
+run_gibb_sampling <- function(gene_exp, 
+                              MCMC_inferCNV_obj
+                              ){
     if (is.null(ncol(gene_exp))){
         gene_exp <- data.frame(gene_exp)
     } 

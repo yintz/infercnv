@@ -11,6 +11,9 @@ apply_max_threshold_bounds(infercnv_obj, threshold)
 
 \item{threshold}{value to threshold the data}
 }
+\value{
+infercnv_obj
+}
 \description{
 Assumes centered at zero and sets bounds to +- threshold value.
 }

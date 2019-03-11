@@ -1278,11 +1278,11 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
     
     subtract_normal_expr_fun <- function(row_idx) {
 
-        gene_means <- as.numeric(ref_grp_gene_means[row_idx, , drop=T])
+        gene_means <- as.numeric(ref_grp_gene_means[row_idx, , drop=TRUE])
 
         gene_means_mean <- mean(gene_means)
         
-        x <- as.numeric(expr_matrix[row_idx, , drop=T])
+        x <- as.numeric(expr_matrix[row_idx, , drop=TRUE])
         
         row_init = rep(0, length(x))
         
@@ -1615,13 +1615,13 @@ center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # 
 
     # Center within columns (cells)
     if (method == "median") {
-        row_median <- apply(expr_data, 2, function(x) { median(x, na.rm=T) } )
+        row_median <- apply(expr_data, 2, function(x) { median(x, na.rm=TRUE) } )
 
         expr_data <- t(apply(expr_data, 1, "-", row_median))
     }
     else {
         # by mean
-        row_means <- apply(expr_data, 2, function(x) { mean(x, na.rm=T) } )
+        row_means <- apply(expr_data, 2, function(x) { mean(x, na.rm=TRUE) } )
 
         expr_data <- t(apply(expr_data, 1, "-", row_means))
     }
@@ -1827,7 +1827,7 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
 
     mean_ref_vals = mean(vals)
 
-    mean_ref_sd <- mean(apply(vals, 2, function(x) sd(x, na.rm=T))) * sd_amplifier
+    mean_ref_sd <- mean(apply(vals, 2, function(x) sd(x, na.rm=TRUE))) * sd_amplifier
 
     upper_bound = mean_ref_vals + mean_ref_sd
     lower_bound = mean_ref_vals - mean_ref_sd
@@ -1924,7 +1924,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         chr_genes_indices = which(gene_chr_listing == chr)
         flog.info(paste0("smooth_by_chromosome: chr: ",chr))
 
-        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
+        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=FALSE]
 
         if (nrow(chr_data) > 1) {
             smoothed_chr_data = .smooth_window(data=chr_data,
@@ -2103,7 +2103,7 @@ smooth_by_chromosome_runmeans <- function(infercnv_obj, window_length) {
         chr_genes_indices = which(gene_chr_listing == chr)
         flog.info(paste0("smooth_by_chromosome: chr: ",chr))
 
-        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=F]
+        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=FALSE]
 
         if (nrow(chr_data) > 1) {
             chr_data = apply(chr_data, 2, caTools::runmean, k=window_length)
@@ -2297,8 +2297,8 @@ transform_to_reference_based_Zscores <- function(infercnv_obj) {
 
     ref_data = infercnv_obj@expr.data[,ref_idx]
 
-    gene_ref_mean = apply(ref_data, 1, function(x) {mean(x, na.rm=T)})
-    gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=T)})
+    gene_ref_mean = apply(ref_data, 1, function(x) {mean(x, na.rm=TRUE)})
+    gene_ref_sd = apply(ref_data, 1, function(x) {sd(x, na.rm=TRUE)})
 
     # assume at least Poisson level variation
     gene_ref_sd = pmax(gene_ref_sd, gene_ref_mean)
@@ -2334,7 +2334,7 @@ mean_center_gene_expr <- function(infercnv_obj) {
 
     flog.info(paste("::centering", sep=""))
 
-    infercnv_obj@expr.data <- sweep(infercnv_obj@expr.data, 1, rowMeans(infercnv_obj@expr.data, na.rm=T), FUN="-")
+    infercnv_obj@expr.data <- sweep(infercnv_obj@expr.data, 1, rowMeans(infercnv_obj@expr.data, na.rm=TRUE), FUN="-")
 
     if (! is.null(infercnv_obj@.hspike)) {
         flog.info("-mirroring for hspike")
@@ -2371,6 +2371,8 @@ get_reference_grouped_cell_indices <- function(infercnv_obj) {
 #'
 #' @param threshold value to threshold the data
 #'
+#' @return infercnv_obj
+#'
 #' @export
 #'
 
@@ -2397,6 +2399,8 @@ apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
 #' @param infercnv_obj infercnv_object
 #'
 #' @param window_length length of the window to use.
+#'
+#' @return infercnv_obj
 #'
 #' @export
 #'
@@ -2458,6 +2462,8 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 #' @param infercnv_obj infercnv_object
 #'
 #' @param normalize_factor  total counts to scale the normalization to (default: NA, computed as described above)
+#'
+#' @return infercnv_obj
 #'
 #' @export
 #'
@@ -2523,6 +2529,8 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 #' https://en.wikipedia.org/wiki/Anscombe_transform
 #'
 #' @param infercnv_obj infercnv_object
+#'
+#' @return infercnv_obj
 #'
 #' @export
 #'

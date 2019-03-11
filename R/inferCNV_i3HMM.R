@@ -42,7 +42,7 @@
             rand.sample = sample(1:num_tumor_samples, size=1)
             #message("rand.sample: " , rand.sample)
             
-            vals = sample(infercnv_obj@expr.data[rand.gene, tumor_samples[[rand.sample]] ], size=ncells, replace=T)
+            vals = sample(infercnv_obj@expr.data[rand.gene, tumor_samples[[rand.sample]] ], size=ncells, replace=TRUE)
             m_val = mean(vals)
             means = c(means,  m_val)
         }
@@ -107,7 +107,7 @@
     state_transitions = matrix( c(1-5*t,  t,     t,
                                   t,     1-5*t,  t,
                                   t,      t,     1-5*t),
-                               byrow=T,
+                               byrow=TRUE,
                                nrow=3)
     
     delta=c(t,     1-5*t,    t) # more likely normal,
@@ -263,7 +263,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     hmm.data = expr.data
     hmm.data[,] = -1 #init to invalid state
 
-    tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
+    tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=FALSE)
     
     ## add the normals, so they get predictions too:
     tumor_subclusters <- c(tumor_subclusters, infercnv_obj@reference_grouped_cell_indices)
@@ -275,7 +275,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
         ## run through each cell for this chromosome:
         lapply(tumor_subclusters, function(tumor_subcluster_cells_idx) {
             
-            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F])
+            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=FALSE])
             
             num_cells = length(tumor_subcluster_cells_idx)
 
@@ -351,7 +351,7 @@ i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
         ## run through each cell for this chromosome:
         lapply(tumor_samples, function(tumor_sample_cells_idx) {
             
-            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_sample_cells_idx,drop=F])
+            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_sample_cells_idx,drop=FALSE])
             
             num_cells = length(tumor_sample_cells_idx)
             
@@ -447,22 +447,18 @@ determine_mean_delta_via_Z <- function(sigma, p) {
 #' 
 #' @param n_iter number random iterations for sampling from the distribution (default: 100)
 #'
-#' @param seed the seed setting to ensure reproducibility
-#'
 #' @param plot boolean, set to True to plot.
 #'
 #' @return optim.dev
 #'
 #' @noRd
 
-get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, k_cells=2, n_iter=100, seed=0, plot=FALSE) {
+get_HoneyBADGER_setGexpDev <- function(gexp.sd, alpha, k_cells=2, n_iter=100, plot=FALSE) {
 
     if (k_cells < 2) {
         flog.warn("get_HoneyBADGER_setGexpDev:: k_cells must be at least 2, setting to 2")
         k_cells = 2
     }
-    
-    set.seed(seed)
     
     devs <- seq(0, gexp.sd, gexp.sd/10)
     pvs <- unlist(lapply(devs, function(dev) {
