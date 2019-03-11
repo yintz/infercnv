@@ -188,7 +188,6 @@ setMethod(f="getGenesCells",
 #' @param obj The MCMC_inferCNV_obj S4 object.
 #' @param args_parsed The arguments given to the function.
 #' @param infercnv_obj InferCNV object.
-#' @param HMM_obj HMM InferCNV object.
 #' 
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #' 
@@ -989,12 +988,13 @@ cell_prob <- function(combined_samples) {
 ## Fucntion to Plot the probability of each state for a CNV 
 plot_cnv_prob <- function(df,title){
     colnames(df) <- c(1:6)
-    df <- reshape2::melt(df)
+    df <- melt(df)
     colnames(df) <- c("row", "State", "Probability")
     states <- as.factor(df$State)
     ggplot2::ggplot(data = df, ggplot2::aes_string(y = 'Probability', x= 'State', fill = 'states')) +
         ggplot2::geom_boxplot()+
-        ggplot2::labs(title = title)
+        ggplot2::labs(title = title) +
+        ggplot2::theme(plot.title = element_text(hjust = 0.5))
 }
 
 
