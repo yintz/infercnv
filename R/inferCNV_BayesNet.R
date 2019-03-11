@@ -988,12 +988,12 @@ cell_prob <- function(combined_samples) {
 
 ## Fucntion to Plot the probability of each state for a CNV 
 plot_cnv_prob <- function(df,title){
-    means <- as.data.frame(colMeans(df))
-    means$state <- c(1:6)
-    colnames(means) <- c("Probability", "State")
-    states <- as.factor(means$State)
-    ggplot2::ggplot(data = means, ggplot2::aes_string(y = 'Probability', x= 'State', fill = 'states')) +
-        ggplot2::geom_bar(stat = "identity")+
+    colnames(df) <- c(1:6)
+    df <- reshape2::melt(df)
+    colnames(df) <- c("row", "State", "Probability")
+    states <- as.factor(df$State)
+    ggplot2::ggplot(data = df, ggplot2::aes_string(y = 'Probability', x= 'State', fill = 'states')) +
+        ggplot2::geom_boxplot()+
         ggplot2::labs(title = title)
 }
 
