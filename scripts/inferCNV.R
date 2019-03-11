@@ -6,7 +6,7 @@
 # ./inferCNV.R \
 #     --raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix" \
 #     --annotations_file="../example/oligodendroglioma_annotations_downsampled.txt" \
-#     --gene_order_file="../example/gencode_downsampled.txt" \
+#     --gene_order_file="../example/gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt" \
 #     --ref_group_names="Microglia/Macrophage,Oligodendrocytes (non-malignant)" \
 #     --cutoff=1 \
 #     --out_dir="output_cli" \
@@ -331,14 +331,14 @@ pargs <- optparse::add_option(pargs, c("--HMM_type"),
                                          "configured based on normal cells and HMM_i3_z_pval.\n",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--HMM_i3_z_pval"),
-                              type="numeric",
-                              default=0.05,
-                              action="store",
-                              dest="HMM_i3_z_pval",
-                              metavar="HMM i3 z p-value",
-                              help=paste("p-value for HMM i3 state overlap",
-                                         "[Default %default]"))
+# pargs <- optparse::add_option(pargs, c("--HMM_i3_z_pval"),
+#                               type="numeric",
+#                               default=0.05,
+#                               action="store",
+#                               dest="HMM_i3_z_pval",
+#                               metavar="HMM i3 z p-value",
+#                               help=paste("p-value for HMM i3 state overlap",
+#                                          "[Default %default]"))
 
 pargs <- optparse::add_option(pargs, c("--denoise"),
                               type="logical",
@@ -696,7 +696,7 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             HMM_transition_prob=args$HMM_transition_prob,
                             HMM_report_by=args$HMM_report_by,
                             HMM_type=args$HMM_type,
-                            HMM_i3_z_pval=args$HMM_i3_z_pval,
+                            # HMM_i3_z_pval=args$HMM_i3_z_pval,
                             #sim_method=args$sim_method,
                             #sim_foreground=args$sim_foreground,
                             scale_data=args$scale_data,
