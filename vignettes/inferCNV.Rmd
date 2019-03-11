@@ -16,7 +16,7 @@ author:
 date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document: default
-package: inferCNV
+package: infercnv
 abstract: >
   InferCNV is used to explore tumor single cell RNA-Seq data to identify evidence for large-scale chromosomal copy number variations, such as gains or deletions of entire chromosomes or large segments of chromosomes. This is done by exploring expression intensity of genes across positions of the genome in comparison to the average or a set of reference 'normal' cells. A heatmap is generated illustrating the relative expression intensities across each chromosome, and it becomes readily apparent as to which regions of the genome are over-abundant or less-abundant as compared to normal cells (or the average, if reference normal cells are not provided).
 vignette: >
@@ -166,7 +166,7 @@ infercnv_orig_filtered = infercnv_obj
 ## Normalize each cell's counts for sequencing depth
 
 ```{r}
-infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
+infercnv_obj <- infercnv::normalize_counts_by_seq_depth(infercnv_obj)
 ```
 
 
