@@ -39,7 +39,7 @@
 #'
 #' @param hclust_method Method used for hierarchical clustering of cells. Valid choices are:
 #' "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
-#' default("ward.D")
+#' default("ward.D2")
 #'
 #' @param max_centered_threshold The maximum value a value can have after
 #'                                   centering. Also sets a lower bound of
@@ -920,6 +920,7 @@ run <- function(infercnv_obj,
             generate_cnv_region_reports(hmm.infercnv_obj,
                                         output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
                                         out_dir=out_dir,
+                                        ignore_neutral_state=hmm_center,
                                         by=HMM_report_by)
             
             
@@ -1040,8 +1041,9 @@ run <- function(infercnv_obj,
             ## write the adjusted CNV report files
             ## report predicted cnv regions:
             generate_cnv_region_reports(hmm.infercnv_obj,
-                                        output_filename_prefix=sprintf("%02d_HMM_preds%s.Pnorm_%g", step_count, hmm_resume_file_token, BayesMaxPNormal),
+                                        output_filename_prefix=sprintf("HMM_CNV_predictions.%s.Pnorm_%g", hmm_resume_file_token, BayesMaxPNormal),
                                         out_dir=out_dir,
+                                        ignore_neutral_state=1,
                                         by=HMM_report_by)
             
         }
