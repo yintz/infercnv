@@ -18,16 +18,18 @@ infercnv_obj = readRDS(infercnv_obj_file)
 ref_group_cell_indices = infercnv:::get_reference_grouped_cell_indices(infercnv_obj)
 pdf_filename = paste0(infercnv_obj_file, ".i3.chr_expr_densities.pdf")
 
-normal_sd_trend = infercnv:::.i3HMM_get_normal_sd_trend_by_num_cells_fit(infercnv_obj)
+normal_sd_trend = infercnv:::.i3HMM_get_sd_trend_by_num_cells_fit(infercnv_obj)
 
 mu = normal_sd_trend$mu
 sigma = normal_sd_trend$sigma
-delta = normal_sd_trend$KS_delta
+
+
 
 pdf(pdf_filename)
 
 chrs = unique(infercnv_obj@gene_order$chr)
 
+delta = infercnv:::get_HoneyBADGER_setGexpDev(gexp.sd=sigma, alpha=0.05, k_cells=7)
 
 for (chr in chrs) {
         
