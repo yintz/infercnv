@@ -39,8 +39,8 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom coin oneway_test pvalue
 #' @importFrom reshape melt
 #' @importFrom rjags jags.model coda.samples
-#' @importFrom BiocGenerics counts
-#' @importFrom SummarizedExperiment colData rowData assays assays<- rowData<- colData<- 
+#' @importFrom BiocGenerics counts t
+#' @importFrom SummarizedExperiment start colData rowData assays assays<- rowData<- colData<- 
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom tidyr gather
 #' @importFrom parallel detectCores

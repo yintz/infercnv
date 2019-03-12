@@ -4,7 +4,7 @@
 \alias{get_hspike_cnv_mean_sd_trend_by_num_cells_fit}
 \title{get_hspike_cnv_mean_sd_trend_by_num_cells_fit}
 \usage{
-get_hspike_cnv_mean_sd_trend_by_num_cells_fit(hspike_obj, plot = F)
+get_hspike_cnv_mean_sd_trend_by_num_cells_fit(hspike_obj, plot = FALSE)
 }
 \arguments{
 \item{hspike_obj}{hidden spike object}

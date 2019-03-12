@@ -9,6 +9,9 @@ anscombe_transform(infercnv_obj)
 \arguments{
 \item{infercnv_obj}{infercnv_object}
 }
+\value{
+infercnv_obj
+}
 \description{
 Performs Anscombe's transformation:
    y = 2 * sqrt(x + 3/8)

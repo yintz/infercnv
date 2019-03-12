@@ -147,7 +147,7 @@ get_spike_dists <- function(hspike_obj) {
 #'
 #' @export
 
-get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
+get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=FALSE) {
     
     gene_expr_by_cnv <- .get_gene_expr_by_cnv(hspike_obj)
     cnv_level_to_mean_sd = list()
@@ -161,7 +161,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
             means = c()
             
             for(i in 1:nrounds) {
-                vals = sample(expr_vals, size=ncells, replace=T)
+                vals = sample(expr_vals, size=ncells, replace=TRUE)
                 m_val = mean(vals)
                 means = c(means,  m_val)
             }
@@ -223,7 +223,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=F) {
                                   t,      t,     t,    1-5*t,    t,    t,
                                   t,      t,     t,      t,    1-5*t,  t,
                                   t,      t,     t,      t,      t,  1-5*t),
-                               byrow=T,
+                               byrow=TRUE,
                                nrow=6)
 
     delta=c(t,      t,     1-5*t,    t,    t,   t) # more likely normal,
@@ -351,7 +351,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     hmm.data = expr.data
     hmm.data[,] = -1 #init to invalid state
 
-    tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
+    tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=FALSE)
     
     ## add the normals, so they get predictions too:
     tumor_subclusters <- c(tumor_subclusters, infercnv_obj@reference_grouped_cell_indices)
@@ -363,7 +363,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
         ## run through each cell for this chromosome:
         lapply(tumor_subclusters, function(tumor_subcluster_cells_idx) {
             
-            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=F])
+            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_subcluster_cells_idx,drop=FALSE])
             
             num_cells = length(tumor_subcluster_cells_idx)
 
@@ -435,7 +435,7 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
         ## run through each cell for this chromosome:
         lapply(tumor_samples, function(tumor_sample_cells_idx) {
             
-            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_sample_cells_idx,drop=F])
+            gene_expr_vals = rowMeans(expr.data[chr_gene_idx,tumor_sample_cells_idx,drop=FALSE])
             
             num_cells = length(tumor_sample_cells_idx)
 
@@ -612,7 +612,7 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
     if (by == "consensus") {
         cell_groups = infercnv_obj@observation_grouped_cell_indices
     } else if (by == "subcluster") {
-        cell_groups = unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=F)
+        cell_groups = unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=FALSE)
     } else if (by == "cell") {
         cell_groups = lapply(unlist(infercnv_obj@observation_grouped_cell_indices), function(x) x) 
     }
@@ -630,7 +630,7 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
 
         flog.info(sprintf("-processing cell_group_name: %s, size: %d", cell_group_name, length(cell_group)))
                 
-        cell_group_mtx = infercnv_obj@expr.data[,cell_group,drop=F]
+        cell_group_mtx = infercnv_obj@expr.data[,cell_group,drop=FALSE]
         cell_group_names = colnames(cell_group_mtx)
 
         state_consensus <- .get_state_consensus(cell_group_mtx)
@@ -697,7 +697,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
     
     cell_clusters_df = do.call(rbind, cell_clusters_df)
     flog.info(sprintf("-writing cell clusters file: %s", cell_clusters_outfile))
-    write.table(cell_clusters_df, file=cell_clusters_outfile, row.names=F, quote=F, sep="\t")
+    write.table(cell_clusters_df, file=cell_clusters_outfile, row.names=FALSE, quote=FALSE, sep="\t")
     
     ## regions DF:
     regions_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_regions.dat"), sep="/")
@@ -716,7 +716,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
         regions_df = regions_df[regions_df$state != neutral_state_ignore, ]
     }
     flog.info(sprintf("-writing cnv regions file: %s", regions_outfile)) 
-    write.table(regions_df, regions_outfile, row.names=F, sep="\t", quote=F)
+    write.table(regions_df, regions_outfile, row.names=FALSE, sep="\t", quote=FALSE)
 
 
     ## write the per-gene reports of cnv:
@@ -743,12 +743,12 @@ generate_cnv_region_reports <- function(infercnv_obj,
     ## write output file:
     gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
     flog.info(sprintf("-writing per-gene cnv report: %s", gene_cnv_outfile))
-    write.table(gene_cnv_df, gene_cnv_outfile, row.names=F, sep="\t", quote=F)
+    write.table(gene_cnv_df, gene_cnv_outfile, row.names=FALSE, sep="\t", quote=FALSE)
 
     ## write file containing all genes that were leveraged in the predictions:
     gene_order_outfile = paste(out_dir, paste0(output_filename_prefix, ".genes_used.dat"), sep="/")
     flog.info(sprintf("-writing gene ordering info: %s", gene_order_outfile))
-    write.table(infercnv_obj@gene_order, file=gene_order_outfile, quote=F, sep="\t")
+    write.table(infercnv_obj@gene_order, file=gene_order_outfile, quote=FALSE, sep="\t")
     
     
     return
@@ -770,7 +770,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
 
     consensus  = apply(cell_group_matrix, 1, function(x) {
         t = table(x)
-        names(t)[order(t, decreasing=T)[1]]
+        names(t)[order(t, decreasing=TRUE)[1]]
     })
 
     consensus <- as.numeric(consensus)
@@ -807,8 +807,8 @@ generate_cnv_region_reports <- function(infercnv_obj,
         
         chr_states = state_consensus[gene_idx]
         prev_state = chr_states[1]
-        ## pos_begin = paste(gene_order[gene_idx[1],,drop=T], collapse=",")
-        pos_begin = gene_order[gene_idx[1],,drop=T]
+        ## pos_begin = paste(gene_order[gene_idx[1],,drop=TRUE], collapse=",")
+        pos_begin = gene_order[gene_idx[1],,drop=TRUE]
         
         cnv_region_counter = cnv_region_counter + 1
 
@@ -822,7 +822,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
         
         for (i in seq(2,length(gene_idx))) {
             state = chr_states[i]
-            pos_end = gene_order[gene_idx[i-1],,drop=T]
+            pos_end = gene_order[gene_idx[i-1],,drop=TRUE]
             next_gene_entry = data.frame(state=state,
                                          gene=gene_names[gene_idx[i]],
                                          chr=pos_end$chr,
@@ -918,7 +918,7 @@ Viterbi.dthmm.adj <- function (object, ...){
 
     ## init first row
 
-    emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log.p=T, lower.tail=F)
+    emission <- pnorm(abs(x[1]-object$pm$mean)/object$pm$sd, log.p=TRUE, lower.tail=FALSE)
     emission <- 1 / (-1 * emission)
     emission <- emission / sum(emission)
     
@@ -945,7 +945,7 @@ Viterbi.dthmm.adj <- function (object, ...){
         #                    log=TRUE)
 
         
-        emission <- pnorm(abs(x[i]-object$pm$mean)/object$pm$sd, log.p=T, lower.tail=F)
+        emission <- pnorm(abs(x[i]-object$pm$mean)/object$pm$sd, log.p=TRUE, lower.tail=FALSE)
         emission <- 1 / (-1 * emission)
         emission <- emission / sum(emission)
         

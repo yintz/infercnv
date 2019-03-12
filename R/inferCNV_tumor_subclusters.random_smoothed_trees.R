@@ -56,7 +56,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     tumor_subcluster_info = list()
 
     sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=window_size)
-    sm_tumor_expr_data = scale(sm_tumor_expr_data, center=T, scale=F)
+    sm_tumor_expr_data = scale(sm_tumor_expr_data, center=TRUE, scale=FALSE)
     
     hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
     
@@ -169,7 +169,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
             grp_idx = which(grps==grp)
             
             message(sprintf("grp: %s  contains idx: %s", grp, paste(grp_idx,sep=",", collapse=","))) 
-            df = tumor_expr_data[,grp_idx,drop=F]
+            df = tumor_expr_data[,grp_idx,drop=FALSE]
             ## define subset.
             subset_cell_names = colnames(df)
             
@@ -201,12 +201,12 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 }
 
 
-.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=F) {
+.parameterize_random_cluster_heights_smoothed_trees <- function(expr_matrix, hclust_method, window_size, plot=FALSE) {
     
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
     sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=window_size)
-    sm_expr_data = scale(sm_expr_data, center=T, scale=F)
+    sm_expr_data = scale(sm_expr_data, center=TRUE, scale=FALSE)
     
     d = dist(t(sm_expr_data))
     
@@ -221,7 +221,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
         for (i in seq(ncol(df) ) ) {
             
-            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=F), i]
+            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=FALSE), i]
         }
         
         df
@@ -244,7 +244,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
         ## smooth it and re-center:
         sm.rand.tumor.expr.data = apply(rand.tumor.expr.data, 2, caTools::runmean, k=window_size)
-        sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=T, scale=F)
+        sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=TRUE, scale=FALSE)
         
         rand.dist = dist(t(sm.rand.tumor.expr.data))
         h_rand <- hclust(rand.dist, method=hclust_method)
@@ -319,8 +319,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 find_DE_stat_significance <- function(normal_matrix, tumor_matrix) {
     
     run_t_test<- function(idx) {
-        vals1 = unlist(normal_matrix[idx,,drop=T])
-        vals2 = unlist(tumor_matrix[idx,,drop=T])
+        vals1 = unlist(normal_matrix[idx,,drop=TRUE])
+        vals2 = unlist(tumor_matrix[idx,,drop=TRUE])
         
         ## useful way of handling tests that may fail:
         ## https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html

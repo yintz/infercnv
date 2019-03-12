@@ -39,7 +39,7 @@
     rownames(gene_order) <- paste0("gene_", 1:num_genes)
 
 
-    genes_means_use_idx = sample(x=1:nrow(infercnv_obj@expr.data), size=num_genes, replace=T)
+    genes_means_use_idx = sample(x=1:nrow(infercnv_obj@expr.data), size=num_genes, replace=TRUE)
 
     
     ## do for each group of normal cells
@@ -58,7 +58,7 @@
         gene_means_orig = rowMeans(normal_cells_expr)
         gene_means = gene_means_orig[genes_means_use_idx]
 
-        write.table(gene_means, sprintf("gene_means.before.%s",sub(pattern="[^A-Za-z0-9]", replacement="_",  x=normal_type, perl=T)), quote=F, sep="\t", row.names=F, col.names=F);
+        write.table(gene_means, sprintf("gene_means.before.%s",sub(pattern="[^A-Za-z0-9]", replacement="_",  x=normal_type, perl=TRUE)), quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE);
         
         gene_means[gene_means==0] = 1e-3 # just make small nonzero values
 

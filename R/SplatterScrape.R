@@ -179,7 +179,7 @@
     df <- data.frame(x, y)
 
     colnames(df) <- c('log_means', 'pct_zeros')
-    #write.table(df, file="dropout.dat", quote=F, sep="\t")
+    #write.table(df, file="dropout.dat", quote=FALSE, sep="\t")
     #plot(df$log_means, df$pct_zeros)
 
     x_approx_mid <- median(x[which(y>0.2 & y < 0.8)]) # bhaas-added to avoid error: Error in nls(y ~ .logistic(x, x0 = x0, k = k), data = df, start = list(x0 = 0,  : singular gradient

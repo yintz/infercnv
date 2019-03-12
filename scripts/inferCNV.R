@@ -6,12 +6,13 @@
 # ./inferCNV.R \
 #     --raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix" \
 #     --annotations_file="../example/oligodendroglioma_annotations_downsampled.txt" \
-#     --gene_order_file="../example/gencode_downsampled.txt" \
+#     --gene_order_file="../example/gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt" \
 #     --ref_group_names="Microglia/Macrophage,Oligodendrocytes (non-malignant)" \
 #     --cutoff=1 \
 #     --out_dir="output_cli" \
 #     --cluster_by_groups \
 #     --denoise
+#     --median_filter
 
 # Load libraries
 library(optparse)
@@ -331,14 +332,14 @@ pargs <- optparse::add_option(pargs, c("--HMM_type"),
                                          "configured based on normal cells and HMM_i3_z_pval.\n",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--HMM_i3_z_pval"),
-                              type="numeric",
-                              default=0.05,
-                              action="store",
-                              dest="HMM_i3_z_pval",
-                              metavar="HMM i3 z p-value",
-                              help=paste("p-value for HMM i3 state overlap",
-                                         "[Default %default]"))
+# pargs <- optparse::add_option(pargs, c("--HMM_i3_z_pval"),
+#                               type="numeric",
+#                               default=0.05,
+#                               action="store",
+#                               dest="HMM_i3_z_pval",
+#                               metavar="HMM i3 z p-value",
+#                               help=paste("p-value for HMM i3 state overlap",
+#                                          "[Default %default]"))
 
 pargs <- optparse::add_option(pargs, c("--denoise"),
                               type="logical",
@@ -613,6 +614,25 @@ pargs <- optparse::add_option(pargs, c("--log_file"),
 #                                   "genes. Possible gene label types to choose from are specified on",
 #                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
 
+pargs <- optparse::add_option(pargs, c("--no_plot"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="no_plot",
+                              metavar="No Plot",
+                              help=paste("don't make any of the images.",
+                                         "Instead, generate all non-image outputs as part of the run.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--no_prelim_plot"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="no_prelim_plot",
+                              metavar="No Preliminary Plot",
+                              help=paste("don't make the preliminary infercnv image",
+                                         "[Default %default]"))
+
 pargs <- optparse::add_option(pargs, c("--median_filter"),
                               type="logical",
                               default=FALSE,
@@ -696,7 +716,7 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             HMM_transition_prob=args$HMM_transition_prob,
                             HMM_report_by=args$HMM_report_by,
                             HMM_type=args$HMM_type,
-                            HMM_i3_z_pval=args$HMM_i3_z_pval,
+                            # HMM_i3_z_pval=args$HMM_i3_z_pval,
                             #sim_method=args$sim_method,
                             #sim_foreground=args$sim_foreground,
                             scale_data=args$scale_data,
@@ -716,6 +736,8 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             #test.use=args$test.use,
                             #require_DE_all_normals=args$require_DE_all_normals,
                             plot_steps=args$plot_steps,
+                            no_plot=args$no_plot,
+                            no_prelim_plot=args$no_prelim_plot,
                             debug=args$debug,
                             #prune_outliers=args$prune_outliers,
                             final_scale_limits=args$final_scale_limits,
