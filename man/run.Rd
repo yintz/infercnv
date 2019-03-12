@@ -21,11 +21,12 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   outlier_lower_bound = NA, outlier_upper_bound = NA,
   final_scale_limits = NULL, final_center_val = NULL, debug = FALSE,
   num_threads = 4, plot_steps = FALSE, resume_mode = TRUE,
-  png_res = 300, remove_genes_at_chr_ends = FALSE,
-  prune_outliers = FALSE, mask_nonDE_genes = FALSE,
-  mask_nonDE_pval = 0.05, test.use = "wilcoxon",
-  require_DE_all_normals = "any", hspike_aggregate_normals = FALSE,
-  no_plot = FALSE, no_prelim_plot = FALSE)
+  png_res = 300, plot_probabilities = TRUE, diagnostics = FALSE,
+  remove_genes_at_chr_ends = FALSE, prune_outliers = FALSE,
+  mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
+  test.use = "wilcoxon", require_DE_all_normals = "any",
+  hspike_aggregate_normals = FALSE, no_plot = FALSE,
+  no_prelim_plot = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -62,7 +63,7 @@ of cells will be clustered separately. (default=FALSE, instead will use k_obs_gr
 
 \item{hclust_method}{Method used for hierarchical clustering of cells. Valid choices are:
 "ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
-default("ward.D")}
+default("ward.D2")}
 
 \item{max_centered_threshold}{The maximum value a value can have after
     centering. Also sets a lower bound of
@@ -158,6 +159,13 @@ Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 
 \item{png_res}{Resolution for png output.}
 
+\item{plot_probabilities}{option to plot posterior probabilities (default: TRUE)}
+
+\item{diagnostics}{option to create diagnostic plots after running the Bayesian model (default: FALSE)
+
+#######################
+## Experimental options}
+
 \item{remove_genes_at_chr_ends}{experimental option: If true, removes the window_length/2 genes at both ends of the chromosome.}
 
 \item{prune_outliers}{Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.
@@ -179,10 +187,7 @@ other experimental opts}
 
 \item{no_plot}{don't make any of the images. Instead, generate all non-image outputs as part of the run. (default: FALSE)}
 
-\item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)
-
-#######################
-## Experimental options}
+\item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)}
 }
 \value{
 infercnv_obj containing filtered and transformed data
