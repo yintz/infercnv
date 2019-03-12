@@ -5,7 +5,7 @@
 \title{generate_cnv_region_reports}
 \usage{
 generate_cnv_region_reports(infercnv_obj, output_filename_prefix, out_dir,
-  by = c("consensus", "subcluster", "cell"))
+  ignore_neutral_state = NA, by = c("consensus", "subcluster", "cell"))
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -13,6 +13,8 @@ generate_cnv_region_reports(infercnv_obj, output_filename_prefix, out_dir,
 \item{output_filename_prefix}{prefix for output filename}
 
 \item{out_dir}{output directory for report files to be written}
+
+\item{ignore_neutral_state}{numeric value representing the neutral state, which should be excluded from reporting (default: NA)}
 
 \item{by}{options("consensus", "subcluster", "cell"), determines the granularity at which to report
 the CNV regions.  Ideally, set to the same level at which the HMM predictions were performed.}
