@@ -739,6 +739,9 @@ generate_cnv_region_reports <- function(infercnv_obj,
         return(gene_region_df)
     })
     gene_cnv_df = do.call(rbind, gene_cnv_df)
+    if (! is.na(ignore_neutral_state)) {
+        gene_cnv_df = gene_cnv_df[gene_cnv_df$state != ignore_neutral_state, ]
+    }
     
     ## write output file:
     gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
