@@ -712,8 +712,8 @@ generate_cnv_region_reports <- function(infercnv_obj,
     regions_df = do.call(rbind, regions_df)
 
     ## remove the neutral calls:
-    if (! is.na(neutral_state_ignore)) {
-        regions_df = regions_df[regions_df$state != neutral_state_ignore, ]
+    if (! is.na(ignore_neutral_state)) {
+        regions_df = regions_df[regions_df$state != ignore_neutral_state, ]
     }
     flog.info(sprintf("-writing cnv regions file: %s", regions_outfile)) 
     write.table(regions_df, regions_outfile, row.names=FALSE, sep="\t", quote=FALSE)
