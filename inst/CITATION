@@ -2,18 +2,8 @@ citHeader("To cite the inferCNV package in publications, please use:")
 
 citEntry(entry = "manual",
 	title = "inferCNV of the Trinity CTAT Project.",
-	author = personList(
-		person("Timothy", "Tickle", email = "ttickle@broadinstitute.org", role = c("aut", "cre")),
-		person("Itay", "Tirosh", email = "tirosh@broadinstitute.org", role = "aut"),
-		person("Christophe", "Georgescu", email = "cgeorges@broadinstitute.org", role = "aut"),
-		person("Maxwell", "Brown", email = "mbrown@broadinstitute.org", role = "aut"),
-		person("Brian", "Haas", email = "bhaas@broadinstitute.org", role = "aut")
-	),
-	organization = "Klarman Cell Observatory, Broad Institute of MIT and Harvard",
-	address = "Cambridge, MA, USA",
-	year = 2019,
 	url = "https://github.com/broadinstitute/inferCNV",
-	textVersion = "inferCNV of the Trinity CTAT Project. https://github.com/broadinstitute/inferCNV"
+	textVersion = paste("title", "url")
 )
 
 #citEntry(entry = "article",
