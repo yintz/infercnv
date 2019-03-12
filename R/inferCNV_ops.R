@@ -1041,7 +1041,7 @@ run <- function(infercnv_obj,
             ## write the adjusted CNV report files
             ## report predicted cnv regions:
             generate_cnv_region_reports(hmm.infercnv_obj,
-                                        output_filename_prefix=sprintf("%02d_HMM_preds%s.Pnorm_%g", step_count, hmm_resume_file_token, BayesMaxPNormal),
+                                        output_filename_prefix=sprintf("HMM_CNV_predictions.%s.Pnorm_%g", hmm_resume_file_token, BayesMaxPNormal),
                                         out_dir=out_dir,
                                         ignore_neutral_state=1,
                                         by=HMM_report_by)
