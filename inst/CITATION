@@ -1,17 +1,23 @@
 citHeader("To cite the inferCNV package in publications, please use:")
 
-citEntry(entry = "article", 
-	title = "",
-	author = personList(
-		person(),
-		person()
-	),
-	journal = "",
-	year = "2018",
-	volume = "",
-	pages = "",
-	textVersion = paste("authors", "title", "journal")
+citEntry(entry = "manual",
+	title = "inferCNV of the Trinity CTAT Project.",
+	url = "https://github.com/broadinstitute/inferCNV",
+	textVersion = paste("title", "url")
 )
+
+#citEntry(entry = "article",
+#	title = "",
+#	author = personList(
+#		person(),
+#		person()
+#	),
+#	journal = "",
+#	year = "2018",
+#	volume = "",
+#	pages = "",
+#	textVersion = paste("authors", "title", "journal")
+#)
 
 
 
