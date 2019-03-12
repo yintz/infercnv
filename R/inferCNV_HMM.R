@@ -665,6 +665,8 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
 #' 
 #' @param out_dir output directory for report files to be written
 #'
+#' @param ignore_neutral_state  numeric value representing the neutral state, which should be excluded from reporting (default: NA)
+#' 
 #' @param by options("consensus", "subcluster", "cell"), determines the granularity at which to report
 #'           the CNV regions.  Ideally, set to the same level at which the HMM predictions were performed.
 #'
@@ -677,6 +679,7 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
 generate_cnv_region_reports <- function(infercnv_obj,
                                         output_filename_prefix,
                                         out_dir,
+                                        ignore_neutral_state=NA,
                                         by=c("consensus", "subcluster", "cell") ) {
 
     
@@ -709,7 +712,9 @@ generate_cnv_region_reports <- function(infercnv_obj,
     regions_df = do.call(rbind, regions_df)
 
     ## remove the neutral calls:
-    regions_df = regions_df[regions_df$state != 3, ]
+    if (! is.na(neutral_state_ignore)) {
+        regions_df = regions_df[regions_df$state != neutral_state_ignore, ]
+    }
     flog.info(sprintf("-writing cnv regions file: %s", regions_outfile)) 
     write.table(regions_df, regions_outfile, row.names=F, sep="\t", quote=F)
 

@@ -920,6 +920,7 @@ run <- function(infercnv_obj,
             generate_cnv_region_reports(hmm.infercnv_obj,
                                         output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
                                         out_dir=out_dir,
+                                        ignore_neutral_state=hmm_center,
                                         by=HMM_report_by)
             
             
@@ -1042,6 +1043,7 @@ run <- function(infercnv_obj,
             generate_cnv_region_reports(hmm.infercnv_obj,
                                         output_filename_prefix=sprintf("%02d_HMM_preds%s.Pnorm_%g", step_count, hmm_resume_file_token, BayesMaxPNormal),
                                         out_dir=out_dir,
+                                        ignore_neutral_state=1,
                                         by=HMM_report_by)
             
         }
