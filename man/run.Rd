@@ -5,40 +5,121 @@
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
 run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
-  normalize_factor = NA, window_length = 101, num_ref_groups = NULL,
-  max_centered_threshold = NA, noise_filter = NA, sd_amplifier = 1.5,
+  window_length = 101, smooth_method = c("pyramidinal", "runmeans"),
+  num_ref_groups = NULL, ref_subtract_use_mean_bounds = TRUE,
   cluster_by_groups = FALSE, k_obs_groups = 1,
-  outlier_method_bound = "average_bound", outlier_lower_bound = NA,
-  outlier_upper_bound = NA, hclust_method = "complete",
-  anscombe_normalize = TRUE, use_zscores = FALSE,
-  remove_genes_at_chr_ends = FALSE, mask_nonDE_genes = FALSE,
-  mask_nonDE_pval = 0.05, test.use = "wilcoxon", plot_steps = FALSE,
-  debug = FALSE, include.spike = FALSE, spike_in_chrs = NULL,
-  spike_in_multiplier_vec = NULL, pseudocount = 0)
+  hclust_method = "ward.D2", max_centered_threshold = 3,
+  scale_data = FALSE, HMM = FALSE, HMM_transition_prob = 1e-06,
+  HMM_report_by = c("subcluster", "consensus", "cell"),
+  HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05, HMM_i3_use_KS = TRUE,
+  BayesMaxPNormal = 0.5, sim_method = "meanvar",
+  sim_foreground = FALSE, analysis_mode = c("samples", "subclusters",
+  "cells"), tumor_subcluster_partition_method = c("random_trees",
+  "qnorm", "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
+  denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
+  noise_logistic = FALSE, outlier_method_bound = "average_bound",
+  outlier_lower_bound = NA, outlier_upper_bound = NA,
+  final_scale_limits = NULL, final_center_val = NULL, debug = FALSE,
+  num_threads = 4, plot_steps = FALSE, resume_mode = TRUE,
+  png_res = 300, plot_probabilities = TRUE, diagnostics = FALSE,
+  remove_genes_at_chr_ends = FALSE, prune_outliers = FALSE,
+  mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
+  test.use = "wilcoxon", require_DE_all_normals = "any",
+  hspike_aggregate_normals = FALSE, no_plot = FALSE,
+  no_prelim_plot = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
 
 \item{cutoff}{Cut-off for the min average read counts per gene among reference cells. (default: 1)}
 
-\item{min_cells_per_gene}{minimum number of reference cells requiring expression measurements to include the corresponding gene. 
+\item{min_cells_per_gene}{minimum number of reference cells requiring expression measurements to include the corresponding gene.
 default: 3}
 
-\item{out_dir}{path to directory to deposit outputs (default: '.')}
+\item{out_dir}{path to directory to deposit outputs (default: '.')
 
-\item{normalize_factor}{scaling factor for total sum of counts (default: NA, in which case
-will be set = 10^round(log10(mean(colSums))), typically setting to 1e5}
+## Smoothing params}
 
 \item{window_length}{Length of the window for the moving average
 (smoothing). Should be an odd integer. (default: 101)#'}
+
+\item{smooth_method}{Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
+
+#####}
 
 \item{num_ref_groups}{The number of reference groups or a list of
 indices for each group of reference indices in
 relation to reference_obs. (default: NULL)}
 
+\item{ref_subtract_use_mean_bounds}{Determine means separately for each ref group, then remove intensities within bounds of means (default: TRUE)
+                                      Otherwise, uses mean of the means across groups.
+
+#############################}
+
+\item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
+of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}
+
+\item{k_obs_groups}{Number of groups in which to break the observations. (default: 1)}
+
+\item{hclust_method}{Method used for hierarchical clustering of cells. Valid choices are:
+"ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".
+default("ward.D2")}
+
 \item{max_centered_threshold}{The maximum value a value can have after
-centering. Also sets a lower bound of
--1 * this value.}
+    centering. Also sets a lower bound of
+    -1 * this value. (default: 3),
+can set to a numeric value or "auto" to bound by the mean bounds across cells.
+Set to NA to turn off.}
+
+\item{scale_data}{perform Z-scaling of logtransformed data (default: FALSE).  This may be turned on if you have
+                   very different kinds of data for your normal and tumor samples. For example, you need to use GTEx
+                   representative normal expression profiles rather than being able to leverage normal single cell data
+                   that goes with your experiment.
+
+#########################################################################
+## Downstream Analyses (HMM or non-DE-masking) based on tumor subclusters}
+
+\item{HMM}{when set to True, runs HMM to predict CNV level (default: FALSE)}
+
+\item{HMM_transition_prob}{transition probability in HMM (default: 1e-6)}
+
+\item{HMM_report_by}{cell, consensus, subcluster (default: subcluster)  Note, reporting is performed entirely separately from the HMM prediction.  So, you can predict on subclusters, but get per-cell level reporting (more voluminous output).}
+
+\item{HMM_type}{HMM model type. Options: (i6 or i3):
+i6: infercnv 6-state model (0, 0.5, 1, 1.5, 2, >2) where state emissions are calibrated based on simulated CNV levels.
+i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells and HMM_i3_pval}
+
+\item{HMM_i3_pval}{p-value for HMM i3 state overlap (default: 0.05)}
+
+\item{HMM_i3_use_KS}{boolean: use the KS test statistic to estimate mean of amp/del distributions (ala HoneyBadger). (default=TRUE)
+
+
+## Filtering low-conf HMM preds via BayesNet P(Normal)}
+
+\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)
+
+######################
+## Tumor subclustering}
+
+\item{sim_method}{method for calibrating CNV levels in the i6 HMM (default: 'meanvar')}
+
+\item{sim_foreground}{don't use... for debugging, developer option.}
+
+\item{analysis_mode}{options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
+default: samples (fastest, but subclusters is ideal)}
+
+\item{tumor_subcluster_partition_method}{method for defining tumor subclusters. Options('random_trees', 'qnorm')
+random_trees: (default) slow but best. Uses permutation statistics w/ tree construction.
+qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval}
+
+\item{tumor_subcluster_pval}{max p-value for defining a significant tumor subcluster (default: 0.1)
+
+
+
+#############################
+## de-noising parameters ####}
+
+\item{denoise}{If True, turns on denoising according to options below}
 
 \item{noise_filter}{Values +- from the reference cell mean will be set to zero (whitening effect)
 default(NA, instead will use sd_amplifier below.}
@@ -46,45 +127,67 @@ default(NA, instead will use sd_amplifier below.}
 \item{sd_amplifier}{Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
 default: 1.0}
 
-\item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
-of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}
+\item{noise_logistic}{use the noise_filter or sd_amplifier based threshold (whichever is invoked) as the midpoint in a
+                      logistic model for downscaling values close to the mean. (default: FALSE)
 
-\item{k_obs_groups}{Number of groups in which to break the observations. (default: 1)}
+
+##################
+## Outlier pruning}
 
 \item{outlier_method_bound}{Method to use for bounding outlier values. (default: "average_bound")
 Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 
 \item{outlier_lower_bound}{Outliers below this lower bound will be set to this value.}
 
-\item{outlier_upper_bound}{Outliers above this upper bound will be set to this value.}
+\item{outlier_upper_bound}{Outliers above this upper bound will be set to this value.
 
-\item{hclust_method}{Method used for hierarchical clustering of cells. Valid choices are:
-"ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid".}
 
-\item{anscombe_normalize}{Perform anscombe normalization on normalized counts before log transformation.}
+##########################
+## Misc options}
 
-\item{use_zscores}{If true, converts log(expression) data to zscores based on reference cell expr distribution.}
+\item{final_scale_limits}{The scale limits for the final heatmap output by the run() method. Default "auto". Alt, c(low,high)}
 
-\item{remove_genes_at_chr_ends}{If true, removes the window_length/2 genes at both ends of the chromosome.}
+\item{final_center_val}{Center value for final heatmap output by the run() method.}
+
+\item{debug}{If true, output debug level logging.}
+
+\item{num_threads}{(int) number of threads for parallel steps (default: 4)}
+
+\item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
+
+\item{resume_mode}{leverage pre-computed and stored infercnv objects where possible. (default=TRUE)}
+
+\item{png_res}{Resolution for png output.}
+
+\item{plot_probabilities}{option to plot posterior probabilities (default: TRUE)}
+
+\item{diagnostics}{option to create diagnostic plots after running the Bayesian model (default: FALSE)
+
+#######################
+## Experimental options}
+
+\item{remove_genes_at_chr_ends}{experimental option: If true, removes the window_length/2 genes at both ends of the chromosome.}
+
+\item{prune_outliers}{Define outliers loosely as those that exceed the mean boundaries among all cells.  These are set to the bounds.
+
+## experimental opts involving DE analysis}
 
 \item{mask_nonDE_genes}{If true, sets genes not significantly differentially expressed between tumor/normal to
-the mean value for the complete data set}
+the mean value for the complete data set (default: 0.05)}
 
 \item{mask_nonDE_pval}{p-value threshold for defining statistically significant DE genes between tumor/normal}
 
 \item{test.use}{statistical test to use.  (default: "wilcoxon") alternatives include 'perm' or 't'.'}
 
-\item{plot_steps}{If true, saves infercnv objects and plots data at the intermediate steps.}
+\item{require_DE_all_normals}{If mask_nonDE_genes is set, those genes will be masked only if they are are found as DE according to test.use and mask_nonDE_pval in each of the comparisons to normal cells options: {"any", "most", "all"} (default: "any")
 
-\item{debug}{If true, output debug level logging.}
+other experimental opts}
 
-\item{include.spike}{If true, introduces an artificial spike-in of data at ~0x and 2x for scaling residuals between 0-2. (default: F)}
+\item{hspike_aggregate_normals}{instead of trying to model the different normal groupings individually, just merge them in the hspike.}
 
-\item{spike_in_chrs}{vector listing of chr names to use for modeling spike-ins (default: NULL - uses the two largest chrs.  ex.  c('chr1', 'chr2') )}
+\item{no_plot}{don't make any of the images. Instead, generate all non-image outputs as part of the run. (default: FALSE)}
 
-\item{pseudocount}{Number of counts to add to each gene of each cell post-filtering of genes and cells and pre-total sum count normalization. (default: 0)}
-
-\item{spike_in_multiplier}{vector of weights matching spike_in_chrs (default: c(0.01, 2.0) for modeling loss/gain of both chrs)}
+\item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)}
 }
 \value{
 infercnv_obj containing filtered and transformed data

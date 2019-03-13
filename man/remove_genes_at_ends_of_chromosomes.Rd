@@ -11,6 +11,9 @@ remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
 
 \item{window_length}{length of the window to use.}
 }
+\value{
+infercnv_obj
+}
 \description{
 Removes genes that are within window_length/2 of the ends of each chromosome.
 }

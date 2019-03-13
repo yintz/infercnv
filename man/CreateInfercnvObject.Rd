@@ -5,7 +5,9 @@
 \title{CreateInfercnvObject}
 \usage{
 CreateInfercnvObject(raw_counts_matrix, gene_order_file, annotations_file,
-  ref_group_names, delim = "\\t")
+  ref_group_names, delim = "\\t", max_cells_per_group = NULL,
+  min_max_counts_per_cell = NULL, chr_exclude = c("chrX", "chrY",
+  "chrM"))
 }
 \arguments{
 \item{raw_counts_matrix}{the matrix of genes (rows) vs. cells (columns) containing the raw counts
@@ -19,6 +21,12 @@ otherwise, if matrix or Matrix, will use the data directly.}
 \item{ref_group_names}{a vector containing the classifications of the reference (normal) cells to use for infering cnv}
 
 \item{delim}{delimiter used in the input files}
+
+\item{max_cells_per_group}{maximun number of cells to use per group. Default=NULL, using all cells defined in the annotations_file. This option is useful for randomly subsetting the existing data for a quicker preview run, such as using 50 cells per group instead of hundreds.}
+
+\item{min_max_counts_per_cell}{minimum and maximum counts allowed per cell. Any cells outside this range will be removed from the counts matrix. default=NULL and uses all cells. If used, should be set as c(min_counts, max_counts)}
+
+\item{chr_exclude}{list of chromosomes in the reference genome annotations that should be excluded from analysis.  Default = c('chrX', 'chrY', 'chrM')}
 }
 \value{
 infercnv

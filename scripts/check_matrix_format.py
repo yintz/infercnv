@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 
-"""
-Coverts a square expression matrix to an R-format compatible expression matrix
+"""Converts a square expression matrix to an R-format compatible expression matrix
 """
 
 
@@ -62,8 +61,8 @@ if __name__ == "__main__":
 
     # Parse arguments
     prsr_arguments = argparse.ArgumentParser(prog='check_matrix_format.py',
-                                             description='Coverts a square expression matrix to an R-compatible expression matrix.',
-                                             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                             description=__doc__, # Use text from file summary up top
+                                             formatter_class=argparse.RawDescriptionHelpFormatter)
     # Add positional argument
     prsr_arguments.add_argument("--input_matrix",
                                 metavar="input_matrix",

@@ -6,26 +6,21 @@ if (length(args) == 0) {
     stop("Error, require params: infercnv.obj");
 }
 
-infercnv_file_obj = args[1]
+infercnv_obj_file = args[1]
 
-load(infercnv_file_obj)
-
-
-infercnv_name_obj = grep("infercnv_obj", ls(), value=T)[1]
-
-print(infercnv_name_obj)
-
-infercnv_obj = get(infercnv_name_obj)
+infercnv_obj = readRDS(infercnv_obj_file)
 
 
 library(edgeR)
 library(fitdistrplus)
 library(infercnv)
+library(Matrix)
 
 # borrowing some code from splatter
 
 get_parameters <- function(group_name, expr.matrix) {
 
+    message(sprintf("getting params for: %s", group_name))
     params = list()
     params[['group_name']] = group_name
     
@@ -35,11 +30,12 @@ get_parameters <- function(group_name, expr.matrix) {
     norm.counts <- t(t(expr.matrix) / lib.sizes * lib.med)
     norm.counts <- norm.counts[rowSums(norm.counts > 0) > 1, ]
 
+    ## note, fitting the gamma is done differently in splatter... using method = "mge", gof = "CvM", and first winsorizing the data at q=0.1
     means <- rowMeans(norm.counts)
     means.fit <- fitdistrplus::fitdist(means, "gamma", method = "mme")
     mean.shape = unname(means.fit$estimate["shape"])
     mean.rate = unname(means.fit$estimate["rate"])
-
+    
     params[[ 'gamma.mean.shape' ]] = mean.shape
     params[[ 'gamma.mean.rate' ]] = mean.rate
     
@@ -67,6 +63,7 @@ get_parameters <- function(group_name, expr.matrix) {
 
 # examine each group
 all_groups = c(infercnv_obj@observation_grouped_cell_indices,  infercnv_obj@reference_grouped_cell_indices)
+all_groups[['combined_normal']] <- unlist(infercnv_obj@reference_grouped_cell_indices)
 
 for (group in names(all_groups)) {
 

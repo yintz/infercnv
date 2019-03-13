@@ -25,5 +25,9 @@ Slots in the infercnv object include:
 \item{\code{reference_grouped_cell_indices}}{<list>  mapping [['group_name']] to c(cell column indices) for reference (normal) cells}
 
 \item{\code{observation_grouped_cell_indices}}{<list> mapping [['group_name']] to c(cell column indices) for observation (tumor) cells}
+
+\item{\code{tumor_subclusters}}{<list> stores subclustering of tumors if requested}
+
+\item{\code{.hspike}}{a hidden infercnv object populated with simulated spiked-in data}
 }}
 

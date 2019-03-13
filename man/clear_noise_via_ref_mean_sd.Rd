@@ -4,13 +4,16 @@
 \alias{clear_noise_via_ref_mean_sd}
 \title{clear_noise_via_ref_mean_sd()}
 \usage{
-clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
+clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5,
+  noise_logistic = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
 
 \item{sd_amplifier}{multiplicative factor applied to the standard deviation to alter the noise
 range (default: 1.5)}
+
+\item{noise_logistic}{uses a logistic (sigmoidal) function to noise removal.}
 }
 \description{
 Define noise based on the standard deviation of the reference cell expression data.

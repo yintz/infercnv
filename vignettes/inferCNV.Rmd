@@ -16,7 +16,7 @@ author:
 date: "`r Sys.Date()`"
 output:
   BiocStyle::html_document: default
-package: inferCNV
+package: infercnv
 abstract: >
   InferCNV is used to explore tumor single cell RNA-Seq data to identify evidence for large-scale chromosomal copy number variations, such as gains or deletions of entire chromosomes or large segments of chromosomes. This is done by exploring expression intensity of genes across positions of the genome in comparison to the average or a set of reference 'normal' cells. A heatmap is generated illustrating the relative expression intensities across each chromosome, and it becomes readily apparent as to which regions of the genome are over-abundant or less-abundant as compared to normal cells (or the average, if reference normal cells are not provided).
 vignette: >
@@ -29,15 +29,32 @@ vignette: >
 # Installation
 ## Required dependencies
 
-_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r CRANpkg("binhf")`, `r CRANpkg("fastcluster")`, `r CRANpkg("futile.logger")`, `r CRANpkg("RColorBrewer")`, `r CRANpkg("Seurat")` and imports functions from the archived `r CRANpkg("GMD")`.
+_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r Biocpkg("BiocGenerics")`, `r CRANpkg("binhf")`, `r CRANpkg("caTools")`, `r CRANpkg("coda")`, `r CRANpkg("coin")`, `r CRANpkg("dplyr")`, `r CRANpkg("doparallel")`, `r Biocpkg("edgeR")`, `r CRANpkg("fastcluster")`, `r CRANpkg("fitdistrplus")`, `r CRANpkg("foreach")`, `r CRANpkg("futile.logger")`, `r CRANpkg("future")`, `r CRANpkg("gplots")`, `r CRANpkg("ggplot2")`, `r CRANpkg("HiddenMarkov")`, `r CRANpkg("reshape")`, `r CRANpkg("rjags")`, `r CRANpkg("RColorBrewer")`, `r Biocpkg("SingleCellExperiment")`, `r Biocpkg("SummarizedExperiment")` and imports functions from the archived `r CRANpkg("GMD")`.
 
 <!--
 [https://cran.r-project.org/web/packages/ape/index.html]
+[https://bioconductor.org/packages/release/bioc/html/BiocGenerics.html]
 [https://cran.r-project.org/web/packages/binhf/index.html]
+[https://cran.r-project.org/web/packages/caTools/index.html]
+[https://cran.r-project.org/web/packages/coda/index.html]
+[https://cran.r-project.org/web/packages/coin/index.html]
+[https://cran.r-project.org/web/packages/doParallel/index.html]
+[https://cran.r-project.org/web/packages/dplyr/index.html]
+[https://bioconductor.org/packages/release/bioc/html/edgeR.html]
 [https://cran.r-project.org/web/packages/fastcluster/index.html]
+[https://cran.r-project.org/web/packages/fitdistrplus/index.html]
+[https://cran.r-project.org/web/packages/foreach/index.html]
 [https://cran.r-project.org/web/packages/futile.logger/index.html]
+[https://cran.r-project.org/web/packages/future/index.html]
+[https://cran.r-project.org/web/packages/ggplot2/index.html]
+[https://cran.r-project.org/web/packages/gplots/index.html]
+[https://cran.r-project.org/web/packages/HiddenMarkov/index.html]
+[https://cran.r-project.org/web/packages/reshape/index.html]
+[https://cran.r-project.org/web/packages/rjags/index.html]
 [https://cran.r-project.org/web/packages/RColorBrewer/index.html]
 [https://cran.r-project.org/web/packages/Seurat/index.html]
+[https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html]
+[https://bioconductor.org/packages/release/bioc/html/SummarizedExperiment.html]
 [https://cran.r-project.org/src/contrib/Archive/GMD/]
 -->
 
@@ -50,17 +67,15 @@ biocLite("inferCNV")
 ```
 
 ## Optional dependencies
-If you want to use the interactive heatmap visualization, please also install the _R_ packages `r CRANpkg("dplyr")`, `r CRANpkg("tibble")`, `r Githubpkg("bmbroom/tsvio")` and `r Githubpkg("bmbroom/NGCHMR")`. To install optional packages, type the following in an R command window:
+If you want to use the interactive heatmap visualization, please also install the _R_ packages `r CRANpkg("tibble")`, `r Githubpkg("bmbroom/tsvio")` and `r Githubpkg("bmbroom/NGCHMR")`. To install optional packages, type the following in an R command window:
 
 <!--
-[https://cran.r-project.org/web/packages/dplyr/index.html]
 [https://cran.r-project.org/web/packages/tibble/index.html]
 [https://github.com/bmbroom/tsvio]
 [https://github.com/bmbroom/NGCHMR]
 -->
 
 ```{r install-optionals, eval = FALSE}
-install.packages("dplyr")
 install.packages("tibble")
 
 install.packages("devtools")
@@ -89,12 +104,42 @@ Reading in the raw counts matrix and meta data, populating the infercnv object
 
 ```{r}
 infercnv_obj = CreateInfercnvObject(
-  raw_counts_matrix="../example/oligodendroglioma_expression_downsampled.counts.matrix",
-  annotations_file="../example/oligodendroglioma_annotations_downsampled.txt",
+  raw_counts_matrix="../inst/extdata/oligodendroglioma_expression_downsampled.counts.matrix.gz",
+  annotations_file="../inst/extdata/oligodendroglioma_annotations_downsampled.txt",
   delim="\t",
-  gene_order_file="../example/gencode_downsampled.txt",
+  gene_order_file="../inst/extdata/gencode_downsampled.EXAMPLE_ONLY_DONT_REUSE.txt",
   ref_group_names=c("Microglia/Macrophage","Oligodendrocytes (non-malignant)"))
 
+```
+
+
+
+## Running the full default analysis
+```{r, results="hide"}
+infercnv_obj_default = infercnv::run(
+    infercnv_obj,
+    cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
+    out_dir="../example_output", 
+    cluster_by_groups=TRUE, 
+    plot_steps=FALSE,
+    denoise=TRUE,
+    HMM=TRUE,
+    no_prelim_plot=TRUE,
+    png_res=60,
+    num_threads=2,
+    BayesMaxPNormal=0
+)
+
+```
+
+Basic ouput from running inferCNV.
+```{r, echo=FALSE}
+knitr::include_graphics("../example_output/infercnv.png")
+```
+
+HMM preditions
+```{r, echo=FALSE}
+knitr::include_graphics("../example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
 ```
 
 
@@ -114,29 +159,15 @@ infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min
 
 ## for safe keeping
 infercnv_orig_filtered = infercnv_obj
-
-#plot_mean_chr_expr_lineplot(infercnv_obj)
-save('infercnv_obj', file = '../example_output/infercnv_obj.orig_filtered')
-
 ```
+
 
 
 ## Normalize each cell's counts for sequencing depth
 
 ```{r}
-infercnv_obj <- infercnv:::normalize_counts_by_seq_depth(infercnv_obj)
+infercnv_obj <- infercnv::normalize_counts_by_seq_depth(infercnv_obj)
 ```
-
-
-## Perform Anscombe normalization
-
-Suggested by Matan for removing noisy variation at low counts
-
-```{r}
-infercnv_obj <- infercnv:::anscombe_transform(infercnv_obj)
-```
-<!--save('infercnv_obj', file='../example_output/infercnv_obj.anscombe')
-```-->
 
 
 ## Log transform the normalized counts:
@@ -153,37 +184,19 @@ threshold = mean(abs(get_average_bounds(infercnv_obj)))
 infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
 ```
 
-## Initial view, before inferCNV operations:
-
-```{r, results="hide"}
-plot_cnv(infercnv_obj,
-         out_dir='../example_output/', 
-         output_filename='infercnv.logtransf', 
-         x.range="auto", 
-         title = "Before InferCNV (filtered & log2 transformed)", 
-         color_safe_pal = FALSE, 
-         x.center = mean(infercnv_obj@expr.data))
-```
-
-
-```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.logtransf.png")
-```
-
-
 
 ## Perform smoothing across chromosomes
 
 ```{r}
 infercnv_obj = smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
 ```
-<!--# save('infercnv_obj', file='../example_output/infercnv_obj.smooth_by_chr')-->
+
 
 ```{r}
 # re-center each cell
 infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "median")
 ```
-<!--# save('infercnv_obj', file='../example_output/infercnv_obj.cells_recentered')-->
+
 
 
 ```{r, results='hide' }
@@ -192,6 +205,7 @@ plot_cnv(infercnv_obj,
          output_filename='infercnv.chr_smoothed', 
          x.range="auto", 
          title = "chr smoothed and cells re-centered", 
+         png_res=60,
          color_safe_pal = FALSE)
 ```
 
@@ -216,7 +230,8 @@ plot_cnv(infercnv_obj,
          out_dir='../example_output/',
          output_filename='infercnv.ref_subtracted', 
          x.range="auto", 
-         title="ref subtracted", 
+         title="ref subtracted",
+         png_res=60,
          color_safe_pal = FALSE)
 ```
 
@@ -235,24 +250,6 @@ This is important because we want (1/2)x to be symmetrical to 1.5x, representing
 
 infercnv_obj <- invert_log2(infercnv_obj)
 ```
-<!--save('infercnv_obj', file='../example_output/infercnv_obj.inverted_log')
-```-->
-
-
-```{r, results="hide"}
-plot_cnv(infercnv_obj, 
-         out_dir='../example_output/',
-         output_filename='infercnv.inverted', 
-         color_safe_pal = FALSE, 
-         x.range="auto", 
-         x.center=1, 
-         title = "inverted log FC to FC")
-```
-
-
-```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.inverted.png")
-```
 
 
 ## Removing noise
@@ -270,7 +267,8 @@ plot_cnv(infercnv_obj,
          output_filename='infercnv.denoised', 
          x.range="auto", 
          x.center=1, 
-         title="denoised", 
+         title="denoised",
+         png_res=60,
          color_safe_pal = FALSE)
 ```
 
@@ -285,59 +283,7 @@ This generally improves on the visualization
 ```{r}
 infercnv_obj = remove_outliers_norm(infercnv_obj)
 ```
-<!--save('infercnv_obj', file="../example_output/infercnv_obj.outliers_removed")
-```-->
 
-
-```{r, results="hide"}
-
-    plot_cnv(infercnv_obj, 
-         out_dir='../example_output/',
-         output_filename='infercnv.outliers_removed', 
-         color_safe_pal = FALSE, 
-         x.range="auto", 
-         x.center=1, 
-         title = "outliers removed")
-```
-
-
-```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.outliers_removed.png")
-```
-
-
-
-## Find DE genes by comparing the mutant types to normal types, BASIC
-
-Runs a t-Test comparing tumor/normal for each patient and normal sample, and masks out those genes that are not significantly DE.
-
-```{r}
-
-plot_data = infercnv_obj@expr.data
-high_threshold = max(abs(quantile(plot_data[plot_data != 0], c(0.05, 0.95))))  
-
-low_threshold = -1 * high_threshold 
-
-infercnv_obj2 <- infercnv:::mask_non_DE_genes_basic(infercnv_obj, test.use = 't', center_val=1)
-
-```
-
-
-```{r, results="hide"}
-plot_cnv(infercnv_obj2, 
-         out_dir='../example_output/',
-         output_filename='infercnv.non-DE-genes-masked', 
-         color_safe_pal = FALSE, 
-         x.range=c(low_threshold, high_threshold), 
-         x.center=1, 
-         title = "non-DE-genes-masked")
-```
-
-
-```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.non-DE-genes-masked.png")
-
-```
 
 # Additional Information
 ## Online Documentation

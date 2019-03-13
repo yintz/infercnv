@@ -4,12 +4,14 @@
 \alias{clear_noise}
 \title{clear_noise()}
 \usage{
-clear_noise(infercnv_obj, threshold)
+clear_noise(infercnv_obj, threshold, noise_logistic = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
 
 \item{threshold}{values within reference mean +- threshold are set to zero.}
+
+\item{noise_logistic}{uses a logistic (sigmoidal) function to noise removal.}
 }
 \value{
 infercnv_obj
