@@ -220,8 +220,8 @@ setMethod(f="initializeObject",
               ## Load the files for cnv predictions 
               cell_groups_PATH <- files[grep(files, pattern = "_HMM_preds.cell_groupings")]
               pred_cnv_genes_PATH <- files[grep(files, pattern = "_HMM_preds.pred_cnv_genes.dat")]
-              cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE)
-              pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE)
+              cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE, sep="\t")
+              pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE, sep="\t")
               
               # cnv region id's 
               obj@cnv_regions <- unique(pred_cnv_genes_df$gene_region_name)
