@@ -18,10 +18,10 @@ debug:
 
 
 i3:
-	cat run.R  | sed s/HMM=T/HMM=T,HMM_type=\'i3\'/ > run.i3.R
+	cat run.R  | sed s/HMM=TRUE/HMM=TRUE,HMM_type=\'i3\'/ > run.i3.R
 	Rscript ./run.i3.R
 
 Bayes:
-	cat run.R  | sed s/HMM=T/HMM=T,BayesMaxPNormal=0.35/ > run.Bayes.R
+	cat run.R  | sed s/HMM=TRUE/HMM=TRUE,BayesMaxPNormal=0.35/ > run.Bayes.R
 	Rscript ./run.Bayes.R
 
