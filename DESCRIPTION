@@ -16,6 +16,7 @@ VignetteBuilder: knitr
 Suggests: BiocStyle, knitr, rmarkdown, testthat
 RoxygenNote: 6.1.1
 NeedsCompilation: no
+SystemRequirements: JAGS 4.x.y
 Imports: graphics, grDevices, RColorBrewer, gplots, futile.logger, stats, utils, methods, ape, Matrix,  fastcluster, dplyr, HiddenMarkov, ggplot2, edgeR, coin, caTools, reshape, rjags, fitdistrplus, future, foreach, doParallel, BiocGenerics, SummarizedExperiment, SingleCellExperiment, tidyr, parallel, coda, gridExtra, argparse
 Collate: 
     'SplatterScrape.R'
