@@ -58,7 +58,7 @@
         gene_means_orig = rowMeans(normal_cells_expr)
         gene_means = gene_means_orig[genes_means_use_idx]
 
-        write.table(gene_means, sprintf("gene_means.before.%s",sub(pattern="[^A-Za-z0-9]", replacement="_",  x=normal_type, perl=TRUE)), quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE);
+        #write.table(gene_means, sprintf("gene_means.before.%s",sub(pattern="[^A-Za-z0-9]", replacement="_",  x=normal_type, perl=TRUE)), quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE); ## debugging
         
         gene_means[gene_means==0] = 1e-3 # just make small nonzero values
 
