@@ -389,7 +389,8 @@ CreateInfercnvObject <- function(raw_counts_matrix,
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 remove_genes <- function(infercnv_obj, gene_indices_to_remove) {

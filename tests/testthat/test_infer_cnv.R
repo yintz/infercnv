@@ -115,37 +115,37 @@ matrix_averef_five_answer <- matrix(c(c(-1,0,0,0,0,-1,0,0,1,0),
 
 
 test1_in = make_fake_infercnv_obj(t(matrix_one), list(c(1)))
-test1_out = infercnv::subtract_ref_expr_from_obs(test1_in)
+test1_out = infercnv:::subtract_ref_expr_from_obs(test1_in)
 test_that("subtract_ref works with one observation, one reference",{
     expect_equal(test1_out@expr.data, t(avref_answer_1))
 })
 
 test2_in = make_fake_infercnv_obj(t(matrix_two), list(c(1)))
-test2_out = infercnv::subtract_ref_expr_from_obs(test2_in)
+test2_out = infercnv:::subtract_ref_expr_from_obs(test2_in)
 test_that("subtract_ref works with two observations, one reference",{
     expect_equal(test2_out@expr.data, t(avref_answer_2))
 })
 
 test3_in = make_fake_infercnv_obj(t(matrix_three), list(c(1, 3)))
-test3_out = infercnv::subtract_ref_expr_from_obs(test3_in)
+test3_out = infercnv:::subtract_ref_expr_from_obs(test3_in)
 test_that("subtract_ref updated works with 3 observaions, two reference",{
     expect_equal(test3_out@expr.data, t(avref_answer_3))
 })
 
 test4_in = make_fake_infercnv_obj(t(matrix_five), list(c(2, 5)))
-test4_out = infercnv::subtract_ref_expr_from_obs(test4_in)
+test4_out = infercnv:::subtract_ref_expr_from_obs(test4_in)
 test_that("subtract_ref works with 5 observations, two reference",{
     expect_equal(test4_out@expr.data, t(avref_answer_4))    
 })
 
 test5_in = make_fake_infercnv_obj(t(matrix_zeros), list(c(1)))
-test5_out = infercnv::subtract_ref_expr_from_obs(test5_in)
+test5_out = infercnv:::subtract_ref_expr_from_obs(test5_in)
 test_that("subtract_ref works with 1 observation, 1 reference",{
     expect_equal(test5_out@expr.data, t(avref_answer_5)) 
 })
 
 test6_in = make_fake_infercnv_obj(t(matrix_averef_five), list(c(2),c(4,6,8),c(10)), ref_names=c("a", "b", "c"))
-test6_out = infercnv::subtract_ref_expr_from_obs(test6_in, use_bounds=TRUE)
+test6_out = infercnv:::subtract_ref_expr_from_obs(test6_in, use_bounds=TRUE)
 test_that("subtract_ref works with 10 obs, 5 references, 3 groups",{
     expect_equal(test6_out@expr.data, matrix_averef_five_answer)
 })

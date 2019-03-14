@@ -23,3 +23,5 @@
 ^devel_debug
 ^run_tests
 ^external
+^\.gitmodules
+^scripts

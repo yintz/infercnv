@@ -21,7 +21,8 @@ NULL
 #'
 #' @return infercnv_obj
 #' 
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 mask_non_DE_genes_basic <- function(infercnv_obj,
@@ -150,7 +151,8 @@ mask_non_DE_genes_basic <- function(infercnv_obj,
 #'                                                 pvals=pvals,
 #'                                                 de_genes=genes)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 get_DE_genes_basic <- function(infercnv_obj,
