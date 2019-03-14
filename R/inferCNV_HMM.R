@@ -8,7 +8,9 @@
 #'
 #' @return cnv_mean_sd list
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 get_spike_dists <- function(hspike_obj) {
     
@@ -145,7 +147,9 @@ get_spike_dists <- function(hspike_obj) {
 #'
 #' @return cnv_level_to_mean_sd_fit list
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=FALSE) {
     
@@ -264,7 +268,9 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=FALSE
 #'
 #' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike), t=1e-6) {
     
@@ -323,7 +329,9 @@ predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj, cnv_mean_sd=get_sp
 #'
 #' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                       cnv_mean_sd=get_spike_dists(infercnv_obj@.hspike),
@@ -404,7 +412,9 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 #'
 #' @return infercnv_obj where the infercnv_obj@expr.data are replaced with the HMM state assignments.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 
 predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
@@ -595,7 +605,9 @@ predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
 #'
 #' @return cnv_regions list
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluster", "cell")) {
     by = match.arg(by)
@@ -672,7 +684,9 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
 #'
 #' @return None
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 
 
@@ -979,7 +993,9 @@ Viterbi.dthmm.adj <- function (object, ...){
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
 

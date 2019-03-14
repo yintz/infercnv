@@ -12,7 +12,9 @@
 #'
 #' @return normal_sd_trend list
 #' 
-#' @export 
+#' @keywords internal
+#' @noRd
+#'
 
 
 .i3HMM_get_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=FALSE) {
@@ -169,8 +171,9 @@
 #'
 #' @return infercnv_obj where infercnv_obj@expr.data contains state assignments.
 #'
-#' @export
-#' 
+#' @keywords internal
+#' @noRd
+#'
 
 
 i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
@@ -238,8 +241,9 @@ i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
 #'
 #' @return infercnv_obj where infercnv_obj@expr.data contains state assignments.
 #'
-#' @export
-#' 
+#' @keywords internal
+#' @noRd
+#'
 
 i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
                                                            i3_p_val=0.05,
@@ -319,8 +323,9 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
 #'
 #' @return infercnv_obj where infercnv_obj@expr.data contains state assignments.
 #'
-#' @export
-#' 
+#' @keywords internal
+#' @noRd
+#'
 
 
 i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
@@ -386,7 +391,9 @@ i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 
 i3HMM_assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
@@ -415,7 +422,9 @@ i3HMM_assign_HMM_states_to_proxy_expr_vals <- function(infercnv_obj) {
 #'
 #' @return delta_for_alt_mean
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 determine_mean_delta_via_Z <- function(sigma, p) {
     
