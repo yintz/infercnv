@@ -31,12 +31,12 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, out_dir,
 \item{diagnostics}{Option to plot Diagnostic plots and tables. (Default: FALSE)}
 }
 \value{
-Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states 
+Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states
 (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM.
 }
 \description{
-Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterior 
-probability of being in one of six Copy Number Variation states (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by 
+Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterior
+probability of being in one of six Copy Number Variation states (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by
 inferCNV's HMM. Posterior probabilities are found for the entire CNV cluster and each individual
 cell line in the CNV.
 }

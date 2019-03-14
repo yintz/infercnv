@@ -2,7 +2,7 @@
 % Please edit documentation in R/inferCNV_BayesNet.R
 \name{filterHighPNormals}
 \alias{filterHighPNormals}
-\title{filterHighPNormals: Filter the HMM identified CNV's by the CNV's posterior probability 
+\title{filterHighPNormals: Filter the HMM identified CNV's by the CNV's posterior probability
 of belonging to a normal state.}
 \usage{
 filterHighPNormals(MCMC_inferCNV_obj, BayesMaxPNormal)
@@ -16,8 +16,8 @@ filterHighPNormals(MCMC_inferCNV_obj, BayesMaxPNormal)
 Returns a MCMC_inferCNV_obj With removed CNV's.
 }
 \description{
-The following function will filter the HMM identified CNV's by the CNV's posterior 
-probability of belonging to a normal state identified by the function inferCNVBayesNet(). Will filter 
-CNV's based on a user desired threshold probability. Any CNV with a probability of being normal above 
+The following function will filter the HMM identified CNV's by the CNV's posterior
+probability of belonging to a normal state identified by the function inferCNVBayesNet(). Will filter
+CNV's based on a user desired threshold probability. Any CNV with a probability of being normal above
 the threshold will be removed.
 }
