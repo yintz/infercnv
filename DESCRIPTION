@@ -21,6 +21,7 @@ Imports: graphics, grDevices, RColorBrewer, gplots, futile.logger, stats, utils,
 URL: https://github.com/broadinstitute/inferCNV/wiki
 Collate: 
     'SplatterScrape.R'
+    'data.R'
     'inferCNV.R'
     'inferCNV_BayesNet.R'
     'inferCNV_HMM.R'

@@ -113,7 +113,7 @@ infercnv_obj = CreateInfercnvObject(
 infercnv_obj_default = infercnv::run(
     infercnv_obj,
     cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
-    out_dir="../example_output", 
+    out_dir="example_output", 
     cluster_by_groups=TRUE, 
     plot_steps=FALSE,
     denoise=TRUE,
@@ -128,12 +128,12 @@ infercnv_obj_default = infercnv::run(
 
 Basic ouput from running inferCNV.
 ```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.png")
+knitr::include_graphics("example_output/infercnv.png")
 ```
 
 HMM preditions
 ```{r, echo=FALSE}
-knitr::include_graphics("../example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
+knitr::include_graphics("example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
 ```
 
 
