@@ -170,6 +170,26 @@
 #'
 #' @export
 #'
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#'
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=FALSE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#'
+
 
 run <- function(infercnv_obj,
 
@@ -1209,7 +1229,8 @@ run <- function(infercnv_obj,
 #'
 #' @return infercnv_obj containing the reference subtracted values.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=TRUE) {
@@ -1369,11 +1390,11 @@ color.palette <- function(steps,
     return(pal)
 }
 
-# Create a sepList forthe heatmap.3 plotting function given integer vectors
-# of rows and columns where speration should take place.
+# Create a sepList for the heatmap.3 plotting function given integer vectors
+# of rows and columns where seperation should take place.
 # The expected input to the heatmap function is a list of 2 lists.
 # The first list are column based rectangles, and the second row.
-# To define a rectagle the index of the row or column where the line of the rectagle
+# To define a rectangle the index of the row or column where the line of the rectagle
 # should be placed is done with a vector of integers, left, bottom, right and top line.
 # Ie. list(list(c(1,0,3,10), c(5, 0, 10,10)), list(c(1,2,3,4)))
 #
@@ -1445,7 +1466,8 @@ create_sep_list <- function(row_count,
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 split_references <- function(infercnv_obj,
@@ -1492,7 +1514,8 @@ split_references <- function(infercnv_obj,
 #'
 #' @return infercnv_obj with data bounds set accordingly.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 remove_outliers_norm <- function(infercnv_obj,
@@ -1596,7 +1619,8 @@ remove_outliers_norm <- function(infercnv_obj,
 #'
 #' @return infercnv_object
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # or median
@@ -1649,7 +1673,8 @@ center_cell_expr_across_chromosome <- function(infercnv_obj, method="mean") { # 
 #'
 #' @return infercnv_obj  the infercnv_object with lowly or unexpressed genes removed.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutoff) {
@@ -1702,7 +1727,8 @@ require_above_min_mean_expr_cutoff <- function(infercnv_obj, min_mean_expr_cutof
 #'
 #' @return infercnv_obj infercnv_object with corresponding genes removed.
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
@@ -1751,7 +1777,8 @@ require_above_min_cells_ref <- function(infercnv_obj, min_cells_per_gene) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 clear_noise <- function(infercnv_obj, threshold, noise_logistic=FALSE) {
@@ -1818,7 +1845,10 @@ clear_noise <- function(infercnv_obj, threshold, noise_logistic=FALSE) {
 #'
 #' @param noise_logistic uses a logistic (sigmoidal) function to noise removal.
 #'
-#' @export
+#' @return infercnv_obj
+#'
+#' @keywords internal
+#' @noRd
 #'
 
 clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_logistic=FALSE) {
@@ -1920,7 +1950,8 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) {
@@ -2099,7 +2130,9 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 
 smooth_by_chromosome_runmeans <- function(infercnv_obj, window_length) {
@@ -2142,7 +2175,8 @@ smooth_by_chromosome_runmeans <- function(infercnv_obj, window_length) {
 #'
 #' @return (lower_bound, upper_bound)
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 get_average_bounds <- function (infercnv_obj) {
@@ -2174,7 +2208,8 @@ get_average_bounds <- function (infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 log2xplus1 <- function(infercnv_obj) {
@@ -2203,7 +2238,8 @@ log2xplus1 <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 invert_log2xplus1 <- function(infercnv_obj) {
@@ -2230,7 +2266,8 @@ invert_log2xplus1 <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 invert_log2 <- function(infercnv_obj) {
@@ -2257,7 +2294,8 @@ invert_log2 <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 make_zero_NA <- function(infercnv_obj) {
@@ -2288,7 +2326,8 @@ make_zero_NA <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 transform_to_reference_based_Zscores <- function(infercnv_obj) {
@@ -2335,7 +2374,8 @@ transform_to_reference_based_Zscores <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 mean_center_gene_expr <- function(infercnv_obj) {
@@ -2361,7 +2401,8 @@ mean_center_gene_expr <- function(infercnv_obj) {
 #'
 #' @return vector of column indices
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 get_reference_grouped_cell_indices <- function(infercnv_obj) {
@@ -2381,7 +2422,8 @@ get_reference_grouped_cell_indices <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
@@ -2410,7 +2452,8 @@ apply_max_threshold_bounds <- function(infercnv_obj, threshold) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
@@ -2473,7 +2516,8 @@ remove_genes_at_ends_of_chromosomes <- function(infercnv_obj, window_length) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
@@ -2540,7 +2584,8 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 anscombe_transform <- function(infercnv_obj) {
@@ -2583,7 +2628,9 @@ add_pseudocount <- function(infercnv_obj, pseudocount) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
+#'
 
 scale_infercnv_expr <- function(infercnv_obj) {
     

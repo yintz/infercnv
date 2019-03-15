@@ -113,7 +113,7 @@ infercnv_obj = CreateInfercnvObject(
 infercnv_obj_default = infercnv::run(
     infercnv_obj,
     cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
-    out_dir="example_output", 
+    out_dir="../example_output", 
     cluster_by_groups=TRUE, 
     plot_steps=FALSE,
     denoise=TRUE,
@@ -128,14 +128,155 @@ infercnv_obj_default = infercnv::run(
 
 Basic ouput from running inferCNV.
 ```{r, echo=FALSE}
-knitr::include_graphics("example_output/infercnv.png")
+knitr::include_graphics("../example_output/infercnv.png")
 ```
 
 HMM preditions
 ```{r, echo=FALSE}
-knitr::include_graphics("example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
+knitr::include_graphics("../example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
 ```
 
+
+## Filtering genes
+
+Removing those genes that are very lowly expressed or present in very few cells
+
+
+```{r}
+# filter out low expressed genes
+cutoff=1
+infercnv_obj <- require_above_min_mean_expr_cutoff(infercnv_obj, cutoff)
+
+# filter out bad cells
+min_cells_per_gene=3
+infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
+
+## for safe keeping
+infercnv_orig_filtered = infercnv_obj
+```
+
+
+
+## Normalize each cell's counts for sequencing depth
+
+```{r}
+infercnv_obj <- infercnv::normalize_counts_by_seq_depth(infercnv_obj)
+```
+
+
+## Log transform the normalized counts:
+
+```{r}
+infercnv_obj <- log2xplus1(infercnv_obj)
+```
+<!--save('infercnv_obj', file='../example_output/infercnv_obj.log_transformed')
+```-->
+
+## Apply maximum bounds to the expression data to reduce outlier effects
+```{r}
+threshold = mean(abs(get_average_bounds(infercnv_obj)))
+infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
+```
+
+
+## Perform smoothing across chromosomes
+
+```{r}
+infercnv_obj = smooth_by_chromosome(infercnv_obj, window_length=101, smooth_ends=TRUE)
+```
+
+
+```{r}
+# re-center each cell
+infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method = "median")
+```
+
+
+
+```{r, results='hide' }
+plot_cnv(infercnv_obj, 
+         out_dir='../example_output/',
+         output_filename='infercnv.chr_smoothed', 
+         x.range="auto", 
+         title = "chr smoothed and cells re-centered", 
+         png_res=60,
+         color_safe_pal = FALSE)
+```
+
+
+```{r, echo=FALSE}
+knitr::include_graphics("../example_output/infercnv.chr_smoothed.png")
+```
+
+
+
+## Subtract the reference values from observations, now have log(fold change) values
+
+```{r}
+infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)
+```
+<!--
+save('infercnv_obj', file='../example_output/infercnv_obj.ref_subtracted')
+```-->
+
+```{r, results="hide"}
+plot_cnv(infercnv_obj,
+         out_dir='../example_output/',
+         output_filename='infercnv.ref_subtracted', 
+         x.range="auto", 
+         title="ref subtracted",
+         png_res=60,
+         color_safe_pal = FALSE)
+```
+
+```{r, echo=FALSE}
+knitr::include_graphics("../example_output/infercnv.ref_subtracted.png")
+```
+
+
+## Invert log values
+
+Converting the log(FC) values to regular fold change values, centered at 1 (no fold change)
+
+This is important because we want (1/2)x to be symmetrical to 1.5x, representing loss/gain of one chromosome region.
+
+```{r}
+
+infercnv_obj <- invert_log2(infercnv_obj)
+```
+
+
+## Removing noise
+
+```{r}
+infercnv_obj <- clear_noise_via_ref_mean_sd(infercnv_obj, sd_amplifier = 1.5)
+```
+<!--save('infercnv_obj', file='../example_output/infercnv_obj.denoised')
+```-->
+
+
+```{r, results="hide"}
+plot_cnv(infercnv_obj,
+         out_dir='../example_output/',
+         output_filename='infercnv.denoised', 
+         x.range="auto", 
+         x.center=1, 
+         title="denoised",
+         png_res=60,
+         color_safe_pal = FALSE)
+```
+
+```{r, echo=FALSE}
+knitr::include_graphics("../example_output/infercnv.denoised.png")
+```
+
+## Remove outlier data points
+
+This generally improves on the visualization
+
+```{r}
+infercnv_obj = remove_outliers_norm(infercnv_obj)
+```
 
 # Additional Information
 ## Online Documentation

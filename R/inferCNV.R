@@ -115,6 +115,17 @@ infercnv <- methods::setClass(
 #'
 #' @export
 #'
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#'
+
 
 CreateInfercnvObject <- function(raw_counts_matrix,
                                  gene_order_file,
@@ -146,16 +157,32 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     }
 
     ## get gene order info
-    flog.info(sprintf("Parsing gene order file: %s", gene_order_file))
-    gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
+    if (Reduce("|", is(gene_order_file) == "character")) {
+        flog.info(sprintf("Parsing gene order file: %s", gene_order_file))
+        gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
+    }
+    else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame"))) {
+        gene_order <- gene_order_file
+    }
+    else {
+        stop("CreateInfercnvObject:: Error, gene_order_file isn't recognized as a matrix, data.frame, or filename")
+    }
     names(gene_order) <- c(C_CHR, C_START, C_STOP)
     if (! is.null(chr_exclude)) {
         gene_order = gene_order[-which(gene_order$chr %in% chr_exclude),]
     }
     
     ## read annotations file
-    flog.info(sprintf("Parsing cell annotations file: %s", annotations_file))
-    input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE, colClasses = 'character')
+    if (Reduce("|", is(annotations_file) == "character")) {
+        flog.info(sprintf("Parsing cell annotations file: %s", annotations_file))
+        input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE, colClasses = 'character')
+    }
+    else if (Reduce("|", is(annotations_file) %in% c("dgCMatrix", "matrix", "data.frame"))) {
+        input_classifications <- annotations_file
+    }
+    else {
+        stop("CreateInfercnvObject:: Error, annotations_file isn't recognized as a matrix, data.frame, or filename")
+    }
     
     ## just in case the first line is a default header, remove it:
     if (rownames(input_classifications)[1] == "V1") {
@@ -389,7 +416,8 @@ CreateInfercnvObject <- function(raw_counts_matrix,
 #'
 #' @return infercnv_obj
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 #'
 
 remove_genes <- function(infercnv_obj, gene_indices_to_remove) {

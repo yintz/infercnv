@@ -23,10 +23,10 @@
 #' @slot cnv_regions ID for each CNV found by the HMM
 #' @slot States States that are identified and (depending on posterior MCMC input methods) modified.
 #'
-#'
-#'
-#' @return Returns a MCMC_inferCNV_obj
-#' @export
+#' @exportClass MCMC_inferCNV
+#' @name MCMC_inferCNV-class
+#' @rdname MCMC_inferCNV-class
+#' @keywords classes
 #'
 # Requires:
 # infercnv, rjags, ggplot2, parallel, futile.logger, reshape
@@ -59,15 +59,14 @@ MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
 #' @param obj The MCMC_inferCNV_obj S4 object.
 #'
 #' @return A list.
-#'
-#' @exportMethod cellGene
 #' @rdname cellGene-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name = "cellGene",
            def = function(obj) standardGeneric("cellGene"))
 #' @rdname cellGene-method
 #' @aliases cellGene
-#'
+#' @noRd
 setMethod(f = "cellGene",
           signature = "MCMC_inferCNV",
           definition=function(obj) obj@cell_gene)
@@ -83,9 +82,9 @@ setMethod(f = "cellGene",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod MeanSD
 #' @rdname MeanSD-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="MeanSD",
            def=function(obj)
                { standardGeneric("MeanSD") }
@@ -93,7 +92,7 @@ setGeneric(name="MeanSD",
 
 #' @rdname MeanSD-method
 #' @aliases MeanSD
-#'
+#' @noRd
 setMethod(f="MeanSD",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -123,15 +122,15 @@ setMethod(f="MeanSD",
 #'
 #' @return MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod setBayesMaxPNormal
 #' @rdname setBayesMaxPNormal-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name = "setBayesMaxPNormal",
            def = function(obj, BayesMaxPNormal) standardGeneric("setBayesMaxPNormal"))
 
 #' @rdname setBayesMaxPNormal-method
 #' @aliases setBayesMaxPNormal
-#'
+#' @noRd
 setMethod(f = "setBayesMaxPNormal",
           signature = "MCMC_inferCNV",
           definition=function(obj, BayesMaxPNormal) {
@@ -147,9 +146,9 @@ setMethod(f = "setBayesMaxPNormal",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod getGenesCells
 #' @rdname getGenesCells-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="getGenesCells",
            def=function(obj, pred_cnv_genes_df, cell_groups_df)
                { standardGeneric("getGenesCells") }
@@ -157,7 +156,7 @@ setGeneric(name="getGenesCells",
 
 #' @rdname getGenesCells-method
 #' @aliases getGenesCells
-#'
+#' @noRd
 setMethod(f="getGenesCells",
           signature="MCMC_inferCNV",
           definition=function(obj, pred_cnv_genes_df, cell_groups_df)
@@ -191,9 +190,9 @@ setMethod(f="getGenesCells",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod initializeObject
 #' @rdname initializeObject-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="initializeObject",
            def=function(obj, args_parsed, infercnv_obj)
                { standardGeneric("initializeObject") }
@@ -201,7 +200,7 @@ setGeneric(name="initializeObject",
 
 #' @rdname initializeObject-method
 #' @aliases initializeObject
-#'
+#' @noRd
 setMethod(f="initializeObject",
           signature="MCMC_inferCNV",
           definition=function(obj, args_parsed, infercnv_obj)
@@ -222,8 +221,8 @@ setMethod(f="initializeObject",
               pred_cnv_genes_PATH <- files[grep(files, pattern = "_HMM_preds.pred_cnv_genes.dat")]
               cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE, sep="\t")
               pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE, sep="\t")
-              
-              # cnv region id's 
+
+              # cnv region id's
               obj@cnv_regions <- unique(pred_cnv_genes_df$gene_region_name)
               futile.logger::flog.info(paste("Total CNV's: ", length(obj@cnv_regions)))
 
@@ -260,9 +259,9 @@ setMethod(f="initializeObject",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod getStates
 #' @rdname getStates-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="getStates",
            def=function(obj, HMM_obj)
                { standardGeneric("getStates") }
@@ -270,7 +269,7 @@ setGeneric(name="getStates",
 
 #' @rdname getStates-method
 #' @aliases getStates
-#'
+#' @noRd
 setMethod(f="getStates",
           signature="MCMC_inferCNV",
           definition=function(obj, HMM_obj)
@@ -289,9 +288,9 @@ setMethod(f="getStates",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod getProbabilities
 #' @rdname getProbabilities-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="getProbabilities",
            def=function(obj)
                { standardGeneric("getProbabilities") }
@@ -299,7 +298,7 @@ setGeneric(name="getProbabilities",
 
 #' @rdname getProbabilities-method
 #' @aliases getProbabilities
-#'
+#' @noRd
 setMethod(f="getProbabilities",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -335,9 +334,9 @@ setMethod(f="getProbabilities",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod withParallel
 #' @rdname withParallel-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="withParallel",
            def=function(obj)
                { standardGeneric("withParallel") }
@@ -345,7 +344,7 @@ setGeneric(name="withParallel",
 
 #' @rdname withParallel-method
 #' @aliases withParallel
-#'
+#' @noRd
 setMethod(f="withParallel",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -376,9 +375,9 @@ setMethod(f="withParallel",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod nonParallel
 #' @rdname nonParallel-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="nonParallel",
            def=function(obj)
                { standardGeneric("nonParallel") }
@@ -386,7 +385,7 @@ setGeneric(name="nonParallel",
 
 #' @rdname nonParallel-method
 #' @aliases nonParallel
-#'
+#' @noRd
 setMethod(f="nonParallel",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -416,9 +415,9 @@ setMethod(f="nonParallel",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod removeCNV
 #' @rdname removeCNV-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="removeCNV",
            def=function(obj)
                { standardGeneric("removeCNV") }
@@ -426,7 +425,7 @@ setGeneric(name="removeCNV",
 
 #' @rdname removeCNV-method
 #' @aliases removeCNV
-#'
+#' @noRd
 setMethod(f="removeCNV",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -475,9 +474,9 @@ setMethod(f="removeCNV",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod removeCells
 #' @rdname removeCells-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="removeCells",
            def=function(obj)
                { standardGeneric("removeCells") }
@@ -485,7 +484,7 @@ setGeneric(name="removeCells",
 
 #' @rdname removeCells-method
 #' @aliases removeCells
-#'
+#' @noRd
 setMethod(f="removeCells",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -516,9 +515,9 @@ setMethod(f="removeCells",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod runMCMC
 #' @rdname runMCMC-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="runMCMC",
            def=function(obj)
                { standardGeneric("runMCMC") }
@@ -526,7 +525,7 @@ setGeneric(name="runMCMC",
 
 #' @rdname runMCMC-method
 #' @aliases runMCMC
-#'
+#' @noRd
 setMethod(f="runMCMC",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -556,9 +555,9 @@ setMethod(f="runMCMC",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod postProbNormal
 #' @rdname postProbNormal-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="postProbNormal",
            def=function(obj, PNormal)
                { standardGeneric("postProbNormal") }
@@ -566,7 +565,7 @@ setGeneric(name="postProbNormal",
 
 #' @rdname postProbNormal-method
 #' @aliases postProbNormal
-#'
+#' @noRd
 setMethod(f="postProbNormal",
           signature="MCMC_inferCNV",
           definition=function(obj, PNormal)
@@ -606,9 +605,9 @@ setMethod(f="postProbNormal",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod plotProbabilities
 #' @rdname plotProbabilities-method
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="plotProbabilities",
            def=function(obj)
                { standardGeneric("plotProbabilities") }
@@ -616,7 +615,7 @@ setGeneric(name="plotProbabilities",
 
 #' @rdname plotProbabilities-method
 #' @aliases plotProbabilities
-#'
+#' @noRd
 setMethod(f="plotProbabilities",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -668,10 +667,8 @@ setMethod(f="plotProbabilities",
 #'
 #' @return An inferCNV object
 #'
-#' @exportMethod returningInferCNV
 #' @rdname returningInferCNV-method
-#'
-#' @export
+#' @keywords internal
 
 setGeneric(name = "returningInferCNV",
            def = function(obj, infercnv_obj)
@@ -679,6 +676,38 @@ setGeneric(name = "returningInferCNV",
 )
 #' @rdname returningInferCNV-method
 #' @aliases returningInferCNV
+#' @export
+#' 
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=TRUE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#' files <- list.files("../example_output", full.names = TRUE)
+#' HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
+#' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
+#'                               HMM_obj         = HMM_obj,
+#'                               file_dir        = "../example_output",
+#'                               postMcmcMethod  = "removeCNV",
+#'                               out_dir         = "../example_output",
+#'                               quietly         = TRUE,
+#'                               CORES           = 2,
+#'                               plotingProbs    = FALSE,
+#'                               diagnostics     = FALSE)
+#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+#'
 #'
 setMethod(f = "returningInferCNV",
           signature = "MCMC_inferCNV",
@@ -698,10 +727,9 @@ setMethod(f = "returningInferCNV",
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @exportMethod mcmcDiagnosticPlots
 #' @rdname mcmcDiagnosticPlots-method
-#'
-#'
+#' @keywords internal
+#' @noRd
 setGeneric(name="mcmcDiagnosticPlots",
            def=function(obj)
            { standardGeneric("mcmcDiagnosticPlots") }
@@ -709,8 +737,7 @@ setGeneric(name="mcmcDiagnosticPlots",
 
 #' @rdname mcmcDiagnosticPlots-method
 #' @aliases mcmcDiagnosticPlots
-#'
-#'
+#' @noRd
 setMethod(f="mcmcDiagnosticPlots",
           signature="MCMC_inferCNV",
           definition=function(obj)
@@ -1139,6 +1166,44 @@ inferCNVBayesNet <- function(
 #' @return Returns a MCMC_inferCNV_obj With removed CNV's.
 #'
 #' @export
+#' 
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=TRUE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#' files <- list.files("../example_output", full.names = TRUE)
+#' HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
+#' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
+#'                               HMM_obj         = HMM_obj,
+#'                               file_dir        = "../example_output",
+#'                               postMcmcMethod  = "removeCNV",
+#'                               out_dir         = "../example_output",
+#'                               quietly         = TRUE,
+#'                               CORES           = 2,
+#'                               plotingProbs    = FALSE,
+#'                               diagnostics     = FALSE)
+#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+#'
+#' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
+#'                               BayesMaxPNormal   = 0.5)
+#'
+#'
+#'
+#'
+#'
 
 filterHighPNormals <- function( MCMC_inferCNV_obj,
                                 BayesMaxPNormal) {

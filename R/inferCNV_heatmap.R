@@ -41,6 +41,40 @@ get_group_color_palette <- function(){
 #'
 #' @export
 #'
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#'
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=FALSE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#'
+#' plot_cnv(infercnv_obj,
+#'          out_dir=".",
+#'          obs_title="Observations (Cells)",
+#'          ref_title="References (Cells)",
+#'          cluster_by_groups=TRUE,
+#'          x.center=1,
+#'          x.range="auto",
+#'          hclust_method='ward.D',
+#'          color_safe_pal=FALSE,
+#'          output_filename="infercnv",
+#'          output_format="png",
+#'          png_res=300,
+#'          dynamic_resize=0
+#'          )
+#'
 
 
 plot_cnv <- function(infercnv_obj,
@@ -2457,7 +2491,7 @@ get.sep <-
 
 depress_low_signal_midpt_ratio <- function(infercnv_obj, expr_mean, midpt_ratio=0.2, slope=20) {
 
-    expr_bounds = infercnv::get_average_bounds(infercnv_obj)
+    expr_bounds = get_average_bounds(infercnv_obj)
 
     delta_mean = max(expr_mean - expr_bounds[1],  expr_bounds[2] - expr_mean)
     delta_midpt = delta_mean * midpt_ratio

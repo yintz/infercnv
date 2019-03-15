@@ -2,6 +2,8 @@
 ^doc$
 ^\.travis\.yml$
 ^R/\.wip
+^vignettes/\.wip
+^vignettes/example_output
 ^docker
 ^run_tests
 ^\.
@@ -23,3 +25,5 @@
 ^devel_debug
 ^run_tests
 ^external
+^\.gitmodules
+^scripts
