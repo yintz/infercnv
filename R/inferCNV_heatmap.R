@@ -2491,7 +2491,7 @@ get.sep <-
 
 depress_low_signal_midpt_ratio <- function(infercnv_obj, expr_mean, midpt_ratio=0.2, slope=20) {
 
-    expr_bounds = infercnv::get_average_bounds(infercnv_obj)
+    expr_bounds = get_average_bounds(infercnv_obj)
 
     delta_mean = max(expr_mean - expr_bounds[1],  expr_bounds[2] - expr_mean)
     delta_midpt = delta_mean * midpt_ratio

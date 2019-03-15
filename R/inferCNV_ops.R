@@ -2328,6 +2328,9 @@ make_zero_NA <- function(infercnv_obj) {
 #'
 #' @export
 #'
+#' @keywords internal
+#' @noRd
+#'
 
 transform_to_reference_based_Zscores <- function(infercnv_obj) {
 
