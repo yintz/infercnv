@@ -669,14 +669,14 @@ setMethod(f="plotProbabilities",
 #'
 #' @rdname returningInferCNV-method
 #' @keywords internal
-#' @noRd
+
 setGeneric(name = "returningInferCNV",
            def = function(obj, infercnv_obj)
                { standardGeneric("returningInferCNV") }
 )
 #' @rdname returningInferCNV-method
 #' @aliases returningInferCNV
-#' @noRd
+#' @export
 setMethod(f = "returningInferCNV",
           signature = "MCMC_inferCNV",
           definition=function(obj, infercnv_obj) {
