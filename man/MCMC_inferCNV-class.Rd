@@ -5,12 +5,9 @@
 \alias{MCMC_inferCNV-class}
 \alias{MCMC_inferCNV}
 \title{MCMC_inferCNV class}
-\value{
-Returns a MCMC_inferCNV_obj
-}
 \description{
-Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterior 
-probability of being in one of six Copy Number Variation states (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by 
+Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterior
+probability of being in one of six Copy Number Variation states (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by
 inferCNV's HMM. Posterior probabilities are found for the entire CNV cluster and each individual
 cell line in the CNV.
 }
@@ -42,3 +39,4 @@ cell line in the CNV.
 \item{\code{States}}{States that are identified and (depending on posterior MCMC input methods) modified.}
 }}
 
+\keyword{classes}
