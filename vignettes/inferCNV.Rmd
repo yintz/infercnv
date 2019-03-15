@@ -117,11 +117,9 @@ infercnv_obj_default = infercnv::run(
     cluster_by_groups=TRUE, 
     plot_steps=FALSE,
     denoise=TRUE,
-    HMM=TRUE,
+    HMM=FALSE,
     no_prelim_plot=TRUE,
-    png_res=60,
-    num_threads=2,
-    BayesMaxPNormal=0
+    png_res=60
 )
 
 ```
@@ -131,10 +129,6 @@ Basic ouput from running inferCNV.
 knitr::include_graphics("example_output/infercnv.png")
 ```
 
-HMM preditions
-```{r, echo=FALSE}
-knitr::include_graphics("example_output/infercnv.13_HMM_predHMMi6.hmm_mode-samples.repr_intensities.png")
-```
 
 
 # Additional Information
