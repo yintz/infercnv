@@ -1419,7 +1419,7 @@ create_sep_list <- function(row_count,
                                         # Heatmap.3 wants a list of boxes for seperating columns
                                         # Column data
     if(!is.null(col_seps) &&
-       !is.na(col_seps) &&
+       !any(is.na(col_seps)) &&
        (length(col_seps)>0) &&
        col_count > 0){
         colList <- list()
@@ -1437,7 +1437,7 @@ create_sep_list <- function(row_count,
                                         # So you have to adjust the values of the data
     row_seps <- row_count-row_seps
     if(!is.null(row_seps) &&
-       !is.na(row_seps) &&
+       !any(is.na(row_seps)) &&
        (length(row_seps)>0) &&
        row_count > 0){
         rowList <- list()
