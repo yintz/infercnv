@@ -170,6 +170,26 @@
 #'
 #' @export
 #'
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#'
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=FALSE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#'
+
 
 run <- function(infercnv_obj,
 
@@ -1370,11 +1390,11 @@ color.palette <- function(steps,
     return(pal)
 }
 
-# Create a sepList forthe heatmap.3 plotting function given integer vectors
-# of rows and columns where speration should take place.
+# Create a sepList for the heatmap.3 plotting function given integer vectors
+# of rows and columns where seperation should take place.
 # The expected input to the heatmap function is a list of 2 lists.
 # The first list are column based rectangles, and the second row.
-# To define a rectagle the index of the row or column where the line of the rectagle
+# To define a rectangle the index of the row or column where the line of the rectagle
 # should be placed is done with a vector of integers, left, bottom, right and top line.
 # Ie. list(list(c(1,0,3,10), c(5, 0, 10,10)), list(c(1,2,3,4)))
 #

@@ -195,3 +195,23 @@ infercnv_obj containing filtered and transformed data
 \description{
 Function doing the actual analysis before calling the plotting functions.
 }
+\examples{
+data(data)
+data(annots)
+data(genes)
+
+infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+                                               gene_order_file=genes,
+                                               annotations_file=annots,
+                                               ref_group_names=c("normal"))
+
+infercnv_obj <- infercnv::run(infercnv_obj,
+                              cutoff=1,
+                              out_dir="../example_output", 
+                              cluster_by_groups=TRUE, 
+                              denoise=TRUE,
+                              HMM=FALSE,
+                              num_threads=2,
+                              no_plot=TRUE)
+
+}

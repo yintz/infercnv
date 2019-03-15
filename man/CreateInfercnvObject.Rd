@@ -77,3 +77,14 @@ The annotations_file, containing the cell name and the cell type classification,
 
 and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
 }
+\examples{
+data(data)
+data(annots)
+data(genes)
+
+infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+                                               gene_order_file=genes,
+                                               annotations_file=annots,
+                                               ref_group_names=c("normal"))
+
+}
