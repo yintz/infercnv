@@ -2326,8 +2326,6 @@ make_zero_NA <- function(infercnv_obj) {
 #'
 #' @return infercnv_obj
 #'
-#' @export
-#'
 #' @keywords internal
 #' @noRd
 #'
