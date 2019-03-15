@@ -677,6 +677,38 @@ setGeneric(name = "returningInferCNV",
 #' @rdname returningInferCNV-method
 #' @aliases returningInferCNV
 #' @export
+#' 
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=TRUE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#' files <- list.files("../example_output", full.names = TRUE)
+#' HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
+#' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
+#'                               HMM_obj         = HMM_obj,
+#'                               file_dir        = "../example_output",
+#'                               postMcmcMethod  = "removeCNV",
+#'                               out_dir         = "../example_output",
+#'                               quietly         = TRUE,
+#'                               CORES           = 2,
+#'                               plotingProbs    = FALSE,
+#'                               diagnostics     = FALSE)
+#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+#'
+#'
 setMethod(f = "returningInferCNV",
           signature = "MCMC_inferCNV",
           definition=function(obj, infercnv_obj) {
@@ -1134,6 +1166,44 @@ inferCNVBayesNet <- function(
 #' @return Returns a MCMC_inferCNV_obj With removed CNV's.
 #'
 #' @export
+#' 
+#' @examples
+#' data(data)
+#' data(annots)
+#' data(genes)
+#'
+#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                gene_order_file=genes,
+#'                                                annotations_file=annots,
+#'                                                ref_group_names=c("normal"))
+#' infercnv_obj <- infercnv::run(infercnv_obj,
+#'                               cutoff=1,
+#'                               out_dir="../example_output", 
+#'                               cluster_by_groups=TRUE, 
+#'                               denoise=TRUE,
+#'                               HMM=TRUE,
+#'                               num_threads=2,
+#'                               no_plot=TRUE)
+#' files <- list.files("../example_output", full.names = TRUE)
+#' HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
+#' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
+#'                               HMM_obj         = HMM_obj,
+#'                               file_dir        = "../example_output",
+#'                               postMcmcMethod  = "removeCNV",
+#'                               out_dir         = "../example_output",
+#'                               quietly         = TRUE,
+#'                               CORES           = 2,
+#'                               plotingProbs    = FALSE,
+#'                               diagnostics     = FALSE)
+#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+#'
+#' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
+#'                               BayesMaxPNormal   = 0.5)
+#'
+#'
+#'
+#'
+#'
 
 filterHighPNormals <- function( MCMC_inferCNV_obj,
                                 BayesMaxPNormal) {
