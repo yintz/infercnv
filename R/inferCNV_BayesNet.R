@@ -361,10 +361,11 @@ setMethod(f="withParallel",
                       return(list(NULL))
                   }
               }
+              mc.cores = ifelse(.Platform$OS.type == 'unix', as.integer(obj@args$CORES), 1) # if windows, can only use 1 here
               futile.logger::flog.info(paste("Running Sampling Using Parallel with ", obj@args$CORES, "Cores"))
               obj@mcmc <- parallel::mclapply(1:length(obj@cell_gene),
                                              FUN = par_func,
-                                             mc.cores = as.integer(obj@args$CORES))
+                                             mc.cores = mc.cores)
               return(obj)
           }
 )
