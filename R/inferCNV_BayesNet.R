@@ -71,6 +71,24 @@ setMethod(f = "cellGene",
           signature = "MCMC_inferCNV",
           definition=function(obj) obj@cell_gene)
 
+#' Access the modle file
+#'
+#' This function returns the location of the model file 
+#'
+#' @param obj The MCMC_inferCNV_obj S4 object.
+#'
+#' @return A list.
+#' @rdname modelFile-method
+#' @keywords internal
+#' @noRd
+setGeneric(name = "modelFile",
+           def = function(obj) standardGeneric("modelFile"))
+#' @rdname modelFile-method
+#' @aliases modelFile
+#' @noRd
+setMethod(f = "modelFile",
+          signature = "MCMC_inferCNV",
+          definition=function(obj) obj@bugs_model )
 
 #######################
 # Object Manipulation #
@@ -228,7 +246,7 @@ setMethod(f="initializeObject",
 
               ## Load Mixture Model File
               futile.logger::flog.info(paste("Loading BUGS Model."))
-              obj@bugs_model <- readChar(obj@args$model_file,file.info(obj@args$model_file)$size)
+              obj@bugs_model <- system.file("BUGS_Mixture_Model", package = "infercnv") 
 
               ## list that holds Genes and Cells for each separate identified CNV
               obj <- getGenesCells(obj, pred_cnv_genes_df, cell_groups_df)
@@ -962,7 +980,7 @@ run_gibb_sampling <- function(gene_exp,
         list(epsilon = rep(6, C))
     )
     # Create the model for rjags
-    model <- rjags::jags.model(textConnection(MCMC_inferCNV_obj@bugs_model),
+    model <- rjags::jags.model(modelFile(MCMC_inferCNV_obj),
                                data=data,
                                inits=inits, # (Initialization) optional specification of initial values in the form of a list or a function
                                n.chains=6,  # the number of parallel chains for the model
