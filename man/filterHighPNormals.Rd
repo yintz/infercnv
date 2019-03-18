@@ -51,7 +51,7 @@ the threshold will be removed.
 #                               diagnostics     = FALSE)
 # hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
 
-load(mcmc_obj)
+data(mcmc_obj)
 
 mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
                               BayesMaxPNormal   = 0.5)
