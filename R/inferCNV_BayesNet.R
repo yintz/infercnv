@@ -86,6 +86,25 @@ setMethod(f = "modelFile",
           signature = "MCMC_inferCNV",
           definition=function(obj) obj@bugs_model )
 
+#' Access the expression data
+#'
+#' This function returns the expression data from object
+#'
+#' @param obj The MCMC_inferCNV_obj S4 object.
+#'
+#' @return data frame.
+#' @rdname expirData-method
+#' @keywords internal
+#' @noRd
+setGeneric(name = "expirData",
+           def = function(obj) standardGeneric("expirData"))
+#' @rdname expirData-method
+#' @aliases expirData
+#' @noRd
+setMethod(f = "expirData",
+          signature = "MCMC_inferCNV",
+          definition=function(obj) obj@expr.data )
+
 #######################
 # Object Manipulation #
 #######################
@@ -266,35 +285,6 @@ setMethod(f="initializeObject",
 )
 
 
-#' Get the state values from the inferCNV HMM object
-#'
-#' @param obj The MCMC_inferCNV_obj S4 object.
-#' @param HMM_obj The HMM inferCNV object.
-#'
-#' @return obj The MCMC_inferCNV_obj S4 object.
-#'
-#' @rdname getStates-method
-#' @keywords internal
-#' @noRd
-setGeneric(name="getStates",
-           def=function(obj, HMM_obj)
-               { standardGeneric("getStates") }
-)
-
-#' @rdname getStates-method
-#' @aliases getStates
-#' @noRd
-setMethod(f="getStates",
-          signature="MCMC_inferCNV",
-          definition=function(obj, HMM_obj)
-          {
-              # Add the HMM defined states
-              x <- HMM_obj@expr.data
-              obj@States <- x
-              return(obj)
-          }
-)
-
 
 #' Set the probabilities for each CNV belonging to each state as well as probability of each cell belonging to a states
 #'
@@ -428,6 +418,7 @@ setMethod(f="nonParallel",
 #' This removes possible false posotives identified by the HMM.
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param HMM_states InferCNV object with HMM states in expression data.
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
@@ -435,7 +426,7 @@ setMethod(f="nonParallel",
 #' @keywords internal
 #' @noRd
 setGeneric(name="removeCNV",
-           def=function(obj)
+           def=function(obj, HMM_states)
                { standardGeneric("removeCNV") }
 )
 
@@ -444,7 +435,7 @@ setGeneric(name="removeCNV",
 #' @noRd
 setMethod(f="removeCNV",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj, HMM_states)
           {
               # Mean values of the probability distribution of the CNV states p(CNV == {states 1:6})
               cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
@@ -461,7 +452,7 @@ setMethod(f="removeCNV",
                           # print(paste(paste( "Probabilities: "), cnv_means[,i]))
                         }
                       ## Change the states to normal states
-                      obj@States[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- 3
+                      HMM_states[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- 3
                   })
                   ## Remove the CNV's from the following matrices
                   obj@cell_gene <- obj@cell_gene[-remove_cnv]
@@ -480,13 +471,14 @@ setMethod(f="removeCNV",
               ## set row names to the states 1:6
               row.names(cnv_means) <- c(sprintf("State:%s",1:6))
               write.table(cnv_means,file = file.path(obj@args$out_dir, "CNV_State_Probabilities.dat"), col.names = TRUE, row.names=TRUE, quote=FALSE, sep="\t")
-              return(obj)
+              return(list(obj, HMM_states))
           }
 )
 
 #' Run simulations and remove cells from cnv's that are predicted to be normal
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param HMM_states InferCNV object with HMM states in expression data.
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
@@ -494,7 +486,7 @@ setMethod(f="removeCNV",
 #' @keywords internal
 #' @noRd
 setGeneric(name="removeCells",
-           def=function(obj)
+           def=function(obj, HMM_states)
                { standardGeneric("removeCells") }
 )
 
@@ -503,14 +495,14 @@ setGeneric(name="removeCells",
 #' @noRd
 setMethod(f="removeCells",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj, HMM_states)
           {
               if (any(do.call(cbind, obj@cell_probabilities)[3,] > obj@args$BayesMaxPNormal)){
                   lapply(1:length(obj@cell_probabilities), function(i) {
                       idx <- which(obj@cell_probabilities[[i]][3,] > obj@args$BayesMaxPNormal)
                       if(length(idx) > 0){
                           ## change the states to normal states
-                          obj@States[ obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells[ idx ] ] <<- 3
+                          HMM_states[ obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells[ idx ] ] <<- 3
                           ## remove these cells from the cnv
                           obj@cell_gene[[i]]$Cells <<- obj@cell_gene[[i]]$Cells[- idx]
                       }
@@ -675,8 +667,8 @@ setMethod(f="plotProbabilities",
 #'
 #' Returns Infercnv Object
 #'
-#' @param obj The MCMC_inferCNV_obj S4 object.
 #' @param infercnv_obj Current inferCNV object that will be adjusted based on the results of the Bayesian Network Model.
+#' @param HMM_states InferCNV object with HMM states in expression data.
 #'
 #' @return An inferCNV object
 #'
@@ -684,7 +676,7 @@ setMethod(f="plotProbabilities",
 #' @keywords internal
 
 setGeneric(name = "returningInferCNV",
-           def = function(obj, infercnv_obj)
+           def = function(infercnv_obj, HMM_states)
                { standardGeneric("returningInferCNV") }
 )
 #' @rdname returningInferCNV-method
@@ -692,17 +684,16 @@ setGeneric(name = "returningInferCNV",
 #' @export
 #' 
 #' @examples
-#' data(HMM_obj)
+#' data(HMM_states)
 #' data(mcmc_obj)
 #'
-#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_states)
 #'
 #'
 setMethod(f = "returningInferCNV",
           signature = "MCMC_inferCNV",
-          definition=function(obj, infercnv_obj) {
-              NewStates <- obj@States
-              infercnv_obj@expr.data <- NewStates
+          definition=function(infercnv_obj, HMM_states) {
+              infercnv_obj@expr.data <- HMM_states
               return(infercnv_obj)
           }
 )
@@ -1028,7 +1019,7 @@ plot_cnv_prob <- function(df,title){
 #'
 #' @param file_dir Location of the directory of the inferCNV outputs.
 #' @param infercnv_obj InferCNV object.
-#' @param HMM_obj InferCNV object with HMM states in expression data.
+#' @param HMM_states InferCNV object with HMM states in expression data.
 #' @param model_file Path to the BUGS Model file.
 #' @param CORES Option to run parallel by specifying the number of cores to be used. (Default: 1)
 #' @param out_dir (string) Path to where the output file should be saved to.
@@ -1046,6 +1037,7 @@ plot_cnv_prob <- function(df,title){
 #' data(data)
 #' data(annots)
 #' data(genes)
+#' data(HMM_states)
 #'
 #' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
 #'                                                gene_order_file=genes,
@@ -1059,11 +1051,8 @@ plot_cnv_prob <- function(df,title){
 #'                               HMM=TRUE,
 #'                               num_threads=2,
 #'                               no_plot=TRUE)
-#'
-#' files <- list.files("../example_output", full.names = TRUE)
-#' HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
 #' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
-#'                               HMM_obj         = HMM_obj,
+#'                               HMM_states         = HMM_states,
 #'                               file_dir        = "../example_output",
 #'                               postMcmcMethod  = "removeCNV",
 #'                               out_dir         = "../example_output",
@@ -1071,11 +1060,11 @@ plot_cnv_prob <- function(df,title){
 #'                               CORES           = 2,
 #'                               plotingProbs    = FALSE,
 #'                               diagnostics     = FALSE)
-
+#'                               
 inferCNVBayesNet <- function(
                               file_dir,
                               infercnv_obj,
-                              HMM_obj,
+                              HMM_states,
                               out_dir,
                               model_file      = system.file("BUGS_Mixture_Model",package = "infercnv"),
                               CORES           = 1,
@@ -1128,7 +1117,7 @@ inferCNVBayesNet <- function(
     ## create the S4 object
     MCMC_inferCNV_obj <- new("MCMC_inferCNV")
     MCMC_inferCNV_obj <- initializeObject(MCMC_inferCNV_obj, args_parsed, infercnv_obj)
-    MCMC_inferCNV_obj <- getStates(MCMC_inferCNV_obj, HMM_obj)
+    #MCMC_inferCNV_obj <- getStates(MCMC_inferCNV_obj, HMM_states)
 
     #############
     # MEAN & SD #
@@ -1181,6 +1170,7 @@ inferCNVBayesNet <- function(
 #' the threshold will be removed.
 #'
 #' @param MCMC_inferCNV_obj MCMC infernCNV object.
+#' @param HMM_states InferCNV object with HMM states in expression data.
 #' @param BayesMaxPNormal Option to filter CNV or cell lines by some probability threshold.
 #'
 #' @return Returns a MCMC_inferCNV_obj With removed CNV's.
@@ -1191,28 +1181,30 @@ inferCNVBayesNet <- function(
 #' data(mcmc_obj)
 #'
 #' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
-#'                               BayesMaxPNormal   = 0.5)
-#'
-#'
-#'
+#'                                           HMM_states        = HMM_states, 
+#'                                           BayesMaxPNormal   = 0.5)
 #'
 
 filterHighPNormals <- function( MCMC_inferCNV_obj,
+                                HMM_states,
                                 BayesMaxPNormal) {
+    # Add threshold to the MCMC_object
     MCMC_inferCNV_obj <- setBayesMaxPNormal( obj             = MCMC_inferCNV_obj,
                                              BayesMaxPNormal = BayesMaxPNormal )
     ## Either Remove CNV's based on CNV posterier probabilities ("removeCNV")
     ## or remove cell lines based on cell line posterior probabilities ("removeCells")
     if(!(is.null(MCMC_inferCNV_obj@args$postMcmcMethod))){
         if(MCMC_inferCNV_obj@args$postMcmcMethod == "removeCNV"){
-            MCMC_inferCNV_obj <- removeCNV(MCMC_inferCNV_obj)
+            #MCMC_inferCNV_obj <- removeCNV(MCMC_inferCNV_obj, HMM_states)
+            post_removed <- removeCNV(MCMC_inferCNV_obj, HMM_states)
+            MCMC_inferCNV_obj <- post_removed[[1]]
+            HMM_states <- post_removed[[2]]
         } else {
-            MCMC_inferCNV_obj <- removeCells(MCMC_inferCNV_obj)
+            MCMC_inferCNV_obj <- removeCells(MCMC_inferCNV_obj, HMM_states)
         }
     }
 
     ## Plot the resuls
-
     plotProbabilities(MCMC_inferCNV_obj)
     postProbNormal(MCMC_inferCNV_obj,
                    PNormal = TRUE)

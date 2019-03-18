@@ -6,14 +6,14 @@
 \alias{returningInferCNV,MCMC_inferCNV-method}
 \title{Return the InferCNV Object with the new adjucted CNV's}
 \usage{
-returningInferCNV(obj, infercnv_obj)
+returningInferCNV(infercnv_obj, HMM_states)
 
-\S4method{returningInferCNV}{MCMC_inferCNV}(obj, infercnv_obj)
+\S4method{returningInferCNV}{MCMC_inferCNV}(infercnv_obj, HMM_states)
 }
 \arguments{
-\item{obj}{The MCMC_inferCNV_obj S4 object.}
-
 \item{infercnv_obj}{Current inferCNV object that will be adjusted based on the results of the Bayesian Network Model.}
+
+\item{HMM_states}{InferCNV object with HMM states in expression data.}
 }
 \value{
 An inferCNV object
@@ -22,10 +22,10 @@ An inferCNV object
 Returns Infercnv Object
 }
 \examples{
-data(HMM_obj)
+data(HMM_states)
 data(mcmc_obj)
 
-hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_states)
 
 
 }

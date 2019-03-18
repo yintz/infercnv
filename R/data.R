@@ -32,7 +32,7 @@
 #' @format An infercnv object containing HMM predictions
 #'
 #'
-"HMM_obj"
+"HMM_states"
 
 #' infercnv object result of the processing of inferCNVBayesNet in the example, to be used for other examples.
 #'
