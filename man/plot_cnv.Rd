@@ -59,23 +59,25 @@ A list of all relevent settings used for the plotting to be able to reuse them i
 Formats the data and sends it for plotting.
 }
 \examples{
-data(data)
-data(annots)
-data(genes)
+# data(data)
+# data(annots)
+# data(genes)
 
-infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-                                               gene_order_file=genes,
-                                               annotations_file=annots,
-                                               ref_group_names=c("normal"))
+# infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+                                                 gene_order_file=genes,
+                                                 annotations_file=annots,
+                                                 ref_group_names=c("normal"))
 
-infercnv_obj <- infercnv::run(infercnv_obj,
-                              cutoff=1,
-                              out_dir="../example_output", 
-                              cluster_by_groups=TRUE, 
-                              denoise=TRUE,
-                              HMM=FALSE,
-                              num_threads=2,
-                              no_plot=TRUE)
+# infercnv_obj <- infercnv::run(infercnv_obj,
+                                cutoff=1,
+                                out_dir="../example_output", 
+                                cluster_by_groups=TRUE, 
+                                denoise=TRUE,
+                                HMM=FALSE,
+                                num_threads=2,
+                                no_plot=TRUE)
+
+data(infercnv_object)
 
 plot_cnv(infercnv_obj,
          out_dir=".",

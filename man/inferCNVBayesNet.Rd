@@ -40,3 +40,33 @@ probability of being in one of six Copy Number Variation states (states: 0, 0.5,
 inferCNV's HMM. Posterior probabilities are found for the entire CNV cluster and each individual
 cell line in the CNV.
 }
+\examples{
+data(data)
+data(annots)
+data(genes)
+
+infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+                                               gene_order_file=genes,
+                                               annotations_file=annots,
+                                               ref_group_names=c("normal"))
+infercnv_obj <- infercnv::run(infercnv_obj,
+                              cutoff=1,
+                              out_dir="../example_output", 
+                              cluster_by_groups=TRUE, 
+                              denoise=TRUE,
+                              HMM=TRUE,
+                              num_threads=2,
+                              no_plot=TRUE)
+
+files <- list.files("../example_output", full.names = TRUE)
+HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
+mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
+                              HMM_obj         = HMM_obj,
+                              file_dir        = "../example_output",
+                              postMcmcMethod  = "removeCNV",
+                              out_dir         = "../example_output",
+                              quietly         = TRUE,
+                              CORES           = 2,
+                              plotingProbs    = FALSE,
+                              diagnostics     = FALSE)
+}
