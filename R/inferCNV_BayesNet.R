@@ -720,8 +720,8 @@ setGeneric(name = "returningInferCNV",
 #' #                               plotingProbs    = FALSE,
 #' #                               diagnostics     = FALSE)
 #'
-#' load(HMM_obj)
-#' load(mcmc_obj)
+#' data(HMM_obj)
+#' data(mcmc_obj)
 #'
 #' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
 #'
@@ -1245,7 +1245,7 @@ inferCNVBayesNet <- function(
 #' #                               diagnostics     = FALSE)
 #' # hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
 #'
-#' load(mcmc_obj)
+#' data(mcmc_obj)
 #'
 #' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
 #'                               BayesMaxPNormal   = 0.5)
