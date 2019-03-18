@@ -15,8 +15,6 @@
 #' @slot mu Mean values to be used for determining the distribution of each cell line
 #' @slot group_id ID's given to the cell clusters.
 #' @slot cell_gene List containing the Cells and Genes that make up each CNV.
-#' @slot mcmc Simulation output from sampling.
-#' @slot combined_mcmc Combined chains for simulation output from sampling.
 #' @slot cnv_probabilities Probabilities of each CNV belonging to a particular state from 0 (least likely)to 1 (most likely).
 #' @slot cell_probabilities Probabilities of each cell being in a particular state, from 0 (least likely)to 1 (most likely).
 #' @slot args Input arguments given by the user
@@ -36,13 +34,11 @@ MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
                                                      mu = "numeric",
                                                      group_id = "integer",
                                                      cell_gene = "list",
-                                                     mcmc = "list",
                                                      cnv_probabilities = "list",
                                                      cell_probabilities = "list",
                                                      args = "list",
                                                      cnv_regions = "factor",
-                                                     States = "ANY",
-                                                     combined_mcmc = "list"),
+                                                     States = "ANY"),
                           contains = "infercnv")
 
 
@@ -303,6 +299,7 @@ setMethod(f="getStates",
 #' Set the probabilities for each CNV belonging to each state as well as probability of each cell belonging to a states
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param mcmc Sampling data.
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
@@ -310,7 +307,7 @@ setMethod(f="getStates",
 #' @keywords internal
 #' @noRd
 setGeneric(name="getProbabilities",
-           def=function(obj)
+           def=function(obj, mcmc)
                { standardGeneric("getProbabilities") }
 )
 
@@ -319,25 +316,25 @@ setGeneric(name="getProbabilities",
 #' @noRd
 setMethod(f="getProbabilities",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj, mcmc)
           {
               ## List holding state probabilities for each CNV
               cnv_probabilities <- list()
               ## List for combining the chains in each simulation
-              combined_samples <- list()
+              combined_mcmc <- list()
               ## list holding the frequency of epsilon values for each cell line
               ##  for each cnv region and subgroup
               cell_probabilities <- list()
 
               combinedMCMC <-
-              for(j in 1:length(obj@mcmc)){
+              for(j in 1:length(mcmc)){
                   # combine the chains
-                  obj@combined_mcmc[[j]] <- do.call(rbind, obj@mcmc[[j]])
+                  combined_mcmc[[j]] <- do.call(rbind, mcmc[[j]])
                   # run function to get probabilities
                   ## Thetas
-                  cnv_probabilities[[j]] <- cnv_prob(obj@combined_mcmc[[j]])
+                  cnv_probabilities[[j]] <- cnv_prob(combined_mcmc[[j]])
                   ## Epsilons
-                  cell_probabilities[[j]] <- cell_prob(obj@combined_mcmc[[j]])
+                  cell_probabilities[[j]] <- cell_prob(combined_mcmc[[j]])
               }
 
               obj@cnv_probabilities <- cnv_probabilities
@@ -350,7 +347,7 @@ setMethod(f="getProbabilities",
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @return obj The MCMC_inferCNV_obj S4 object.
+#' @return Sampling data.
 #'
 #' @rdname withParallel-method
 #' @keywords internal
@@ -381,10 +378,10 @@ setMethod(f="withParallel",
               }
               mc.cores = ifelse(.Platform$OS.type == 'unix', as.integer(obj@args$CORES), 1) # if windows, can only use 1 here
               futile.logger::flog.info(paste("Running Sampling Using Parallel with ", obj@args$CORES, "Cores"))
-              obj@mcmc <- parallel::mclapply(1:length(obj@cell_gene),
+              mcmc <- parallel::mclapply(1:length(obj@cell_gene),
                                              FUN = par_func,
                                              mc.cores = mc.cores)
-              return(obj)
+              return(mcmc)
           }
 )
 
@@ -392,7 +389,7 @@ setMethod(f="withParallel",
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
 #'
-#' @return obj The MCMC_inferCNV_obj S4 object.
+#' @return Sampling data
 #'
 #' @rdname nonParallel-method
 #' @keywords internal
@@ -411,7 +408,7 @@ setMethod(f="nonParallel",
           {
               futile.logger::flog.info(paste("Running Gibbs sampling in Non-Parallel Mode."))
               # Iterate over the CNV's and run the Gibbs sampling.
-              obj@mcmc <- lapply(1:length(obj@cell_gene), function(i){
+              mcmc <- lapply(1:length(obj@cell_gene), function(i){
                   if (obj@args$quietly == FALSE) {
                       futile.logger::flog.info(paste("Sample Number: ", i))
                   }
@@ -423,7 +420,7 @@ setMethod(f="nonParallel",
                       return(list(NULL))
                   }
               })
-              return(obj)
+              return(mcmc)
           }
 )
 
@@ -551,13 +548,13 @@ setMethod(f="runMCMC",
           {
               # Run MCMC
               if(obj@args$CORES == 1){
-                  obj <- nonParallel(obj)
+                    mcmc <- nonParallel(obj)
               } else {
-                  obj <- withParallel(obj)
+                    mcmc <- withParallel(obj)
               }
 
               # Get the probability of of each cell line and complete CNV belonging to a specific state
-              obj <- getProbabilities(obj)
+              obj <- getProbabilities(obj,mcmc)
 
               return(obj)
           }
@@ -645,9 +642,6 @@ setMethod(f="plotProbabilities",
                   ## plots the probability of each cell line being a particular state
                   ## plots the probability of a cnv being a particular state
 
-                  # Plot the probabilities of epsilons
-                  ep <- function(df){df[,grepl('epsilon', colnames(df))]}
-                  epsilons <- lapply(obj@combined_mcmc, function(x) ep(x))
                   ## add threshold to the plot title if given
                   if (!is.null(obj@args$BayesMaxPNormal)) {
                       file_CELLplot <- sprintf("cellProbs.%s.pdf",obj@args$BayesMaxPNormal)
@@ -743,6 +737,7 @@ setMethod(f = "returningInferCNV",
 #' Create Diagnostic Plots And Summaries in order to determine if convergence has occured.
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param mcmc Sampling data.
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
@@ -750,7 +745,7 @@ setMethod(f = "returningInferCNV",
 #' @keywords internal
 #' @noRd
 setGeneric(name="mcmcDiagnosticPlots",
-           def=function(obj)
+           def=function(obj, mcmc)
            { standardGeneric("mcmcDiagnosticPlots") }
 )
 
@@ -759,7 +754,7 @@ setGeneric(name="mcmcDiagnosticPlots",
 #' @noRd
 setMethod(f="mcmcDiagnosticPlots",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj, mcmc)
           {
               futile.logger::flog.info(paste("Creating Diagnostic Plots."))
               ###########################
@@ -773,8 +768,8 @@ setMethod(f="mcmcDiagnosticPlots",
               cnvProb <- function(combined_samples) {
                   thetas <- combined_samples[,grepl('theta', colnames(combined_samples))]
               }
-              cnvMCMCList <- lapply(1:length(obj@mcmc), function(i){
-                  lapply(obj@mcmc[[i]], cnvProb)
+              cnvMCMCList <- lapply(1:length(mcmc), function(i){
+                  lapply(mcmc[[i]], cnvProb)
               })
               # trace and denisty plots
               pdf(file = file.path(file.path(obj@args$out_dir),"CNVDiagnosticPlots.pdf"), onefile = TRUE)
@@ -792,8 +787,8 @@ setMethod(f="mcmcDiagnosticPlots",
                   epsilons <- samples[,grepl('epsilon', colnames(samples))]
               }
 
-              cellMCMCList <- lapply(1:length(obj@mcmc), function(i){
-                  lapply(obj@mcmc[[i]], cellProb)
+              cellMCMCList <- lapply(1:length(mcmc), function(i){
+                  lapply(mcmc[[i]], cellProb)
               })
               # trace and denisty plots
               pdf(file = file.path(file.path(obj@args$out_dir),"CellDiagnosticPlots.pdf"), onefile = TRUE)
@@ -850,9 +845,9 @@ setMethod(f="mcmcDiagnosticPlots",
               # Function to get the theta (state CNV probabilities) values
               getThetas <- function(df){ df[,grepl('theta', colnames(df))] }
               # List of statistical summary tables
-              summary_table <- lapply(1:length(obj@mcmc), function(i) {
+              summary_table <- lapply(1:length(mcmc), function(i) {
                   title <- sprintf("CNV %s Summary Table", obj@cell_gene[[i]]$cnv_regions)
-                  thetas <- lapply(obj@mcmc[[i]], function(x) getThetas(x))
+                  thetas <- lapply(mcmc[[i]], function(x) getThetas(x))
                   w = row.names(summary(as.mcmc(thetas))[[1]])
                   return(theta_table(coda::as.mcmc(thetas), title, w))
               })
