@@ -14,24 +14,27 @@
 #' @return infercnv_obj with median filtering applied to observations
 #'
 #' @export
+#'
 #' @examples
-#' data(data)
-#' data(annots)
-#' data(genes)
+#' # data(data)
+#' # data(annots)
+#' # data(genes)
 #'
-#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#'                                                gene_order_file=genes,
-#'                                                annotations_file=annots,
-#'                                                ref_group_names=c("normal"))
+#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                  gene_order_file=genes,
+#'                                                  annotations_file=annots,
+#'                                                  ref_group_names=c("normal"))
 #'
-#' infercnv_obj <- infercnv::run(infercnv_obj,
-#'                               cutoff=1,
-#'                               out_dir="../example_output", 
-#'                               cluster_by_groups=TRUE, 
-#'                               denoise=TRUE,
-#'                               HMM=FALSE,
-#'                               num_threads=2,
-#'                               no_plot=TRUE)
+#' # infercnv_obj <- infercnv::run(infercnv_obj,
+#'                                 cutoff=1,
+#'                                 out_dir="../example_output", 
+#'                                 cluster_by_groups=TRUE, 
+#'                                 denoise=TRUE,
+#'                                 HMM=FALSE,
+#'                                 num_threads=2,
+#'                                 no_plot=TRUE)
+#'
+#' data(infercnv_object)
 #'
 #' infercnv_obj <- infercnv::apply_median_filtering(infercnv_obj)
 #' # plot result object

@@ -19,3 +19,24 @@
 #'
 #'
 "genes"
+
+#' infercnv object result of the processing of run() in the example, to be used for other examples.
+#'
+#' @format An infercnv object
+#'
+#'
+"infercnv_obj"
+
+#' infercnv object result of the processing of run() in the HMM example, to be used for other examples.
+#'
+#' @format An infercnv object containing HMM predictions
+#'
+#'
+"HMM_obj"
+
+#' infercnv object result of the processing of inferCNVBayesNet in the example, to be used for other examples.
+#'
+#' @format An infercnv object containing posterior probability of CNV states
+#'
+#'
+"mcmc_obj"
