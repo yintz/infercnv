@@ -1079,7 +1079,7 @@ inferCNVBayesNet <- function(
     ################
     if (!file.exists(file_dir)){
         error_message <- paste("Cannot find the supplied directory location for the infercnv output.",
-                               "Please supply teh correct path for the output.")
+                               "Please supply the correct path for the output.")
         futile.logger::flog.error(error_message)
         stop(error_message)
     }
@@ -1180,7 +1180,7 @@ inferCNVBayesNet <- function(
 #' 
 #' @examples
 #' data(mcmc_obj)
-#'
+#' 
 #' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
 #'                                           HMM_states        = HMM_states, 
 #'                                           BayesMaxPNormal   = 0.5)
