@@ -439,7 +439,11 @@ setMethod(f="removeCNV",
           definition=function(obj, HMM_states)
           {
               # Mean values of the probability distribution of the CNV states p(CNV == {states 1:6})
-              cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
+              if ( length(obj@cnv_probabilities) == 1 ){
+                  cnv_means <- obj@cnv_probabilities[[1]] # added this option for troubleshooting only 
+              }else{
+                  cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
+              }
               futile.logger::flog.info(paste("Attempting to removing CNV(s) with a probability of being normal above ", obj@args$BayesMaxPNormal))
               futile.logger::flog.info(paste("Removing ",length(which(cnv_means[3,] > obj@args$BayesMaxPNormal)), " CNV(s) identified by the HMM."))
               if (any(cnv_means[3,] > obj@args$BayesMaxPNormal)){
@@ -1107,7 +1111,7 @@ inferCNVBayesNet <- function(
                         "model_file" = model_file,
                         "CORES" = CORES,
                         "out_dir"= out_dir,
-                        "plotingProbs" = TRUE,
+                        "plotingProbs" = plotingProbs,
                         "postMcmcMethod"=postMcmcMethod,
                         "quietly" = quietly,
                         "BayesMaxPNormal" = 0)
