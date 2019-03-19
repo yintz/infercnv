@@ -169,7 +169,8 @@ setMethod(f = "setBayesMaxPNormal",
           definition=function(obj, BayesMaxPNormal) {
               obj@args$BayesMaxPNormal <- BayesMaxPNormal
               return(obj)
-              })
+              }
+          )
 
 #' Create a list that holds Genes and Cells for each separate identified CNV
 #'
@@ -685,7 +686,7 @@ setGeneric(name = "returningInferCNV",
 #' 
 #' @examples
 #' data(HMM_states)
-#' data(mcmc_obj)
+#' load(mcmc_obj)
 #'
 #' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_states)
 #'
@@ -1178,7 +1179,7 @@ inferCNVBayesNet <- function(
 #' @export
 #' 
 #' @examples
-#' data(mcmc_obj)
+#' load(mcmc_obj)
 #'
 #' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
 #'                                           HMM_states        = HMM_states, 
