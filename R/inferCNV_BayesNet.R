@@ -244,6 +244,9 @@ setMethod(f="initializeObject",
 
               # Validate the inferCNV Object
               validate_infercnv_obj(infercnv_obj)
+              
+              # remove slot 
+              obj@.hspike <- NULL
 
               ## create the S4 object
               obj <- MCMC_inferCNV(infercnv_obj)
