@@ -23,7 +23,7 @@ Returns Infercnv Object
 }
 \examples{
 data(HMM_states)
-load(mcmc_obj)
+data(mcmc_obj)
 
 hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_states)
 
