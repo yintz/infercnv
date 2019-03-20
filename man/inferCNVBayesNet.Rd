@@ -4,7 +4,7 @@
 \alias{inferCNVBayesNet}
 \title{inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States}
 \usage{
-inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, out_dir,
+inferCNVBayesNet(file_dir, infercnv_obj, HMM_states, out_dir,
   model_file = system.file("BUGS_Mixture_Model", package = "infercnv"),
   CORES = 1, postMcmcMethod = NULL, plotingProbs = TRUE,
   quietly = TRUE, diagnostics = FALSE)
@@ -14,7 +14,7 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_obj, out_dir,
 
 \item{infercnv_obj}{InferCNV object.}
 
-\item{HMM_obj}{InferCNV object with HMM states in expression data.}
+\item{HMM_states}{InferCNV object with HMM states in expression data.}
 
 \item{out_dir}{(string) Path to where the output file should be saved to.}
 
@@ -39,4 +39,33 @@ Uses Markov Chain Monte Carlo (MCMC) and Gibbs sampling to estimate the posterio
 probability of being in one of six Copy Number Variation states (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by
 inferCNV's HMM. Posterior probabilities are found for the entire CNV cluster and each individual
 cell line in the CNV.
+}
+\examples{
+data(data)
+data(annots)
+data(genes)
+data(HMM_states)
+
+infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+                                               gene_order_file=genes,
+                                               annotations_file=annots,
+                                               ref_group_names=c("normal"))
+infercnv_obj <- infercnv::run(infercnv_obj,
+                              cutoff=1,
+                              out_dir="../example_output", 
+                              cluster_by_groups=TRUE, 
+                              denoise=TRUE,
+                              HMM=TRUE,
+                              num_threads=2,
+                              no_plot=TRUE)
+mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
+                              HMM_states         = HMM_states,
+                              file_dir        = "../example_output",
+                              postMcmcMethod  = "removeCNV",
+                              out_dir         = "../example_output",
+                              quietly         = TRUE,
+                              CORES           = 2,
+                              plotingProbs    = FALSE,
+                              diagnostics     = FALSE)
+                              
 }

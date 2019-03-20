@@ -189,8 +189,6 @@
 #'                               num_threads=2,
 #'                               no_plot=TRUE)
 #'
-
-
 run <- function(infercnv_obj,
 
                 # gene filtering settings
@@ -987,7 +985,7 @@ run <- function(infercnv_obj,
             } else {
                 
                 mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj_prelim,
-                                                       HMM_obj         = hmm.infercnv_obj,
+                                                       HMM_states      = hmm.infercnv_obj@expr.data,
                                                        file_dir        = out_dir,
                                                        postMcmcMethod  = "removeCNV",
                                                        out_dir         = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
@@ -1000,10 +998,12 @@ run <- function(infercnv_obj,
             
             ## Filter CNV's by posterior Probabilities
             mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
-                                                     BayesMaxPNormal   = BayesMaxPNormal)
+                                                      HMM_states = hmm.infercnv_obj@expr.data, 
+                                                      BayesMaxPNormal   = BayesMaxPNormal)
             
             ## Create new inferCNV objecrt with CNV's removed
-            hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, hmm.infercnv_obj)
+            hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj,
+                                                            hmm.infercnv_obj@expr.data)
             
             ## Save the MCMC inferCNV object
             mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj",

@@ -6,14 +6,14 @@
 \alias{returningInferCNV,MCMC_inferCNV-method}
 \title{Return the InferCNV Object with the new adjucted CNV's}
 \usage{
-returningInferCNV(obj, infercnv_obj)
+returningInferCNV(infercnv_obj, HMM_states)
 
-\S4method{returningInferCNV}{MCMC_inferCNV}(obj, infercnv_obj)
+\S4method{returningInferCNV}{MCMC_inferCNV}(infercnv_obj, HMM_states)
 }
 \arguments{
-\item{obj}{The MCMC_inferCNV_obj S4 object.}
-
 \item{infercnv_obj}{Current inferCNV object that will be adjusted based on the results of the Bayesian Network Model.}
+
+\item{HMM_states}{InferCNV object with HMM states in expression data.}
 }
 \value{
 An inferCNV object
@@ -22,34 +22,10 @@ An inferCNV object
 Returns Infercnv Object
 }
 \examples{
-data(data)
-data(annots)
-data(genes)
+data(HMM_states)
+data(mcmc_obj)
 
-infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-                                               gene_order_file=genes,
-                                               annotations_file=annots,
-                                               ref_group_names=c("normal"))
-infercnv_obj <- infercnv::run(infercnv_obj,
-                              cutoff=1,
-                              out_dir="../example_output", 
-                              cluster_by_groups=TRUE, 
-                              denoise=TRUE,
-                              HMM=TRUE,
-                              num_threads=2,
-                              no_plot=TRUE)
-files <- list.files("../example_output", full.names = TRUE)
-HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
-mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
-                              HMM_obj         = HMM_obj,
-                              file_dir        = "../example_output",
-                              postMcmcMethod  = "removeCNV",
-                              out_dir         = "../example_output",
-                              quietly         = TRUE,
-                              CORES           = 2,
-                              plotingProbs    = FALSE,
-                              diagnostics     = FALSE)
-hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
+hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_states)
 
 
 }
