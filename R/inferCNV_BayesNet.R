@@ -470,6 +470,12 @@ setMethod(f="removeCNV",
               }
 
               # Write the state probabilities for each CNV to a table.
+              ## check if output directory exists, if not create it 
+              if(obj@args$out_dir != "." & !file.exists(obj@args$out_dir)){
+                  # create the output directory
+                  dir.create(file.path(obj@args$out_dir))
+                  futile.logger::flog.info(paste("Creating the following Directory: ", obj@args$out_dir))
+              }
               ## set column names to the CNV ID
               cnv_regions <- sapply(obj@cell_gene, function(i) { as.character(i$cnv_regions) })
               colnames(cnv_means) <- cnv_regions
