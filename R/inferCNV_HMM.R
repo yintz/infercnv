@@ -820,7 +820,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
     chrs = unique(gene_order$chr)
     for (chr in chrs) {
         gene_idx = which(gene_order$chr==chr)
-        if (length(gene_idx) < 2) { break; }
+        if (length(gene_idx) < 2) { next }
         
         chr_states = state_consensus[gene_idx]
         prev_state = chr_states[1]

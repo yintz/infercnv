@@ -5,10 +5,12 @@
 \title{filterHighPNormals: Filter the HMM identified CNV's by the CNV's posterior probability
 of belonging to a normal state.}
 \usage{
-filterHighPNormals(MCMC_inferCNV_obj, BayesMaxPNormal)
+filterHighPNormals(MCMC_inferCNV_obj, HMM_states, BayesMaxPNormal)
 }
 \arguments{
 \item{MCMC_inferCNV_obj}{MCMC infernCNV object.}
+
+\item{HMM_states}{InferCNV object with HMM states in expression data.}
 
 \item{BayesMaxPNormal}{Option to filter CNV or cell lines by some probability threshold.}
 }
@@ -22,42 +24,10 @@ CNV's based on a user desired threshold probability. Any CNV with a probability 
 the threshold will be removed.
 }
 \examples{
-# data(data)
-# data(annots)
-# data(genes)
-
-# infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#                                                gene_order_file=genes,
-#                                                annotations_file=annots,
-#                                                ref_group_names=c("normal"))
-# infercnv_obj <- infercnv::run(infercnv_obj,
-#                               cutoff=1,
-#                               out_dir="../example_output", 
-#                               cluster_by_groups=TRUE, 
-#                               denoise=TRUE,
-#                               HMM=TRUE,
-#                               num_threads=2,
-#                               no_plot=TRUE)
-# files <- list.files("../example_output", full.names = TRUE)
-# HMM_obj <- readRDS(files[grep("hmm_mode-samples.infercnv_obj",files)])
-# mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
-#                               HMM_obj         = HMM_obj,
-#                               file_dir        = "../example_output",
-#                               postMcmcMethod  = "removeCNV",
-#                               out_dir         = "../example_output",
-#                               quietly         = TRUE,
-#                               CORES           = 2,
-#                               plotingProbs    = FALSE,
-#                               diagnostics     = FALSE)
-# hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_obj)
-
 data(mcmc_obj)
 
 mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
-                              BayesMaxPNormal   = 0.5)
-
-
-
-
+                                          HMM_states        = HMM_states, 
+                                          BayesMaxPNormal   = 0.5)
 
 }
