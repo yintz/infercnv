@@ -168,7 +168,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         stop("CreateInfercnvObject:: Error, gene_order_file isn't recognized as a matrix, data.frame, or filename")
     }
     names(gene_order) <- c(C_CHR, C_START, C_STOP)
-    if (! is.null(chr_exclude)) {
+    if (! is.null(chr_exclude) && any(which(gene_order$chr %in% chr_exclude))) {
         gene_order = gene_order[-which(gene_order$chr %in% chr_exclude),]
     }
     
