@@ -83,8 +83,8 @@ if (max ( abs(obs - ref)/abs(ref)) < 1.0e-8){
 } else { 
   logging::logerror(paste("Error: generated output fails similarity check", sep=""))
   logging::loginfo(paste("Saving validation files in current working directory", sep=""))
-  file.rename(validation_reference, "reference-infercnv.observations.txt")
-  file.rename(validation_input, "infercnv.observations.txt")
+  file.copy(validation_reference, "./reference-infercnv.observations.txt")
+  file.copy(validation_input, "./infercnv.observations.txt")
   unlink(out_dir, recursive=TRUE)
   stop('Validation failed - max relative error exceeds threshold.\n')
 }
