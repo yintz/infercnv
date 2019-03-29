@@ -2546,8 +2546,6 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
     
     cs = colSums(data)
     
-    print(cs)
-    
     ## make fraction of total counts:
     data <- sweep(data, STATS=cs, MARGIN=2, FUN="/")
     
