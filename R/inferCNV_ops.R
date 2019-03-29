@@ -971,7 +971,7 @@ run <- function(infercnv_obj,
         ## Bayesian Network Mixture Model
         ## ############################################################
         
-        if (HMM_type == 'i6' & BayesMaxPNormal > 0) {
+        if (HMM_type == 'i6' & BayesMaxPNormal > 0 & length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
             step_count = step_count + 1
             flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
             

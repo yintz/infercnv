@@ -748,8 +748,7 @@ generate_cnv_region_reports <- function(infercnv_obj,
             return(df)
         })
         gene_region_df = do.call(rbind, gene_region_df)
-        ## remove state 3 = neutral
-        gene_region_df = gene_region_df[gene_region_df$state != 3,]
+
         return(gene_region_df)
     })
     gene_cnv_df = do.call(rbind, gene_cnv_df)
