@@ -997,13 +997,14 @@ run <- function(infercnv_obj,
             }
             
             ## Filter CNV's by posterior Probabilities
-            mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
-                                                      HMM_states = hmm.infercnv_obj@expr.data, 
-                                                      BayesMaxPNormal   = BayesMaxPNormal)
+            mcmc_obj_hmm_states_list <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
+                                                                     HMM_states = hmm.infercnv_obj@expr.data, 
+                                                                     BayesMaxPNormal   = BayesMaxPNormal)
             
-            ## Create new inferCNV objecrt with CNV's removed
-            hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj,
-                                                            hmm.infercnv_obj@expr.data)
+            hmm_states_highPnormCNVsRemoved.matrix <- mcmc_obj_hmm_states_list[[2]]
+
+            # replace states
+            hmm.infercnv_obj@expr.data <- hmm_states_highPnormCNVsRemoved.matrix
             
             ## Save the MCMC inferCNV object
             mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj",
@@ -1056,7 +1057,7 @@ run <- function(infercnv_obj,
                          cluster_by_groups=cluster_by_groups,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
-                         output_filename=sprintf("infercnv.%02d_HMM_pred%s.repr_intensities", step_count, hmm_resume_file_token),
+                         output_filename=sprintf("infercnv.%02d_HMM_pred%s.Pnorm_%g.repr_intensities", step_count, hmm_resume_file_token, BayesMaxPNormal),
                          write_expr_matrix=TRUE,
                          x.center=1,
                          x.range=c(-1,3),

@@ -15,7 +15,7 @@ filterHighPNormals(MCMC_inferCNV_obj, HMM_states, BayesMaxPNormal)
 \item{BayesMaxPNormal}{Option to filter CNV or cell lines by some probability threshold.}
 }
 \value{
-Returns a MCMC_inferCNV_obj With removed CNV's.
+Returns a list of (MCMC_inferCNV_obj, HMM_states) With removed CNV's.
 }
 \description{
 The following function will filter the HMM identified CNV's by the CNV's posterior
@@ -26,7 +26,7 @@ the threshold will be removed.
 \examples{
 data(mcmc_obj)
 
-mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
+mcmc_obj_hmm_states_list <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
                                           HMM_states        = HMM_states, 
                                           BayesMaxPNormal   = 0.5)
 

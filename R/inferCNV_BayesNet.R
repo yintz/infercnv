@@ -673,43 +673,6 @@ setMethod(f="plotProbabilities",
           }
 )
 
-
-#' Return the InferCNV Object with the new adjucted CNV's
-#'
-#' Returns Infercnv Object
-#'
-#' @param infercnv_obj Current inferCNV object that will be adjusted based on the results of the Bayesian Network Model.
-#' @param HMM_states InferCNV object with HMM states in expression data.
-#'
-#' @return An inferCNV object
-#'
-#' @rdname returningInferCNV-method
-#' @keywords internal
-
-setGeneric(name = "returningInferCNV",
-           def = function(infercnv_obj, HMM_states)
-               { standardGeneric("returningInferCNV") }
-)
-#' @rdname returningInferCNV-method
-#' @aliases returningInferCNV
-#' @export
-#' 
-#' @examples
-#' data(HMM_states)
-#' data(mcmc_obj)
-#'
-#' hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj, HMM_states)
-#'
-#'
-setMethod(f = "returningInferCNV",
-          signature = "MCMC_inferCNV",
-          definition=function(infercnv_obj, HMM_states) {
-              infercnv_obj@expr.data <- HMM_states
-              return(infercnv_obj)
-          }
-)
-
-
 #' Create Diagnostic Plots And Summaries.
 #'
 #' Create Diagnostic Plots And Summaries in order to determine if convergence has occured.
@@ -1184,14 +1147,14 @@ inferCNVBayesNet <- function(
 #' @param HMM_states InferCNV object with HMM states in expression data.
 #' @param BayesMaxPNormal Option to filter CNV or cell lines by some probability threshold.
 #'
-#' @return Returns a MCMC_inferCNV_obj With removed CNV's.
+#' @return Returns a list of (MCMC_inferCNV_obj, HMM_states) With removed CNV's.
 #'
 #' @export
 #' 
 #' @examples
 #' data(mcmc_obj)
 #' 
-#' mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
+#' mcmc_obj_hmm_states_list <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj, 
 #'                                           HMM_states        = HMM_states, 
 #'                                           BayesMaxPNormal   = 0.5)
 #'
@@ -1220,7 +1183,7 @@ filterHighPNormals <- function( MCMC_inferCNV_obj,
     postProbNormal(MCMC_inferCNV_obj,
                    PNormal = TRUE)
 
-    return(MCMC_inferCNV_obj)
+    return(list(MCMC_inferCNV_obj, HMM_states))
 }
 
 ##########################
