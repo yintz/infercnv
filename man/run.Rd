@@ -7,15 +7,16 @@
 run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
   window_length = 101, smooth_method = c("pyramidinal", "runmeans"),
   num_ref_groups = NULL, ref_subtract_use_mean_bounds = TRUE,
-  cluster_by_groups = FALSE, k_obs_groups = 1,
-  hclust_method = "ward.D2", max_centered_threshold = 3,
-  scale_data = FALSE, HMM = FALSE, HMM_transition_prob = 1e-06,
-  HMM_report_by = c("subcluster", "consensus", "cell"),
-  HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05, HMM_i3_use_KS = TRUE,
-  BayesMaxPNormal = 0.5, sim_method = "meanvar",
-  sim_foreground = FALSE, analysis_mode = c("samples", "subclusters",
-  "cells"), tumor_subcluster_partition_method = c("random_trees",
-  "qnorm", "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
+  cluster_by_groups = FALSE, cluster_references = TRUE,
+  k_obs_groups = 1, hclust_method = "ward.D2",
+  max_centered_threshold = 3, scale_data = FALSE, HMM = FALSE,
+  HMM_transition_prob = 1e-06, HMM_report_by = c("subcluster",
+  "consensus", "cell"), HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05,
+  HMM_i3_use_KS = TRUE, BayesMaxPNormal = 0.5,
+  sim_method = "meanvar", sim_foreground = FALSE,
+  analysis_mode = c("samples", "subclusters", "cells"),
+  tumor_subcluster_partition_method = c("random_trees", "qnorm",
+  "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
   denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
   noise_logistic = FALSE, outlier_method_bound = "average_bound",
   outlier_lower_bound = NA, outlier_upper_bound = NA,
@@ -58,6 +59,9 @@ relation to reference_obs. (default: NULL)}
 
 \item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
 of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}
+
+\item{cluster_references}{Whether to cluster references within their annotations or not. (dendrogram not displayed)
+(default: TRUE)}
 
 \item{k_obs_groups}{Number of groups in which to break the observations. (default: 1)}
 

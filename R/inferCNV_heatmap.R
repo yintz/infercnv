@@ -20,6 +20,7 @@ get_group_color_palette <- function(){
 #' @param obs_title Title for the observations matrix.
 #' @param ref_title Title for the reference matrix.
 #' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.
+#' @param cluster_references Whether to cluster references within their annotations or not. (dendrogram not displayed)
 #' @param k_obs_groups Number of groups to break observation into.
 #' @param contig_cex Contig text size. 
 #' @param x.center Value on which to center expression.
@@ -85,6 +86,7 @@ plot_cnv <- function(infercnv_obj,
                      obs_title="Observations (Cells)",
                      ref_title="References (Cells)",
                      cluster_by_groups=TRUE,
+                     cluster_references=TRUE,
                      k_obs_groups = 3,
                      contig_cex=1,
                      x.center=mean(infercnv_obj@expr.data),
@@ -345,6 +347,8 @@ plot_cnv <- function(infercnv_obj,
         .plot_cnv_references(ref_data=ref_data_t,
                             ref_groups=ref_groups,
                             name_ref_groups=name_ref_groups,
+                            cluster_references=cluster_references,
+                            hclust_method=hclust_method,
                             grouping_key_coln=grouping_key_coln[2],
                             col_pal=custom_pal,
                             contig_seps=col_sep,
@@ -751,6 +755,8 @@ plot_cnv <- function(infercnv_obj,
 .plot_cnv_references <- function(ref_data,
                                 ref_groups,
                                 name_ref_groups,
+                                cluster_references,
+                                hclust_method,
                                 grouping_key_coln,
                                 col_pal,
                                 contig_seps,
@@ -797,6 +803,10 @@ plot_cnv <- function(infercnv_obj,
         for (ref_grp in ref_groups){
             i_cur_idx <- i_cur_idx + length(ref_grp)
             ref_seps <- c(ref_seps, i_cur_idx)
+            if (cluster_references && length(ref_grp) > 2) {  # do the clustering per group if there's more than 2 in the group
+                ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
+                ref_grp <- ref_grp[ref_hcl$order]
+            }
             order_idx <- c(order_idx, ref_grp)
         }
         ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
@@ -817,6 +827,18 @@ plot_cnv <- function(infercnv_obj,
 
     # Transpose data.
     ref_data <- t(ref_data)
+
+
+    # if (cluster_references) {
+    #   if (number_references > 1) {
+    #       for (i in seq_len(length(ref_groups))) {
+    #           ref_hcl <- hclust(dist(ref_data[ref_groups[[i]], ]), method=hclust_method)
+    #           ref_data[ref_groups[[i]], ] <- ref_data[ref_groups[[i]][ref_hcl$order], , drop=FALSE]
+    #       }
+    #   }
+    # }
+
+
     # Remove labels if too many.
     ref_orig_names <- row.names(ref_data)
     if (number_references > 20){
