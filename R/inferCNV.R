@@ -143,12 +143,15 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         if (substr(raw_counts_matrix, nchar(raw_counts_matrix)-2, nchar(raw_counts_matrix)) == ".gz") {
             raw.data <- read.table(connection <- gzfile(raw_counts_matrix, 'rt'), sep=delim, header=TRUE, row.names=1, check.names=FALSE)
             close(connection)
+            raw.data <- as.matrix(raw.data)
+        }
+        else if(substr(raw_counts_matrix, nchar(raw_counts_matrix)-3, nchar(raw_counts_matrix)) == ".rds") {
+            raw.data <- readRDS(raw_counts_matrix)
         }
         else {
             raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
+            raw.data <- as.matrix(raw.data)
         }
-        
-        raw.data = as.matrix(raw.data)
     } else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame"))) {
         # use as is:
         raw.data <- raw_counts_matrix
