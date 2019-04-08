@@ -87,11 +87,13 @@ basic_matrix = as.matrix(ddata)
 logging::loginfo("Done converting data.frame to Matrix.")
 logging::loginfo("Freeing data.frame.")
 rm(ddata)  # make memory available
+gc()
 logging::loginfo("Converting Matrix to sparseMatrix.")
 sparse_matrix = Matrix(basic_matrix, sparse=T)
 logging::loginfo("Done converting Matrix to sparseMatrix.")
 logging::loginfo("Freeing Matrix.")
 rm(basic_matrix)  # make memory available
+gc()
 logging::loginfo("Setting rownames.")
 row.names(sparse_matrix) = saved_names
 
