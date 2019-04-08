@@ -4,9 +4,7 @@
 library(optparse)
 library(Matrix)
 library(data.table)
-library(logging
-
-
+library(logging)
 
 
 logging::basicConfig(level='INFO')
@@ -50,6 +48,8 @@ if (is.null(args$input) || is.null(args$output)) {
 	logging::logerror("Please provide input and output arguments")
 }
 
+logging::loginfo("Reading header.")
+
 data_head = fread(input=args$input,
 	  sep=args$delim,
 	  header=FALSE,
@@ -59,6 +59,9 @@ data_head = fread(input=args$input,
 	  nThread=1,
 	  logical01=FALSE,
 	  data.table=FALSE)
+
+logging::loginfo("Done reading header.")
+logging::loginfo("Reading matrix data.")
 
 ddata = fread(input=args$input,
 	  sep=args$delim,
@@ -70,19 +73,29 @@ ddata = fread(input=args$input,
 	  logical01=FALSE,
 	  data.table=FALSE)
 
+logging::loginfo("Done reading matrix data.")
 
+logging::loginfo("Backing up rownames.")
 # store column names before dropping the column from the matrix
 saved_names = as.vector(unlist(ddata[, 1]))
 ddata = ddata[, -1, drop=FALSE]
 
-
 colnames(ddata) = as.vector(unlist(data_head))
+
+logging::loginfo("Converting data.frame to Matrix.")
 basic_matrix = as.matrix(ddata)
+logging::loginfo("Done converting data.frame to Matrix.")
+logging::loginfo("Freeing data.frame.")
 rm(ddata)  # make memory available
+logging::loginfo("Converting Matrix to sparseMatrix.")
 sparse_matrix = Matrix(basic_matrix, sparse=T)
+logging::loginfo("Done converting Matrix to sparseMatrix.")
+logging::loginfo("Freeing Matrix.")
 rm(basic_matrix)  # make memory available
+logging::loginfo("Setting rownames.")
 row.names(sparse_matrix) = saved_names
 
+logging::loginfo("Saving sparseMatrix to RDS file.")
 saveRDS(sparse_matrix, file=paste(args$output, "rds", sep="."))
 
 
