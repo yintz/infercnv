@@ -80,6 +80,8 @@ logging::loginfo("Backing up rownames.")
 saved_names = as.vector(unlist(ddata[, 1]))
 ddata = ddata[, -1, drop=FALSE]
 
+in_size = object.size(ddata)
+
 colnames(ddata) = as.vector(unlist(data_head))
 
 logging::loginfo("Converting data.frame to Matrix.")
@@ -100,4 +102,14 @@ row.names(sparse_matrix) = saved_names
 logging::loginfo("Saving sparseMatrix to RDS file.")
 saveRDS(sparse_matrix, file=paste(args$output, "rds", sep="."))
 
+out_size = object.size(sparse_matrix)
+
+fileConn<-file("prepare_smallest.txt")
+if (in_size < out_size) {
+	writeLines(args$input, fileConn)
+}
+else {
+	writeLines(paste(args$output, "rds", sep="."), fileConn)	
+}
+close(fileConn)
 
