@@ -605,10 +605,11 @@ setMethod(f="postProbNormal",
                       title <- sprintf(" (1 - Probabilities of Normal) Before Filtering")
                   }
                   infercnv::plot_cnv(infercnv_obj          = obj,
+                                     out_dir               = obj@args$out_dir,
                                      #k_obs_groups         = 4,
                                      #cluster_by_groups    = cluster_by_groups,
                                      title                 = title,
-                                     output_filename       = file.path(file.path(obj@args$out_dir),"infercnv.NormalProbabilities"),
+                                     output_filename       = "infercnv.NormalProbabilities",
                                      write_expr_matrix     = FALSE,
                                      x.center              = 0,
                                      x.range               = c(0,1)
