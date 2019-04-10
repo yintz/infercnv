@@ -477,7 +477,8 @@ run <- function(infercnv_obj,
         } else {
             infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
                                                                                        p_val=tumor_subcluster_pval,
-                                                                                       hclust_method=hclust_method)
+                                                                                       hclust_method=hclust_method,
+                                                                                       cluster_by_groups=cluster_by_groups)
             saveRDS(infercnv_obj, file=infercnv_obj_file)
             
             if (plot_steps) {
@@ -515,6 +516,7 @@ run <- function(infercnv_obj,
             infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
                                                             p_val=tumor_subcluster_pval,
                                                             hclust_method=hclust_method,
+                                                            cluster_by_groups=cluster_by_groups,
                                                             partition_method='none')
             
             saveRDS(infercnv_obj, file=infercnv_obj_file)
@@ -799,6 +801,7 @@ run <- function(infercnv_obj,
             infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
                                                             p_val=tumor_subcluster_pval,
                                                             hclust_method=hclust_method,
+                                                            cluster_by_groups=cluster_by_groups,
                                                             partition_method=tumor_subcluster_partition_method)
             
             saveRDS(infercnv_obj, file=infercnv_obj_file)

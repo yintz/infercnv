@@ -1,14 +1,27 @@
 
-define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, partition_method, restrict_to_DE_genes=FALSE) {
+define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, cluster_by_groups, partition_method, restrict_to_DE_genes=FALSE) {
     
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
-    tumor_groups <- infercnv_obj@observation_grouped_cell_indices
+    # tumor_groups <- infercnv_obj@observation_grouped_cell_indices
 
     res = list()
 
     normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
-    
+    tumor_groups = list()
+
+    if (cluster_by_groups) {
+        tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+    }
+    else {
+        if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
+            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE), all_references=unlist(infercnv_obj@reference_grouped_cell_indices, use.names=FALSE))
+        }
+        else {
+            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
+        }
+    }
+
     for (tumor_group in names(tumor_groups)) {
 
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
@@ -25,7 +38,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         }
         
         tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, partition_method)
-                
+        
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
         res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
 
@@ -36,7 +49,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
     if (! is.null(infercnv_obj@.hspike)) {
         flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- define_signif_tumor_subclusters(infercnv_obj@.hspike, p_val, hclust_method, partition_method, restrict_to_DE_genes)
+        infercnv_obj@.hspike <- define_signif_tumor_subclusters(infercnv_obj@.hspike, p_val, hclust_method, cluster_by_groups, partition_method, restrict_to_DE_genes)
     }
         
     

@@ -1,6 +1,6 @@
 
 
-define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, window_size=101,
+define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_obj, p_val, hclust_method, cluster_by_groups, window_size=101,
                                                                        max_recursion_depth=3, min_cluster_size_recurse=10) {
     
     ## the state of the infercnv object here should be:
@@ -15,8 +15,19 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=TRUE)  # important, remove normal from tumor before testing clusters.
 
     ## must treat normals same way!
-    tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
-    
+    tumor_groups = list()
+    if (cluster_by_groups) {
+        tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
+    }
+    else {
+        if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
+            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE), all_references=unlist(infercnv_obj@reference_grouped_cell_indices, use.names=FALSE))
+        }
+        else {
+            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
+        }
+    }
+
     res = list()
     
     for (tumor_group in names(tumor_groups)) {
