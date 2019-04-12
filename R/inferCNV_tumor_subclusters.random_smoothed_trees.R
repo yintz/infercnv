@@ -66,8 +66,11 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
     tumor_subcluster_info = list()
 
+    ## smooth and median-center
     sm_tumor_expr_data = apply(tumor_expr_data, 2, caTools::runmean, k=window_size)
-    sm_tumor_expr_data = scale(sm_tumor_expr_data, center=TRUE, scale=FALSE)
+    #sm_tumor_expr_data = scale(sm_tumor_expr_data, center=TRUE, scale=FALSE)
+    sm_tumor_expr_data = .center_columns(sm_tumor_expr_data, 'median')
+        
     
     hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
     
