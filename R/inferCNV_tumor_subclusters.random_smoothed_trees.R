@@ -35,8 +35,9 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
         
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
+        names(tumor_group_idx) = colnames(infercnv_obj@expr.data)[tumor_group_idx]
         tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
-        
+                
         tumor_subcluster_info <- .single_tumor_subclustering_smoothed_tree(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, window_size,
                                                                            max_recursion_depth, min_cluster_size_recurse)
         
@@ -82,9 +83,6 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
                                                 max_recursion_depth, min_cluster_size_recurse)
 
             
-    #cluster_ids = unique(grps)
-    #flog.info(sprintf("cut tree into: %g groups", length(cluster_ids)))
-    
     tumor_subcluster_info$subclusters = list()
     
     ordered_idx = tumor_group_idx[hc$order]
@@ -93,16 +91,16 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     flog.info(sprintf("cut tree into: %g groups", length(s)))
     
     start_idx = 1
-    for (g in names(s)) {
-    #for (g in cluster_ids) {
-        split_subcluster = paste0(tumor_name, "_s", g)
+    for (split_subcluster in names(s)) {
         flog.info(sprintf("-processing %s,%s", tumor_name, split_subcluster))
+
+        split_subcluster_cell_names = names(s[[split_subcluster]])
+
+        if (! all(split_subcluster_cell_names %in% names(tumor_group_idx)) ) {
+            stop("Error: .single_tumor_subclustering_smoothed_tree(), not all subcluster cell names were in the tumor group names")
+        }
         
-        # subcluster_indices = tumor_group_idx[which(grps == g)]
-        # subcluster_indices = ordered_idx[which(grps == g)]
-        end_idx = start_idx + length(s[[g]]) - 1
-        subcluster_indices = tumor_group_idx[hc$order[start_idx:end_idx]]
-        start_idx = end_idx + 1
+        subcluster_indices = tumor_group_idx[ which(names(tumor_group_idx) %in% split_subcluster_cell_names) ]
         
         tumor_subcluster_info$subclusters[[ split_subcluster ]] = subcluster_indices
         
@@ -188,6 +186,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
             subset_cell_names = colnames(df)
             
             subset_clade_name = sprintf("%s.%d", tumor_clade_name, grp)
+            message(sprintf("subset_clade_name: %s", subset_clade_name));
             grps.adj[names(grps.adj) %in% subset_cell_names] <- subset_clade_name
             
 
