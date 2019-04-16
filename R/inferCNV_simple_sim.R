@@ -196,15 +196,24 @@
 
     # write.table(df, "_logistic_params", quote=FALSE, sep="\t")  # debugging...
 
-    fit <- nls(y ~ .logistic_midpt_slope(x, midpt = x0, slope = k),
-               data = df,
-               start = list(x0 = mean(x), k = -1)) # borrowed/updated from splatter
-
     logistic_params = list()
 
-    logistic_params[[ 'midpt' ]] <- summary(fit)$coefficients["x0", "Estimate"]
-    logistic_params[[ 'slope' ]] <- summary(fit)$coefficients["k", "Estimate"]
-
+    tryCatch ( {
+                
+        fit <- nls(y ~ .logistic_midpt_slope(x, midpt = x0, slope = k),
+                   data = df,
+                   start = list(x0 = mean(x), k = -1)) # borrowed/updated from splatter
+                   
+                   
+                   
+                   logistic_params[[ 'midpt' ]] <- summary(fit)$coefficients["x0", "Estimate"]
+                   logistic_params[[ 'slope' ]] <- summary(fit)$coefficients["k", "Estimate"]
+        },
+    
+        error=function(x) { cat(sprintf("(%s), couldn't fit logistic, but no worries, going to use a spline\n", x)) }
+    )
+    
+    
     ## also fit a spline
     s = smooth.spline(x, mean_p0_table$p0)
     logistic_params[[ 'spline' ]] = s

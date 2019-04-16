@@ -921,6 +921,11 @@ run <- function(infercnv_obj,
                 } else {
                     stop("Error, not recognizing HMM_type")
                 }
+
+                if (tumor_subcluster_partition_method == 'random_trees') {
+                    ## need to redo the hierarchicial clustering, since the subcluster assignments dont always perfectly line up with the top-level dendrogram.
+                    hmm.infercnv_obj <- .redo_hierarchical_clustering(hmm.infercnv_obj, hclust_method=hclust_method)
+                }
                 
             } else if (analysis_mode == 'cells') {
                 
@@ -2697,3 +2702,39 @@ cross_cell_normalize <- function(infercnv_obj) {
     
 }
 
+
+
+#' @title .redo_hierarchical_clustering()
+#'
+#' @description Recomputes hierarchical clustering for subclusters
+#'
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param hclust_method clustering method to use (default: 'complete')
+#'
+#' @return infercnv_obj
+#'
+#' @keywords internal
+#' @noRd
+#'
+
+.redo_hierarchical_clustering <- function(infercnv_obj, hclust_method) {
+
+    subclusters = infercnv_obj@tumor_subclusters$subclusters
+
+    for (grp_name in names(subclusters)) {
+
+        grp_cell_idx = unlist(subclusters[[grp_name]], recursive=TRUE)
+        grp_cell_idx = grp_cell_idx[order(grp_cell_idx)] # retain relative ordering in the expr matrix
+        
+        grp_expr_data = infercnv_obj@expr.data[, grp_cell_idx, drop=FALSE]
+        
+        hc <- hclust(dist(t(grp_expr_data)), method=hclust_method)
+
+        infercnv_obj@tumor_subclusters$hc[[grp_name]] <- hc
+    }
+
+    return(infercnv_obj)
+    
+}
