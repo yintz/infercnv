@@ -830,27 +830,27 @@ plot_cnv <- function(infercnv_obj,
     # up the groups with a row seperator. Also plot the rows in
     # order so the current groups are shown and seperated.
     if(length(ref_groups) > 1){
-        i_cur_idx <- 0
-        order_idx <- c()
-        grouping <- 0
-        for (ref_grp in ref_groups){
-            i_cur_idx <- i_cur_idx + length(ref_grp)
-            ref_seps <- c(ref_seps, i_cur_idx)
-            if (cluster_references && length(ref_grp) > 2) {  # do the clustering per group if there's more than 2 in the group
-                ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
-                ref_grp <- ref_grp[ref_hcl$order]
-            }
-            order_idx <- c(order_idx, ref_grp)
+        if (cluster_references) {
+            order_idx <- lapply(ref_groups, function(ref_grp) {
+                if (cluster_references && length(ref_grp) > 2) {
+                    ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
+                    ref_grp <- ref_grp[ref_hcl$order]
+                }
+                ref_grp
+            })
+            ref_seps <- head(cumsum(lengths(order_idx)), -1)
+            split_groups <- unlist(mapply(rep, 1:length(order_idx), lengths(order_idx)))
+            order_idx <- unlist(order_idx)
         }
-        ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
+        else {
+            ref_seps <- head(cumsum(lengths(ref_groups)), -1)
+            split_groups <- unlist(mapply(rep, 1:length(ref_groups), lengths(ref_groups)))
+            order_idx <- unlist(ref_groups)
+        }
         ref_data <- ref_data[, order_idx, drop=FALSE]
     }
-
-    split_groups <- c()
-    i_cur_idx <- 1
-    for (ref_grp in ref_groups){
-        split_groups <- c(split_groups, rep(i_cur_idx, length(ref_grp)))
-        i_cur_idx <- i_cur_idx + 1
+    else {
+        split_groups <- rep(1, length(ref_groups[[1]]))
     }
 
     # Make row color column colors from groupings

@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 
 
-options(error = function() { traceback(2); stop("Error encountered") } )
 
 C_CHR <- "chr"
 C_START <- "start"
