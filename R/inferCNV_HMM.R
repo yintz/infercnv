@@ -160,24 +160,24 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=FALSE
         expr_vals = gene_expr_by_cnv[[ cnv_level ]]
         nrounds = 100
 
-        sds = c()
-        for (ncells in seq_len(100)) {
-            means = c()
-            
-            for(i in 1:nrounds) {
-                vals = sample(expr_vals, size=ncells, replace=TRUE)
-                m_val = mean(vals)
-                means = c(means,  m_val)
+        sds <- vapply(seq_len(100), function(ncells) {
+            vals <- replicate(nrounds, sample(expr_vals, size=ncells, replace=TRUE))
+            if ("matrix" %in% is(vals)) {
+                means <- Matrix::rowMeans(vals)
             }
-            sds = c(sds, sd(means))
-        }
+            else {
+                means <- mean(vals)
+            }
+            sd(means)
+        }, numeric(1))
+
         cnv_level_to_mean_sd[[ cnv_level ]] <- sds
     }
     
     if (plot) {
         df = do.call(rbind, lapply(names(cnv_level_to_mean_sd), function(cnv_level) {
             sd=cnv_level_to_mean_sd[[ cnv_level ]]
-            data.frame(cnv=cnv_level, num_cells=1:length(sd), sd=sd)
+            data.frame(cnv=cnv_level, num_cells=seq_along(sd), sd=sd)
         }))
 
         p  = df %>% ggplot(aes_string(x=log(num_cells),y=log(sd), color='cnv')) + geom_point()
@@ -188,15 +188,24 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=FALSE
     }
 
     ## fit linear model
-    cnv_level_to_mean_sd_fit = list()
-    for (cnv_level in names(cnv_level_to_mean_sd) ) {
-        sd_vals=cnv_level_to_mean_sd[[ cnv_level ]]
-        num_cells = 1:length(sd_vals)
+    # cnv_level_to_mean_sd_fit = list()
+    # for (cnv_level in names(cnv_level_to_mean_sd) ) {
+    #     sd_vals=cnv_level_to_mean_sd[[ cnv_level ]]
+    #     num_cells = seq_along(sd_vals)
 
-        flog.info(sprintf("fitting num cells vs. variance for cnv level: %s", cnv_level))
-        fit = lm(log(sd_vals) ~ log(num_cells)) #note, hbadger does something similar, but not for the hmm cnv state levels
-        cnv_level_to_mean_sd_fit[[ cnv_level ]] = fit
-    }
+    #     flog.info(sprintf("fitting num cells vs. variance for cnv level: %s", cnv_level))
+    #     fit = lm(log(sd_vals) ~ log(num_cells)) #note, hbadger does something similar, but not for the hmm cnv state levels
+    #     cnv_level_to_mean_sd_fit[[ cnv_level ]] = fit
+    # }
+
+    tmp_names <- names(cnv_level_to_mean_sd)
+    cnv_level_to_mean_sd_fit <- lapply(tmp_names, function(cnv_level) {
+        sd_vals=cnv_level_to_mean_sd[[ cnv_level ]]
+        num_cells = seq_along(sd_vals)
+        fit = lm(log(sd_vals) ~ log(num_cells))
+        fit
+    })
+    names(cnv_level_to_mean_sd_fit) <- tmp_names
     
     return(cnv_level_to_mean_sd_fit)
     

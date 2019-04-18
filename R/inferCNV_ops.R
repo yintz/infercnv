@@ -1473,7 +1473,7 @@ create_sep_list <- function(row_count,
        (length(row_seps)>0) &&
        row_count > 0){
         rowList <- list()
-        for(sep in 1:length(row_seps)){
+        for(sep in seq_along(row_seps)){
             rowList[[sep]] <- c(0,row_seps[sep],col_count,row_seps[sep])
         }
         sepList[[2]] <- rowList
