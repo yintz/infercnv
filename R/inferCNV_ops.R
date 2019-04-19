@@ -997,7 +997,7 @@ run <- function(infercnv_obj,
         ## Bayesian Network Mixture Model
         ## ############################################################
         
-        if (HMM_type == 'i6' & BayesMaxPNormal > 0 & length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
+        if (HMM == TRUE & BayesMaxPNormal > 0 & length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
             step_count = step_count + 1
             flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
             
@@ -1010,15 +1010,18 @@ run <- function(infercnv_obj,
                 mcmc_obj <- readRDS(mcmc_obj_file)
             } else {
                 
-                mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj_prelim,
-                                                       HMM_states      = hmm.infercnv_obj@expr.data,
-                                                       file_dir        = out_dir,
-                                                       postMcmcMethod  = "removeCNV",
-                                                       out_dir         = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
-                                                       quietly         = TRUE,
-                                                       CORES           = num_threads,
-                                                       plotingProbs    = plot_probabilities,
-                                                       diagnostics     = diagnostics)
+                mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj     = infercnv_obj_prelim,
+                                                       HMM_states        = hmm.infercnv_obj@expr.data,
+                                                       file_dir          = out_dir,
+                                                       postMcmcMethod    = "removeCNV",
+                                                       out_dir           = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
+                                                       quietly           = TRUE,
+                                                       CORES             = num_threads,
+                                                       plotingProbs      = plot_probabilities,
+                                                       diagnostics       = diagnostics,
+                                                       HMM_type          = HMM_type,
+                                                       k_obs_groups      = k_obs_groups,
+                                                       cluster_by_groups = cluster_by_groups)
                 saveRDS(mcmc_obj, file=mcmc_obj_file)
             }
             
