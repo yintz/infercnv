@@ -15,6 +15,7 @@ For additional details on running the analysis step by step, please refer to the
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://github.com/broadinstitute/inferCNV/wiki}
   \item Report bugs at \url{https://github.com/broadinstitute/inferCNV/issues}
 }
 

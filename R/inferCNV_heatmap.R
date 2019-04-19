@@ -20,6 +20,7 @@ get_group_color_palette <- function(){
 #' @param obs_title Title for the observations matrix.
 #' @param ref_title Title for the reference matrix.
 #' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.
+#' @param cluster_references Whether to cluster references within their annotations or not. (dendrogram not displayed)
 #' @param k_obs_groups Number of groups to break observation into.
 #' @param contig_cex Contig text size. 
 #' @param x.center Value on which to center expression.
@@ -29,13 +30,53 @@ get_group_color_palette <- function(){
 #' @param output_filename Filename to save the figure to.
 #' @param output_format format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
 #'                      If set to NA, will print graphics natively
+#' @param png_res Resolution for png output.
+#' @param dynamic_resize Factor (>= 0) by which to scale the dynamic resize of the observation 
+#'                       heatmap and the overall plot based on how many cells there are.
+#'                       Default is 0, which disables the scaling. Try 1 first if you want to enable.
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
 #' 
-#' @return
-#' No return, void.
+#' @return A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
+#'
 #'
 #' @export
+#'
+#' @examples
+#' # data(data)
+#' # data(annots)
+#' # data(genes)
+#'
+#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' #                                                gene_order_file=genes,
+#' #                                                annotations_file=annots,
+#' #                                                ref_group_names=c("normal"))
+#'
+#' # infercnv_obj <- infercnv::run(infercnv_obj,
+#' #                               cutoff=1,
+#' #                               out_dir=tempfile(), 
+#' #                               cluster_by_groups=TRUE, 
+#' #                               denoise=TRUE,
+#' #                               HMM=FALSE,
+#' #                               num_threads=2,
+#' #                               no_plot=TRUE)
+#'
+#' data(infercnv_object)
+#'
+#' plot_cnv(infercnv_obj,
+#'          out_dir=tempfile(),
+#'          obs_title="Observations (Cells)",
+#'          ref_title="References (Cells)",
+#'          cluster_by_groups=TRUE,
+#'          x.center=1,
+#'          x.range="auto",
+#'          hclust_method='ward.D',
+#'          color_safe_pal=FALSE,
+#'          output_filename="infercnv",
+#'          output_format="png",
+#'          png_res=300,
+#'          dynamic_resize=0
+#'          )
 #'
 
 
@@ -45,14 +86,17 @@ plot_cnv <- function(infercnv_obj,
                      obs_title="Observations (Cells)",
                      ref_title="References (Cells)",
                      cluster_by_groups=TRUE,
+                     cluster_references=TRUE,
                      k_obs_groups = 3,
                      contig_cex=1,
-                     x.center=0,
-                     x.range=NA,
+                     x.center=mean(infercnv_obj@expr.data),
+                     x.range="auto", #NA,
                      hclust_method='ward.D',
-                     color_safe_pal=TRUE,
+                     color_safe_pal=FALSE,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
+                     png_res=300,
+                     dynamic_resize=0,
                      ref_contig = NULL,
                      write_expr_matrix=FALSE) {
 
@@ -74,9 +118,9 @@ plot_cnv <- function(infercnv_obj,
     flog.info(paste("::plot_cnv:Start", sep=""))
     flog.info(paste("::plot_cnv:Current data dimensions (r,c)=",
                            paste(dim(plot_data), collapse=","),
-                           " Total=", sum(plot_data, na.rm=T),
-                           " Min=", min(plot_data, na.rm=T),
-                           " Max=", max(plot_data, na.rm=T),
+                           " Total=", sum(plot_data, na.rm=TRUE),
+                           " Min=", min(plot_data, na.rm=TRUE),
+                           " Max=", max(plot_data, na.rm=TRUE),
                            ".", sep=""))
     flog.info(paste("::plot_cnv:Depending on the size of the matrix",
                            " this may take a moment.",
@@ -88,7 +132,7 @@ plot_cnv <- function(infercnv_obj,
         expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
 
         if (class(plot_data) %in% c("matrix", "data.frame")) {
-            write.table(plot_data, file=expr_dat_file, quote=F, sep="\t")
+            write.table(plot_data, file=expr_dat_file, quote=FALSE, sep="\t")
         }
         
     }
@@ -106,6 +150,7 @@ plot_cnv <- function(infercnv_obj,
             delta = max( abs( c(x.center - quantiles[1],  quantiles[2] - x.center) ) )
             low_threshold = x.center - delta
             high_threshold = x.center + delta
+            x.range = c(low_threshold, high_threshold)
             
             flog.info(sprintf("plot_cnv(): auto thresholding at: (%f , %f)", low_threshold, high_threshold))
             
@@ -143,10 +188,13 @@ plot_cnv <- function(infercnv_obj,
                                     c(2, 2))
     }
     
-    # Row separation based on reference
-    ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
-    ref_idx = ref_idx[order(ref_idx)]
-        
+    ## Row separation based on reference
+    ref_idx <- NULL
+    if (has_reference_cells(infercnv_obj)) {
+        ref_idx <- unlist(infercnv_obj@reference_grouped_cell_indices)
+        ref_idx = ref_idx[order(ref_idx)]
+    }
+    
     # Column seperation by contig and label axes with only one instance of name
     contig_tbl <- table(contigs)[unique_contigs]
     col_sep <- cumsum(contig_tbl)
@@ -178,8 +226,20 @@ plot_cnv <- function(infercnv_obj,
     }
     # restrict to just the obs indices
 
-    obs_annotations_groups <- obs_annotations_groups[-ref_idx]
+    if (! is.null(ref_idx)) {
+        obs_annotations_groups <- obs_annotations_groups[-ref_idx]
+    }
     
+    if (is.null(dynamic_resize) | dynamic_resize < 0) {
+        flog.warn(paste("invalid dynamic_resize value: ", dynamic_resize, sep=""))
+        dynamic_resize = 0
+    }
+    dynamic_extension = 0
+    nobs = length(unlist(infercnv_obj@observation_grouped_cell_indices))
+    if (nobs > 200) {
+        dynamic_extension = dynamic_resize * 3.6 * (nobs - 200)/200 
+    }
+
     grouping_key_coln[1] <- floor(123/(max(nchar(obs_annotations_names)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
     if (grouping_key_coln[1] < 1) {
         grouping_key_coln[1] <- 1
@@ -203,14 +263,14 @@ plot_cnv <- function(infercnv_obj,
             pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
                 useDingbats=FALSE,
                 width=10,
-                height=(8.13 + sum(grouping_key_height)),
+                height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
                 paper="USr")
         } else if (output_format == "png") {
             png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
                 width=10,
-                height=(8.13 + sum(grouping_key_height)),
+                height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
                 units="in",
-                res=600)
+                res=png_res)
         }
     }
     
@@ -255,11 +315,13 @@ plot_cnv <- function(infercnv_obj,
 
 
     # Create file base for plotting output
-    force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height)
-    .plot_cnv_observations(obs_data=obs_data_t,
+    force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height, dynamic_extension=dynamic_extension)
+    .plot_cnv_observations(infercnv_obj=infercnv_obj,
+                          obs_data=obs_data_t,
                           file_base_name=out_dir,
                           output_filename_prefix=output_filename,
                           cluster_contig=ref_contig,
+                          contigs=contigs,
                           contig_colors=ct.colors[contigs],
                           contig_labels=contig_labels,
                           contig_names=contig_names,
@@ -285,6 +347,8 @@ plot_cnv <- function(infercnv_obj,
         .plot_cnv_references(ref_data=ref_data_t,
                             ref_groups=ref_groups,
                             name_ref_groups=name_ref_groups,
+                            cluster_references=cluster_references,
+                            hclust_method=hclust_method,
                             grouping_key_coln=grouping_key_coln[2],
                             col_pal=custom_pal,
                             contig_seps=col_sep,
@@ -298,6 +362,17 @@ plot_cnv <- function(infercnv_obj,
     if (! is.na(output_format)) {
         dev.off()
     }
+
+    return(list(cluster_by_groups = cluster_by_groups,
+               k_obs_groups = k_obs_groups,
+               contig_cex = contig_cex,
+               x.center = x.center,
+               x.range = x.range,
+               hclust_method = hclust_method,
+               color_safe_pal = color_safe_pal,
+               output_format = output_format,
+               png_res = png_res,
+               dynamic_resize = dynamic_resize))
 }
 
 # TODO Tested, test make files so turned off but can turn on and should pass.
@@ -331,7 +406,8 @@ plot_cnv <- function(infercnv_obj,
 #' @noRd
 #'
 
-.plot_cnv_observations <- function(obs_data,
+.plot_cnv_observations <- function(infercnv_obj,
+                                  obs_data,
                                   col_pal,
                                   contig_colors,
                                   contig_labels,
@@ -343,6 +419,7 @@ plot_cnv <- function(infercnv_obj,
                                   cnv_title,
                                   cnv_obs_title,
                                   contig_lab_size=1,
+                                  contigs,
                                   cluster_contig=NULL,
                                   obs_annotations_groups,
                                   obs_annotations_names,
@@ -398,8 +475,74 @@ plot_cnv <- function(infercnv_obj,
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
     obs_seps <- c()
+    sub_obs_seps <- c()  # never use at this time? available if we want to add splits in the heatmap for subclusters
 
-    if (cluster_by_groups) {
+    if (!is.null(infercnv_obj@tumor_subclusters)) {
+        if (cluster_by_groups) {
+            for (i in seq(1, max(obs_annotations_groups))) {
+                obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
+                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
+                obs_seps <- c(obs_seps, length(ordered_names))
+                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+                
+                if (isfirst) {
+                    write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                    isfirst <- FALSE
+                }
+                else {
+                    write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]],
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE))
+                }
+            }
+            if (length(obs_dendrogram) > 1) {
+                obs_dendrogram <- do.call(merge, obs_dendrogram)
+            } else {
+                obs_dendrogram <- obs_dendrogram[[1]]
+            }
+            split_groups <- rep(1, dim(obs_data)[1])
+            names(split_groups) <- ordered_names
+            
+            for(subtumor in infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]]) {
+                length(subtumor)
+                sub_obs_seps <- c(sub_obs_seps, (sub_obs_seps[length(sub_obs_seps)] + length(subtumor)))
+            }
+        }
+        else {
+            obs_hcl <- infercnv_obj@tumor_subclusters$hc[["all_observations"]]
+            write.tree(as.phylo(obs_hcl),
+             file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+  
+            obs_dendrogram <- as.dendrogram(obs_hcl)
+            ordered_names <- row.names(obs_data)[obs_hcl$order]
+            split_groups <- cutree(obs_hcl, k=num_obs_groups)
+            split_groups <- split_groups[ordered_names]
+            hcl_obs_annotations_groups <- obs_annotations_groups[obs_hcl$order]
+            
+            # Make a file of members of each group
+            flog.info("plot_cnv_observation:Writing observations by grouping.")
+            for (cut_group in unique(split_groups)){
+                group_memb <- names(split_groups)[which(split_groups == cut_group)]
+                # Write group to file
+                memb_file <- file(paste(file_base_name,
+                                        paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
+                                        sep=.Platform$file.sep))
+                write.table(obs_data[group_memb,], memb_file)
+                # Record seperation
+                ordered_memb <- which(ordered_names %in% group_memb)
+                if (is.null(obs_seps)) {
+                  obs_seps <- c(length(ordered_memb))
+                }
+                else {
+                  obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
+                }
+            }
+            obs_seps <- c(obs_seps, length(ordered_names))
+            sub_obs_seps = obs_seps
+        }
+    }
+    else if (cluster_by_groups) {  # at this point this and the else below should only be an error fallback, or when trying to plot before the subclustering step
+
         ## Clustering separately by groups (ie. patients)
 
         for (i in seq(1, max(obs_annotations_groups))) {
@@ -454,8 +597,11 @@ plot_cnv <- function(infercnv_obj,
                 hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
             }
 
+            
+            group_obs_dend <- as.dendrogram(group_obs_hcl)
+            obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
+            hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
             obs_seps <- c(obs_seps, length(ordered_names))
-
         }
         if (length(obs_dendrogram) > 1) {
             # merge separate dendrograms into a single dendrogram
@@ -465,6 +611,7 @@ plot_cnv <- function(infercnv_obj,
         }
         split_groups <- rep(1, dim(obs_data)[1])
         names(split_groups) <- ordered_names
+        sub_obs_seps = obs_seps
     }
     else {
         # clustering all groups together
@@ -482,28 +629,30 @@ plot_cnv <- function(infercnv_obj,
         # Make a file of members of each group
         flog.info("plot_cnv_observation:Writing observations by grouping.")
         for (cut_group in unique(split_groups)){
-          group_memb <- names(split_groups)[which(split_groups == cut_group)]
-          # Write group to file
-          memb_file <- file(paste(file_base_name,
-                                  paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
-                                  sep=.Platform$file.sep))
-          write.table(obs_data[group_memb,], memb_file)
-          # Record seperation
-          ordered_memb <- which(ordered_names %in% group_memb)
-          if (is.null(obs_seps)) {
-            obs_seps <- c(length(ordered_memb))
-          }
-          else {
-            obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
-          }
+            group_memb <- names(split_groups)[which(split_groups == cut_group)]
+            # Write group to file
+            memb_file <- file(paste(file_base_name,
+                                    paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
+                                    sep=.Platform$file.sep))
+            write.table(obs_data[group_memb,], memb_file)
+            # Record seperation
+            ordered_memb <- which(ordered_names %in% group_memb)
+            if (is.null(obs_seps)) {
+              obs_seps <- c(length(ordered_memb))
+            }
+            else {
+              obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
+            }
         }
         obs_seps <- c(obs_seps, length(ordered_names))
+        sub_obs_seps = obs_seps
     }
-
+    
+    
     if (length(obs_seps) > 1) {
         obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
     }
-
+    
     # Output HCL group membership.
     # Record locations of seperations
 
@@ -535,6 +684,9 @@ plot_cnv <- function(infercnv_obj,
     # and print.
     orig_row_names <- row.names(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
+
+    heatmap_thresholds_file_name <- file.path(file_base_name, sprintf("%s.heatmap_thresholds.txt", output_filename_prefix))
+    write.table(breaksList, heatmap_thresholds_file_name, row.names=FALSE, col.names=FALSE)
 
     data_observations <- heatmap.cnv(obs_data,
                                         Rowv=obs_dendrogram,
@@ -604,7 +756,7 @@ plot_cnv <- function(infercnv_obj,
 #' @keywords internal
 #' @noRd
 #'
-.plot_observations_layout <- function(grouping_key_height)
+.plot_observations_layout <- function(grouping_key_height, dynamic_extension)
 {
     ## Plot observational samples
     obs_lmat <- c(0,  0,  0,  0,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
@@ -630,8 +782,8 @@ plot_cnv <- function(infercnv_obj,
     obs_lhei <- c(1.125, 2.215, .15,
                    .5, .5, .5,
                    .5, .5, .5,
-                   .5, .5, .5,
-                  0.03, grouping_key_height[1]+0.04, grouping_key_height[2]+0.04, 0.03)
+                   .5, .5, .5 + dynamic_extension,
+                  0.1, grouping_key_height[1], grouping_key_height[2], 0.13)
 
     return(list(lmat=obs_lmat,
            lhei=obs_lhei,
@@ -663,6 +815,8 @@ plot_cnv <- function(infercnv_obj,
 .plot_cnv_references <- function(ref_data,
                                 ref_groups,
                                 name_ref_groups,
+                                cluster_references,
+                                hclust_method,
                                 grouping_key_coln,
                                 col_pal,
                                 contig_seps,
@@ -703,23 +857,27 @@ plot_cnv <- function(infercnv_obj,
     # up the groups with a row seperator. Also plot the rows in
     # order so the current groups are shown and seperated.
     if(length(ref_groups) > 1){
-        i_cur_idx <- 0
-        order_idx <- c()
-        grouping <- 0
-        for (ref_grp in ref_groups){
-            i_cur_idx <- i_cur_idx + length(ref_grp)
-            ref_seps <- c(ref_seps, i_cur_idx)
-            order_idx <- c(order_idx, ref_grp)
+        if (cluster_references) {
+            order_idx <- lapply(ref_groups, function(ref_grp) {
+                if (cluster_references && length(ref_grp) > 2) {
+                    ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
+                    ref_grp <- ref_grp[ref_hcl$order]
+                }
+                ref_grp
+            })
+            ref_seps <- head(cumsum(lengths(order_idx)), -1)
+            split_groups <- unlist(mapply(rep, 1:length(order_idx), lengths(order_idx)))
+            order_idx <- unlist(order_idx)
         }
-        ref_seps <- ref_seps[1:(length(ref_seps) - 1)]
+        else {
+            ref_seps <- head(cumsum(lengths(ref_groups)), -1)
+            split_groups <- unlist(mapply(rep, 1:length(ref_groups), lengths(ref_groups)))
+            order_idx <- unlist(ref_groups)
+        }
         ref_data <- ref_data[, order_idx, drop=FALSE]
     }
-
-    split_groups <- c()
-    i_cur_idx <- 1
-    for (ref_grp in ref_groups){
-        split_groups <- c(split_groups, rep(i_cur_idx, length(ref_grp)))
-        i_cur_idx <- i_cur_idx + 1
+    else {
+        split_groups <- rep(1, length(ref_groups[[1]]))
     }
 
     # Make row color column colors from groupings
@@ -729,6 +887,18 @@ plot_cnv <- function(infercnv_obj,
 
     # Transpose data.
     ref_data <- t(ref_data)
+
+
+    # if (cluster_references) {
+    #   if (number_references > 1) {
+    #       for (i in seq_len(length(ref_groups))) {
+    #           ref_hcl <- hclust(dist(ref_data[ref_groups[[i]], ]), method=hclust_method)
+    #           ref_data[ref_groups[[i]], ] <- ref_data[ref_groups[[i]][ref_hcl$order], , drop=FALSE]
+    #       }
+    #   }
+    # }
+
+
     # Remove labels if too many.
     ref_orig_names <- row.names(ref_data)
     if (number_references > 20){
@@ -749,6 +919,7 @@ plot_cnv <- function(infercnv_obj,
 
     # Print controls
     flog.info("plot_cnv_references:Plotting heatmap.")
+
     data_references <- heatmap.cnv(ref_data,
                                    main=NULL, #NA,
                                    ylab=reference_ylab,
@@ -2180,6 +2351,8 @@ heatmap.cnv <-
       } else{
         title(key.title,cex.main=cex.key,font.main=1)
       }
+
+      par(mar=op.ori$mar, cex=op.ori$cex, mgp=op.ori$mgp, tcl=op.ori$tcl, usr=op.ori$usr)
     } else{
       if(!force_add){
       .plot.text()
@@ -2396,3 +2569,52 @@ get.sep <-
 }
 
 
+#####################################################
+## Custom infercnv functions related to visualization
+
+
+depress_low_signal_midpt_ratio <- function(infercnv_obj, expr_mean, midpt_ratio=0.2, slope=20) {
+
+    expr_bounds = get_average_bounds(infercnv_obj)
+
+    delta_mean = max(expr_mean - expr_bounds[1],  expr_bounds[2] - expr_mean)
+    delta_midpt = delta_mean * midpt_ratio
+
+    infercnv_obj <- depress_log_signal_midpt_val(infercnv_obj, expr_mean, delta_midpt, slope)
+    
+    return(infercnv_obj)
+    
+}
+
+depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, slope=20) {
+    
+    
+    infercnv_obj@expr.data <- .apply_logistic_val_adj(infercnv_obj@expr.data, expr_mean, delta_midpt, slope)
+
+    return(infercnv_obj)
+}
+
+
+.apply_logistic_val_adj <- function(vals_matrix, expr_mean, delta_midpt, slope) {
+
+    adjust_value <- function(x) {
+        newval = x
+        val = abs(x - expr_mean)
+        p = .logistic(val, delta_midpt, slope)
+        if (x > expr_mean) {
+            newval = expr_mean + p*val
+        } else if (x < expr_mean) {
+            newval = expr_mean - p*val
+        }
+        return(newval)
+    }
+
+
+    vals_matrix <- apply(vals_matrix, 1:2, adjust_value)
+
+    return(vals_matrix)
+}
+    
+
+
+    

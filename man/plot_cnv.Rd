@@ -6,10 +6,12 @@
 \usage{
 plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
-  cluster_by_groups = TRUE, k_obs_groups = 3, contig_cex = 1,
-  x.center = 0, x.range = NA, hclust_method = "ward.D",
-  color_safe_pal = TRUE, output_filename = "infercnv",
-  output_format = "png", ref_contig = NULL, write_expr_matrix = FALSE)
+  cluster_by_groups = TRUE, cluster_references = TRUE,
+  k_obs_groups = 3, contig_cex = 1,
+  x.center = mean(infercnv_obj@expr.data), x.range = "auto",
+  hclust_method = "ward.D", color_safe_pal = FALSE,
+  output_filename = "infercnv", output_format = "png", png_res = 300,
+  dynamic_resize = 0, ref_contig = NULL, write_expr_matrix = FALSE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -23,6 +25,8 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
 \item{ref_title}{Title for the reference matrix.}
 
 \item{cluster_by_groups}{Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.}
+
+\item{cluster_references}{Whether to cluster references within their annotations or not. (dendrogram not displayed)}
 
 \item{k_obs_groups}{Number of groups to break observation into.}
 
@@ -41,13 +45,56 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
 \item{output_format}{format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
 If set to NA, will print graphics natively}
 
+\item{png_res}{Resolution for png output.}
+
+\item{dynamic_resize}{Factor (>= 0) by which to scale the dynamic resize of the observation 
+heatmap and the overall plot based on how many cells there are.
+Default is 0, which disables the scaling. Try 1 first if you want to enable.}
+
 \item{ref_contig}{If given, will focus cluster on only genes in this contig.}
 
 \item{write_expr_matrix}{Includes writing a matrix file containing the expression data that is plotted in the heatmap.}
 }
 \value{
-No return, void.
+A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
 }
 \description{
 Formats the data and sends it for plotting.
+}
+\examples{
+# data(data)
+# data(annots)
+# data(genes)
+
+# infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#                                                gene_order_file=genes,
+#                                                annotations_file=annots,
+#                                                ref_group_names=c("normal"))
+
+# infercnv_obj <- infercnv::run(infercnv_obj,
+#                               cutoff=1,
+#                               out_dir="../example_output", 
+#                               cluster_by_groups=TRUE, 
+#                               denoise=TRUE,
+#                               HMM=FALSE,
+#                               num_threads=2,
+#                               no_plot=TRUE)
+
+data(infercnv_object)
+
+plot_cnv(infercnv_obj,
+         out_dir=".",
+         obs_title="Observations (Cells)",
+         ref_title="References (Cells)",
+         cluster_by_groups=TRUE,
+         x.center=1,
+         x.range="auto",
+         hclust_method='ward.D',
+         color_safe_pal=FALSE,
+         output_filename="infercnv",
+         output_format="png",
+         png_res=300,
+         dynamic_resize=0
+         )
+
 }

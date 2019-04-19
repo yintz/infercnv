@@ -1,12 +1,18 @@
+^Meta$
+^doc$
 ^\.travis\.yml$
 ^R/\.wip
+^vignettes/\.wip
+^vignettes/example_output
 ^docker
 ^run_tests
 ^\.
+^inferCNV\.wiki
 ^infercnv.Rdata
 ^inferCNV.Rproj
 ^Rstudio_helpers
 ^__simulations
+^example
 ^example/full_precision
 ^example/example.html
 ^example/test_subdir
@@ -19,3 +25,5 @@
 ^devel_debug
 ^run_tests
 ^external
+^\.gitmodules
+^scripts

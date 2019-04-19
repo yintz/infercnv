@@ -1,4 +1,8 @@
+Meta
+doc
 .idea
 .Rproj.user
 .Rhistory
 .Rprofile
+.example_output
+vignettes/example_output
