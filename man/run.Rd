@@ -4,7 +4,7 @@
 \alias{run}
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
-run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
+run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = NULL,
   window_length = 101, smooth_method = c("pyramidinal", "runmeans"),
   num_ref_groups = NULL, ref_subtract_use_mean_bounds = TRUE,
   cluster_by_groups = FALSE, cluster_references = TRUE,
@@ -37,7 +37,7 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = ".",
 \item{min_cells_per_gene}{minimum number of reference cells requiring expression measurements to include the corresponding gene.
 default: 3}
 
-\item{out_dir}{path to directory to deposit outputs (default: '.')
+\item{out_dir}{path to directory to deposit outputs (default: NULL, required to provide non NULL)
 
 ## Smoothing params}
 

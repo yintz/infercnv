@@ -10,7 +10,7 @@
 #' @param min_cells_per_gene minimum number of reference cells requiring expression measurements to include the corresponding gene.
 #'                           default: 3
 #'
-#' @param out_dir path to directory to deposit outputs (default: '.')
+#' @param out_dir path to directory to deposit outputs (default: NULL, required to provide non NULL)
 #'
 #' ## Smoothing params
 #' @param window_length Length of the window for the moving average
@@ -198,7 +198,7 @@ run <- function(infercnv_obj,
                 cutoff=1,
                 min_cells_per_gene=3,
 
-                out_dir=".",
+                out_dir=NULL,
 
                 ## smoothing params
                 window_length=101,
@@ -294,6 +294,10 @@ run <- function(infercnv_obj,
     flog.info(paste("::process_data:Start", sep=""))
     
     infercnv.env$GLOBAL_NUM_THREADS <- num_threads
+    if (is.null(out_dir)) {
+        flog.error("Error, out_dir is NULL, please provide a path.")
+        stop("out_dir is NULL")
+    }
     if(out_dir != "." & !file.exists(out_dir)){
         dir.create(out_dir)
     }
