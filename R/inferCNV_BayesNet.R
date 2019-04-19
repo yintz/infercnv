@@ -318,7 +318,7 @@ setMethod(f="initializeObject",
 
               ## set numerical id's for cell groups and set values in a vector for cell positions in the matrix
               group_id <- rep(NA, max(unlist(obj@observation_grouped_cell_indices)))
-              lapply(1:length(cell_group_id), function(i) {
+              lapply(seq_along(cell_group_id), function(i) {
                   ## cells in the cluster group
                   cells <- cell_groups_df[cell_groups_df$cell_group_name %in% cell_group_id[i],]$cell
                   ## set the numerical id in the vector
@@ -363,7 +363,7 @@ setMethod(f="getProbabilities",
               cell_probabilities <- list()
 
               combinedMCMC <-
-              for(j in 1:length(mcmc)){
+              for(j in seq_along(mcmc)){
                   # combine the chains
                   combined_mcmc[[j]] <- do.call(rbind, mcmc[[j]])
                   # run function to get probabilities
@@ -414,7 +414,7 @@ setMethod(f="withParallel",
               }
               mc.cores = ifelse(.Platform$OS.type == 'unix', as.integer(obj@args$CORES), 1) # if windows, can only use 1 here
               futile.logger::flog.info(paste("Running Sampling Using Parallel with ", obj@args$CORES, "Cores"))
-              mcmc <- parallel::mclapply(1:length(obj@cell_gene),
+              mcmc <- parallel::mclapply(seq_along(obj@cell_gene),
                                              FUN = par_func,
                                              mc.cores = mc.cores)
               return(mcmc)
@@ -444,7 +444,7 @@ setMethod(f="nonParallel",
           {
               futile.logger::flog.info(paste("Running Gibbs sampling in Non-Parallel Mode."))
               # Iterate over the CNV's and run the Gibbs sampling.
-              mcmc <- lapply(1:length(obj@cell_gene), function(i){
+              mcmc <- lapply(seq_along(obj@cell_gene), function(i){
                   if (obj@args$quietly == FALSE) {
                       futile.logger::flog.info(paste("Sample Number: ", i))
                   }
@@ -558,7 +558,7 @@ setMethod(f="removeCells",
           {
               if (getHMMType(obj) == 'i6'){
                   if (any(do.call(cbind, obj@cell_probabilities)[3,] > obj@args$BayesMaxPNormal)){
-                      lapply(1:length(obj@cell_probabilities), function(i) {
+                      lapply(seq_along(obj@cell_probabilities), function(i) {
                           idx <- which(obj@cell_probabilities[[i]][3,] > obj@args$BayesMaxPNormal)
                           if(length(idx) > 0){
                               ## change the states to normal states
@@ -572,7 +572,7 @@ setMethod(f="removeCells",
                   }
               } else {
                   if (any(do.call(cbind, obj@cell_probabilities)[2,] > obj@args$BayesMaxPNormal)){
-                      lapply(1:length(obj@cell_probabilities), function(i) {
+                      lapply(seq_along(obj@cell_probabilities), function(i) {
                           idx <- which(obj@cell_probabilities[[i]][2,] > obj@args$BayesMaxPNormal)
                           if(length(idx) > 0){
                               ## change the states to normal states
@@ -664,7 +664,7 @@ setMethod(f="postProbNormal",
                       normal_prob <- 1 - cnv_means[2,]
                   }
                   obj@expr.data[,] <- 0
-                  lapply(1:length(normal_prob), function(i) {
+                  lapply(seq_along(normal_prob), function(i) {
                       ## change the states to normal states
                       obj@expr.data[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- normal_prob[i]
                   })
@@ -722,7 +722,7 @@ setMethod(f="plotProbabilities",
                       file_CELLplot <- "cellProbs.pdf"
                   }
                   pdf(file = file.path(file.path(obj@args$out_dir),file_CELLplot), onefile = TRUE)
-                  lapply(1:length(obj@cell_probabilities), function(i){
+                  lapply(seq_along(obj@cell_probabilities), function(i){
                       print(plot_cell_prob(as.data.frame(obj@cell_probabilities[[i]]), as.character(obj@cell_gene[[i]]$cnv_regions), getHMMType(obj)))
                   })
                   dev.off()
@@ -735,7 +735,7 @@ setMethod(f="plotProbabilities",
                       file_CNVplot <- "cnvProbs.pdf"
                   }
                   pdf(file = file.path(file.path(obj@args$out_dir), file_CNVplot), onefile = TRUE)
-                  lapply(1:length(obj@cell_probabilities), function(i){
+                  lapply(seq_along(obj@cell_probabilities), function(i){
                       print(plot_cnv_prob(obj@cnv_probabilities[[i]], as.character(obj@cell_gene[[i]]$cnv_regions), getHMMType(obj)))
                   })
                   dev.off()
@@ -779,12 +779,12 @@ setMethod(f="mcmcDiagnosticPlots",
               cnvProb <- function(combined_samples) {
                   thetas <- combined_samples[,grepl('theta', colnames(combined_samples))]
               }
-              cnvMCMCList <- lapply(1:length(mcmc), function(i){
+              cnvMCMCList <- lapply(seq_along(mcmc), function(i){
                   lapply(mcmc[[i]], cnvProb)
               })
               # trace and denisty plots
               pdf(file = file.path(file.path(obj@args$out_dir),"CNVDiagnosticPlots.pdf"), onefile = TRUE)
-              lapply(1:length(cnvMCMCList), function(i){
+              lapply(seq_along(cnvMCMCList), function(i){
                   plot(coda::mcmc.list(cnvMCMCList[[i]]))
               })
               dev.off()
@@ -798,12 +798,12 @@ setMethod(f="mcmcDiagnosticPlots",
                   epsilons <- samples[,grepl('epsilon', colnames(samples))]
               }
 
-              cellMCMCList <- lapply(1:length(mcmc), function(i){
+              cellMCMCList <- lapply(seq_along(mcmc), function(i){
                   lapply(mcmc[[i]], cellProb)
               })
               # trace and denisty plots
               pdf(file = file.path(file.path(obj@args$out_dir),"CellDiagnosticPlots.pdf"), onefile = TRUE)
-              lapply(1:length(cellMCMCList), function(i){
+              lapply(seq_along(cellMCMCList), function(i){
                   plot(coda::mcmc.list(cellMCMCList[[i]]))
               })
               dev.off()
@@ -817,7 +817,7 @@ setMethod(f="mcmcDiagnosticPlots",
               #---------------------------------------
               if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Autocorrelation Plots.")) }
               pdf(file = file.path(file.path(obj@args$out_dir),"CNVautocorrelationPlots.pdf"), onefile = TRUE)
-              lapply(1:length(cnvMCMCList), function(i){
+              lapply(seq_along(cnvMCMCList), function(i){
                   autocorr.plot(coda::mcmc.list(cnvMCMCList[[i]]))
               })
               dev.off()
@@ -830,7 +830,7 @@ setMethod(f="mcmcDiagnosticPlots",
               #---------------------------------------
               if (obj@args$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Gelman Plots.")) }
               pdf(file = file.path(file.path(obj@args$out_dir),"CNVGelmanPlots.pdf"), onefile = TRUE)
-              lapply(1:length(cellMCMCList), function(i){
+              lapply(seq_along(cellMCMCList), function(i){
                   gelman.plot(coda::mcmc.list(cnvMCMCList[[i]]))
               })
               dev.off()
@@ -846,7 +846,7 @@ setMethod(f="mcmcDiagnosticPlots",
                   q2.5<- unlist(summary(x[[1]][,w])[[2]][,1])
                   q50<- unlist(summary(x[[1]][,w])[[2]][,3])
                   q97.5<- unlist(summary(x[[1]][,w])[[2]][,5])
-                  gewek = unlist(geweke.diag(x[[1]][,w], frac1=0.1, frac2=0.5))[1:length(w)]
+                  gewek = unlist(geweke.diag(x[[1]][,w], frac1=0.1, frac2=0.5))[seq_along(w)]
                   df = data.frame(mu,stdev,q2.5,q50,q97.5,gewek)
                   colnames(df) <- c('Mean','St.Dev','2.5%','50%','97.5%', "Geweke")
                   rownames(df) <- c(w)
@@ -856,7 +856,7 @@ setMethod(f="mcmcDiagnosticPlots",
               # Function to get the theta (state CNV probabilities) values
               getThetas <- function(df){ df[,grepl('theta', colnames(df))] }
               # List of statistical summary tables
-              summary_table <- lapply(1:length(mcmc), function(i) {
+              summary_table <- lapply(seq_along(mcmc), function(i) {
                   title <- sprintf("CNV %s Summary Table", obj@cell_gene[[i]]$cnv_regions)
                   thetas <- lapply(mcmc[[i]], function(x) getThetas(x))
                   w = row.names(summary(as.mcmc(thetas))[[1]])
@@ -867,7 +867,7 @@ setMethod(f="mcmcDiagnosticPlots",
                                                    colhead = list(fg_params=list(parse=TRUE, cex = 0.5)),
                                                    rowhead = list(fg_params=list(parse=TRUE, cex = 0.5)))
               # List of tables, table for each CNV
-              plot_list <- lapply(1:length(summary_table), function(i) {
+              plot_list <- lapply(seq_along(summary_table), function(i) {
                   ## Create table grob object
                   table <- gridExtra::tableGrob(summary_table[[i]],rows = c("State 1","State 2","State 3","State 4","State 5","State 6"), theme = theme.1)
                   ## Create the title for the table as a seperate grob object
