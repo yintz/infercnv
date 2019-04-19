@@ -105,6 +105,25 @@ setMethod(f = "expirData",
           signature = "MCMC_inferCNV",
           definition=function(obj) obj@expr.data )
 
+#' Access the HMM type, i3 or i6
+#'
+#' This function returns the HMM type, either i3 or i6
+#'
+#' @param obj The MCMC_inferCNV_obj S4 object.
+#'
+#' @return data frame.
+#' @rdname getHMMType-method
+#' @keywords internal
+#' @noRd
+setGeneric(name = "getHMMType",
+           def = function(obj) standardGeneric("getHMMType"))
+#' @rdname getHMMType-method
+#' @aliases getHMMType
+#' @noRd
+setMethod(f = "getHMMType",
+          signature = "MCMC_inferCNV",
+          definition=function(obj) obj@args$HMM_type )
+
 #######################
 # Object Manipulation #
 #######################
@@ -112,6 +131,8 @@ setMethod(f = "expirData",
 #' Get the cell Mean and Standard Deviation for identified cnv regions
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' @param HMM_states HMM i3 indentified states.
+#' @param infercnv_obj inferCNV object.
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
@@ -119,7 +140,7 @@ setMethod(f = "expirData",
 #' @keywords internal
 #' @noRd
 setGeneric(name="MeanSD",
-           def=function(obj)
+           def=function(obj, HMM_states, infercnv_obj)
                { standardGeneric("MeanSD") }
 )
 
@@ -128,19 +149,40 @@ setGeneric(name="MeanSD",
 #' @noRd
 setMethod(f="MeanSD",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj, HMM_states, infercnv_obj)
           {
-              gene_expr_by_cnv = .get_gene_expr_by_cnv(obj@.hspike)
-              cnv_mean_sd = .get_gene_expr_mean_sd_by_cnv(gene_expr_by_cnv)
-              cnv_sd <- cbind(lapply(cnv_mean_sd,function(x){x$sd}))
-              cnv_mean <- cbind(lapply(cnv_mean_sd,function(x){x$mean}))
-              ## Sort so in order of {x0,...,x1,..,x3} and get into a vector format
-              obj@mu <- unlist(cbind(cnv_mean[sort(row.names(cnv_mean)),]))
-              obj@sig <-  unlist(cbind(cnv_sd[sort(row.names(cnv_sd)),]))
-              obj@sig <- 1/(obj@sig^2)
-              if (obj@args$quietly == FALSE) {
-                  print(paste("Means: ", obj@mu, collapse = ""))
-                  print(paste("Sig: ", obj@sig, collapse = ""))
+            # i6 HMM method 
+              if (getHMMType(obj) == 'i6'){
+                  gene_expr_by_cnv = .get_gene_expr_by_cnv(obj@.hspike)
+                  cnv_mean_sd = .get_gene_expr_mean_sd_by_cnv(gene_expr_by_cnv)
+                  cnv_sd <- cbind(lapply(cnv_mean_sd,function(x){x$sd}))
+                  cnv_mean <- cbind(lapply(cnv_mean_sd,function(x){x$mean}))
+                  ## Sort so in order of {x0,...,x1,..,x3} and get into a vector format
+                  obj@mu <- unlist(cbind(cnv_mean[sort(row.names(cnv_mean)),]))
+                  obj@sig <-  unlist(cbind(cnv_sd[sort(row.names(cnv_sd)),]))
+                  obj@sig <- 1/(obj@sig^2)
+                  if (obj@args$quietly == FALSE) {
+                      print(paste("Means: ", obj@mu, collapse = ""))
+                      print(paste("Sig: ", obj@sig, collapse = ""))
+                  }
+              } else {
+            # i3 HMM method 
+                  states <- unique(c(HMM_states))
+                  ## c(HMM_states), c(infercnv_obj@expr.data) : Converts HMM_states and expression data matrix into a vector 
+                  # MEAN
+                  means <- sapply(states, function(i) mean(c(infercnv_obj@expr.data)[which(c(HMM_states) %in% i)]))
+                  names(means)<-states
+                  obj@mu <- means[sort(names(means))]
+                  # SD
+                  std <- sapply(states, function(i) sd(c(infercnv_obj@expr.data)[which(c(HMM_states) %in% i)]))
+                  names(std)<-states
+                  obj@sig <- std[sort(names(std))]
+                  obj@sig <- 1/(obj@sig^2)
+                  
+                  if (obj@args$quietly == FALSE) {
+                      print(paste("Means: ", obj@mu, collapse = ""))
+                      print(paste("Sig: ", obj@sig, collapse = ""))
+                  }
               }
               return(obj)
           }
@@ -207,7 +249,10 @@ setMethod(f="getGenesCells",
                   # get the index for the cells that are in each cnv
                   sub_cells <- unique(current_cnv$cell_group_name)
                   cells_idx <- which(colnames(obj@expr.data) %in% cell_groups_df[which(cell_groups_df$cell_group_name %in% sub_cells),]$cell)
-                  return(list("cnv_regions" = i, "Genes" = gene_idx, "Cells" = cells_idx))
+                  
+                  # get unique current CNV state
+                  state <- unique(current_cnv$state)
+                  return(list("cnv_regions" = i, "Genes" = gene_idx, "Cells" = cells_idx, "State" = state))
               })
               return(obj)
           }
@@ -262,7 +307,7 @@ setMethod(f="initializeObject",
 
               ## Load Mixture Model File
               futile.logger::flog.info(paste("Loading BUGS Model."))
-              obj@bugs_model <- system.file("BUGS_Mixture_Model", package = "infercnv") 
+              obj@bugs_model <- obj@args$model_file
 
               ## list that holds Genes and Cells for each separate identified CNV
               obj <- getGenesCells(obj, pred_cnv_genes_df, cell_groups_df)
@@ -325,7 +370,7 @@ setMethod(f="getProbabilities",
                   ## Thetas
                   cnv_probabilities[[j]] <- cnv_prob(combined_mcmc[[j]])
                   ## Epsilons
-                  cell_probabilities[[j]] <- cell_prob(combined_mcmc[[j]])
+                  cell_probabilities[[j]] <- cell_prob(combined_mcmc[[j]], obj)
               }
 
               obj@cnv_probabilities <- cnv_probabilities
@@ -438,6 +483,8 @@ setMethod(f="removeCNV",
           signature="MCMC_inferCNV",
           definition=function(obj, HMM_states)
           {
+              # Assign index and state that represents normal based on the HMM method 
+              normalID <- ifelse(getHMMType(obj) == 'i6', 3, 2)
               # Mean values of the probability distribution of the CNV states p(CNV == {states 1:6})
               if ( length(obj@cnv_probabilities) == 1 ){
                   cnv_means <- obj@cnv_probabilities[[1]] # added this option for troubleshooting only 
@@ -445,9 +492,9 @@ setMethod(f="removeCNV",
                   cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
               }
               futile.logger::flog.info(paste("Attempting to removing CNV(s) with a probability of being normal above ", obj@args$BayesMaxPNormal))
-              futile.logger::flog.info(paste("Removing ",length(which(cnv_means[3,] > obj@args$BayesMaxPNormal)), " CNV(s) identified by the HMM."))
-              if (any(cnv_means[3,] > obj@args$BayesMaxPNormal)){
-                  remove_cnv <- which(cnv_means[3,] > obj@args$BayesMaxPNormal)
+              futile.logger::flog.info(paste("Removing ",length(which(cnv_means[normalID,] > obj@args$BayesMaxPNormal)), " CNV(s) identified by the HMM."))
+              if (any(cnv_means[normalID,] > obj@args$BayesMaxPNormal)){
+                  remove_cnv <- which(cnv_means[normalID,] > obj@args$BayesMaxPNormal)
 
                   if (obj@args$quietly == FALSE) { print("CNV's being removed have the following posterior probabilities of being a normal state: ") }
 
@@ -457,7 +504,7 @@ setMethod(f="removeCNV",
                           # print(paste(paste( "Probabilities: "), cnv_means[,i]))
                         }
                       ## Change the states to normal states
-                      HMM_states[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- 3
+                      HMM_states[obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells ] <<- normalID
                   })
                   ## Remove the CNV's from the following matrices
                   obj@cell_gene <- obj@cell_gene[-remove_cnv]
@@ -479,8 +526,9 @@ setMethod(f="removeCNV",
               ## set column names to the CNV ID
               cnv_regions <- sapply(obj@cell_gene, function(i) { as.character(i$cnv_regions) })
               colnames(cnv_means) <- cnv_regions
-              ## set row names to the states 1:6
-              row.names(cnv_means) <- c(sprintf("State:%s",1:6))
+              ## set row names to the states 1:6 or 1:3
+              temp <- ifelse(getHMMType(obj) == 'i6', 6, 3)
+              row.names(cnv_means) <- c(sprintf("State:%s",1:temp))
               write.table(cnv_means,file = file.path(obj@args$out_dir, "CNV_State_Probabilities.dat"), col.names = TRUE, row.names=TRUE, quote=FALSE, sep="\t")
               return(list(obj, HMM_states))
           }
@@ -508,18 +556,34 @@ setMethod(f="removeCells",
           signature="MCMC_inferCNV",
           definition=function(obj, HMM_states)
           {
-              if (any(do.call(cbind, obj@cell_probabilities)[3,] > obj@args$BayesMaxPNormal)){
-                  lapply(1:length(obj@cell_probabilities), function(i) {
-                      idx <- which(obj@cell_probabilities[[i]][3,] > obj@args$BayesMaxPNormal)
-                      if(length(idx) > 0){
-                          ## change the states to normal states
-                          HMM_states[ obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells[ idx ] ] <<- 3
-                          ## remove these cells from the cnv
-                          obj@cell_gene[[i]]$Cells <<- obj@cell_gene[[i]]$Cells[- idx]
-                      }
-                  })
-                  # recursively run again
-                  obj <- runMCMC(obj)
+              if (getHMMType(obj) == 'i6'){
+                  if (any(do.call(cbind, obj@cell_probabilities)[3,] > obj@args$BayesMaxPNormal)){
+                      lapply(1:length(obj@cell_probabilities), function(i) {
+                          idx <- which(obj@cell_probabilities[[i]][3,] > obj@args$BayesMaxPNormal)
+                          if(length(idx) > 0){
+                              ## change the states to normal states
+                              HMM_states[ obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells[ idx ] ] <<- 3
+                              ## remove these cells from the cnv
+                              obj@cell_gene[[i]]$Cells <<- obj@cell_gene[[i]]$Cells[- idx]
+                          }
+                      })
+                      # recursively run again
+                      obj <- runMCMC(obj)
+                  }
+              } else {
+                  if (any(do.call(cbind, obj@cell_probabilities)[2,] > obj@args$BayesMaxPNormal)){
+                      lapply(1:length(obj@cell_probabilities), function(i) {
+                          idx <- which(obj@cell_probabilities[[i]][2,] > obj@args$BayesMaxPNormal)
+                          if(length(idx) > 0){
+                              ## change the states to normal states
+                              HMM_states[ obj@cell_gene[[i]]$Genes , obj@cell_gene[[i]]$Cells[ idx ] ] <<- 2
+                              ## remove these cells from the cnv
+                              obj@cell_gene[[i]]$Cells <<- obj@cell_gene[[i]]$Cells[- idx]
+                          }
+                      })
+                      # recursively run again
+                      obj <- runMCMC(obj)
+                  }
               }
               return(obj)
           }
@@ -557,6 +621,7 @@ setMethod(f="runMCMC",
               }
 
               # Get the probability of of each cell line and complete CNV belonging to a specific state
+              futile.logger::flog.info(paste("Obtaining probabilities post-sampling"))
               obj <- getProbabilities(obj,mcmc)
 
               return(obj)
@@ -593,7 +658,11 @@ setMethod(f="postProbNormal",
                   # get probability of the cnv's belonging to each state
                   cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
                   # Adjust the probabilities so greater probability corresponds to less likely to be normal
-                  normal_prob <- 1 - cnv_means[3,]
+                  if ( getHMMType(obj) == 'i6'){
+                      normal_prob <- 1 - cnv_means[3,]
+                  } else {
+                      normal_prob <- 1 - cnv_means[2,]
+                  }
                   obj@expr.data[,] <- 0
                   lapply(1:length(normal_prob), function(i) {
                       ## change the states to normal states
@@ -606,8 +675,8 @@ setMethod(f="postProbNormal",
                   }
                   infercnv::plot_cnv(infercnv_obj          = obj,
                                      out_dir               = obj@args$out_dir,
-                                     #k_obs_groups         = 4,
-                                     #cluster_by_groups    = cluster_by_groups,
+                                     k_obs_groups          = obj@args$k_obs_groups,
+                                     cluster_by_groups     = obj@args$cluster_by_groups,
                                      title                 = title,
                                      output_filename       = "infercnv.NormalProbabilities",
                                      write_expr_matrix     = FALSE,
@@ -654,7 +723,7 @@ setMethod(f="plotProbabilities",
                   }
                   pdf(file = file.path(file.path(obj@args$out_dir),file_CELLplot), onefile = TRUE)
                   lapply(1:length(obj@cell_probabilities), function(i){
-                      print(plot_cell_prob(as.data.frame(obj@cell_probabilities[[i]]), as.character(obj@cell_gene[[i]]$cnv_regions)))
+                      print(plot_cell_prob(as.data.frame(obj@cell_probabilities[[i]]), as.character(obj@cell_gene[[i]]$cnv_regions), getHMMType(obj)))
                   })
                   dev.off()
 
@@ -667,7 +736,7 @@ setMethod(f="plotProbabilities",
                   }
                   pdf(file = file.path(file.path(obj@args$out_dir), file_CNVplot), onefile = TRUE)
                   lapply(1:length(obj@cell_probabilities), function(i){
-                      print(plot_cnv_prob(obj@cnv_probabilities[[i]], as.character(obj@cell_gene[[i]]$cnv_regions)))
+                      print(plot_cnv_prob(obj@cnv_probabilities[[i]], as.character(obj@cell_gene[[i]]$cnv_regions), getHMMType(obj)))
                   })
                   dev.off()
               }
@@ -904,21 +973,31 @@ run_gibb_sampling <- function(gene_exp,
         'mu' = MCMC_inferCNV_obj@mu              # Mean values to be used for determining the distribution of each cell line
     )
     # set initial values for each cell line begining states
-    inits <- list(
-        list(epsilon = rep(1, C)),
-        list(epsilon = rep(2, C)),
-        list(epsilon = rep(3, C)),
-        list(epsilon = rep(4, C)),
-        list(epsilon = rep(5, C)),
-        list(epsilon = rep(6, C))
-    )
+    if (getHMMType(MCMC_inferCNV_obj) == "i6"){
+        # i6 method 
+        inits <- list(
+            list(epsilon = rep(1, C)),
+            list(epsilon = rep(2, C)),
+            list(epsilon = rep(3, C)),
+            list(epsilon = rep(4, C)),
+            list(epsilon = rep(5, C)),
+            list(epsilon = rep(6, C))
+        )
+    } else {
+        # i3 method 
+        inits <- list(
+            list(epsilon = rep(1, C)),
+            list(epsilon = rep(2, C)),
+            list(epsilon = rep(3, C))
+        )   
+    }
     # Create the model for rjags
     model <- rjags::jags.model(modelFile(MCMC_inferCNV_obj),
-                               data=data,
-                               inits=inits, # (Initialization) optional specification of initial values in the form of a list or a function
-                               n.chains=6,  # the number of parallel chains for the model
-                               n.adapt=500, # the number of iterations for adaptation (burn in)
-                               quiet=MCMC_inferCNV_obj@args$quietly)
+                               data     = data,
+                               inits    = inits, # (Initialization) optional specification of initial values in the form of a list or a function
+                               n.chains = ifelse(getHMMType(MCMC_inferCNV_obj) == "i3", 3, 6),  # the number of parallel chains for the model
+                               n.adapt  = 500, # the number of iterations for adaptation (burn in)
+                               quiet    = MCMC_inferCNV_obj@args$quietly)
     stats::update(model, 200, progress.bar=ifelse(MCMC_inferCNV_obj@args$quietly,"none","text"))
     # run the rjags model
     ## set the parameters to return from sampling
@@ -928,8 +1007,9 @@ run_gibb_sampling <- function(gene_exp,
 }
 
 # Function to plot the probability for each cell line of being in a particular state
-plot_cell_prob <- function(df, title){
-    df$mag = c(1:6)
+plot_cell_prob <- function(df, title, HMM_type){
+    # i3 or i6 HMM method, need to determine the number of columns on the graph
+    df$mag = 1:ifelse(HMM_type == "i6", 6, 3)
     long_data <- reshape::melt(df, id = "mag")
     long_data$mag <- as.factor(long_data$mag)
     ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = 'value', fill = 'mag'))+
@@ -961,17 +1041,17 @@ cnv_prob <- function(combined_samples) {
 }
 
 # Function for each individule cell probabilities, marginalize over the EPSILONS
-cell_prob <- function(combined_samples) {
+cell_prob <- function(combined_samples, obj) {
     epsilons <- combined_samples[,grepl('epsilon', colnames(combined_samples))]
     #print(paste("Epsilons: ", dim(epsilons)))
-    epsilon_state_frequencies <- apply(as.data.frame(epsilons), 2, function(x) table(factor(x, levels=1:6)))
+    epsilon_state_frequencies <- apply(as.data.frame(epsilons), 2, function(x) table(factor(x, levels = 1:ifelse(getHMMType(obj) == "i6", 6, 3))))
     cell_probs <- epsilon_state_frequencies/colSums(epsilon_state_frequencies)
     return(cell_probs)
 }
 
 ## Fucntion to Plot the probability of each state for a CNV
-plot_cnv_prob <- function(df,title){
-    colnames(df) <- c(1:6)
+plot_cnv_prob <- function(df, title, HMM_type){
+    colnames(df) <- 1:ifelse(HMM_type == "i6", 6, 3)
     df <- melt(df)
     colnames(df) <- c("row", "State", "Probability")
     states <- as.factor(df$State)
@@ -1002,6 +1082,10 @@ plot_cnv_prob <- function(df,title){
 #' @param plotingProbs Option for adding plots of Cell and CNV probabilities. (Default: TRUE)
 #' @param quietly Option to print descriptions along each step. (Default: TRUE)
 #' @param diagnostics Option to plot Diagnostic plots and tables. (Default: FALSE)
+#' @param HMM_type The type of HMM that was ra, either 'i3' or 'i6'. Determines how many state were predicted by the HMM.
+#' @param k_obs_groups Number of groups in which to break the observations. (default: 1)
+#' @param cluster_by_groups If observations are defined according to groups (ie. patients), each group
+#'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
 #'
 #' @return Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states
 #' (states: 0, 0.5, 1, 1.5, 2, 3) for CNV's identified by inferCNV's HMM.
@@ -1028,25 +1112,31 @@ plot_cnv_prob <- function(df,title){
 #'                               no_plot=TRUE)
 #' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
 #'                               HMM_states         = HMM_states,
-#'                               file_dir        = "../example_output",
-#'                               postMcmcMethod  = "removeCNV",
-#'                               out_dir         = "../example_output",
-#'                               quietly         = TRUE,
-#'                               CORES           = 2,
-#'                               plotingProbs    = FALSE,
-#'                               diagnostics     = FALSE)
+#'                               file_dir           = "../example_output",
+#'                               postMcmcMethod     = "removeCNV",
+#'                               out_dir            = "../example_output",
+#'                               quietly            = TRUE,
+#'                               CORES              = 2,
+#'                               plotingProbs       = FALSE,
+#'                               diagnostics        = FALSE,
+#'                               HMM_type           = 'i6',
+#'                               k_obs_groups       = 1,
+#'                               cluster_by_groups  = FALSE)
 #'                               
 inferCNVBayesNet <- function(
                               file_dir,
                               infercnv_obj,
                               HMM_states,
                               out_dir,
-                              model_file      = system.file("BUGS_Mixture_Model",package = "infercnv"),
-                              CORES           = 1,
-                              postMcmcMethod  = NULL,
-                              plotingProbs    = TRUE,
-                              quietly         = TRUE,
-                              diagnostics     = FALSE) {
+                              model_file        = NULL,
+                              CORES             = 1,
+                              postMcmcMethod    = NULL,
+                              plotingProbs      = TRUE,
+                              quietly           = TRUE,
+                              diagnostics       = FALSE,
+                              HMM_type          = HMM_type,
+                              k_obs_groups      = k_obs_groups,
+                              cluster_by_groups = cluster_by_groups) {
 
     ################
     # CHECK INPUTS #
@@ -1057,7 +1147,7 @@ inferCNVBayesNet <- function(
         futile.logger::flog.error(error_message)
         stop(error_message)
     }
-    if (!file.exists(model_file)){
+    if (!is.null(model_file) && !file.exists(model_file)){
         error_message <- paste("Cannot find the model file.",
                                "Please supply the correct path for the model file.")
         futile.logger::flog.error(error_message)
@@ -1071,11 +1161,13 @@ inferCNVBayesNet <- function(
             stop(error_message)
         }
     }
-
     if(out_dir != "." & !file.exists(out_dir)){
         # create the output directory
         dir.create(file.path(out_dir))
         futile.logger::flog.info(paste("Creating the following Directory: ", out_dir))
+    }
+    if (is.null(model_file)){
+        model_file <- ifelse(HMM_type == "i6", system.file("BUGS_Mixture_Model",package = "infercnv"), system.file("BUGS_Mixture_Model_i3",package = "infercnv"))
     }
     args_parsed <- list("file_dir" = file_dir,
                         "model_file" = model_file,
@@ -1084,7 +1176,10 @@ inferCNVBayesNet <- function(
                         "plotingProbs" = plotingProbs,
                         "postMcmcMethod"=postMcmcMethod,
                         "quietly" = quietly,
-                        "BayesMaxPNormal" = 0)
+                        "BayesMaxPNormal" = 0,
+                        "HMM_type" = HMM_type,
+                        "k_obs_groups" = k_obs_groups,
+                        "cluster_by_groups" = cluster_by_groups)
     #################################
     # LOAD DATA & INITIALIZE OBJECT #
     #################################
@@ -1098,7 +1193,9 @@ inferCNVBayesNet <- function(
     # MEAN & SD #
     #############
     ## Get mean and sd of expression in the predicted cnv areas
-    MCMC_inferCNV_obj <- MeanSD(MCMC_inferCNV_obj)
+    MCMC_inferCNV_obj <- MeanSD(obj = MCMC_inferCNV_obj, 
+                                HMM_states = HMM_states, 
+                                infercnv_obj = infercnv_obj)
 
 
     # check and print the number of genes in each cnv
