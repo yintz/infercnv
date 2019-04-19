@@ -185,7 +185,7 @@
 #'
 #' infercnv_obj <- infercnv::run(infercnv_obj,
 #'                               cutoff=1,
-#'                               out_dir="../example_output", 
+#'                               out_dir=tempfile(), 
 #'                               cluster_by_groups=TRUE, 
 #'                               denoise=TRUE,
 #'                               HMM=FALSE,

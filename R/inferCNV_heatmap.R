@@ -54,7 +54,7 @@ get_group_color_palette <- function(){
 #'
 #' # infercnv_obj <- infercnv::run(infercnv_obj,
 #' #                               cutoff=1,
-#' #                               out_dir="../example_output", 
+#' #                               out_dir=tempfile(), 
 #' #                               cluster_by_groups=TRUE, 
 #' #                               denoise=TRUE,
 #' #                               HMM=FALSE,
@@ -64,7 +64,7 @@ get_group_color_palette <- function(){
 #' data(infercnv_object)
 #'
 #' plot_cnv(infercnv_obj,
-#'          out_dir=".",
+#'          out_dir=tempfile(),
 #'          obs_title="Observations (Cells)",
 #'          ref_title="References (Cells)",
 #'          cluster_by_groups=TRUE,

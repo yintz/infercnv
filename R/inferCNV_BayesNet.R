@@ -1102,9 +1102,11 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #'                                                gene_order_file=genes,
 #'                                                annotations_file=annots,
 #'                                                ref_group_names=c("normal"))
+#'
+#' out_dir = tempfile()
 #' infercnv_obj <- infercnv::run(infercnv_obj,
 #'                               cutoff=1,
-#'                               out_dir="../example_output", 
+#'                               out_dir=out_dir, 
 #'                               cluster_by_groups=TRUE, 
 #'                               denoise=TRUE,
 #'                               HMM=TRUE,
@@ -1112,9 +1114,9 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #'                               no_plot=TRUE)
 #' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
 #'                               HMM_states         = HMM_states,
-#'                               file_dir           = "../example_output",
+#'                               file_dir           = out_dir,
 #'                               postMcmcMethod     = "removeCNV",
-#'                               out_dir            = "../example_output",
+#'                               out_dir            = out_dir,
 #'                               quietly            = TRUE,
 #'                               CORES              = 2,
 #'                               plotingProbs       = FALSE,
