@@ -59,6 +59,14 @@ _inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r Biocpkg("BiocGenerics")`
 -->
 
 
+## Installing
+```{r install, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("infercnv")
+```
+
+
 ## Optional extension
 If you want to use the interactive heatmap visualization, please check the add-on packge _R_ `r Githubpkg ("broadinstitute/inferCNV_NGCHM")` after installing the packages `r CRANpkg("tibble")`, `r Githubpkg("bmbroom/tsvio")` and `r Githubpkg("bmbroom/NGCHMR")`. To install optional packages, type the following in an R command window:
 

@@ -52,7 +52,7 @@
     }
     
     ## fit linear model
-    num_cells = 1:length(sds)
+    num_cells = seq_along(sds)
     fit = lm(log(sds) ~ log(num_cells)) #note, hbadger does something similar, but not for the hmm cnv state levels
     
     if (plot) {

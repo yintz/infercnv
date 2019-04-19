@@ -10,7 +10,7 @@
 #' @param min_cells_per_gene minimum number of reference cells requiring expression measurements to include the corresponding gene.
 #'                           default: 3
 #'
-#' @param out_dir path to directory to deposit outputs (default: '.')
+#' @param out_dir path to directory to deposit outputs (default: NULL, required to provide non NULL)
 #'
 #' ## Smoothing params
 #' @param window_length Length of the window for the moving average
@@ -31,6 +31,9 @@
 #'
 #' @param cluster_by_groups   If observations are defined according to groups (ie. patients), each group
 #'                            of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)
+#'
+#' @param cluster_references Whether to cluster references within their annotations or not. (dendrogram not displayed)
+#'                             (default: TRUE)
 #'
 #'
 #' @param k_obs_groups Number of groups in which to break the observations. (default: 1)
@@ -182,7 +185,7 @@
 #'
 #' infercnv_obj <- infercnv::run(infercnv_obj,
 #'                               cutoff=1,
-#'                               out_dir="../example_output", 
+#'                               out_dir=tempfile(), 
 #'                               cluster_by_groups=TRUE, 
 #'                               denoise=TRUE,
 #'                               HMM=FALSE,
@@ -195,7 +198,7 @@ run <- function(infercnv_obj,
                 cutoff=1,
                 min_cells_per_gene=3,
 
-                out_dir=".",
+                out_dir=NULL,
 
                 ## smoothing params
                 window_length=101,
@@ -206,6 +209,7 @@ run <- function(infercnv_obj,
 
                 # observation cell clustering settings
                 cluster_by_groups=FALSE,
+                cluster_references=TRUE,
                 k_obs_groups=1,
 
                 hclust_method='ward.D2',
@@ -290,6 +294,10 @@ run <- function(infercnv_obj,
     flog.info(paste("::process_data:Start", sep=""))
     
     infercnv.env$GLOBAL_NUM_THREADS <- num_threads
+    if (is.null(out_dir)) {
+        flog.error("Error, out_dir is NULL, please provide a path.")
+        stop("out_dir is NULL")
+    }
     if(out_dir != "." & !file.exists(out_dir)){
         dir.create(out_dir)
     }
@@ -386,6 +394,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj=infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title=sprintf("%02d_log_transformed_data",step_count),
                      output_filename=sprintf("infercnv.%02d_log_transformed",step_count),
@@ -418,6 +427,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_scaled",step_count),
                          output_filename=sprintf("infercnv.%02d_scaled",step_count),
@@ -471,7 +481,8 @@ run <- function(infercnv_obj,
         } else {
             infercnv_obj <- define_signif_tumor_subclusters_via_random_smooothed_trees(infercnv_obj,
                                                                                        p_val=tumor_subcluster_pval,
-                                                                                       hclust_method=hclust_method)
+                                                                                       hclust_method=hclust_method,
+                                                                                       cluster_by_groups=cluster_by_groups)
             saveRDS(infercnv_obj, file=infercnv_obj_file)
             
             if (plot_steps) {
@@ -479,6 +490,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
@@ -508,6 +520,7 @@ run <- function(infercnv_obj,
             infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
                                                             p_val=tumor_subcluster_pval,
                                                             hclust_method=hclust_method,
+                                                            cluster_by_groups=cluster_by_groups,
                                                             partition_method='none')
             
             saveRDS(infercnv_obj, file=infercnv_obj_file)
@@ -538,6 +551,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title=sprintf("%02d_remove_average",step_count),
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
@@ -580,6 +594,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
                          output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
@@ -627,6 +642,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title=sprintf("%02d_smoothed_by_chr",step_count),
                      output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
@@ -659,6 +675,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title=sprintf("%02d_centering_of_smoothed",step_count),
                      output_filename=sprintf("infercnv.%02d_centering_of_smoothed", step_count),
@@ -691,6 +708,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title=sprintf("%02d_remove_average",step_count),
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
@@ -723,6 +741,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_remove_genes_at_chr_ends",step_count),
                          output_filename=sprintf("infercnv.%02d_remove_genes_at_chr_ends",step_count),
@@ -755,6 +774,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
                      output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
@@ -785,6 +805,7 @@ run <- function(infercnv_obj,
             infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
                                                             p_val=tumor_subcluster_pval,
                                                             hclust_method=hclust_method,
+                                                            cluster_by_groups=cluster_by_groups,
                                                             partition_method=tumor_subcluster_partition_method)
             
             saveRDS(infercnv_obj, file=infercnv_obj_file)
@@ -794,6 +815,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_tumor_subclusters",step_count),
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters",step_count),
@@ -818,6 +840,7 @@ run <- function(infercnv_obj,
             plot_cnv(infercnv_obj_prelim,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
                      out_dir=out_dir,
                      title="Preliminary infercnv (pre-noise filtering)",
                      output_filename="infercnv.preliminary", # png ext auto added
@@ -856,6 +879,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_removed_outliers",step_count),
                          output_filename=sprintf("infercnv.%02d_removed_outliers", step_count),
@@ -900,6 +924,11 @@ run <- function(infercnv_obj,
                                                                                        use_KS=HMM_i3_use_KS)
                 } else {
                     stop("Error, not recognizing HMM_type")
+                }
+
+                if (tumor_subcluster_partition_method == 'random_trees') {
+                    ## need to redo the hierarchicial clustering, since the subcluster assignments dont always perfectly line up with the top-level dendrogram.
+                    hmm.infercnv_obj <- .redo_hierarchical_clustering(hmm.infercnv_obj, hclust_method=hclust_method)
                 }
                 
             } else if (analysis_mode == 'cells') {
@@ -956,6 +985,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds",step_count),
                          output_filename=sprintf("infercnv.%02d_HMM_pred%s",step_count, hmm_resume_file_token),
@@ -971,7 +1001,7 @@ run <- function(infercnv_obj,
         ## Bayesian Network Mixture Model
         ## ############################################################
         
-        if (HMM_type == 'i6' & BayesMaxPNormal > 0) {
+        if (HMM == TRUE & BayesMaxPNormal > 0 & length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
             step_count = step_count + 1
             flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
             
@@ -984,26 +1014,30 @@ run <- function(infercnv_obj,
                 mcmc_obj <- readRDS(mcmc_obj_file)
             } else {
                 
-                mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj_prelim,
-                                                       HMM_states      = hmm.infercnv_obj@expr.data,
-                                                       file_dir        = out_dir,
-                                                       postMcmcMethod  = "removeCNV",
-                                                       out_dir         = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
-                                                       quietly         = TRUE,
-                                                       CORES           = num_threads,
-                                                       plotingProbs    = plot_probabilities,
-                                                       diagnostics     = diagnostics)
+                mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj     = infercnv_obj_prelim,
+                                                       HMM_states        = hmm.infercnv_obj@expr.data,
+                                                       file_dir          = out_dir,
+                                                       postMcmcMethod    = "removeCNV",
+                                                       out_dir           = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
+                                                       quietly           = TRUE,
+                                                       CORES             = num_threads,
+                                                       plotingProbs      = plot_probabilities,
+                                                       diagnostics       = diagnostics,
+                                                       HMM_type          = HMM_type,
+                                                       k_obs_groups      = k_obs_groups,
+                                                       cluster_by_groups = cluster_by_groups)
                 saveRDS(mcmc_obj, file=mcmc_obj_file)
             }
             
             ## Filter CNV's by posterior Probabilities
-            mcmc_obj <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
-                                                      HMM_states = hmm.infercnv_obj@expr.data, 
-                                                      BayesMaxPNormal   = BayesMaxPNormal)
+            mcmc_obj_hmm_states_list <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
+                                                                     HMM_states = hmm.infercnv_obj@expr.data, 
+                                                                     BayesMaxPNormal   = BayesMaxPNormal)
             
-            ## Create new inferCNV objecrt with CNV's removed
-            hmm.infercnv_obj <- infercnv::returningInferCNV(mcmc_obj,
-                                                            hmm.infercnv_obj@expr.data)
+            hmm_states_highPnormCNVsRemoved.matrix <- mcmc_obj_hmm_states_list[[2]]
+
+            # replace states
+            hmm.infercnv_obj@expr.data <- hmm_states_highPnormCNVsRemoved.matrix
             
             ## Save the MCMC inferCNV object
             mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj",
@@ -1016,6 +1050,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds_Bayes_Net",step_count),
                          output_filename=sprintf("infercnv.%02d_HMM_pred.Bayes_Net.Pnorm_%g",step_count, BayesMaxPNormal),
@@ -1054,9 +1089,10 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
-                         output_filename=sprintf("infercnv.%02d_HMM_pred%s.repr_intensities", step_count, hmm_resume_file_token),
+                         output_filename=sprintf("infercnv.%02d_HMM_pred%s.Pnorm_%g.repr_intensities", step_count, hmm_resume_file_token, BayesMaxPNormal),
                          write_expr_matrix=TRUE,
                          x.center=1,
                          x.range=c(-1,3),
@@ -1110,6 +1146,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_mask_nonDE",step_count),
                          output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
@@ -1169,6 +1206,7 @@ run <- function(infercnv_obj,
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
+                         cluster_references=cluster_references,
                          out_dir=out_dir,
                          color_safe_pal=FALSE,
                          title=sprintf("%02d_denoised", step_count),
@@ -1196,6 +1234,7 @@ run <- function(infercnv_obj,
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
+                 cluster_references=cluster_references,
                  out_dir=out_dir,
                  x.center=final_center_val,
                  x.range=final_scale_limits,
@@ -1269,18 +1308,17 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
         
         grp_means = c()
         
-        for (ref_group in ref_groups) {
-            
-            if (inv_log) {
-                ref_grp_mean = log2(mean(2^x[ref_group] - 1) + 1)
-            } else {
-                ref_grp_mean = mean(x[ref_group])
-            }
-            
-            grp_means = c(grp_means, ref_grp_mean)
-            
+        if (inv_log) {
+            grp_means <- vapply(ref_groups, function(ref_group) {
+                log2(mean(2^x[ref_group] - 1) + 1)
+            }, double(1))
         }
-        
+        else {
+            grp_means <- vapply(ref_groups, function(ref_group) {
+                mean(x[ref_group])
+            }, double(1))
+        }
+
         names(grp_means) <- names(ref_groups)
         
         return(as.data.frame(t(data.frame(grp_means))))
@@ -1441,7 +1479,7 @@ create_sep_list <- function(row_count,
        (length(row_seps)>0) &&
        row_count > 0){
         rowList <- list()
-        for(sep in 1:length(row_seps)){
+        for(sep in seq_along(row_seps)){
             rowList[[sep]] <- c(0,row_seps[sep],col_count,row_seps[sep])
         }
         sepList[[2]] <- rowList
@@ -2546,8 +2584,6 @@ normalize_counts_by_seq_depth <- function(infercnv_obj, normalize_factor=NA) {
     
     cs = colSums(data)
     
-    print(cs)
-    
     ## make fraction of total counts:
     data <- sweep(data, STATS=cs, MARGIN=2, FUN="/")
     
@@ -2672,3 +2708,39 @@ cross_cell_normalize <- function(infercnv_obj) {
     
 }
 
+
+
+#' @title .redo_hierarchical_clustering()
+#'
+#' @description Recomputes hierarchical clustering for subclusters
+#'
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param hclust_method clustering method to use (default: 'complete')
+#'
+#' @return infercnv_obj
+#'
+#' @keywords internal
+#' @noRd
+#'
+
+.redo_hierarchical_clustering <- function(infercnv_obj, hclust_method) {
+
+    subclusters = infercnv_obj@tumor_subclusters$subclusters
+
+    for (grp_name in names(subclusters)) {
+
+        grp_cell_idx = unlist(subclusters[[grp_name]], recursive=TRUE)
+        grp_cell_idx = grp_cell_idx[order(grp_cell_idx)] # retain relative ordering in the expr matrix
+        
+        grp_expr_data = infercnv_obj@expr.data[, grp_cell_idx, drop=FALSE]
+        
+        hc <- hclust(dist(t(grp_expr_data)), method=hclust_method)
+
+        infercnv_obj@tumor_subclusters$hc[[grp_name]] <- hc
+    }
+
+    return(infercnv_obj)
+    
+}

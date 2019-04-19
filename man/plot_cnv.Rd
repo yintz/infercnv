@@ -6,7 +6,8 @@
 \usage{
 plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
-  cluster_by_groups = TRUE, k_obs_groups = 3, contig_cex = 1,
+  cluster_by_groups = TRUE, cluster_references = TRUE,
+  k_obs_groups = 3, contig_cex = 1,
   x.center = mean(infercnv_obj@expr.data), x.range = "auto",
   hclust_method = "ward.D", color_safe_pal = FALSE,
   output_filename = "infercnv", output_format = "png", png_res = 300,
@@ -24,6 +25,8 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
 \item{ref_title}{Title for the reference matrix.}
 
 \item{cluster_by_groups}{Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.}
+
+\item{cluster_references}{Whether to cluster references within their annotations or not. (dendrogram not displayed)}
 
 \item{k_obs_groups}{Number of groups to break observation into.}
 
