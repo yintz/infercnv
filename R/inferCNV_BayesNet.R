@@ -484,7 +484,7 @@ setMethod(f="removeCNV",
           definition=function(obj, HMM_states)
           {
               # Assign index and state that represents normal based on the HMM method 
-              normalID <- ifelse(getHMMType(obj) == 'i6', 3,2)
+              normalID <- ifelse(getHMMType(obj) == 'i6', 3, 2)
               # Mean values of the probability distribution of the CNV states p(CNV == {states 1:6})
               if ( length(obj@cnv_probabilities) == 1 ){
                   cnv_means <- obj@cnv_probabilities[[1]] # added this option for troubleshooting only 
