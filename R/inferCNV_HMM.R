@@ -180,7 +180,7 @@ get_hspike_cnv_mean_sd_trend_by_num_cells_fit <- function(hspike_obj, plot=FALSE
             data.frame(cnv=cnv_level, num_cells=seq_along(sd), sd=sd)
         }))
 
-        p  = df %>% ggplot(aes_string(x=log(num_cells),y=log(sd), color='cnv')) + geom_point()
+        p  = df %>% ggplot(aes_string(x=log(df["num_cells"]),y=log(df["sd"]), color=df["cnv"])) + geom_point()
         pdf("hspike_obs_mean_var_trend.pdf")
         flog.info("plotting: hspike_obs_mean_var_trend.pdf")
         plot(p)
