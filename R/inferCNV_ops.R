@@ -1301,18 +1301,17 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
         
         grp_means = c()
         
-        for (ref_group in ref_groups) {
-            
-            if (inv_log) {
-                ref_grp_mean = log2(mean(2^x[ref_group] - 1) + 1)
-            } else {
-                ref_grp_mean = mean(x[ref_group])
-            }
-            
-            grp_means = c(grp_means, ref_grp_mean)
-            
+        if (inv_log) {
+            grp_means <- vapply(ref_groups, function(ref_group) {
+                log2(mean(2^x[ref_group] - 1) + 1)
+            }, double(1))
         }
-        
+        else {
+            grp_means <- vapply(ref_groups, function(ref_group) {
+                mean(x[ref_group])
+            }, double(1))
+        }
+
         names(grp_means) <- names(ref_groups)
         
         return(as.data.frame(t(data.frame(grp_means))))
