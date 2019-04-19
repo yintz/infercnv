@@ -567,7 +567,7 @@ plot_cnv <- function(infercnv_obj,
                 hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
                 if (isfirst) {
-                    write.(row.names(obs_data[which(obs_annotations_groups == i), ]),
+                    write(row.names(obs_data[which(obs_annotations_groups == i), ]),
                                file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
                     isfirst <- FALSE
                 }
