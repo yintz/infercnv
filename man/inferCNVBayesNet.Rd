@@ -30,6 +30,13 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_states, out_dir,
 \item{quietly}{Option to print descriptions along each step. (Default: TRUE)}
 
 \item{diagnostics}{Option to plot Diagnostic plots and tables. (Default: FALSE)}
+
+\item{HMM_type}{The type of HMM that was ra, either 'i3' or 'i6'. Determines how many state were predicted by the HMM.}
+
+\item{k_obs_groups}{Number of groups in which to break the observations. (default: 1)}
+
+\item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
+of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}
 }
 \value{
 Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states
@@ -61,12 +68,15 @@ infercnv_obj <- infercnv::run(infercnv_obj,
                               no_plot=TRUE)
 mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
                               HMM_states         = HMM_states,
-                              file_dir        = "../example_output",
-                              postMcmcMethod  = "removeCNV",
-                              out_dir         = "../example_output",
-                              quietly         = TRUE,
-                              CORES           = 2,
-                              plotingProbs    = FALSE,
-                              diagnostics     = FALSE)
+                              file_dir           = "../example_output",
+                              postMcmcMethod     = "removeCNV",
+                              out_dir            = "../example_output",
+                              quietly            = TRUE,
+                              CORES              = 2,
+                              plotingProbs       = FALSE,
+                              diagnostics        = FALSE,
+                              HMM_type           = 'i6',
+                              k_obs_groups       = 1,
+                              cluster_by_groups  = FALSE)
                               
 }
