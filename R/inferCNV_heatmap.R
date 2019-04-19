@@ -552,24 +552,51 @@ plot_cnv <- function(infercnv_obj,
 
             if (num_genes_in_group < 2) {
                 flog.info(sprintf("Skipping group: %d, since less than 2 entries", i))
-                next
-            }
-            
-            data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=FALSE]
-            flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
-            group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
-            ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[group_obs_hcl$order])
+                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
+                dfake = list()
+                dfake[[1]] = 1L
+                attr(dfake, "class") = "dendrogram"
+                attr(dfake, "height") = 1
+                attr(dfake, "members") = 1L
+                attr(dfake[[1]], "class") = "dendrogram"
+                attr(dfake[[1]], "leaf") = TRUE
+                attr(dfake[[1]], "label") = row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE])
+                attr(dfake[[1]], "height") = 0
+                obs_dendrogram[[length(obs_dendrogram) + 1]] <- dfake
+                
+                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
-                           
-            if (isfirst) {
-                write.tree(as.phylo(group_obs_hcl),
-                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-                isfirst <- FALSE
+                if (isfirst) {
+                    write.(row.names(obs_data[which(obs_annotations_groups == i), ]),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                    isfirst <- FALSE
+                }
+                else {
+                    write(row.names(obs_data[which(obs_annotations_groups == i), ]),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                }
             }
             else {
-                write.tree(as.phylo(group_obs_hcl),
-                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=F]
+                flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
+                group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
+                ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), ])[group_obs_hcl$order])
+
+                if (isfirst) {
+                    write.tree(as.phylo(group_obs_hcl),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                    isfirst <- FALSE
+                }
+                else {
+                    write.tree(as.phylo(group_obs_hcl),
+                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                }
+
+                group_obs_dend <- as.dendrogram(group_obs_hcl)
+                obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
+                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
             }
+
             
             group_obs_dend <- as.dendrogram(group_obs_hcl)
             obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
@@ -1591,9 +1618,9 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   flush.console()
   ## reorder x and cellnote ##
-  x <- x[rowInd,colInd]
+  x <- x[rowInd,colInd,drop=FALSE]
 
-  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd]
+  if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd,drop=FALSE ]
 
   ## reorder labels - row ##
   if(identical(labRow,TRUE)){ ## Note: x is already reorderred
@@ -1612,7 +1639,7 @@ heatmap.cnv <-
   } else if(is.character(labCol)){
     labCol <- labCol[colInd]
   }
-
+  
   ## ------------------------------------------------------------------------
   ## scale
   ## center to 0 and scale to 1 in row or col but not both! ##
