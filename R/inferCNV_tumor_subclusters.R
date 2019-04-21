@@ -291,7 +291,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
         for (i in seq(ncol(df) ) ) {
             
-            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=FALSE), i]
+            df[, i] = df[sample(x=seq_len(num_cells), size=num_cells, replace=FALSE), i]
         }
         
         df
@@ -300,7 +300,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     h_rand_ex = NULL
     max_rand_heights = c()
     num_rand_iters=100
-    for (i in 1:num_rand_iters) {
+    for (i in seq_len(num_rand_iters)) {
         #message(sprintf("iter i:%d", i))
         rand.tumor.expr.data = permute_col_vals(t_tumor.expr.data)
         

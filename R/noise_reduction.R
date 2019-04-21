@@ -98,10 +98,10 @@ apply_median_filtering <- function(infercnv_obj,
     results = data
     
     # if (xdim >= window_size & ydim >= window_size) {
-        for (posx in 1:xdim) {
+        for (posx in seq_len(xdim)) {
             posxa <- ifelse(posx <= (half_window + 1), 1, (posx - (half_window + 1)))
             posxb <- ifelse(posx >= (xdim - (half_window + 1)), xdim, (posx + (half_window + 1)))
-            for ( posy in 1:ydim) {
+            for (posy in seq_len(ydim)) {
                 posya <- ifelse(posy <= (half_window + 1), 1, (posy - (half_window + 1)))
                 posyb <- ifelse(posy >= (ydim - (half_window + 1)), ydim, (posy + (half_window + 1)))
                 results[posx, posy] = median(data[posxa:posxb, posya:posyb])

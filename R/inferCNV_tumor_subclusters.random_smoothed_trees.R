@@ -234,7 +234,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
 
         for (i in seq(ncol(df) ) ) {
             
-            df[, i] = df[sample(x=1:num_cells, size=num_cells, replace=FALSE), i]
+            df[, i] = df[sample(x=seq_len(num_cells), size=num_cells, replace=FALSE), i]
         }
         
         df
@@ -250,7 +250,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     # library(doParallel)
     registerDoParallel(cores=infercnv.env$GLOBAL_NUM_THREADS)
     num_rand_iters=100
-    max_rand_heights <- foreach (i=1:num_rand_iters) %dopar% {
+    max_rand_heights <- foreach (i=seq_len(num_rand_iters)) %dopar% {
         #message("rand iteration: ", i)
         
         rand.tumor.expr.data = t(permute_col_vals( t(expr_matrix) ))

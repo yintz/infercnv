@@ -1374,7 +1374,7 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
         return(row_init)
     }
     
-    subtr_data <- do.call(rbind, lapply(1:nrow(expr_matrix), subtract_normal_expr_fun))
+    subtr_data <- do.call(rbind, lapply(seq_len(nrow(expr_matrix)), subtract_normal_expr_fun))
     rownames(subtr_data) <- my.rownames
     colnames(subtr_data) <- my.colnames
     
@@ -1461,7 +1461,7 @@ create_sep_list <- function(row_count,
        (length(col_seps)>0) &&
        col_count > 0){
         colList <- list()
-        for(sep in 1:length(col_seps)){
+        for(sep in seq_along(col_seps)){
             colList[[sep]] <- c(col_seps[sep],0,col_seps[sep],row_count)
         }
         sepList[[1]] <- colList
@@ -1966,7 +1966,7 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
     if (chr_length < (tail_length * 2)){
         tail_length <- floor(chr_length / 3)
     }
-    remove_indices <- chr[1:tail_length]
+    remove_indices <- chr[seq_len(tail_length)]
     remove_indices <- c(remove_indices,
                         chr[ ( (chr_length + 1) - tail_length):
                              chr_length])
@@ -2089,12 +2089,12 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     
     obs_count <- length(obs_data)
     
-    numerator_counts_vector = c(c(1:tail_length), tail_length + 1, c(tail_length:1))
+    numerator_counts_vector = c(seq_len(tail_length), tail_length + 1, c(tail_length:1))
     
                                         # defining the iteration range in cases where the window size is larger than the number of genes. In that case we only iterate to the half since the process is applied from both ends.
     iteration_range = ifelse(obs_count > window_length, tail_length, ceiling(obs_count/2))
     
-    for (tail_end in 1:iteration_range) {
+    for (tail_end in seq_len(iteration_range)) {
         end_tail = obs_count - tail_end + 1
         
         d_left = tail_end - 1
@@ -2106,7 +2106,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
         
         denominator = (((window_length - 1)/2)^2 + window_length) - ((r_left * (r_left + 1))/2) - ((r_right * (r_right + 1))/2)
         
-        left_input_vector_chunk = obs_data[1:(tail_end + d_right)]
+        left_input_vector_chunk = obs_data[seq_len(tail_end + d_right)]
         right_input_vector_chunk = obs_data[(end_tail - d_right):obs_length]
         
         numerator_range = numerator_counts_vector[(tail_length + 1 - d_left):(tail_length + 1 + d_right)]
@@ -2140,7 +2140,7 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     vals = obs_data[! nas]
     
     custom_filter_denominator = ((window_length-1)/2)^2 + window_length
-    custom_filter_numerator = c(c(1:((window_length-1)/2)), ((window_length-1)/2)+1, c(((window_length-1)/2):1))
+    custom_filter_numerator = c(seq_len((window_length-1)/2), ((window_length-1)/2)+1, c(((window_length-1)/2):1))
     
     custom_filter = custom_filter_numerator/rep(custom_filter_denominator, window_length)
     

@@ -446,7 +446,7 @@ plot_cnv <- function(infercnv_obj,
     # it before the heatmap plot
     ## Optionally cluster by a specific contig
     hcl_desc <- "General"
-    hcl_group_indices <- 1:ncol(obs_data)
+    hcl_group_indices <- seq_len(ncol(obs_data))
     
     if(!is.null(cluster_contig)){
         # restricting to single contig
@@ -577,7 +577,7 @@ plot_cnv <- function(infercnv_obj,
                 }
             }
             else {
-                data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=F]
+                data_to_cluster <- obs_data[gene_indices_in_group, hcl_group_indices, drop=FALSE]
                 flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
                 group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
                 ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), ])[group_obs_hcl$order])
@@ -866,12 +866,12 @@ plot_cnv <- function(infercnv_obj,
                 ref_grp
             })
             ref_seps <- head(cumsum(lengths(order_idx)), -1)
-            split_groups <- unlist(mapply(rep, 1:length(order_idx), lengths(order_idx)))
+            split_groups <- unlist(mapply(rep, seq_along(order_idx), lengths(order_idx)))
             order_idx <- unlist(order_idx)
         }
         else {
             ref_seps <- head(cumsum(lengths(ref_groups)), -1)
-            split_groups <- unlist(mapply(rep, 1:length(ref_groups), lengths(ref_groups)))
+            split_groups <- unlist(mapply(rep, seq_along(ref_groups), lengths(ref_groups)))
             order_idx <- unlist(ref_groups)
         }
         ref_data <- ref_data[, order_idx, drop=FALSE]
@@ -1036,7 +1036,7 @@ plot_cnv <- function(infercnv_obj,
   tmp.MoreArgs <- list(...)
   if (!.invalid(MoreArgs)){
     if (length(MoreArgs)>=1){
-      for (i in 1:length(MoreArgs)) tmp.MoreArgs[[names(MoreArgs)[i]]] <- MoreArgs[[i]]
+      for (i in seq_along(MoreArgs)) tmp.MoreArgs[[names(MoreArgs)[i]]] <- MoreArgs[[i]]
     }
   }
   ret <- do.call(FUN, tmp.MoreArgs)
@@ -1517,7 +1517,7 @@ heatmap.cnv <-
     }
     ddr <- Rowv ## use Rowv 'as-is',when it is dendrogram
     # rowInd <- order.dendrogram(ddr)
-    rowInd <- 1:nr  ### data has already been sorted in the proper order, and coloring vectors too
+    rowInd <- seq_len(nr)  ### data has already been sorted in the proper order, and coloring vectors too
   } else if (is.integer(Rowv)){ ## compute dendrogram and do reordering based on given vector
     ddr <- as.dendrogram(hclust.row)
     ddr <-  reorder(ddr,Rowv)
@@ -1565,7 +1565,7 @@ heatmap.cnv <-
     if(nc !=length(colInd))
       stop("`colInd' is of wrong length.")
   } else{
-    colInd <- 1:nc ## from left
+    colInd <- seq_len(nc) ## from left
   }
   ## ------------------------------------------------------------------------
   ## check consistency
@@ -1624,7 +1624,7 @@ heatmap.cnv <-
 
   ## reorder labels - row ##
   if(identical(labRow,TRUE)){ ## Note: x is already reorderred
-    labRow <- if (is.null(rownames(x))) (1:nr)[rowInd] else rownames(x)
+    labRow <- if (is.null(rownames(x))) (seq_len(nr))[rowInd] else rownames(x)
   } else if(identical(labRow,FALSE) | .invalid(labRow)){
     labRow <- rep("",nrow(x))
   } else if(is.character(labRow)){
@@ -1633,7 +1633,7 @@ heatmap.cnv <-
 
   ## reorder cellnote/labels - col ##
   if (identical(labCol,TRUE)){
-    labCol <- if(is.null(colnames(x))) (1:nc)[colInd] else colnames(x)
+    labCol <- if(is.null(colnames(x))) (seq_len(nc))[colInd] else colnames(x)
   } else if(identical(labCol,FALSE) | .invalid(labCol)){
     labCol <- rep("",ncol(x))
   } else if(is.character(labCol)){
@@ -1913,7 +1913,7 @@ heatmap.cnv <-
     if(plot.col.individuals) { ## enhanced: add bottom row to layout for plots
       lmat <- rbind(lmat,
                     c(rep((1+max(lmat,na.rm=TRUE)),ncol(lmat)-sc-1),# text
-                      rep((1:ic)+max(lmat,na.rm=TRUE)+(1),each=floor(sc/ic)),rep(NA,sc%%ic),
+                      rep((seq_len(ic))+max(lmat,na.rm=TRUE)+(1),each=floor(sc/ic)),rep(NA,sc%%ic),
                       ##NA # change to numeric if text.box
                       999
                       )
@@ -1942,7 +1942,7 @@ heatmap.cnv <-
     if(plot.col.clusters) { ## enhanced: add bottom row to layout for plots
       lmat <- rbind(lmat,
                     c(rep((1+max(lmat[lmat!=999],na.rm=TRUE)),ncol(lmat)-sc-2),# text
-                      rep((1:kc)+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sc/kc)),rep(NA,sc%%kc),
+                      rep((seq_len(kc))+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sc/kc)),rep(NA,sc%%kc),
                       ##NA,NA # change to numeric if text.box
                       999,999
                       )
@@ -1973,7 +1973,7 @@ heatmap.cnv <-
     if(plot.col.clustering) { ## enhanced: add bottom row to layout for plots
       lmat <- rbind(lmat,
                     c(rep((1+max(lmat[lmat!=999],na.rm=TRUE)),ncol(lmat)-sc-3),# text
-                      rep((1:cc)+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sc/cc)),rep(NA,sc%%cc),
+                      rep((seq_len(cc))+max(lmat[lmat!=999],na.rm=TRUE)+(1),each=floor(sc/cc)),rep(NA,sc%%cc),
                       ##NA,NA,NA # change to numeric if text.box
                       999,999,999
                       )
@@ -2012,7 +2012,7 @@ heatmap.cnv <-
       x <- x[iy,]
       if (!.invalid(cellnote)) cellnote <- cellnote[iy,]
     } else {
-      iy <- 1:nr
+      iy <- seq_len(nr)
     }
 
     ## reverse rows
@@ -2022,7 +2022,7 @@ heatmap.cnv <-
       x <- x[,ix]
       if (!.invalid(cellnote)) cellnote <- cellnote[,ix]
     } else {
-      ix <- 1:nc
+      ix <- seq_len(nc)
     }
 
     ## 1) draw the main carpet/heatmap
@@ -2035,7 +2035,7 @@ heatmap.cnv <-
       x <- t(x)
       if (!.invalid(cellnote)) cellnote <- t(cellnote)
     }
-    image(1:nc,1:nr,
+    image(seq_len(nc),seq_len(nr),
           x,
           xlim=0.5+c(0,nc),ylim=0.5+c(0,nr),
           axes=FALSE,xlab="",ylab="",col=colors,breaks=breaks,
@@ -2046,7 +2046,7 @@ heatmap.cnv <-
     ## plot/color NAs
     if(!.invalid(na.color) & any(is.na(x))){
       mmat <- ifelse(is.na(x),1,NA)
-      image(1:nc,1:nr,mmat,axes=FALSE,xlab="",ylab="",
+      image(seq_len(nc),seq_len(nr),mmat,axes=FALSE,xlab="",ylab="",
             col=na.color,add=TRUE)
     }
 
@@ -2057,11 +2057,11 @@ heatmap.cnv <-
       sideCol <- 1
     }
     if (!length(srtCol)) {
-      axis(sideCol,1:nc,labels=labCol,las=2,line=-0.5,tick=0,cex.axis=cexCol,outer=outer)
+      axis(sideCol,seq_len(nc),labels=labCol,las=2,line=-0.5,tick=0,cex.axis=cexCol,outer=outer)
     } else {
       if (sideCol==1){
         if (sideCol==1) .sideCol <- par("usr")[3]-0.5*srtCol/90 else .sideCol <- par("usr")[4]+0.5*srtCol/90
-        text(1:nc,.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
+        text(seq_len(nc),.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
       }
     }
 
@@ -2099,7 +2099,7 @@ heatmap.cnv <-
 
     row.sepList <- sepList[[1]]
     if (!.invalid(row.sepList)){
-      for (i in 1:length(row.sepList)){
+      for (i in seq_along(row.sepList)){
         i.sep <- row.sepList[[i]]
         rect(
              xleft=i.sep[1]+0.5,
@@ -2115,7 +2115,7 @@ heatmap.cnv <-
     }
     col.sepList <- sepList[[2]]
     if (!.invalid(col.sepList)){
-      for (i in 1:length(col.sepList)){
+      for (i in seq_along(col.sepList)){
         i.sep <- col.sepList[[i]]
         rect(
              xleft=i.sep[1]+0.5,
@@ -2146,7 +2146,7 @@ heatmap.cnv <-
         }
         xv <- rep(i,nrow(x.scaled))+x.scaled[,i]-0.5
         xv <- c(xv[1],xv)
-        yv <- 1:length(xv)-0.5
+        yv <- seq_along(xv)-0.5
         lines(x=xv,y=yv,lwd=1,col=tracecol,type="s")
       }
     }
@@ -2179,12 +2179,12 @@ heatmap.cnv <-
       row.clusters.unique <- unique(row.clusters)
       row.clusters.unique <- row.clusters.unique[!is.na(row.clusters.unique)]
 
-      image(rbind(1:nr),
+      image(rbind(seq_len(nr)),
             xlim=0.5+c(0,1),ylim=0.5+c(0,nr),
             col=par("bg"),
             axes=FALSE,add=force_add)
       if (!.invalid(plot.row.partitionList)){
-        for (i in 1:length(plot.row.partitionList)){
+        for (i in seq_along(plot.row.partitionList)){
           i.sep <- plot.row.partitionList[[i]]
           rect(
                xleft=0+0.5,
@@ -2212,13 +2212,13 @@ heatmap.cnv <-
       col.clusters.unique <- unique(col.clusters)
       col.clusters.unique <- col.clusters.unique[!is.na(col.clusters.unique)]
 
-      image(cbind(1:nc),
+      image(cbind(seq_len(nc)),
             xlim=0.5+c(0,nc),ylim=0.5+c(0,1),
             col=par("bg"),
             axes=FALSE,add=force_add)
 
       if (!.invalid(plot.col.partitionList)){
-        for (i in 1:length(plot.col.partitionList)){
+        for (i in seq_along(plot.col.partitionList)){
           i.sep <- plot.col.partitionList[[i]]
           rect(
                xleft=i.sep[1]+0.5,
@@ -2244,18 +2244,18 @@ heatmap.cnv <-
     if(!.invalid(RowIndividualColors)) {
       par(mar=c(margins[1],0,0,0.5))
       # image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=force_add)
-      image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=FALSE)
+      image(rbind(seq_len(nr)),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=FALSE)
 
         if (dim(RowIndividualColors)[2] > 1) {
         par(mar=c(margins[1],0,0,0.5))
-            image(rbind(1:nr),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
+            image(rbind(seq_len(nr)),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
         }
     }
 
     ## 5) draw the side color bars - for col
     if(!.invalid(ColIndividualColors)) {
       par(mar=c(0.5,0,0,margins[4]))
-      image(cbind(1:nc),col=ColIndividualColors[colInd],axes=FALSE,add=force_add)
+      image(cbind(seq_len(nc)),col=ColIndividualColors[colInd],axes=FALSE,add=force_add)
     }
 
     ## 6) row-dend
@@ -2288,11 +2288,11 @@ heatmap.cnv <-
       plot(ddc,axes=FALSE,xaxs="i",leaflab="none")
     } else{
       if(key) {
-        .plot.text(xlim=range(1:nc))
+        .plot.text(xlim=range(seq_len(nc)))
       }
       if (sideCol==3){
         .sideCol <- par("usr")[3]+0.5*srtCol/90
-        text(1:nc,.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
+        text(seq_len(nc),.sideCol,labels=labCol,srt=srtCol,pos=1,xpd=TRUE,cex=cexCol)
       }
     }
 
@@ -2363,10 +2363,10 @@ heatmap.cnv <-
     ## 9)
     if(plot.row.individuals) {
       .plot.text("Row\nIndividuals",cex=cex.text,bg="white")
-      for (i in 1:ir) {
+      for (i in seq_len(ir)) {
         ##.plot.text()
         tmp <- plot.row.individuals.list[[i]]
-        for(j in 1:length(tmp)){
+        for(j in seq_along(tmp)){
           eval(tmp[[j]])
         }
       }
@@ -2375,10 +2375,10 @@ heatmap.cnv <-
     ## 10)
     if(plot.col.individuals) {
       .plot.text("Column\nIndividuals",cex=cex.text,bg="white",srt=90)
-      for (i in 1:ic) {
+      for (i in seq_len(ic)) {
         ##.plot.text()
         tmp <- plot.col.individuals.list[[i]]
-        for(j in 1:length(tmp)){
+        for(j in seq_along(tmp)){
           eval(tmp[[j]])
         }
       }
@@ -2392,7 +2392,7 @@ heatmap.cnv <-
       row.data <- row.data[rowInd]
       for (i in unique(row.clusters)){
         i.x <- row.data[row.clusters==i]
-        for(j in 1:length(tmp)){
+        for(j in seq_along(tmp)){
           eval(tmp[[j]])
         }
         i.main <- sprintf("Row group %s (n=%s)",i,length(i.x))
@@ -2407,7 +2407,7 @@ heatmap.cnv <-
       col.data <- if(revC) col.data[rev(colInd)] else col.data[colInd]
       for (i in unique(col.clusters)){
         i.x <- col.data[col.clusters==i]
-        for(j in 1:length(tmp)){
+        for(j in seq_along(tmp)){
           eval(tmp[[j]])
         }
         i.main <- sprintf("Col group %s (n=%s)",i,length(i.x))
@@ -2419,10 +2419,10 @@ heatmap.cnv <-
     if(plot.row.clustering) {
       .plot.text("Row\nClustering",cex=cex.text,bg="white")
 
-      for (i in 1:cr) {
+      for (i in seq_len(cr)) {
         ##.plot.text()
         tmp <- plot.row.clustering.list[[i]]
-        for(j in 1:length(tmp)){
+        for(j in seq_along(tmp)){
           eval(tmp[[j]])
         }
       }
@@ -2431,10 +2431,10 @@ heatmap.cnv <-
     if(plot.col.clustering) {
       .plot.text("Column\nClustering",cex=cex.text,bg="white",srt=90)
 
-      for (i in 1:cc) {
+      for (i in seq_len(cc)) {
         ##.plot.text()
         tmp <- plot.col.clustering.list[[i]]
-        for(j in 1:length(tmp)){
+        for(j in seq_along(tmp)){
           eval(tmp[[j]])
         }
       }
@@ -2552,16 +2552,16 @@ get.sep <-
   sepList <- list()
   if (type=="row"){
     xmax <- length(clusters)
-    for(i.s in 1:nrow(tmp.sep2)){
+    for(i.s in seq_len(nrow(tmp.sep2))){
       sepList[[i.s]] <- c(0,tmp.sep2[i.s,1]-1,xmax,tmp.sep2[i.s,2])
     }
   } else if (type=="column"){
     ymax <- length(clusters)
-    for(i.s in 1:nrow(tmp.sep2)){
+    for(i.s in seq_len(nrow(tmp.sep2))){
       sepList[[i.s]] <- c(tmp.sep2[i.s,1]-1,0,tmp.sep2[i.s,2],ymax)
     }
   } else if (type=="both"){
-    for(i.s in 1:nrow(tmp.sep2)){
+    for(i.s in seq_len(nrow(tmp.sep2))){
       sepList[[i.s]] <- c(tmp.sep2[i.s,1]-1,tmp.sep2[i.s,1]-1,tmp.sep2[i.s,2],tmp.sep2[i.s,2])
     }
   }
@@ -2610,7 +2610,7 @@ depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, s
     }
 
 
-    vals_matrix <- apply(vals_matrix, 1:2, adjust_value)
+    vals_matrix <- apply(vals_matrix, seq_len(2), adjust_value)
 
     return(vals_matrix)
 }

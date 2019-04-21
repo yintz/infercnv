@@ -528,7 +528,7 @@ setMethod(f="removeCNV",
               colnames(cnv_means) <- cnv_regions
               ## set row names to the states 1:6 or 1:3
               temp <- ifelse(getHMMType(obj) == 'i6', 6, 3)
-              row.names(cnv_means) <- c(sprintf("State:%s",1:temp))
+              row.names(cnv_means) <- c(sprintf("State:%s",seq_len(temp)))
               write.table(cnv_means,file = file.path(obj@args$out_dir, "CNV_State_Probabilities.dat"), col.names = TRUE, row.names=TRUE, quote=FALSE, sep="\t")
               return(list(obj, HMM_states))
           }
@@ -1009,7 +1009,7 @@ run_gibb_sampling <- function(gene_exp,
 # Function to plot the probability for each cell line of being in a particular state
 plot_cell_prob <- function(df, title, HMM_type){
     # i3 or i6 HMM method, need to determine the number of columns on the graph
-    df$mag = 1:ifelse(HMM_type == "i6", 6, 3)
+    df$mag = seq_len(ifelse(HMM_type == "i6", 6, 3))
     long_data <- reshape::melt(df, id = "mag")
     long_data$mag <- as.factor(long_data$mag)
     ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = 'value', fill = 'mag'))+
@@ -1044,14 +1044,14 @@ cnv_prob <- function(combined_samples) {
 cell_prob <- function(combined_samples, obj) {
     epsilons <- combined_samples[,grepl('epsilon', colnames(combined_samples))]
     #print(paste("Epsilons: ", dim(epsilons)))
-    epsilon_state_frequencies <- apply(as.data.frame(epsilons), 2, function(x) table(factor(x, levels = 1:ifelse(getHMMType(obj) == "i6", 6, 3))))
+    epsilon_state_frequencies <- apply(as.data.frame(epsilons), 2, function(x) table(factor(x, levels = seq_len(ifelse(getHMMType(obj) == "i6", 6, 3)))))
     cell_probs <- epsilon_state_frequencies/colSums(epsilon_state_frequencies)
     return(cell_probs)
 }
 
 ## Fucntion to Plot the probability of each state for a CNV
 plot_cnv_prob <- function(df, title, HMM_type){
-    colnames(df) <- 1:ifelse(HMM_type == "i6", 6, 3)
+    colnames(df) <- seq_len(ifelse(HMM_type == "i6", 6, 3))
     df <- melt(df)
     colnames(df) <- c("row", "State", "Probability")
     states <- as.factor(df$State)

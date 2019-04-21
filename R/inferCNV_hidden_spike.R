@@ -34,12 +34,12 @@
 
     chr_info <- .get_hspike_chr_info(num_genes_per_chr, num_total_genes)
 
-    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=1:x$ngenes, end=1:x$ngenes) }))
+    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=seq_len(x$ngenes), end=seq_lenx$ngenes)) }))
     num_genes = nrow(gene_order)
-    rownames(gene_order) <- paste0("gene_", 1:num_genes)
+    rownames(gene_order) <- paste0("gene_", seq_len(num_genes))
 
 
-    genes_means_use_idx = sample(x=1:nrow(infercnv_obj@expr.data), size=num_genes, replace=TRUE)
+    genes_means_use_idx = sample(x=seq_len(nrow(infercnv_obj@expr.data)), size=num_genes, replace=TRUE)
 
     
     ## do for each group of normal cells
@@ -90,7 +90,7 @@
 
 
         spike_norm_name = sprintf("simnorm_cell_%s", normal_type)
-        colnames(sim_normal_matrix) = paste0(spike_norm_name, 1:num_cells)
+        colnames(sim_normal_matrix) = paste0(spike_norm_name, seq_len(num_cells))
         rownames(sim_normal_matrix) = rownames(gene_order)
         
         ## apply spike-in multiplier vec
@@ -122,7 +122,7 @@
 
         spike_tumor_name = sprintf("spike_tumor_cell_%s", normal_type)
         
-        colnames(sim_spiked_cnv_matrix) = paste0(spike_tumor_name, 1:num_cells)
+        colnames(sim_spiked_cnv_matrix) = paste0(spike_tumor_name, seq_len(num_cells))
         rownames(sim_spiked_cnv_matrix) = rownames(gene_order)
         
         if (is.null(sim.counts.matrix)) {

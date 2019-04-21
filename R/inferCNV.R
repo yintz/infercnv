@@ -243,7 +243,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
             if (dim(df)[1] > max_cells_per_group) {
                 flog.info(sprintf("-reducing number of cells for grp %s from %g to %g",
                                   grp, dim(df)[1], max_cells_per_group))
-                grps[[grp]] = df[sample(1:dim(df)[1], max_cells_per_group),,drop=FALSE]
+                grps[[grp]] = df[sample(seq_len(dim(df)[1]), max_cells_per_group),,drop=FALSE]
             }
         }
         input_classifications = data.frame(Reduce(rbind, grps))

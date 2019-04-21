@@ -30,7 +30,7 @@
     mean_var_spline = smooth.spline(logv ~ logm)
 
 
-    spike_cell_names = paste0('sim_cell_', 1:num_cells)
+    spike_cell_names = paste0('sim_cell_', seq_len(num_cells))
 
     sim_cell_matrix = matrix(rep(0,ngenes*num_cells), nrow=ngenes)
     rownames(sim_cell_matrix) = names(gene_means)
@@ -41,8 +41,8 @@
         return(.sim_expr_val_mean_var_no_dropout(m, mean_var_spline))
     }
 
-    for (i in 1:num_cells) {
-        newvals = sapply(1:ngenes, FUN=sim_expr_vals)
+    for (i in seq_len(num_cells)) {
+        newvals = sapply(seq_len(ngenes), FUN=sim_expr_vals)
         sim_cell_matrix[,i] = newvals
     }
 

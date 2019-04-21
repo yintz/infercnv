@@ -36,12 +36,12 @@
     for (ncells in seq_len(100)) {
         means = c()
         
-        for(i in 1:nrounds) {
+        for(i in seq_len(nrounds)) {
             ## pick a random gene
-            rand.gene = sample(1:ngenes, size=1)
+            rand.gene = sample(seq_len(ngenes), size=1)
             
             ## pick a random normal cell type
-            rand.sample = sample(1:num_tumor_samples, size=1)
+            rand.sample = sample(seq_len(num_tumor_samples), size=1)
             #message("rand.sample: " , rand.sample)
             
             vals = sample(infercnv_obj@expr.data[rand.gene, tumor_samples[[rand.sample]] ], size=ncells, replace=TRUE)
