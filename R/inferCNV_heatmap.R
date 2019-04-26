@@ -201,14 +201,19 @@ plot_cnv <- function(infercnv_obj,
     col_sep <- col_sep[-1 * length(col_sep)]   ## FIXME:  removing last entry?
     # These labels are axes labels, indicating contigs at the first column only
     # and leaving the rest blank.
-    contig_labels <- c()
-    contig_names <-c()
-    for (contig_name in names(contig_tbl)){
-        contig_labels <- c(contig_labels,
-                           contig_name,
-                           rep("", contig_tbl[contig_name] - 1))
-        contig_names <- c(contig_names,rep(contig_name,contig_tbl[contig_name]))
-    }
+    # contig_labels <- c()
+    # contig_names <-c()
+    # for (contig_name in names(contig_tbl)){
+    #     contig_labels <- c(contig_labels,
+    #                        contig_name,
+    #                        rep("", contig_tbl[contig_name] - 1))
+    #     contig_names <- c(contig_names,rep(contig_name,contig_tbl[contig_name]))
+    # }
+    contig_labels = names(contig_tbl)
+    contig_names = unlist(lapply(contig_labels, function(contig_name) {rep(contig_name, contig_tbl[contig_name])}))
+
+    # contig_sizes = vapply(contig_labels, function(contig_name) {contig_tbl[contig_name]}, integer(1))
+    # contig_positions =  c(1, cumsum(contig_sizes[seq_len(length(contig_sizes) - 1)]) + 1)
 
     # Calculate how many rows will be made for the number of columns in the grouping key
     grouping_key_coln <- c()
@@ -695,6 +700,7 @@ plot_cnv <- function(infercnv_obj,
                                         key=TRUE,
                                         labCol=contig_labels,
                                         cexCol=contig_lab_size,
+                                        cexAt=c(1, contig_seps),
                                         notecol="black",
                                         density.info="histogram",
                                         denscol="blue",
@@ -1212,6 +1218,7 @@ heatmap.cnv <-
            grouping_key_coln,
            cexRow,
            cexCol,
+           cexAt=NULL,
            labRow.by.group=FALSE,
            labCol.by.group=FALSE,
 
@@ -1631,9 +1638,9 @@ heatmap.cnv <-
     labCol <- if(is.null(colnames(x))) (seq_len(nc))[colInd] else colnames(x)
   } else if(identical(labCol,FALSE) | .invalid(labCol)){
     labCol <- rep("",ncol(x))
-  } else if(is.character(labCol)){
-    labCol <- labCol[colInd]
-  }
+  } #else if(is.character(labCol)){
+    #labCol <- labCol[colInd]
+  #}
   
   ## ------------------------------------------------------------------------
   ## scale
@@ -2052,7 +2059,10 @@ heatmap.cnv <-
       sideCol <- 1
     }
     if (!length(srtCol)) {
-      axis(sideCol,seq_len(nc),labels=labCol,las=2,line=-0.5,tick=0,cex.axis=cexCol,outer=outer)
+      if (is.null(cexAt)) {
+          cexAt = seq_along(labCol)
+      }
+      axis(sideCol,cexAt,labels=labCol,las=2,line=-0.5,tick=0,cex.axis=cexCol,outer=outer)
     } else {
       if (sideCol==1){
         if (sideCol==1) .sideCol <- par("usr")[3]-0.5*srtCol/90 else .sideCol <- par("usr")[4]+0.5*srtCol/90
