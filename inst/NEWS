@@ -1,2 +1,7 @@
+Changes in version 0.99.8 (2019-04-20)
++ Fix missing labels on heatmap due to change in how axis() handles overlaps.
++ Improve auto thresholding of heatmap colors to still work when using stronger denoise settings.
++ Updated some examples to use tempfile() for output.
++ Fix duplicate piece of code that produced an error when using plot_steps.
 Changes in version 0.99.0 (2019-03-15)
 + Submitted to Bioconductor
