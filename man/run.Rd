@@ -129,7 +129,7 @@ qnorm: defines tree height based on the quantile defined by the tumor_subcluster
 default(NA, instead will use sd_amplifier below.}
 
 \item{sd_amplifier}{Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
-default: 1.0}
+default: 1.5}
 
 \item{noise_logistic}{use the noise_filter or sd_amplifier based threshold (whichever is invoked) as the midpoint in a
                       logistic model for downscaling values close to the mean. (default: FALSE)
@@ -211,7 +211,7 @@ infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data,
 
 infercnv_obj <- infercnv::run(infercnv_obj,
                               cutoff=1,
-                              out_dir="../example_output", 
+                              out_dir=tempfile(), 
                               cluster_by_groups=TRUE, 
                               denoise=TRUE,
                               HMM=FALSE,

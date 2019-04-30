@@ -103,7 +103,7 @@
 #'                      default(NA, instead will use sd_amplifier below.
 #'
 #' @param sd_amplifier  Noise is defined as mean(reference_cells) +- sdev(reference_cells) * sd_amplifier
-#'                      default: 1.0
+#'                      default: 1.5
 #'
 #' @param noise_logistic use the noise_filter or sd_amplifier based threshold (whichever is invoked) as the midpoint in a
 #'                       logistic model for downscaling values close to the mean. (default: FALSE)

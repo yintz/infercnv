@@ -21,12 +21,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Timothy Tickle \email{ttickle@broadinstitute.org}
+\strong{Maintainer}: Christophe Georgescu \email{cgeorges@broadinstitute.org}
 
 Authors:
 \itemize{
+  \item Timothy Tickle \email{ttickle@broadinstitute.org}
   \item Itay Tirosh \email{tirosh@broadinstitute.org}
-  \item Christophe Georgescu \email{cgeorges@broadinstitute.org}
   \item Maxwell Brown \email{mbrown@broadinstitute.org}
   \item Brian Haas \email{bhaas@broadinstitute.org}
 }

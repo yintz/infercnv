@@ -73,7 +73,7 @@ Formats the data and sends it for plotting.
 
 # infercnv_obj <- infercnv::run(infercnv_obj,
 #                               cutoff=1,
-#                               out_dir="../example_output", 
+#                               out_dir=tempfile(), 
 #                               cluster_by_groups=TRUE, 
 #                               denoise=TRUE,
 #                               HMM=FALSE,
@@ -83,7 +83,7 @@ Formats the data and sends it for plotting.
 data(infercnv_object)
 
 plot_cnv(infercnv_obj,
-         out_dir=".",
+         out_dir=tempfile(),
          obs_title="Observations (Cells)",
          ref_title="References (Cells)",
          cluster_by_groups=TRUE,
