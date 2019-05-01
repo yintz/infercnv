@@ -21,6 +21,7 @@ library(logging)
 #    warning("fastcluster library not available, using the default hclust method instead.")
 #}
 library(infercnv)
+options("preferRaster" = TRUE)
 
 # Logging level choices
 C_LEVEL_CHOICES <- names(loglevels)
@@ -765,7 +766,7 @@ if (args$median_filter) {
              x.center=args$final_center_val,
              x.range=args$final_scale_limits,
              title="inferCNV",
-             output_filename="infercnv_median_filtered",
+             output_filename="infercnv_pdf",
              write_expr_matrix=TRUE)
 
 }

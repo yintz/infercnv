@@ -390,7 +390,7 @@ run <- function(infercnv_obj,
         
         ## Plot incremental steps.
         if (plot_steps){
-            
+            invisible(gc())
             plot_cnv(infercnv_obj=infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -424,6 +424,7 @@ run <- function(infercnv_obj,
             ## Plot incremental steps.
             if (plot_steps){
                 
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -486,7 +487,7 @@ run <- function(infercnv_obj,
             saveRDS(infercnv_obj, file=infercnv_obj_file)
             
             if (plot_steps) {
-                
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -548,6 +549,7 @@ run <- function(infercnv_obj,
         saveRDS(infercnv_obj, file=infercnv_obj_file)
         
         if (plot_steps) {
+            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -591,6 +593,7 @@ run <- function(infercnv_obj,
             ## Plot incremental steps.
             if (plot_steps){
                 
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -639,6 +642,7 @@ run <- function(infercnv_obj,
         ## Plot incremental steps.
         if (plot_steps){
             
+            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -672,6 +676,7 @@ run <- function(infercnv_obj,
         ## Plot incremental steps.
         if (plot_steps) {
             
+            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -705,6 +710,7 @@ run <- function(infercnv_obj,
         saveRDS(infercnv_obj, file=infercnv_obj_file)
         
         if (plot_steps) {
+            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -738,6 +744,7 @@ run <- function(infercnv_obj,
             ## Plot incremental steps.
             if (plot_steps){
                 
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -771,6 +778,7 @@ run <- function(infercnv_obj,
         saveRDS(infercnv_obj, file=infercnv_obj_file)
         
         if (plot_steps) {
+            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -812,6 +820,7 @@ run <- function(infercnv_obj,
             
             if (plot_steps) {
                 
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -837,6 +846,7 @@ run <- function(infercnv_obj,
         prelim_heatmap_png = "infercnv.preliminary.png"
         
         if (! file.exists(file.path(out_dir, prelim_heatmap_png))) {
+            invisible(gc())
             plot_cnv(infercnv_obj_prelim,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -876,6 +886,7 @@ run <- function(infercnv_obj,
             ## Plot incremental steps.
             if (plot_steps) {
                 
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -982,6 +993,7 @@ run <- function(infercnv_obj,
             if (! no_plot) {
                 
                 ## Plot HMM pred img
+                invisible(gc())
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1047,6 +1059,7 @@ run <- function(infercnv_obj,
             
             if (! no_plot) {
                 ## Plot HMM pred img after cnv removal
+                invisible(gc())
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1086,6 +1099,7 @@ run <- function(infercnv_obj,
             
             ## Plot HMM pred img
             if (! no_plot) {
+                invisible(gc())
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1143,6 +1157,7 @@ run <- function(infercnv_obj,
             ## Plot incremental steps.
             if (plot_steps) {
                 
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1203,6 +1218,7 @@ run <- function(infercnv_obj,
             
             
             if (! no_plot) {
+                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1231,6 +1247,7 @@ run <- function(infercnv_obj,
         
         
         flog.info("\n\n## Making the final infercnv heatmap ##")
+        invisible(gc())
         plot_cnv(infercnv_obj,
                  k_obs_groups=k_obs_groups,
                  cluster_by_groups=cluster_by_groups,
