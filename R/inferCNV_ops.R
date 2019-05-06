@@ -231,6 +231,7 @@ run <- function(infercnv_obj,
                 #sim_method=c('meanvar', 'simple', 'splatter'), ## only meanvar supported, others experimental
                 sim_method='meanvar',
                 sim_foreground=FALSE, ## experimental
+                reassignCNVs=TRUE,
 
 
                 ## tumor subclustering options
@@ -1017,6 +1018,7 @@ run <- function(infercnv_obj,
                 mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj     = infercnv_obj_prelim,
                                                        HMM_states        = hmm.infercnv_obj@expr.data,
                                                        file_dir          = out_dir,
+                                                       no_plot           = no_plot,
                                                        postMcmcMethod    = "removeCNV",
                                                        out_dir           = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
                                                        quietly           = TRUE,
@@ -1025,7 +1027,8 @@ run <- function(infercnv_obj,
                                                        diagnostics       = diagnostics,
                                                        HMM_type          = HMM_type,
                                                        k_obs_groups      = k_obs_groups,
-                                                       cluster_by_groups = cluster_by_groups)
+                                                       cluster_by_groups = cluster_by_groups,
+                                                       reassignCNVs      = reassignCNVs)
                 saveRDS(mcmc_obj, file=mcmc_obj_file)
             }
             
