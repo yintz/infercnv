@@ -38,8 +38,7 @@ MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
                                                      cell_probabilities = "list",
                                                      args = "list",
                                                      cnv_regions = "factor",
-                                                     States = "ANY",
-                                                     reasignCNVs = "logical"),
+                                                     States = "ANY"),
                           contains = "infercnv")
 
 
@@ -1246,7 +1245,9 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #'                               diagnostics        = FALSE,
 #'                               HMM_type           = 'i6',
 #'                               k_obs_groups       = 1,
-#'                               cluster_by_groups  = FALSE)
+#'                               cluster_by_groups  = FALSE,
+#'                               reassignCNVs      = FALSE,
+#'                               no_plot           = TRUE)
 #'                               
 inferCNVBayesNet <- function( file_dir,
                               infercnv_obj,

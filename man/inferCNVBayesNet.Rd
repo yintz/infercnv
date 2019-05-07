@@ -85,6 +85,8 @@ mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
                               diagnostics        = FALSE,
                               HMM_type           = 'i6',
                               k_obs_groups       = 1,
-                              cluster_by_groups  = FALSE)
+                              cluster_by_groups  = FALSE,
+                              reassignCNVs      = FALSE,
+                              no_plot           = TRUE)
                               
 }

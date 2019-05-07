@@ -100,14 +100,17 @@ i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells 
 
 ## Filtering low-conf HMM preds via BayesNet P(Normal)}
 
-\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)
-
-######################
-## Tumor subclustering}
+\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)}
 
 \item{sim_method}{method for calibrating CNV levels in the i6 HMM (default: 'meanvar')}
 
 \item{sim_foreground}{don't use... for debugging, developer option.}
+
+\item{reassignCNVs}{(boolean) Given the CNV associated probability of belonging to each possible state, 
+                     reassign the state assignments made by the HMM to the state that has the highest probability. (default: TRUE)
+
+######################
+## Tumor subclustering}
 
 \item{analysis_mode}{options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
 default: samples (fastest, but subclusters is ideal)}

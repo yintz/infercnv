@@ -79,6 +79,9 @@
 #' ## Filtering low-conf HMM preds via BayesNet P(Normal)
 #'
 #' @param BayesMaxPNormal  maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)
+#' 
+#' @param reassignCNVs (boolean) Given the CNV associated probability of belonging to each possible state, 
+#'                      reassign the state assignments made by the HMM to the state that has the highest probability. (default: TRUE)
 #'
 #' ######################
 #' ## Tumor subclustering
