@@ -8,7 +8,8 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_states, out_dir,
   model_file = NULL, CORES = 1, postMcmcMethod = NULL,
   plotingProbs = TRUE, quietly = TRUE, diagnostics = FALSE,
   HMM_type = HMM_type, k_obs_groups = k_obs_groups,
-  cluster_by_groups = cluster_by_groups)
+  cluster_by_groups = cluster_by_groups, reassignCNVs = TRUE,
+  no_plot = no_plot)
 }
 \arguments{
 \item{file_dir}{Location of the directory of the inferCNV outputs.}
@@ -37,6 +38,11 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_states, out_dir,
 
 \item{cluster_by_groups}{If observations are defined according to groups (ie. patients), each group
 of cells will be clustered separately. (default=FALSE, instead will use k_obs_groups setting)}
+
+\item{reassignCNVs}{(boolean) Given the CNV associated probability of belonging to each possible state, 
+reassign the state assignments made by the HMM to the state that has the highest probability. (default: TRUE)}
+
+\item{no_plot}{(boolean) Option set by infercnv::run() for producing visualizations.}
 }
 \value{
 Returns a MCMC_inferCNV_obj and posterior probability of being in one of six Copy Number Variation states
@@ -79,6 +85,8 @@ mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
                               diagnostics        = FALSE,
                               HMM_type           = 'i6',
                               k_obs_groups       = 1,
-                              cluster_by_groups  = FALSE)
+                              cluster_by_groups  = FALSE,
+                              reassignCNVs      = FALSE,
+                              no_plot           = TRUE)
                               
 }
