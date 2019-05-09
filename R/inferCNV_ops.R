@@ -505,33 +505,6 @@ run <- function(infercnv_obj,
         }
     }
     
-    else if (analysis_mode != 'subclusters') {
-        
-        step_count = step_count + 1
-        flog.info(sprintf("\n\n\tSTEP %02d: Clustering samples (not defining tumor subclusters)\n", step_count))
-        
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_no_subclustering%s.infercnv_obj", step_count, resume_file_token))
-        
-        ## just need to be sure that the cells are clustered per sample
-        ## so running with partition_mode='none'
-        
-        if (resume_mode & file.exists(infercnv_obj_file)) {
-            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
-            infercnv_obj <- readRDS(infercnv_obj_file)
-        } else {
-            
-            
-            infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
-                                                            p_val=tumor_subcluster_pval,
-                                                            hclust_method=hclust_method,
-                                                            cluster_by_groups=cluster_by_groups,
-                                                            partition_method='none')
-            
-            saveRDS(infercnv_obj, file=infercnv_obj_file)
-        }
-        
-    }
-    
     
     ## ##################################
     ## Step: Subtract average reference
@@ -828,6 +801,33 @@ run <- function(infercnv_obj,
             }
             
         }
+    }
+    
+    else if (analysis_mode != 'subclusters') {
+        
+        step_count = step_count + 1
+        flog.info(sprintf("\n\n\tSTEP %02d: Clustering samples (not defining tumor subclusters)\n", step_count))
+        
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_no_subclustering%s.infercnv_obj", step_count, resume_file_token))
+        
+        ## just need to be sure that the cells are clustered per sample
+        ## so running with partition_mode='none'
+        
+        if (resume_mode & file.exists(infercnv_obj_file)) {
+            flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
+            infercnv_obj <- readRDS(infercnv_obj_file)
+        } else {
+            
+            
+            infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
+                                                            p_val=tumor_subcluster_pval,
+                                                            hclust_method=hclust_method,
+                                                            cluster_by_groups=cluster_by_groups,
+                                                            partition_method='none')
+            
+            saveRDS(infercnv_obj, file=infercnv_obj_file)
+        }
+        
     }
     
     
