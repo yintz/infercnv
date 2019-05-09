@@ -14,9 +14,9 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = NULL,
   "consensus", "cell"), HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05,
   HMM_i3_use_KS = TRUE, BayesMaxPNormal = 0.5,
   sim_method = "meanvar", sim_foreground = FALSE,
-  analysis_mode = c("samples", "subclusters", "cells"),
-  tumor_subcluster_partition_method = c("random_trees", "qnorm",
-  "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
+  reassignCNVs = TRUE, analysis_mode = c("samples", "subclusters",
+  "cells"), tumor_subcluster_partition_method = c("random_trees",
+  "qnorm", "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
   denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
   noise_logistic = FALSE, outlier_method_bound = "average_bound",
   outlier_lower_bound = NA, outlier_upper_bound = NA,
@@ -100,14 +100,17 @@ i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells 
 
 ## Filtering low-conf HMM preds via BayesNet P(Normal)}
 
-\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)
-
-######################
-## Tumor subclustering}
+\item{BayesMaxPNormal}{maximum P(Normal) allowed for a CNV prediction according to BayesNet. (default=0.5, note zero turns it off)}
 
 \item{sim_method}{method for calibrating CNV levels in the i6 HMM (default: 'meanvar')}
 
 \item{sim_foreground}{don't use... for debugging, developer option.}
+
+\item{reassignCNVs}{(boolean) Given the CNV associated probability of belonging to each possible state, 
+                     reassign the state assignments made by the HMM to the state that has the highest probability. (default: TRUE)
+
+######################
+## Tumor subclustering}
 
 \item{analysis_mode}{options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
 default: samples (fastest, but subclusters is ideal)}
