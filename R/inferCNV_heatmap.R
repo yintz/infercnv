@@ -436,7 +436,7 @@ plot_cnv <- function(infercnv_obj,
                                   testing=FALSE,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
-                                  layout_lwid=NULL){
+                                  layout_lwid=NULL) {
 
     flog.info("plot_cnv_observation:Start")
     flog.info(paste("Observation data size: Cells=",
@@ -461,7 +461,7 @@ plot_cnv <- function(infercnv_obj,
             hcl_desc <- cluster_contig
             flog.info(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
         } else {
-           flog.warn(paste("plot_cnv_observations: Not able to cluster by",
+            flog.warn(paste("plot_cnv_observations: Not able to cluster by",
                                      cluster_contig,
                                      "Clustering by all genomic locations.",
                                      "To cluster by local genomic location next time",
@@ -485,20 +485,28 @@ plot_cnv <- function(infercnv_obj,
     if (!is.null(infercnv_obj@tumor_subclusters)) {
         if (cluster_by_groups) {
             for (i in seq(1, max(obs_annotations_groups))) {
-                obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
-                # ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
-                ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$labels[infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$order])
-                obs_seps <- c(obs_seps, length(ordered_names))
-                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
-                
-                if (isfirst) {
-                    write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
-                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-                    isfirst <- FALSE
+                if (!is.null(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])) {
+                    obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
+                    # ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
+                    ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$labels[infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$order])
+                    obs_seps <- c(obs_seps, length(ordered_names))
+                    hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+                    
+                    if (isfirst) {
+                        write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
+                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                        isfirst <- FALSE
+                    }
+                    else {
+                        write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]],
+                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE))
+                    }
                 }
-                else {
-                    write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]],
-                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE))
+                else { ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
+                    obs_dendrogram[[i]] <- .single_element_dendrogram(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])
+                    ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])
+                    obs_seps <- c(obs_seps, length(ordered_names))
+                    hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
                 }
             }
             if (length(obs_dendrogram) > 1) {
@@ -510,14 +518,14 @@ plot_cnv <- function(infercnv_obj,
             names(split_groups) <- ordered_names
             
             for(subtumor in infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]]) {
-                length(subtumor)
+                # length(subtumor)
                 sub_obs_seps <- c(sub_obs_seps, (sub_obs_seps[length(sub_obs_seps)] + length(subtumor)))
             }
         }
         else {
             obs_hcl <- infercnv_obj@tumor_subclusters$hc[["all_observations"]]
             write.tree(as.phylo(obs_hcl),
-             file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
   
             obs_dendrogram <- as.dendrogram(obs_hcl)
             # ordered_names <- row.names(obs_data)[obs_hcl$order]
@@ -561,16 +569,9 @@ plot_cnv <- function(infercnv_obj,
             if (num_cells_in_group < 2) {
                 flog.info(sprintf("Skipping group: %d, since less than 2 entries", i))
                 ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
-                dfake = list()
-                dfake[[1]] = 1L
-                attr(dfake, "class") = "dendrogram"
-                attr(dfake, "height") = 1
-                attr(dfake, "members") = 1L
-                attr(dfake[[1]], "class") = "dendrogram"
-                attr(dfake[[1]], "leaf") = TRUE
-                attr(dfake[[1]], "label") = row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE])
-                attr(dfake[[1]], "height") = 0
-                obs_dendrogram[[length(obs_dendrogram) + 1]] <- dfake
+
+                # when only 1 cell in the group, we need an artificial dendrogram for it
+                obs_dendrogram[[length(obs_dendrogram) + 1]] = .single_element_dendrogram(unique_label=row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
                 
                 hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
@@ -619,39 +620,48 @@ plot_cnv <- function(infercnv_obj,
     }
     else {
         # clustering all groups together
-        obs_hcl <- hclust(dist(obs_data[,hcl_group_indices]), method=hclust_method)
-                                        
-        write.tree(as.phylo(obs_hcl),
-                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-        
-        obs_dendrogram <- as.dendrogram(obs_hcl)
-        # ordered_names <- row.names(obs_data)[obs_hcl$order]
-        ordered_names <- obs_hcl$labels[obs_hcl$order]
-        split_groups <- cutree(obs_hcl, k=num_obs_groups)
-        split_groups <- split_groups[ordered_names]
-        # hcl_obs_annotations_groups <- obs_annotations_groups[obs_hcl$order]
-        hcl_obs_annotations_groups <- obs_annotations_groups[ordered_names]
-        
-        # Make a file of members of each group
-        flog.info("plot_cnv_observation:Writing observations by grouping.")
-        for (cut_group in unique(split_groups)){
-            group_memb <- names(split_groups)[which(split_groups == cut_group)]
-            # Write group to file
-            memb_file <- file(paste(file_base_name,
-                                    paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
-                                    sep=.Platform$file.sep))
-            write.table(obs_data[group_memb,], memb_file)
-            # Record seperation
-            ordered_memb <- which(ordered_names %in% group_memb)
-            if (is.null(obs_seps)) {
-              obs_seps <- c(length(ordered_memb))
+        if (nrow(obs_data) > 1) {
+            obs_hcl <- hclust(dist(obs_data[, hcl_group_indices]), method=hclust_method)
+                                            
+            write.tree(as.phylo(obs_hcl),
+                       file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+            
+            obs_dendrogram <- as.dendrogram(obs_hcl)
+            # ordered_names <- row.names(obs_data)[obs_hcl$order]
+            ordered_names <- obs_hcl$labels[obs_hcl$order]
+            split_groups <- cutree(obs_hcl, k=num_obs_groups)
+            split_groups <- split_groups[ordered_names]
+
+            # Make a file of members of each group
+            flog.info("plot_cnv_observation:Writing observations by grouping.")
+            for (cut_group in unique(split_groups)){
+                group_memb <- names(split_groups)[which(split_groups == cut_group)]
+                # Write group to file
+                memb_file <- file(paste(file_base_name,
+                                        paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
+                                        sep=.Platform$file.sep))
+                write.table(obs_data[group_memb,], memb_file)
+                # Record seperation
+                ordered_memb <- which(ordered_names %in% group_memb)
+                if (is.null(obs_seps)) {
+                  obs_seps <- c(length(ordered_memb))
+                }
+                else {
+                  obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))  ## could have a tmp_seps that just lists them, then cumSum() on it
+                }
             }
-            else {
-              obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
-            }
+            obs_seps <- c(obs_seps, length(ordered_names))
         }
-        obs_seps <- c(obs_seps, length(ordered_names))
+        else {
+            obs_dendrogram <- .single_element_dendrogram(row.names(obs_data))
+            ordered_names <- row.names(obs_data)
+            obs_seps <- c(1)
+            split_groups <- c(1)
+            names(split_groups) <- ordered_names
+        }
+        # hcl_obs_annotations_groups <- obs_annotations_groups[obs_hcl$order]
         sub_obs_seps = obs_seps
+        hcl_obs_annotations_groups <- obs_annotations_groups[ordered_names]
     }
     
     
@@ -881,11 +891,17 @@ plot_cnv <- function(infercnv_obj,
             split_groups <- unlist(mapply(rep, seq_along(ref_groups), lengths(ref_groups)))
             order_idx <- unlist(ref_groups)
         }
-        ref_data <- ref_data[, order_idx, drop=FALSE]
     }
     else {
+        if (cluster_references) {
+            ref_hcl <- hclust(dist(t(ref_data)), method=hclust_method)  # all ref_data is part of the only group
+            # order_idx <- unlist(ref_groups)[ref_hcl$order]
+            order_idx = ref_hcl$order # ref_data has been reindexed beforehand in the calling method
+        }
         split_groups <- rep(1, length(ref_groups[[1]]))
     }
+    
+    ref_data <- ref_data[, order_idx, drop=FALSE]
 
     # Make row color column colors from groupings
     flog.info(paste("plot_cnv_references:Number reference groups=",
@@ -2628,4 +2644,21 @@ depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, s
     
 
 
-    
+# method that returns an artificial dendrogram with only 1 branch
+# since at least 2 elements need to be present for building one normally
+# but we need to be able to merge this lone branch to the bigger dendrogram for plotting
+
+.single_element_dendrogram <- function(unique_label) {
+    dfake = list()
+    dfake[[1]] = 1L
+    attr(dfake, "class") = "dendrogram"
+    attr(dfake, "height") = 1
+    attr(dfake, "members") = 1L
+    attr(dfake[[1]], "class") = "dendrogram"
+    attr(dfake[[1]], "leaf") = TRUE
+    attr(dfake[[1]], "label") = unique_label
+    attr(dfake[[1]], "height") = 0
+    return(dfake)
+}
+
+

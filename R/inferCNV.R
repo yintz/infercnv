@@ -162,7 +162,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     ## get gene order info
     if (Reduce("|", is(gene_order_file) == "character")) {
         flog.info(sprintf("Parsing gene order file: %s", gene_order_file))
-        gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t")
+        gene_order <- read.table(gene_order_file, header=FALSE, row.names=1, sep="\t", check.names=FALSE)
     }
     else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame"))) {
         gene_order <- gene_order_file
