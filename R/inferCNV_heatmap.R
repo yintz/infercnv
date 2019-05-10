@@ -503,8 +503,8 @@ plot_cnv <- function(infercnv_obj,
                     }
                 }
                 else { ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
-                    obs_dendrogram[[i]] <- .single_element_dendrogram(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])
-                    ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])
+                    obs_dendrogram[[i]] <- .single_element_dendrogram(colnames(infercnv_obj@expr.data[, infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]], drop=FALSE]))
+                    ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]], drop=FALSE]))
                     obs_seps <- c(obs_seps, length(ordered_names))
                     hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
                 }
