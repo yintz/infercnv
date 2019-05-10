@@ -106,8 +106,8 @@ sample_object <- function(infercnv_obj,
 
                     # check that all subclusters are represented
                     for (subcluster_id in names(infercnv_obj@tumor_subclusters$subcluster[[sample_name]])) {
-                        if (!any(infercnv_obj@tumor_subclusters$subcluster[[sample_name]][[subcluster_id]] %in% sampled_indices)) {
-                            sampled_indices = c(sampled_indices, infercnv_obj@tumor_subclusters$subcluster[[sample_name]][[subcluster_id]][1])
+                        if (!any(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]] %in% sampled_indices)) {
+                            sampled_indices = c(sampled_indices, infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]][1])
 
                             ##### need to extend by 1 size of expr data matrix
                         }
@@ -120,7 +120,7 @@ sample_object <- function(infercnv_obj,
                     sampled_indices = infercnv_obj@reference_grouped_cell_indices[[sample_name]]
                     # futur_colnames[(i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))] = colnames(infercnv_obj@expr.data[, sampled_indices])
                 }
-                futur_colnames[(i:(i + length(sampled_indices) - 1))] = colnames(infercnv_obj@expr.data[, sampled_indices])
+                futur_colnames[(i:(i + length(sampled_indices) - 1))] = colnames(infercnv_obj@expr.data[, sampled_indices, drop=FALSE])
             }
             else if (!is.null(n_cells)) {  # upsample
                 n_copies = floor(n_cells / length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]))
@@ -165,9 +165,10 @@ sample_object <- function(infercnv_obj,
                 }
                 new_obj@tumor_subclusters$hc[[sample_name]] = as.hclust(read.tree(text=str_newick_to_alter))
 
-    			futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, sampled_indices]), seq_along(sampled_indices), sep="_")  # paste with seq_along to ensure unique labels
+    			futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, sampled_indices, drop=FALSE]), seq_along(sampled_indices), sep="_")  # paste with seq_along to ensure unique labels
             }
-            new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, sampled_indices]
+            new_obj@tumor_subclusters$subclusters[[sample_name]][[paste(sample_name, "s1", sep="_")]] = c(i:(i + length(sampled_indices) - 1))
+            new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, sampled_indices, drop=FALSE]
             new_obj@reference_grouped_cell_indices[[sample_name]]=c(i:(i + length(sampled_indices) - 1))
 			# futur_colnames[(i:(i + n_cells - 1))] = paste(sample_name, seq_len(n_cells), sep="_")
 			i = i + length(sampled_indices)
@@ -175,11 +176,11 @@ sample_object <- function(infercnv_obj,
 	}
 	else { # do nothing on references
 		for (sample_name in names(infercnv_obj@reference_grouped_cell_indices)) {
-            new_obj@expr.data[, (i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))] = infercnv_obj@expr.data[, infercnv_obj@reference_grouped_cell_indices[[sample_name]]]
+            new_obj@expr.data[, (i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))] = infercnv_obj@expr.data[, infercnv_obj@reference_grouped_cell_indices[[sample_name]], drop=FALSE]
             new_obj@reference_grouped_cell_indices[[sample_name]] = (i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))
             new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
             new_obj@tumor_subclusters$subclusters[[sample_name]] = infercnv_obj@tumor_subclusters$subclusters[[sample_name]]
-            futur_colnames[(i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))] = colnames(infercnv_obj@expr.data[, infercnv_obj@reference_grouped_cell_indices[[sample_name]]])
+            futur_colnames[(i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))] = colnames(infercnv_obj@expr.data[, infercnv_obj@reference_grouped_cell_indices[[sample_name]], drop=FALSE])
             i = i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]])
         }
     }
@@ -188,8 +189,8 @@ sample_object <- function(infercnv_obj,
         for (sample_name in names(infercnv_obj@observation_grouped_cell_indices)) {
             # if (length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) >= n_cells) {
             if ((!is.null(n_cells) && length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) >= n_cells)
-                 || do_every_n) { 
-                if (!do_every_n) {
+                 || do_every_n) { ## downsample 
+                if (!do_every_n) {  # basic random sampling of n_cells
                     sampled_indices = sample(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), size=n_cells, replace=FALSE)
                 }
                 else if (length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) > above_m) {  # select 1 every_n because above_m
@@ -199,9 +200,9 @@ sample_object <- function(infercnv_obj,
                     sampled_indices = match(sampled_labels, colnames(infercnv_obj@expr.data))
 
                     # check that all subclusters are represented
-                    for (subcluster_id in names(infercnv_obj@tumor_subclusters$subcluster[[sample_name]])) {
-                        if (!any(infercnv_obj@tumor_subclusters$subcluster[[sample_name]][[subcluster_id]] %in% sampled_indices)) {
-                            sampled_indices = c(sampled_indices, infercnv_obj@tumor_subclusters$subcluster[[sample_name]][[subcluster_id]][1])
+                    for (subcluster_id in names(infercnv_obj@tumor_subclusters$subclusters[[sample_name]])) {
+                        if (!any(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]] %in% sampled_indices)) {
+                            sampled_indices = c(sampled_indices, infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]][1])
                         }
                     }
                 }
@@ -210,7 +211,12 @@ sample_object <- function(infercnv_obj,
                 }
                 ## prune tree
                 to_prune = colnames(infercnv_obj@expr.data)[setdiff(infercnv_obj@observation_grouped_cell_indices[[sample_name]], sampled_indices)]
-                new_obj@tumor_subclusters$hc[[sample_name]] = prune(infercnv_obj@tumor_subclusters$hc[[sample_name]], to_prune)
+                if (length(infercnv_obj@tumor_subclusters$hc[[sample_name]]$order) > (length(to_prune) + 1) ) {  # more than 2 leaves left, so hclust can exist
+                    new_obj@tumor_subclusters$hc[[sample_name]] = prune(infercnv_obj@tumor_subclusters$hc[[sample_name]], to_prune)
+                }
+                else { # 1 or no leaves left, can't have such an hclust object
+                    new_obj@tumor_subclusters$hc[[sample_name]] = NULL
+                }
                 # new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]][sampled_indices], drop=FALSE]
                 new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, sampled_indices, drop=FALSE]
                 # futur_colnames[(i:(i + length(sampled_indices) - 1))] = colnames(infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]][sampled_indices], drop=FALSE])
@@ -281,22 +287,26 @@ sample_object <- function(infercnv_obj,
                 new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, new_data_order, drop=FALSE]
                 # futur_colnames[(i:(i + n_cells - 1))] = paste(colnames(infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]]), seq_along(new_data_order), sep="_")
                 # futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]]), new_suffixes, sep="_")
-                futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, new_data_order]), new_suffixes, sep="_")
+                futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, new_data_order, drop=FALSE]), new_suffixes, sep="_")
 
             }
+            # else {
+                ## should never happen
+            # }
 
-            new_obj@tumor_subclusters$subclusters[[sample_name]][[paste(sample_name, "s1", sep="_")]] = seq_along(sampled_indices)  ## don't care about the actual values for plotting purpose, only the length
+            new_obj@tumor_subclusters$subclusters[[sample_name]][[paste(sample_name, "s1", sep="_")]] = c(i:(i + length(sampled_indices) - 1))
+            # new_obj@tumor_subclusters$subclusters[[sample_name]][[paste(sample_name, "s1", sep="_")]] = seq_along(sampled_indices)  ## don't care about the actual values for plotting purpose, only the length
             new_obj@observation_grouped_cell_indices[[sample_name]]=c(i:(i + length(sampled_indices) - 1))
             i = i + length(sampled_indices)
         }
     }
     else { # do nothing on observations
         for (sample_name in names(infercnv_obj@observation_grouped_cell_indices)) {
-            new_obj@expr.data[, (i:(i + length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) - 1))] = infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]]]
+            new_obj@expr.data[, (i:(i + length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) - 1))] = infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]], drop=FALSE]
             new_obj@observation_grouped_cell_indices[[sample_name]] = (i:(i + length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) - 1))
             new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
             new_obj@tumor_subclusters$subclusters[[sample_name]] = infercnv_obj@tumor_subclusters$subclusters[[sample_name]]
-            futur_colnames[(i:(i + length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) - 1))] = colnames(infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]]])
+            futur_colnames[(i:(i + length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) - 1))] = colnames(infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]], drop=FALSE])
             i = i + length(infercnv_obj@observation_grouped_cell_indices[[sample_name]])
         }
     }
