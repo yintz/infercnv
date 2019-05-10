@@ -859,15 +859,6 @@ plot_cnv <- function(infercnv_obj,
     reference_data_file <- paste(file_base_name, sprintf("%s.references.txt", output_filename_prefix), sep=.Platform$file.sep)
     
     ref_seps <- c()
-    # Handle only one reference
-    # heatmap3 requires a 2 x 2 matrix, so with one reference
-    # I just duplicate the row and hid the second name so it
-    # visually looks like it is just taking up the full realestate.
-    if(number_references == 1){
-        ref_data <- cbind(ref_data, ref_data)
-        names(ref_data) <- c("",names(ref_data)[1])
-        colnames(ref_data) <- c("", colnames(ref_data)[1])
-    }
 
     # Handle reference groups
     # If there is more than one reference group, visually break
@@ -906,6 +897,17 @@ plot_cnv <- function(infercnv_obj,
     
     ref_data <- ref_data[, order_idx, drop=FALSE]
 
+    # Handle only one reference
+    # heatmap3 requires a 2 x 2 matrix, so with one reference
+    # I just duplicate the row and hid the second name so it
+    # visually looks like it is just taking up the full realestate.
+    if(number_references == 1){
+        ref_data <- cbind(ref_data, ref_data)
+        names(ref_data) <- c("",names(ref_data)[1])
+        colnames(ref_data) <- c("", colnames(ref_data)[1])
+        split_groups <- rep(1, 2)
+    }
+
     # Make row color column colors from groupings
     flog.info(paste("plot_cnv_references:Number reference groups=",
                            length(ref_groups)),
@@ -927,12 +929,18 @@ plot_cnv <- function(infercnv_obj,
 
     # Remove labels if too many.
     ref_orig_names <- row.names(ref_data)
-    if (number_references > 20){
+    # if (number_references > 20){
         # The reference labs can become clustered
         # Dynamically change labels given a certain number of labels.
-        reference_ylab <- cnv_ref_title
+    # remove labels from plot even if less than 20 cells, because it changes the size of the heatmap
+    reference_ylab <- cnv_ref_title
+    if(number_references == 1) {
+        row.names(ref_data) = rep("", 2)
+    }
+    else {
         row.names(ref_data) <- rep("", number_references)
     }
+    # }
 
     row_groupings <- as.matrix(get_group_color_palette()(length(table(split_groups)))[split_groups])
     annotations_legend <- cbind(name_ref_groups, get_group_color_palette()(length(name_ref_groups)))
