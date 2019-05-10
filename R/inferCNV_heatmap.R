@@ -898,6 +898,9 @@ plot_cnv <- function(infercnv_obj,
             # order_idx <- unlist(ref_groups)[ref_hcl$order]
             order_idx = ref_hcl$order # ref_data has been reindexed beforehand in the calling method
         }
+        else {
+            order_idx = unlist(ref_groups)
+        }
         split_groups <- rep(1, length(ref_groups[[1]]))
     }
     
