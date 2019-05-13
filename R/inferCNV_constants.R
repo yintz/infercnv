@@ -21,9 +21,8 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @import futile.logger
 #' @importFrom methods setClass new is
 #' @importFrom gplots bluered
-#' @importFrom ape write.tree as.phylo read.tree
+#' @importFrom ape write.tree as.phylo read.tree drop.tip
 #' @importFrom fastcluster hclust
-#' @importFrom dendextend prune
 #' @import RColorBrewer
 #' @importFrom Matrix Matrix rowMeans colSums
 #' @importFrom dplyr %>% count

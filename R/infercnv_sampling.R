@@ -88,11 +88,14 @@ sample_object <- function(infercnv_obj,
     new_obj@tumor_subclusters$subclusters=list()
 
     i = 1
-    if (on_references == TRUE) {
+    if (on_references == TRUE) {  ## may need to fix @tumor_subclusters$hc of references at some point
 
         for (sample_name in names(infercnv_obj@reference_grouped_cell_indices)) {
             if ((!is.null(n_cells) && length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) >= n_cells)
                  || do_every_n) {  # downsample
+
+                flog.info(paste("Downsampling ", sample_name, sep=""))
+
                 if (!do_every_n) {
                     sampled_indices = sample(infercnv_obj@reference_grouped_cell_indices[[sample_name]], size=n_cells, replace=FALSE)
                 }
@@ -115,12 +118,15 @@ sample_object <- function(infercnv_obj,
                 futur_colnames[(i:(i + length(sampled_indices) - 1))] = colnames(infercnv_obj@expr.data[, sampled_indices, drop=FALSE])
             }
             else if (!is.null(n_cells)) {  # upsample
+
+                flog.info(paste("Upsampling ", sample_name, sep=""))
+
                 n_copies = floor(n_cells / length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]))
                 to_sample = n_cells %% length(infercnv_obj@reference_grouped_cell_indices[[sample_name]])
 
                 pre_sampled_indices = sample(seq_along(infercnv_obj@reference_grouped_cell_indices[[sample_name]]), size=to_sample, replace=FALSE)
                 sampled_indices = sort(c(pre_sampled_indices, rep(seq_along(infercnv_obj@reference_grouped_cell_indices[[sample_name]]), n_copies)))
-
+                sampled_indices = infercnv_obj@reference_grouped_cell_indices[[sample_name]][sampled_indices]
                 ### add check in case there is no hclust for references because it was not set in run() options
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[sample_name]])) {
                     new_data_order = unlist(lapply(infercnv_obj@tumor_subclusters$hc[[sample_name]]$order, function(x) {
@@ -207,8 +213,11 @@ sample_object <- function(infercnv_obj,
         for (sample_name in names(infercnv_obj@observation_grouped_cell_indices)) {
             if ((!is.null(n_cells) && length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) >= n_cells)
                  || do_every_n) { ## downsample 
+
+                flog.info(paste("Downsampling ", sample_name, sep=""))
+
                 if (!do_every_n) {  # basic random sampling of n_cells
-                    sampled_indices = sample(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), size=n_cells, replace=FALSE)
+                    sampled_indices = sample(infercnv_obj@observation_grouped_cell_indices[[sample_name]], size=n_cells, replace=FALSE)
                 }
                 else if (length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) > above_m) {  # select 1 every_n because above_m
                     ## sort(unlist(infercnv_obj_subsample@tumor_subclusters$subclusters[[sample_name]], use.names = FALSE)) == infercnv_obj_subsample@reference_grouped_cell_indices[[sample_name]]
@@ -228,10 +237,15 @@ sample_object <- function(infercnv_obj,
                 }
                 ## prune tree
                 to_prune = colnames(infercnv_obj@expr.data)[setdiff(infercnv_obj@observation_grouped_cell_indices[[sample_name]], sampled_indices)]
+                
+                flog.info(paste("Pruning ", length(to_prune), " leaves from hclust for ", sample_name, sep=""))
+
                 if (length(infercnv_obj@tumor_subclusters$hc[[sample_name]]$order) > (length(to_prune) + 1) ) {  # more than 2 leaves left, so hclust can exist
-                    new_obj@tumor_subclusters$hc[[sample_name]] = prune(infercnv_obj@tumor_subclusters$hc[[sample_name]], to_prune)
+                    # new_obj@tumor_subclusters$hc[[sample_name]] = prune(infercnv_obj@tumor_subclusters$hc[[sample_name]], to_prune)
+                    new_obj@tumor_subclusters$hc[[sample_name]] = as.hclust(drop.tip(as.phylo(infercnv_obj@tumor_subclusters$hc[[sample_name]]), to_prune))
                 }
                 else { # 1 or no leaves left, can't have such an hclust object
+                    flog.info(paste("Not enough leaves left for hclust to exist for ", sample_name, sep=""))
                     new_obj@tumor_subclusters$hc[[sample_name]] = NULL
                 }
                 new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, sampled_indices, drop=FALSE]
@@ -239,13 +253,19 @@ sample_object <- function(infercnv_obj,
 			}
 
 	        else if (!is.null(n_cells)) {  ## upsample
+
+                flog.info(paste("Upsampling ", sample_name, sep=""))
+
                 n_copies = floor(n_cells / length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
                 to_sample = n_cells %% length(infercnv_obj@observation_grouped_cell_indices[[sample_name]])
                 pre_sampled_indices = sample(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), size=to_sample, replace=FALSE)
-                sampled_indices = sort(c(pre_sampled_indices, rep(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), n_copies)))  ##
+                # sampled_indices = sort(c(pre_sampled_indices, rep(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), n_copies)))  ##
 
 
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[sample_name]])) {
+
+                    flog.info(paste("Adding leaves to hclust for ", sample_name, sep=""))
+
                     new_data_order = unlist(lapply(infercnv_obj@tumor_subclusters$hc[[sample_name]]$order, function(x) {
                             if (x %in% pre_sampled_indices) {
                                 rep(x, (n_copies + 1))
@@ -263,6 +283,7 @@ sample_object <- function(infercnv_obj,
                                 seq_len(n_copies)
                             }
                         }))
+                    
                     str_newick_to_alter = write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[sample_name]]))
 
                     # write.tree(base_newick)
@@ -291,9 +312,12 @@ sample_object <- function(infercnv_obj,
                                 to_replace = paste(current_label, "_", (l+1), sep="")
                             }
                         }
-                        # else {
-                        #     # do nothing
-                        # }
+                        else {
+                            # append _1 to label so that it matches new_suffices
+                            to_replace = labels[k]
+                            replacement = paste(to_replace, "_1", sep="")
+                            str_newick_to_alter = gsub(to_replace, replacement, str_newick_to_alter)
+                        }
                     }
                     new_obj@tumor_subclusters$hc[[sample_name]] = as.hclust(read.tree(text=str_newick_to_alter))
                 }
@@ -321,8 +345,8 @@ sample_object <- function(infercnv_obj,
                     class(new_obj@tumor_subclusters$hc[[sample_name]]) <- "hclust"
                 }
 
-                new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, new_data_order, drop=FALSE]
-                futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, new_data_order, drop=FALSE]), new_suffixes, sep="_")
+                new_obj@expr.data[, (i:(i + n_cells - 1))] = infercnv_obj@expr.data[, (infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]), drop=FALSE]
+                futur_colnames[(i:(i + n_cells - 1))] = paste(colnames(infercnv_obj@expr.data[, (infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]), drop=FALSE]), new_suffixes, sep="_")
             }
             # else {
                 ## should never happen
