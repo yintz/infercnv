@@ -23,12 +23,14 @@ sample_object <- function(infercnv_obj,
         n_cells = NULL # mostly to make sure it's not used by inadvertence
     }
     else if (!is.null(every_n) || !is.null(above_m)) {
-        flog.error("To use object sampling with every_n and above_m options, please set both. If you want to use random sampling, please do not specify either, only set n_cells.")
-        stop("every_n and above_m both need to be set or neither.")
+        flog.info("To use object sampling with every_n and above_m options, please set both. Checking if n_cells is set.")
+        # stop("every_n and above_m both need to be set or neither.")
     }
-    else if (is.null(n_cells) || n_cells < 1) {
-        flog.error("Please provide a valid number of cells to sample to.")
-        stop("invalid n_cells")
+    if (!do_every_n) {
+        if (is.null(n_cells) || n_cells < 1) {
+            flog.error("Please provide a valid number of cells to sample to.")
+            stop("invalid n_cells")
+        }
     }
 
 
@@ -283,7 +285,7 @@ sample_object <- function(infercnv_obj,
                                 seq_len(n_copies)
                             }
                         }))
-                    
+
                     str_newick_to_alter = write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[sample_name]]))
 
                     # write.tree(base_newick)
@@ -383,3 +385,146 @@ sample_object <- function(infercnv_obj,
 ############ make method that returns a list of infercnv_obj, 1 for each group of observations/references (to plot on their own)
 #### try to add support for k_obs_groups based splitting and not only cluster_by_groups=TRUE
 
+
+
+plot_per_group <- function(infercnv_obj,
+    out_dir,
+    png_res=300,
+    dynamic_resize=0,
+    sample=FALSE,
+    n_cells=100,
+    every_n=NULL,
+    above_m=1000,
+    on_references=TRUE,
+    on_observations=TRUE) {
+
+    plot_center = mean(infercnv_obj@expr.data)
+    plot_range = quantile(infercnv_obj@expr.data[infercnv_obj@expr.data != plot_center], c(0.01, 0.99))
+
+    if (on_references == TRUE) {
+        for (sample_name in names(infercnv_obj@reference_grouped_cell_indices)) {
+
+            # data_indices = infercnv_obj@reference_grouped_cell_indices[[sample_name]]
+            # infercnv_obj@tumor_subclusters$subclusters[[sample_name]]
+
+            new_obj <- new(
+                Class = "infercnv",
+                expr.data = infercnv_obj@expr.data[, infercnv_obj@reference_grouped_cell_indices[[sample_name]], drop=FALSE], 
+                count.data = matrix(),  # not needed
+                gene_order = infercnv_obj@gene_order,
+                # reference_grouped_cell_indices = list(sample_name = seq_along(infercnv_obj@reference_grouped_cell_indices[[sample_name]])),
+                # observation_grouped_cell_indices = list(),
+                reference_grouped_cell_indices = list(),
+                observation_grouped_cell_indices = list(),
+                tumor_subclusters = list(),
+                .hspike = infercnv_obj@.hspike)
+
+            new_obj@observation_grouped_cell_indices[[sample_name]] = seq_along(infercnv_obj@reference_grouped_cell_indices[[sample_name]])
+            new_obj@tumor_subclusters$hc = list()
+            new_obj@tumor_subclusters$subclusters = list()
+            new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
+
+            # match(pre_obj@observation_grouped_cell_indices$CBTP3_187188XL, unlist(pre_obj@tumor_subclusters$subclusters$CBTP3_187188XL, use.names=FALSE))
+            # match -> pos1 in pos2
+            for (subcluster_id in names(infercnv_obj@tumor_subclusters$subclusters[[sample_name]])) {
+                new_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@reference_grouped_cell_indices[[sample_name]]))
+            }
+
+            if (sample) {
+                if (!is.null(above_m) && ncol(new_obj@expr.data) > above_m) {
+                    new_obj <- sample_object(new_obj,
+                                             n_cells=n_cells,
+                                             every_n=every_n,
+                                             above_m=above_m,
+                                             on_references=FALSE,
+                                             on_observations=TRUE)
+                }
+            }
+
+            plot_cnv(new_obj,
+                out_dir=out_dir,
+                title=paste("inferCNV", sample_name),
+                obs_title=sample_name,
+                ref_title="",
+                cluster_by_groups=TRUE,
+                cluster_references=TRUE,
+                k_obs_groups = 3,
+                contig_cex=1,
+                x.center=plot_center,
+                x.range=plot_range,
+                color_safe_pal=FALSE,
+                output_filename=paste("infercnv_per_group_ref_", sample_name, sep=""),
+                output_format="png", #pdf, png, NA
+                png_res=png_res,
+                dynamic_resize=dynamic_resize,
+                ref_contig = NULL,
+                write_expr_matrix=FALSE
+                )
+        }
+    }
+
+    if (on_observations == TRUE) {
+        for (sample_name in names(infercnv_obj@observation_grouped_cell_indices)) {
+
+            # data_indices = infercnv_obj@observation_grouped_cell_indices[[sample_name]]
+            # infercnv_obj@tumor_subclusters$subclusters[[sample_name]]
+
+            new_obj <- new(
+                Class = "infercnv",
+                expr.data = infercnv_obj@expr.data[, infercnv_obj@observation_grouped_cell_indices[[sample_name]], drop=FALSE], 
+                count.data = matrix(),  # not needed
+                gene_order = infercnv_obj@gene_order,
+                reference_grouped_cell_indices = list(),
+                observation_grouped_cell_indices = list(),
+                tumor_subclusters = list(),
+                .hspike = infercnv_obj@.hspike)
+
+            new_obj@observation_grouped_cell_indices[[sample_name]] = seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]])
+            new_obj@tumor_subclusters$hc = list()
+            new_obj@tumor_subclusters$subclusters = list()
+            new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
+
+            for (subcluster_id in names(infercnv_obj@tumor_subclusters$subclusters[[sample_name]])) {
+                new_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
+            }
+
+            if (sample) {
+                if (!is.null(above_m) && ncol(new_obj@expr.data) > above_m) {
+                    new_obj <- sample_object(new_obj,
+                                             n_cells=n_cells,
+                                             every_n=every_n,
+                                             above_m=above_m,
+                                             on_references=FALSE,
+                                             on_observations=TRUE)
+                }
+            }
+
+            plot_cnv(new_obj,
+                out_dir=out_dir,
+                title=paste("inferCNV", sample_name),
+                obs_title=sample_name,
+                ref_title="",
+                cluster_by_groups=TRUE,
+                cluster_references=TRUE,
+                k_obs_groups = 3,
+                contig_cex=1,
+                x.center=plot_center,
+                x.range=plot_range,
+                color_safe_pal=FALSE,
+                output_filename=paste("infercnv_per_group_obs_", sample_name, sep=""),
+                output_format="png", #pdf, png, NA
+                png_res=png_res,
+                dynamic_resize=dynamic_resize,
+                ref_contig = NULL,
+                write_expr_matrix=FALSE
+                )
+
+        }
+    }
+
+
+
+
+
+
+}
