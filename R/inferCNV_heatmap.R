@@ -627,7 +627,7 @@ plot_cnv <- function(infercnv_obj,
                        file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
             
             obs_dendrogram <- as.dendrogram(obs_hcl)
-            # ordered_names <- row.names(obs_data)[obs_hcl$order]
+            # ordered_names <- row.names(obs_data)[obs_hcl$order]
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
             split_groups <- split_groups[ordered_names]
