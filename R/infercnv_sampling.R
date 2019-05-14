@@ -1,3 +1,54 @@
+
+#' @title sample_object
+#' 
+#' @description Apply sampling on an infercnv object to reduce the number of cells in it 
+#' and allow faster plotting or have all groups take up the same height on the heatmap
+#'
+#' @param infercnv_obj infercnv_object
+#' 
+#' @param n_cells Number of cells that should be sampled per group (default = 100).
+#' 
+#' @param every_n Sample 1 cell every_n cells for each group. If subclusters are defined, 
+#' this will make sure that at least one cell per subcluster is sampled. 
+#' Requires above_m to be set to work, overriding n_cells parameter.
+#' 
+#' @param above_m Sample groups that have at least above_m cells. 
+#' Requires every_n to be set to work, overriding n_cells parameter
+#' 
+#' @param on_observations  boolean (default=TRUE), sample observations data (tumor cells).
+#'
+#' @param on_references  boolean (default=TRUE), sample references (normal cells).
+#'
+#' @return sampled infercnv_obj 
+#'
+#' @export
+#'
+#' @examples
+#' # data(data)
+#' # data(annots)
+#' # data(genes)
+#'
+#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' #                                                gene_order_file=genes,
+#' #                                                annotations_file=annots,
+#' #                                                ref_group_names=c("normal"))
+#'
+#' # infercnv_obj <- infercnv::run(infercnv_obj,
+#' #                               cutoff=1,
+#' #                               out_dir=tempfile(), 
+#' #                               cluster_by_groups=TRUE, 
+#' #                               denoise=TRUE,
+#' #                               HMM=FALSE,
+#' #                               num_threads=2,
+#' #                               no_plot=TRUE)
+#'
+#' data(infercnv_object)
+#'
+#' infercnv_obj <- infercnv::sample_object(infercnv_obj, n_cells=5)
+#' # plot result object
+#'
+
+
 sample_object <- function(infercnv_obj,
     n_cells=100,
     every_n=NULL,
@@ -33,7 +84,6 @@ sample_object <- function(infercnv_obj,
         }
     }
 
-
     new_obj <- new(
         Class = "infercnv",
         expr.data = matrix(), 
@@ -43,8 +93,6 @@ sample_object <- function(infercnv_obj,
         observation_grouped_cell_indices = list(),
         tumor_subclusters = infercnv_obj@tumor_subclusters,  # mainly copied for structure, will get updated
         .hspike = infercnv_obj@.hspike)
-
-#### TODO add option to sample 1 every n instead of n_cells
 
     col1 = length(unlist(infercnv_obj@reference_grouped_cell_indices))
     col2 = length(unlist(infercnv_obj@observation_grouped_cell_indices))
@@ -182,7 +230,7 @@ sample_object <- function(infercnv_obj,
                     #         paste("(", current_label, "_", l, ":0", sep="")
                     #     }), collapse=","), ",", current_label, "_", n_copies, ":0", paste(rep("):0", (n_copies - 2)), collapse=""), ");", sep="")
                     new_obj@tumor_subclusters$hc[[sample_name]] <- list()  # initialize empty object
-                    new_obj@tumor_subclusters$hc[[sample_name]]$merge <- matrix(c(-1, -2), nc=2, byrow=TRUE)
+                    new_obj@tumor_subclusters$hc[[sample_name]]$merge <- matrix(c(-1, -2), ncol=2, byrow=TRUE)
                     for (k in seq_len(n_copies - 2)) {
                         new_obj@tumor_subclusters$hc[[sample_name]]$merge <- rbind(new_obj@tumor_subclusters$hc[[sample_name]]$merge, c(k, -(k+2)))
                     }
@@ -260,7 +308,6 @@ sample_object <- function(infercnv_obj,
                 n_copies = floor(n_cells / length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
                 to_sample = n_cells %% length(infercnv_obj@observation_grouped_cell_indices[[sample_name]])
                 pre_sampled_indices = sample(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), size=to_sample, replace=FALSE)
-                # sampled_indices = sort(c(pre_sampled_indices, rep(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), n_copies))) 
 
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[sample_name]])) {
 
@@ -335,7 +382,7 @@ sample_object <- function(infercnv_obj,
                     #         paste("(", current_label, "_", l, ":0", sep="")
                     #     }), collapse=","), ",", current_label, "_", n_copies, ":0", paste(rep("):0", (n_copies - 2)), collapse=""), ");", sep="")
                     new_obj@tumor_subclusters$hc[[sample_name]] <- list()  # initialize empty object
-                    new_obj@tumor_subclusters$hc[[sample_name]]$merge <- matrix(c(-1, -2), nc=2, byrow=TRUE)
+                    new_obj@tumor_subclusters$hc[[sample_name]]$merge <- matrix(c(-1, -2), ncol=2, byrow=TRUE)
                     for (k in seq_len(n_copies - 2)) {
                         new_obj@tumor_subclusters$hc[[sample_name]]$merge <- rbind(new_obj@tumor_subclusters$hc[[sample_name]]$merge, c(k, -(k+2)))
                     }
@@ -382,11 +429,79 @@ sample_object <- function(infercnv_obj,
 
 
 
+#' @title plot_per_group
+#' 
+#' @description Takes an infercnv object and subdivides it into one object per group of cells 
+#' to allow plotting of each group on a seperate plot. If references are selected, they will appear
+#' on the observation heatmap area as it is larger.
+#'
+#' @param infercnv_obj infercnv_object
+#'
+#' @param sample Whether unique groups of cells should be sampled from or not. (see other parameters for how sampling is done) (Default: FALSE)
+#' 
+#' @param n_cells Number of cells that should be sampled per group if sampling is enabled (default = 1000) .
+#'
+#' @param above_m Sample only groups that have at least above_m cells if sampling is enabled. (default: 1000)
+#' Does not require every_n to be set.
+#' 
+#' @param every_n Sample 1 cell every_n cells for each group that has above_m cells, if sampling is enabled. 
+#' If subclusters are defined, this will make sure that at least one cell per subcluster is sampled. 
+#' Requires above_m to be set to work, overriding n_cells parameter. (Default: NULL)
+#' 
+#' @param base_filename Base prefix for the output files names. 
+#' Will be followed by OBS/REF to indidate the type of the group, and the group name. (Default: "infercnv_per_group")
+#'
+#' @param output_format Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")
+#'
+#' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap. (default: FALSE)
+#' 
+#' @param save_objects Whether to save the infercnv objects generated for each group as RDS. (default: FALSE)
+#'
+#' @param png_res Resolution for png output. (Default: 300)
+#'
+#' @param dynamic_resize Factor (>= 0) by which to scale the dynamic resize of the observation 
+#'                       heatmap and the overall plot based on how many cells there are.
+#'                       Default is 0, which disables the scaling. Try 1 first if you want to enable. (Default: 0)
+#'
+#' @param out_dir Directory in which to save plots and other outputs.
+#'
+#' @param on_observations  boolean (default=TRUE), plot observations data (tumor cells).
+#'
+#' @param on_references  boolean (default=TRUE), plot references (normal cells).
+#'
+#' @return void
+#'
+#' @export
+#'
+#' @examples
+#' # data(data)
+#' # data(annots)
+#' # data(genes)
+#'
+#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' #                                                gene_order_file=genes,
+#' #                                                annotations_file=annots,
+#' #                                                ref_group_names=c("normal"))
+#'
+#' # infercnv_obj <- infercnv::run(infercnv_obj,
+#' #                               cutoff=1,
+#' #                               out_dir=tempfile(), 
+#' #                               cluster_by_groups=TRUE, 
+#' #                               denoise=TRUE,
+#' #                               HMM=FALSE,
+#' #                               num_threads=2,
+#' #                               no_plot=TRUE)
+#'
+#' data(infercnv_object)
+#'
+#' infercnv::plot_per_group(infercnv_obj, out_dir=tempfile())
+#'
+
 plot_per_group <- function(infercnv_obj,
     on_references=TRUE,
     on_observations=TRUE,
     sample=FALSE,
-    n_cells=100,
+    n_cells=1000,
     every_n=NULL,
     above_m=1000,
     base_filename="infercnv_per_group",
