@@ -78,10 +78,10 @@ sample_object <- function(infercnv_obj,
     }
     else {
         if (on_references == TRUE) {
-        	col1 = length(infercnv_obj@reference_grouped_cell_indices) * n_cells
+            col1 = length(infercnv_obj@reference_grouped_cell_indices) * n_cells
         }
         if (on_observations == TRUE) {
-        	col2 = length(infercnv_obj@observation_grouped_cell_indices) * n_cells
+            col2 = length(infercnv_obj@observation_grouped_cell_indices) * n_cells
         }
     }
     new_obj@expr.data = matrix(nrow=nrow(infercnv_obj@expr.data), ncol=(col1 + col2))
@@ -192,16 +192,16 @@ sample_object <- function(infercnv_obj,
                     class(new_obj@tumor_subclusters$hc[[sample_name]]) <- "hclust"
                 }
 
-    			futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, sampled_indices, drop=FALSE]), seq_along(sampled_indices), sep="_")  # paste with seq_along to ensure unique labels
+                futur_colnames[(i:(i + length(sampled_indices) - 1))] = paste(colnames(infercnv_obj@expr.data[, sampled_indices, drop=FALSE]), seq_along(sampled_indices), sep="_")  # paste with seq_along to ensure unique labels
             }
             new_obj@tumor_subclusters$subclusters[[sample_name]][[paste(sample_name, "s1", sep="_")]] = c(i:(i + length(sampled_indices) - 1))
             new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, sampled_indices, drop=FALSE]
             new_obj@reference_grouped_cell_indices[[sample_name]]=c(i:(i + length(sampled_indices) - 1))
-			i = i + length(sampled_indices)
-		}
-	}
-	else { # do nothing on references
-		for (sample_name in names(infercnv_obj@reference_grouped_cell_indices)) {
+            i = i + length(sampled_indices)
+        }
+    }
+    else { # do nothing on references
+        for (sample_name in names(infercnv_obj@reference_grouped_cell_indices)) {
             new_obj@expr.data[, (i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))] = infercnv_obj@expr.data[, infercnv_obj@reference_grouped_cell_indices[[sample_name]], drop=FALSE]
             new_obj@reference_grouped_cell_indices[[sample_name]] = (i:(i + length(infercnv_obj@reference_grouped_cell_indices[[sample_name]]) - 1))
             new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
@@ -213,8 +213,7 @@ sample_object <- function(infercnv_obj,
 
     if (on_observations == TRUE) {
         for (sample_name in names(infercnv_obj@observation_grouped_cell_indices)) {
-            if ((!is.null(n_cells) && length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) >= n_cells)
-                 || do_every_n) { ## downsample 
+            if ((!is.null(n_cells) && length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]) >= n_cells) || do_every_n) { ## downsample 
 
                 flog.info(paste("Downsampling ", sample_name, sep=""))
 
@@ -252,17 +251,16 @@ sample_object <- function(infercnv_obj,
                 }
                 new_obj@expr.data[, (i:(i + length(sampled_indices) - 1))] = infercnv_obj@expr.data[, sampled_indices, drop=FALSE]
                 futur_colnames[(i:(i + length(sampled_indices) - 1))] = colnames(infercnv_obj@expr.data[, sampled_indices, drop=FALSE])
-			}
+            }
 
-	        else if (!is.null(n_cells)) {  ## upsample
+            else if (!is.null(n_cells)) { ## upsample
 
                 flog.info(paste("Upsampling ", sample_name, sep=""))
 
                 n_copies = floor(n_cells / length(infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
                 to_sample = n_cells %% length(infercnv_obj@observation_grouped_cell_indices[[sample_name]])
                 pre_sampled_indices = sample(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), size=to_sample, replace=FALSE)
-                # sampled_indices = sort(c(pre_sampled_indices, rep(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), n_copies)))  ##
-
+                # sampled_indices = sort(c(pre_sampled_indices, rep(seq_along(infercnv_obj@observation_grouped_cell_indices[[sample_name]]), n_copies))) 
 
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[sample_name]])) {
 
@@ -380,32 +378,30 @@ sample_object <- function(infercnv_obj,
 }
 
 
-
-
-############ make method that returns a list of infercnv_obj, 1 for each group of observations/references (to plot on their own)
 #### try to add support for k_obs_groups based splitting and not only cluster_by_groups=TRUE
 
 
 
 plot_per_group <- function(infercnv_obj,
-    out_dir,
-    png_res=300,
-    dynamic_resize=0,
+    on_references=TRUE,
+    on_observations=TRUE,
     sample=FALSE,
     n_cells=100,
     every_n=NULL,
     above_m=1000,
-    on_references=TRUE,
-    on_observations=TRUE) {
+    base_filename="infercnv_per_group",
+    output_format="png",
+    write_expr_matrix=TRUE,
+    save_objects=FALSE,
+    png_res=300,
+    dynamic_resize=0,
+    out_dir) {
 
     plot_center = mean(infercnv_obj@expr.data)
     plot_range = quantile(infercnv_obj@expr.data[infercnv_obj@expr.data != plot_center], c(0.01, 0.99))
 
     if (on_references == TRUE) {
         for (sample_name in names(infercnv_obj@reference_grouped_cell_indices)) {
-
-            # data_indices = infercnv_obj@reference_grouped_cell_indices[[sample_name]]
-            # infercnv_obj@tumor_subclusters$subclusters[[sample_name]]
 
             new_obj <- new(
                 Class = "infercnv",
@@ -441,6 +437,10 @@ plot_per_group <- function(infercnv_obj,
                 }
             }
 
+            if (save_objects) {
+                saveRDS(new_obj, file.path(out_dir, paste(base_filename, "_REF_", make_filename(sample_name), ".infercnv_obj", sep="")))
+            }
+
             plot_cnv(new_obj,
                 out_dir=out_dir,
                 title=paste("inferCNV", sample_name),
@@ -448,26 +448,23 @@ plot_per_group <- function(infercnv_obj,
                 ref_title="",
                 cluster_by_groups=TRUE,
                 cluster_references=TRUE,
-                k_obs_groups = 3,
+                k_obs_groups=3,
                 contig_cex=1,
                 x.center=plot_center,
                 x.range=plot_range,
                 color_safe_pal=FALSE,
-                output_filename=paste("infercnv_per_group_ref_", make_filename(sample_name), sep=""),
-                output_format="png", #pdf, png, NA
+                output_filename=paste(base_filename, "REF", make_filename(sample_name), sep="_"),
+                output_format=output_format, #pdf, png, NA
                 png_res=png_res,
                 dynamic_resize=dynamic_resize,
-                ref_contig = NULL,
-                write_expr_matrix=FALSE
+                ref_contig=NULL,
+                write_expr_matrix=write_expr_matrix
                 )
         }
     }
 
     if (on_observations == TRUE) {
         for (sample_name in names(infercnv_obj@observation_grouped_cell_indices)) {
-
-            # data_indices = infercnv_obj@observation_grouped_cell_indices[[sample_name]]
-            # infercnv_obj@tumor_subclusters$subclusters[[sample_name]]
 
             new_obj <- new(
                 Class = "infercnv",
@@ -499,6 +496,10 @@ plot_per_group <- function(infercnv_obj,
                 }
             }
 
+            if (save_objects) {
+                saveRDS(new_obj, file.path(out_dir, paste(base_filename, "_OBS_", make_filename(sample_name), ".infercnv_obj", sep="")))
+            }
+
             plot_cnv(new_obj,
                 out_dir=out_dir,
                 title=paste("inferCNV", sample_name),
@@ -506,29 +507,21 @@ plot_per_group <- function(infercnv_obj,
                 ref_title="",
                 cluster_by_groups=TRUE,
                 cluster_references=TRUE,
-                k_obs_groups = 3,
+                k_obs_groups=3,
                 contig_cex=1,
                 x.center=plot_center,
                 x.range=plot_range,
                 color_safe_pal=FALSE,
-                output_filename=paste("infercnv_per_group_obs_", make_filename(sample_name), sep=""),
-                output_format="png", #pdf, png, NA
+                output_filename=paste(base_filename, "OBS", make_filename(sample_name), sep="_"),
+                output_format=output_format, #pdf, png, NA
                 png_res=png_res,
                 dynamic_resize=dynamic_resize,
-                ref_contig = NULL,
-                write_expr_matrix=FALSE
+                ref_contig=NULL,
+                write_expr_matrix=write_expr_matrix
                 )
-
         }
     }
-
-
-
-
-
-
 }
-
 
 make_filename <- function(text) {
     text <- gsub("[/\\:*?\"<>|]", "_", text)
