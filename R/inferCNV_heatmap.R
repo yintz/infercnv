@@ -294,7 +294,7 @@ plot_cnv <- function(infercnv_obj,
         }
     }
     
-    obs_data_t <- t(obs_data)
+    obs_data <- t(obs_data)
 
     # Subsample the data to only the references and update the ref_group indexes to match their new indexes
     # ref_data_t <- plot_data[, ref_idx, drop=FALSE]
@@ -314,16 +314,17 @@ plot_cnv <- function(infercnv_obj,
     
     nb_breaks <- 16
     breaksList_t <-
-        seq(min(min(obs_data_t, na.rm=TRUE), min(ref_data_t, na.rm=TRUE)),
-        max(max(obs_data_t,na.rm=TRUE), max(ref_data_t, na.rm=TRUE)),
+        seq(min(min(obs_data, na.rm=TRUE), min(ref_data_t, na.rm=TRUE)),
+        max(max(obs_data,na.rm=TRUE), max(ref_data_t, na.rm=TRUE)),
         length.out=nb_breaks)
 
 
     # Create file base for plotting output
     force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height, dynamic_extension=dynamic_extension)
     .plot_cnv_observations(infercnv_obj=infercnv_obj,
-                          obs_data=obs_data_t,
+                          obs_data=obs_data,
                           file_base_name=out_dir,
+                          do_plot=!is.na(output_format),
                           output_filename_prefix=output_filename,
                           cluster_contig=ref_contig,
                           contigs=contigs,
@@ -358,6 +359,7 @@ plot_cnv <- function(infercnv_obj,
                             col_pal=custom_pal,
                             contig_seps=col_sep,
                             file_base_name=out_dir,
+                            do_plot=!is.na(output_format),
                             output_filename_prefix=output_filename,
                             cnv_ref_title=ref_title,
                             breaksList=breaksList_t,
@@ -392,6 +394,7 @@ plot_cnv <- function(infercnv_obj,
 #' @param contig_seps Indices for line seperators of contigs.
 #' @param num_obs_groups Number of groups of observations to create.
 #' @param file_base_name Base of the file to used to make output file names.
+#' @param do_plot If FALSE, only write text files and does not run plotting.
 #' @param cnv_title Title of the plot.
 #' @param cnv_obs_title Title for the observation matrix.
 #' @param contig_lab_size Text size for contigs.
@@ -420,6 +423,7 @@ plot_cnv <- function(infercnv_obj,
                                   contig_seps,
                                   num_obs_groups,
                                   file_base_name,
+                                  do_plot=TRUE,
                                   output_filename_prefix,
                                   cnv_title,
                                   cnv_obs_title,
@@ -704,7 +708,8 @@ plot_cnv <- function(infercnv_obj,
     heatmap_thresholds_file_name <- file.path(file_base_name, sprintf("%s.heatmap_thresholds.txt", output_filename_prefix))
     write.table(breaksList, heatmap_thresholds_file_name, row.names=FALSE, col.names=FALSE)
 
-    data_observations <- heatmap.cnv(obs_data,
+    if (do_plot) {
+        data_observations <- heatmap.cnv(obs_data,
                                         Rowv=obs_dendrogram,
                                         Colv=FALSE,
                                         cluster.by.row=TRUE,
@@ -747,15 +752,25 @@ plot_cnv <- function(infercnv_obj,
                                         force_lmat=layout_lmat,
                                         force_lwid=layout_lwid,
                                         force_lhei=layout_lhei)
-
+    }
     # Write data to file.
     if (class(obs_data) %in% c("matrix", "data.frame")) {
         flog.info(paste("plot_cnv_references:Writing observation data to",
                         observation_file_base,
                         sep=" "))
         row.names(obs_data) <- orig_row_names
-        write.table(t(obs_data[data_observations$rowInd,data_observations$colInd]),
+
+        if (do_plot) {
+            write.table(t(obs_data[data_observations$rowInd,data_observations$colInd]),
                     file=observation_file_base)
+        }
+        else {
+            # Rowv inherits dendrogram, Colv is FALSE
+            # rowInd = seq_len(nrow(ref_data)) == everything in normal order
+            # colInd = seq_len(ncol(ref_data)) == everything in normal order
+            write.table(t(obs_data), file=observation_file_base)
+        }
+          
     }
 }
 
@@ -816,6 +831,7 @@ plot_cnv <- function(infercnv_obj,
 #' col_pal The color palette to use.
 #' contig_seps Indices for line seperators of contigs.
 #' file_base_name Base of the file to used to make output file names.
+#' do_plot If FALSE, only write text files and does not run plotting.
 #' cnv_ref_title Title for reference matrix.
 #' layout_lmat lmat values to use in the layout.
 #' layout_lwid lwid values to use in the layout.
@@ -838,6 +854,7 @@ plot_cnv <- function(infercnv_obj,
                                 col_pal,
                                 contig_seps,
                                 file_base_name,
+                                do_plot=TRUE,
                                 output_filename_prefix,
                                 cnv_ref_title,
                                 breaksList,
@@ -954,37 +971,39 @@ plot_cnv <- function(infercnv_obj,
     # Print controls
     flog.info("plot_cnv_references:Plotting heatmap.")
 
-    data_references <- heatmap.cnv(ref_data,
-                                   main=NULL, #NA,
-                                   ylab=reference_ylab,
-                                   xlab=NULL, #NA,
-                                   key=FALSE,
-                                   labCol=rep("", nrow(ref_data)),
-                                   notecol="black",
-                                   trace="none",
-                                   dendrogram="none",
-                                   Colv=FALSE,
-                                   Rowv=FALSE,
-                                   cexRow=0.4,
-                                   breaks=breaksList,
-                                   scale="none",
-                                   x.center=x.center,
-                                   color.FUN=col_pal,
-                                   sepList=contigSepList,
-                                   # Row colors and legend
-                                   RowIndividualColors=row_groupings,
-                                   annotations_legend=annotations_legend,
-                                   grouping_key_coln=grouping_key_coln,
-                                   # Seperate by contigs
-                                   sep.color=c("black","black"),
-                                   sep.lty=1,
-                                   sep.lwd=1,
-                                   if.plot=!testing,
-                                   # Layout
-                                   force_lmat=layout_lmat,
-                                   force_lwid=layout_lwid,
-                                   force_lhei=layout_lhei,
-                                   force_add=layout_add)
+    if (do_plot) {
+        data_references <- heatmap.cnv(ref_data,
+                                       main=NULL, #NA,
+                                       ylab=reference_ylab,
+                                       xlab=NULL, #NA,
+                                       key=FALSE,
+                                       labCol=rep("", nrow(ref_data)),
+                                       notecol="black",
+                                       trace="none",
+                                       dendrogram="none",
+                                       Colv=FALSE,
+                                       Rowv=FALSE,
+                                       cexRow=0.4,
+                                       breaks=breaksList,
+                                       scale="none",
+                                       x.center=x.center,
+                                       color.FUN=col_pal,
+                                       sepList=contigSepList,
+                                       # Row colors and legend
+                                       RowIndividualColors=row_groupings,
+                                       annotations_legend=annotations_legend,
+                                       grouping_key_coln=grouping_key_coln,
+                                       # Seperate by contigs
+                                       sep.color=c("black","black"),
+                                       sep.lty=1,
+                                       sep.lwd=1,
+                                       if.plot=!testing,
+                                       # Layout
+                                       force_lmat=layout_lmat,
+                                       force_lwid=layout_lwid,
+                                       force_lhei=layout_lhei,
+                                       force_add=layout_add)
+    }
 
                                         # Write data to file
     if (class(ref_data) %in% c("matrix", "data.frame")) {
@@ -994,8 +1013,18 @@ plot_cnv <- function(infercnv_obj,
         flog.info(paste("plot_cnv_references:Writing reference data to",
                         reference_data_file,
                         sep=" "))
-        write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
-                    file=reference_data_file)
+
+        ## Rowv is FALSE, Colv is FALSE
+
+        if (do_plot) {
+            write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
+                        file=reference_data_file)
+        }
+        else {
+            # colInd = seq_len(ncol(ref_data)) == everything in normal order
+            write.table(t(ref_data[rev(seq_len(nrow(ref_data))), ]),
+                        file=reference_data_file)
+        }
     }
 }
 
