@@ -641,7 +641,7 @@ pargs <- optparse::add_option(pargs, c("--output_format"),
                               metavar="Output Format",
                               help=paste("Output format for the figure. Default is NA, ",
                                           "which means to only write the text outputs ",
-                                          "without generating the figure itself. "
+                                          "without generating the figure itself. ",
                                           "Other choices are \"png\" and \"pdf\"."))
 
 pargs <- optparse::add_option(pargs, c("--median_filter"),
