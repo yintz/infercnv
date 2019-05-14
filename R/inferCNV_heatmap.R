@@ -770,7 +770,6 @@ plot_cnv <- function(infercnv_obj,
             # colInd = seq_len(ncol(ref_data)) == everything in normal order
             write.table(t(obs_data), file=observation_file_base)
         }
-          
     }
 }
 

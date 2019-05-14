@@ -142,6 +142,8 @@
 #'
 #' @param no_prelim_plot  don't make the preliminary infercnv image (default: FALSE)
 #'
+#' @param output_format Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")
+#'
 #' @param plot_probabilities option to plot posterior probabilities (default: TRUE)
 #'
 #' @param diagnostics option to create diagnostic plots after running the Bayesian model (default: FALSE)
@@ -278,7 +280,8 @@ run <- function(infercnv_obj,
                 hspike_aggregate_normals = FALSE,
 
                 no_plot = FALSE,
-                no_prelim_plot = FALSE
+                no_prelim_plot = FALSE,
+                output_format = "png"
 
 ) {
 
@@ -378,20 +381,20 @@ run <- function(infercnv_obj,
 
     step_count = step_count + 1
     flog.info(sprintf("\n\n\tSTEP %02d: log transformation of data\n", step_count))
-    
+
     infercnv_obj_file = file.path(out_dir, sprintf("%02d_logtransformed%s.infercnv_obj", step_count, resume_file_token))
-    
+
     if (resume_mode & file.exists(infercnv_obj_file)) {
         flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
         infercnv_obj <- readRDS(infercnv_obj_file)
     } else {
-        
+
         infercnv_obj <- log2xplus1(infercnv_obj)
-        
+
         saveRDS(infercnv_obj,
                 file=infercnv_obj_file)
-        
-        
+
+
         ## Plot incremental steps.
         if (plot_steps){
             
@@ -402,6 +405,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title=sprintf("%02d_log_transformed_data",step_count),
                      output_filename=sprintf("infercnv.%02d_log_transformed",step_count),
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res
                      )
@@ -435,6 +439,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_scaled",step_count),
                          output_filename=sprintf("infercnv.%02d_scaled",step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
                 
@@ -498,6 +503,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
                 
@@ -532,6 +538,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title=sprintf("%02d_remove_average",step_count),
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res)
         }
@@ -575,6 +582,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_apply_max_centered_expr_threshold",step_count),
                          output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
                 
@@ -623,6 +631,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title=sprintf("%02d_smoothed_by_chr",step_count),
                      output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res)
         }
@@ -656,6 +665,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title=sprintf("%02d_centering_of_smoothed",step_count),
                      output_filename=sprintf("infercnv.%02d_centering_of_smoothed", step_count),
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res)
             
@@ -689,6 +699,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title=sprintf("%02d_remove_average",step_count),
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res)
         }
@@ -722,6 +733,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_remove_genes_at_chr_ends",step_count),
                          output_filename=sprintf("infercnv.%02d_remove_genes_at_chr_ends",step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
                 
@@ -755,6 +767,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title=sprintf("%02d_invert_log_transform log(FC)->FC",step_count),
                      output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res)
             
@@ -796,6 +809,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_tumor_subclusters",step_count),
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters",step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
             }
@@ -848,6 +862,7 @@ run <- function(infercnv_obj,
                      out_dir=out_dir,
                      title="Preliminary infercnv (pre-noise filtering)",
                      output_filename="infercnv.preliminary", # png ext auto added
+                     output_format=output_format,
                      write_expr_matrix=TRUE,
                      png_res=png_res)
         }
@@ -887,6 +902,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_removed_outliers",step_count),
                          output_filename=sprintf("infercnv.%02d_removed_outliers", step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
             }
@@ -993,6 +1009,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds",step_count),
                          output_filename=sprintf("infercnv.%02d_HMM_pred%s",step_count, hmm_resume_file_token),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          x.center=hmm_center,
                          x.range=hmm_state_range,
@@ -1060,6 +1077,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds_Bayes_Net",step_count),
                          output_filename=sprintf("infercnv.%02d_HMM_pred.Bayes_Net.Pnorm_%g",step_count, BayesMaxPNormal),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          x.center=3,
                          x.range=c(0,6),
@@ -1099,6 +1117,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds.repr_intensities",step_count),
                          output_filename=sprintf("infercnv.%02d_HMM_pred%s.Pnorm_%g.repr_intensities", step_count, hmm_resume_file_token, BayesMaxPNormal),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          x.center=1,
                          x.range=c(-1,3),
@@ -1156,6 +1175,7 @@ run <- function(infercnv_obj,
                          out_dir=out_dir,
                          title=sprintf("%02d_mask_nonDE",step_count),
                          output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
                 
@@ -1217,6 +1237,7 @@ run <- function(infercnv_obj,
                          color_safe_pal=FALSE,
                          title=sprintf("%02d_denoised", step_count),
                          output_filename=sprintf("infercnv.%02d_denoised", step_count),
+                         output_format=output_format,
                          write_expr_matrix=TRUE,
                          png_res=png_res)
             }
@@ -1246,6 +1267,7 @@ run <- function(infercnv_obj,
                  x.range=final_scale_limits,
                  title="inferCNV",
                  output_filename="infercnv",
+                 output_format=output_format,
                  write_expr_matrix=TRUE,
                  png_res=png_res)
     }

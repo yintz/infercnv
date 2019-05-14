@@ -633,6 +633,17 @@ pargs <- optparse::add_option(pargs, c("--no_prelim_plot"),
                               help=paste("don't make the preliminary infercnv image",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--output_format"),
+                              type="character",
+                              default=NA,
+                              action="store",
+                              dest="output_format",
+                              metavar="Output Format",
+                              help=paste("Output format for the figure. Default is NA, ",
+                                          "which means to only write the text outputs ",
+                                          "without generating the figure itself. "
+                                          "Other choices are \"png\" and \"pdf\"."))
+
 pargs <- optparse::add_option(pargs, c("--median_filter"),
                               type="logical",
                               default=FALSE,
@@ -738,6 +749,7 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                             plot_steps=args$plot_steps,
                             no_plot=args$no_plot,
                             no_prelim_plot=args$no_prelim_plot,
+                            output_format=args$output_format,
                             debug=args$debug,
                             #prune_outliers=args$prune_outliers,
                             final_scale_limits=args$final_scale_limits,
