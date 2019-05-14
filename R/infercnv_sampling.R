@@ -453,7 +453,7 @@ plot_per_group <- function(infercnv_obj,
                 x.center=plot_center,
                 x.range=plot_range,
                 color_safe_pal=FALSE,
-                output_filename=paste("infercnv_per_group_ref_", sample_name, sep=""),
+                output_filename=paste("infercnv_per_group_ref_", make_filename(sample_name), sep=""),
                 output_format="png", #pdf, png, NA
                 png_res=png_res,
                 dynamic_resize=dynamic_resize,
@@ -511,7 +511,7 @@ plot_per_group <- function(infercnv_obj,
                 x.center=plot_center,
                 x.range=plot_range,
                 color_safe_pal=FALSE,
-                output_filename=paste("infercnv_per_group_obs_", sample_name, sep=""),
+                output_filename=paste("infercnv_per_group_obs_", make_filename(sample_name), sep=""),
                 output_format="png", #pdf, png, NA
                 png_res=png_res,
                 dynamic_resize=dynamic_resize,
@@ -528,3 +528,9 @@ plot_per_group <- function(infercnv_obj,
 
 
 }
+
+
+make_filename <- function(text) {
+    text <- gsub("[/\\:*?\"<>|]", "_", text)
+}
+
