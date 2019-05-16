@@ -367,6 +367,8 @@ sample_object <- function(infercnv_obj,
                         }
                     }
                     new_obj@tumor_subclusters$hc[[sample_name]] = as.hclust(read.tree(text=str_newick_to_alter))
+                    new_obj@expr.data[, (i:(i + n_cells - 1))] = infercnv_obj@expr.data[, (infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]), drop=FALSE]
+                    futur_colnames[(i:(i + n_cells - 1))] = paste(colnames(infercnv_obj@expr.data[, (infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]), drop=FALSE]), new_suffixes, sep="_")
                 }
                 else {
                     if (length(infercnv_obj@tumor_subclusters$subclusters[[sample_name]]) > 1) {
@@ -390,10 +392,9 @@ sample_object <- function(infercnv_obj,
                     new_obj@tumor_subclusters$hc[[sample_name]]$order <- seq_len(n_copies)              # order of leaves(trivial if hand-entered)
                     new_obj@tumor_subclusters$hc[[sample_name]]$labels <- paste(current_label, seq_len(n_copies), sep="_")    # lnew_obj@tumor_subclusters$hc[[sample_name]]bels of lenew_obj@tumor_subclusters$hc[[sample_name]]ves
                     class(new_obj@tumor_subclusters$hc[[sample_name]]) <- "hclust"
+                    new_obj@expr.data[, (i:(i + n_cells - 1))] = infercnv_obj@expr.data[, new_data_order, drop=FALSE]
+                    futur_colnames[(i:(i + n_cells - 1))] = paste(colnames(infercnv_obj@expr.data[, new_data_order, drop=FALSE]), new_suffixes, sep="_")
                 }
-
-                new_obj@expr.data[, (i:(i + n_cells - 1))] = infercnv_obj@expr.data[, (infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]), drop=FALSE]
-                futur_colnames[(i:(i + n_cells - 1))] = paste(colnames(infercnv_obj@expr.data[, (infercnv_obj@observation_grouped_cell_indices[[sample_name]][new_data_order]), drop=FALSE]), new_suffixes, sep="_")
             }
             # else {
                 ## should never happen
