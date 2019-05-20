@@ -1,3 +1,11 @@
+Changes in version 1.0.1 (2019-05-20)
++ Improved when the clustering is defined for groups when running in sample mode.
++ Fixed support for NA to be understood as an output_format value to plot_cnv() in case a user only wants to generate the text outputs and not the plot.
++ Fix ordering of cells and color bars on the heatmap and text outputs when cells are not sorted in the same order in the input matrix and the annotation file.
++ Fix to (sub)cluster definition when a group only has 1 cell.
++ Fix plot_cnv() to handle observations groups with only 1 cell (that can't be hierarchically clustered), a single reference group when no references are not clusterd, and a single reference group with a single cell.
+Changes in version 1.0.0 (2019-05-02)
++ Released as a BioConductor packages
 Changes in version 0.99.8 (2019-04-20)
 + Fix missing labels on heatmap due to change in how axis() handles overlaps.
 + Improve auto thresholding of heatmap colors to still work when using stronger denoise settings.
