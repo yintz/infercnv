@@ -7,7 +7,10 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
     res = list()
 
-    normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
+    if (restrict_to_DE_genes) {
+        normal_expr_data = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices) ]
+    }
+    
     tumor_groups = list()
 
     if (cluster_by_groups) {
