@@ -2,6 +2,9 @@ Changes in version 1.1.1 (2019-05-20)
 + Added method to sample an infercnv object to a given number of cells, or at a given frequency, per annotation group. This is to make it easy to plot figures where all annotations groups have the same overall height, as well as downsample very large datasets that would otherwise take too long to plot (while still running the analysis on the full data)
 + Added method to plot each annotation group to a different figure and combine with sampling. Mostly intended to split data for larger datasets.
 + Added support for output_format option within run() to link to plot_cnv() to support only writting text outputs during the analysis.
+Changes in version 1.0.2 (2019-05-21)
++ Reduce peak memory usage.
++ Fix to subclusters definition when using a sparse matrix and a non random trees method with no references.
 Changes in version 1.0.1 (2019-05-20)
 + Improved when the clustering is defined for groups when running in sample mode.
 + Fixed support for NA to be understood as an output_format value to plot_cnv() in case a user only wants to generate the text outputs and not the plot.
