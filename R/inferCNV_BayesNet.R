@@ -105,44 +105,6 @@ setMethod(f = "expirData",
           signature = "MCMC_inferCNV",
           definition=function(obj) obj@expr.data )
 
-#' Access the option to reassign CNVs based on their posterior probabilities.
-#'
-#' This function returns the TRUE or FALSE.
-#'
-#' @param obj The MCMC_inferCNV_obj S4 object.
-#'
-#' @return logical
-#' @rdname getReassignCNV-method
-#' @keywords internal
-#' @noRd
-setGeneric(name = "getReassignCNV",
-           def = function(obj) standardGeneric("getReassignCNV"))
-#' @rdname getReassignCNV-method
-#' @aliases getReassignCNV
-#' @noRd
-setMethod(f = "getReassignCNV",
-          signature = "MCMC_inferCNV",
-          definition=function(obj) obj@args$reassignCNVs )
-
-#' Access the option to remove CNVs that are found to have higher probability of being normal.
-#'
-#' If this user option is chosen, this function will return "removeCNV".
-#'
-#' @param obj The MCMC_inferCNV_obj S4 object.
-#'
-#' @return string
-#' @rdname getPostMcmcMethod-method
-#' @keywords internal
-#' @noRd
-setGeneric(name = "getPostMcmcMethod",
-           def = function(obj) standardGeneric("getPostMcmcMethod"))
-#' @rdname getPostMcmcMethod-method
-#' @aliases getPostMcmcMethod
-#' @noRd
-setMethod(f = "getPostMcmcMethod",
-          signature = "MCMC_inferCNV",
-          definition=function(obj) obj@args$postMcmcMethod)
-
 #' Access the arguments in the s4 object 
 #'
 #' Return the list of arguments passed to the inferCNVBayesNet function.
@@ -326,7 +288,7 @@ setMethod(f="initializeObject",
               files <- list.files(args_parsed$file_dir, full.names = TRUE)
 
               # Validate the inferCNV Object
-              validate_infercnv_obj(infercnv_obj)
+              infercnv:::validate_infercnv_obj(infercnv_obj)
 
               ## create the S4 object
               obj <- MCMC_inferCNV(infercnv_obj)
@@ -1360,7 +1322,7 @@ inferCNVBayesNet <- function( file_dir,
     }
     # Plot the probability of not being normal state.
     ## Create the title for the plottig the probability of not being normal. 
-    if (getPostMcmcMethod(MCMC_inferCNV_obj) == "removeCNV" || getReassignCNV(MCMC_inferCNV_obj) == TRUE ){
+    if (getArgs(MCMC_inferCNV_obj)$postMcmcMethod == "removeCNV" || getArgs(MCMC_inferCNV_obj)$reassignCNVs == TRUE ){
         title <- sprintf(" (1 - Probabilities of Normal) Before Filtering") 
         output_filename <- "infercnv.NormalProbabilities.PreFiltering"
     } else {
@@ -1413,7 +1375,7 @@ filterHighPNormals <- function( MCMC_inferCNV_obj,
     ## or remove cell lines based on cell line posterior probabilities ("removeCells")
     if(!(is.null(getArgs(MCMC_inferCNV_obj)$postMcmcMethod))){
         
-        if(getPostMcmcMethod(MCMC_inferCNV_obj) == "removeCNV"){
+        if(getArgs(MCMC_inferCNV_obj)$postMcmcMethod == "removeCNV"){
             #MCMC_inferCNV_obj <- removeCNV(MCMC_inferCNV_obj, HMM_states)
             post_removed <- removeCNV(MCMC_inferCNV_obj, HMM_states)
             MCMC_inferCNV_obj <- post_removed[[1]]
@@ -1423,7 +1385,7 @@ filterHighPNormals <- function( MCMC_inferCNV_obj,
         }
         
         # Reassign the cnv states based on their probabilities 
-        if(getReassignCNV(MCMC_inferCNV_obj) == TRUE){
+        if(getArgs(MCMC_inferCNV_obj)$reassignCNVs == TRUE){
             MCMC_inferCNV_obj <- reassignCNV(obj        = MCMC_inferCNV_obj, 
                                              HMM_states = HMM_states)
         }
@@ -1434,7 +1396,7 @@ filterHighPNormals <- function( MCMC_inferCNV_obj,
     
     # Plot the Probability of not being normal state
     ## Create the title for the plottig the probability of not being normal 
-    if (getPostMcmcMethod(MCMC_inferCNV_obj) == "removeCNV" || getReassignCNV(MCMC_inferCNV_obj) == TRUE ){
+    if (getArgs(MCMC_inferCNV_obj)$postMcmcMethod == "removeCNV" || getArgs(MCMC_inferCNV_obj)$reassignCNVs == TRUE ){
         title <- sprintf(" (1 - Probabilities of Normal) With Threshold %s", getArgs(MCMC_inferCNV_obj)$BayesMaxPNormal) # MCMC_inferCNV_obj@args$BayesMaxPNormal)
         output_filename <- "infercnv.NormalProbabilities.PostFiltering"
     }
