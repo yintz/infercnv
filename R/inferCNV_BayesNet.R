@@ -288,7 +288,7 @@ setMethod(f="initializeObject",
               files <- list.files(args_parsed$file_dir, full.names = TRUE)
 
               # Validate the inferCNV Object
-              infercnv:::validate_infercnv_obj(infercnv_obj)
+              validate_infercnv_obj(infercnv_obj)
 
               ## create the S4 object
               obj <- MCMC_inferCNV(infercnv_obj)
@@ -526,7 +526,7 @@ setMethod(f="reassignCNV",
                   futile.logger::flog.info(paste("Changing the following CNV's states assigned by the HMM to the following based on the CNV's state probabilities.\n", paste(cnvMessage, sep = "",collapse = "\n")))
               }
 
-              return(obj)
+              return(list(obj, HMM_states))
           }
 )
 
@@ -1230,12 +1230,12 @@ inferCNVBayesNet <- function( file_dir,
     ################
     # CHECK INPUTS #
     ################
-    if (!file.exists(file_dir)){
-        error_message <- paste("Cannot find the supplied directory location for the infercnv output.",
-                               "Please supply the correct path for the output.")
-        futile.logger::flog.error(error_message)
-        stop(error_message)
-    }
+    # if (!file.exists(file_dir)){
+    #     error_message <- paste("Cannot find the supplied directory location for the infercnv output.",
+    #                            "Please supply the correct path for the output.")
+    #     futile.logger::flog.error(error_message)
+    #     stop(error_message)
+    # }
     if (!is.null(model_file) && !file.exists(model_file)){
         error_message <- paste("Cannot find the model file.",
                                "Please supply the correct path for the model file.")
@@ -1386,8 +1386,10 @@ filterHighPNormals <- function( MCMC_inferCNV_obj,
         
         # Reassign the cnv states based on their probabilities 
         if(getArgs(MCMC_inferCNV_obj)$reassignCNVs == TRUE){
-            MCMC_inferCNV_obj <- reassignCNV(obj        = MCMC_inferCNV_obj, 
-                                             HMM_states = HMM_states)
+            post_reassign <- reassignCNV(obj        = MCMC_inferCNV_obj, 
+                                         HMM_states = HMM_states)
+            MCMC_inferCNV_obj <- post_reassign[[1]]
+            HMM_states <- post_reassign[[2]]
         }
     }
     
