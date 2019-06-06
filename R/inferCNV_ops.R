@@ -461,7 +461,7 @@ run <- function(infercnv_obj,
         step_count = step_count + 1
         flog.info(sprintf("\n\n\tSTEP %02d: splitting reference data into %d clusters\n", step_count, num_ref_groups))
 
-        infercnv_obj_file = file.path(out_dir, sprintf("%02d_split_%s_refs%s.infercnv_obj", step_count, resume_file_token, num_ref_groups))
+        infercnv_obj_file = file.path(out_dir, sprintf("%02d_split_%sf_refs%s.infercnv_obj", step_count, resume_file_token, num_ref_groups))
         
         if (resume_mode & file.exists(infercnv_obj_file)) {
             flog.info(sprintf("-restoring infercnv_obj from %s", infercnv_obj_file))
@@ -1572,7 +1572,7 @@ split_references <- function(infercnv_obj,
         grp_counter = grp_counter + 1
         grp_name = sprintf("refgrp-%d", grp_counter)
         cell_names <- names(split_groups[split_groups == cut_group])
-        ref_groups[[grp_name]] <- which(colnames(ref_expr_matrix) %in% cell_names)
+        ref_groups[[grp_name]] <- which(colnames(infercnv_obj@expr.data) %in% cell_names)
     }
     
     infercnv_obj@reference_grouped_cell_indices <- ref_groups
