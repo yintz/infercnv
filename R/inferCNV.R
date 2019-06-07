@@ -152,9 +152,11 @@ CreateInfercnvObject <- function(raw_counts_matrix,
             raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
             raw.data <- as.matrix(raw.data)
         }
-    } else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix", "data.frame"))) {
+    } else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix"))) {
         # use as is:
         raw.data <- raw_counts_matrix
+    } else if (Reduce("|", is(raw_counts_matrix) %in% c("data.frame"))) {
+        raw.data <- as.matrix(raw_counts_matrix)
     } else {
         stop("CreateInfercnvObject:: Error, raw_counts_matrix isn't recognized as a matrix, data.frame, or filename")
     }
