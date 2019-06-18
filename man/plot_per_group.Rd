@@ -75,6 +75,6 @@ on the observation heatmap area as it is larger.
 
 data(infercnv_object)
 
-infercnv_obj <- infercnv::plot_per_group(infercnv_obj, out_dir=tempfile())
+infercnv::plot_per_group(infercnv_obj, out_dir=tempfile())
 
 }

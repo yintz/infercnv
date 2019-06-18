@@ -35,3 +35,4 @@ Collate:
     'inferCNV_tumor_subclusters.random_smoothed_trees.R'
     'infercnv_sampling.R'
     'noise_reduction.R'
+    'seurat_interaction.R'
