@@ -39,7 +39,10 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
     }
     infercnv_obj = readRDS(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))
     
-    if(!(setequal(row.names(seurat_obj@meta.data), colnames(infercnv_obj@expr.data)) ||
+    if (is.null(seurat_obj)) {
+        flog.info("No Seurat object provided, will only write metadata matrix.")
+    }
+    else if(!(setequal(row.names(seurat_obj@meta.data), colnames(infercnv_obj@expr.data)) ||
          setequal(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data)))) {
         flog.warn("::Cell names in Seurat object and infercnv results do not match")
         stop()
@@ -93,22 +96,55 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
                                      center_state = center_state, 
                                      scaling_factor = scaling_factor, 
                                      top_n = top_n)
+    if (!is.null(seurat_obj)) {
+        for (lv in levels(infercnv_obj@gene_order$chr)) {
+            seurat_obj@meta.data[[paste0("has_cnv_", lv)]] = features_to_add$feature_vector_chrs_has_cnv[[lv]]
+            seurat_obj@meta.data[[paste0("has_loss_", lv)]] = features_to_add$feature_vector_chrs_has_loss[[lv]]
+            seurat_obj@meta.data[[paste0("has_dupli_", lv)]] = features_to_add$feature_vector_chrs_has_dupli[[lv]]
+            seurat_obj@meta.data[[paste0("proportion_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion[[lv]]
+            seurat_obj@meta.data[[paste0("proportion_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion[[lv]]
+            seurat_obj@meta.data[[paste0("proportion_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion[[lv]]
+            seurat_obj@meta.data[[paste0("proportion_scaled_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion_scaled[[lv]]
+            seurat_obj@meta.data[[paste0("proportion_scaled_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion_scaled[[lv]]
+            seurat_obj@meta.data[[paste0("proportion_scaled_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion_scaled[[lv]]
+        }
+        
+        for (n in names(features_to_add)[grep(names(features_to_add), pattern = "top_")] ) {
+            seurat_obj@meta.data[[n]] = features_to_add[[n]]
+        }
+    }
     
+    out_mat = matrix(NA, ncol=((9 * length(levels(infercnv_obj@gene_order$chr))) + length(features_to_add) - 9), nrow=ncol(infercnv_obj@expr.data))
+    out_mat_feature_names = vector("character", ((9 * length(levels(infercnv_obj@gene_order$chr))) + length(features_to_add) - 9))
+    
+    i = 1
     for (lv in levels(infercnv_obj@gene_order$chr)) {
-        seurat_obj@meta.data[[paste0("has_cnv_", lv)]] = features_to_add$feature_vector_chrs_has_cnv[[lv]]
-        seurat_obj@meta.data[[paste0("has_loss_", lv)]] = features_to_add$feature_vector_chrs_has_loss[[lv]]
-        seurat_obj@meta.data[[paste0("has_dupli_", lv)]] = features_to_add$feature_vector_chrs_has_dupli[[lv]]
-        seurat_obj@meta.data[[paste0("proportion_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion[[lv]]
-        seurat_obj@meta.data[[paste0("proportion_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion[[lv]]
-        seurat_obj@meta.data[[paste0("proportion_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion[[lv]]
-        seurat_obj@meta.data[[paste0("proportion_scaled_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion_scaled[[lv]]
-        seurat_obj@meta.data[[paste0("proportion_scaled_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion_scaled[[lv]]
-        seurat_obj@meta.data[[paste0("proportion_scaled_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion_scaled[[lv]]
+        
+        out_mat[, i] = features_to_add$feature_vector_chrs_has_cnv[[lv]]
+        out_mat[, i+1] = features_to_add$feature_vector_chrs_has_loss[[lv]]
+        out_mat[, i+2] = features_to_add$feature_vector_chrs_has_dupli[[lv]]
+        out_mat[, i+3] = features_to_add$feature_vector_chrs_gene_cnv_proportion[[lv]]
+        out_mat[, i+4] = features_to_add$feature_vector_chrs_gene_loss_proportion[[lv]]
+        out_mat[, i+5] = features_to_add$feature_vector_chrs_gene_dupli_proportion[[lv]]
+        out_mat[, i+6] = features_to_add$feature_vector_chrs_gene_cnv_proportion_scaled[[lv]]
+        out_mat[, i+7] = features_to_add$feature_vector_chrs_gene_loss_proportion_scaled[[lv]]
+        out_mat[, i+8] = features_to_add$feature_vector_chrs_gene_dupli_proportion_scaled[[lv]]
+        
+        out_mat_feature_names[i:(i+8)] = c(paste0("has_cnv_", lv), paste0("has_loss_", lv), paste0("has_dupli_", lv), paste0("proportion_cnv_", lv), paste0("proportion_loss_", lv), paste0("proportion_dupli_", lv), paste0("proportion_scaled_cnv_", lv), paste0("proportion_scaled_loss_", lv), paste0("proportion_scaled_dupli_", lv))
+        
+        i = i + 9
     }
     
     for (n in names(features_to_add)[grep(names(features_to_add), pattern = "top_")] ) {
-        seurat_obj@meta.data[[n]] = features_to_add[[n]]
+        out_mat[, i] = features_to_add[[n]]
+        out_mat_feature_names[i] = n
+        i = i + 1
     }
+    
+    colnames(out_mat) = out_mat_feature_names
+    row.names(out_mat) = colnames(infercnv_obj@expr.data)
+    
+    write.table(out_mat, paste(infercnv_output_path, "map_metadata_from_infercnv.txt", sep=.Platform$file.sep) , quote=FALSE, sep="\t")
     
     return(seurat_obj)
 }
