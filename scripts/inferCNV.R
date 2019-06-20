@@ -636,7 +636,7 @@ pargs <- optparse::add_option(pargs, c("--no_prelim_plot"),
 
 pargs <- optparse::add_option(pargs, c("--output_format"),
                               type="character",
-                              default=NA,
+                              default="png",
                               action="store",
                               dest="output_format",
                               metavar="Output Format",

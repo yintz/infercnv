@@ -34,9 +34,16 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
     lfiles <- list.files(infercnv_output_path, full.names = FALSE)
     
     if (!file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
+        flog.warn(sprintf("::Could not find \"run.final.infercnv_obj\" file at: %s"), paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))
         stop()
     }
     infercnv_obj = readRDS(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))
+    
+    if(!(setequal(row.names(seurat_obj@meta.data), colnames(infercnv_obj@expr.data)) ||
+         setequal(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data)))) {
+        flog.warn("::Cell names in Seurat object and infercnv results do not match")
+        stop()
+    }
     
     ## add check that data row/col names match seurat obj
     
@@ -50,6 +57,7 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
             center_state = 1
         }
         else {
+            flog.warn("::Found filtered HMM predictions output, but they do not match any known model type.")
             stop()
         }
         # sort to take lowest BayesProb if there are multiple
@@ -67,6 +75,7 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
             center_state = 2
         }
         else {
+            flog.warn("::Found HMM predictions output, but they do not match any known model type")
             stop()
         }
         regions = read.table(paste(infercnv_output_path, "12_HMM_preds.pred_cnv_regions.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
@@ -74,6 +83,7 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
         # from_hmm()
     }
     else {
+        flog.warn(sprintf("::Could not find any HMM predictions outputs at: %s", infercnv_output_path))
         stop()
     }
     
