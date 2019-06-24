@@ -27,6 +27,8 @@
 #' 
 #' @slot tumor_subclusters <list> stores subclustering of tumors if requested
 #'
+#' @slot options <list> stores the options relevant to the analysis in itself (in contrast with options relevant to plotting or paths)
+#'
 #' @slot .hspike a hidden infercnv object populated with simulated spiked-in data
 #' 
 #' @export
@@ -41,6 +43,7 @@ infercnv <- methods::setClass(
                              reference_grouped_cell_indices = "list",
                              observation_grouped_cell_indices = "list",
                              tumor_subclusters  = "ANY",
+                             options = "list",
                              .hspike = "ANY") )
 
 
@@ -312,6 +315,9 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         reference_grouped_cell_indices = ref_group_cell_indices,
         observation_grouped_cell_indices = obs_group_cell_indices,
         tumor_subclusters = NULL,
+        options = list("chr_exclude" = chr_exclude,
+                       "max_cells_per_group" = max_cells_per_group,
+                       "min_max_counts_per_cell" = min_max_counts_per_cell),
         .hspike = NULL)
 
     validate_infercnv_obj(object)
