@@ -68,21 +68,21 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
         hmm_genes = read.table(paste(infercnv_output_path, sort(lfiles[grep(lfiles, pattern="HMM_CNV_predictions.HMMi6.*.Pnorm_0.[0-9]+.pred_cnv_genes.dat")])[1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
         # from_pbayes()
     }
-    else if (any(grep(lfiles, pattern = "12_HMM_preds"))) {
+    else if (any(grep(lfiles, pattern = "17_HMM_preds"))) {
         ###### states are 1/2/3/4/5/6
         scaling_factor = 2
-        if (any(grep(lfiles, pattern = "12_HMM_predHMMi6"))) {
+        if (any(grep(lfiles, pattern = "17_HMM_predHMMi6"))) {
             center_state = 3
         }
-        else if (any(grep(lfiles, pattern = "12_HMM_predHMMi3"))) {
+        else if (any(grep(lfiles, pattern = "17_HMM_predHMMi3"))) {
             center_state = 2
         }
         else {
             flog.warn("::Found HMM predictions output, but they do not match any known model type")
             stop()
         }
-        regions = read.table(paste(infercnv_output_path, "12_HMM_preds.pred_cnv_regions.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
-        hmm_genes = read.table(paste(infercnv_output_path, "12_HMM_preds.pred_cnv_genes.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
+        regions = read.table(paste(infercnv_output_path, "17_HMM_preds.pred_cnv_regions.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
+        hmm_genes = read.table(paste(infercnv_output_path, "17_HMM_preds.pred_cnv_genes.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
         # from_hmm()
     }
     else {
