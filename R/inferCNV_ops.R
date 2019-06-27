@@ -339,24 +339,8 @@ run <- function(infercnv_obj,
                     else {
                         hmm.infercnv_obj@options = infercnv_obj@options
                         skip_hmm = i - 16
-                        # if (i == 19) {
-                        #     skip_hmm = 2
-                        # }
-                        # else {
-                        #     skip_hmm = 1
-                        # }
                     }
                 }
-                # else if (i == 18) {
-                #     mcmc_obj = readRDS(reload_info$expected_file_names[[i]])
-                #     if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i], mcmc_obj)) {
-                #         rm(mcmc_obj)
-                #         invisible(gc())
-                #     }
-                #     else {
-                #         skip_mcmc = 1
-                #     }
-                # }
                 else {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
 
@@ -383,7 +367,7 @@ run <- function(infercnv_obj,
 
     step_count = 0;
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 1
     flog.info(sprintf("\n\n\tSTEP %d: incoming data\n", step_count))
     
     # infercnv_obj_file=file.path(out_dir, sprintf("%02d_incoming_data.infercnv_obj", step_count))
@@ -397,7 +381,7 @@ run <- function(infercnv_obj,
     
     ## #################################################
     ## Step: removing insufficiently expressed genes
-    step_count = step_count + 1
+    step_count = step_count + 1 # 2
     flog.info(sprintf("\n\n\tSTEP %02d: Removing lowly expressed genes\n", step_count))
     
     ## Remove genes that aren't sufficiently expressed, according to min mean count cutoff.
@@ -425,7 +409,7 @@ run <- function(infercnv_obj,
     ## #########################################
     ## # STEP: normalization by sequencing depth
 
-    step_count = step_count + 1
+    step_count = step_count + 1 # 3
     flog.info(sprintf("\n\n\tSTEP %02d: normalization by sequencing depth\n", step_count))
     
     
@@ -459,7 +443,7 @@ run <- function(infercnv_obj,
     ## #########################
     ## Step: log transformation
 
-    step_count = step_count + 1
+    step_count = step_count + 1 # 4
     flog.info(sprintf("\n\n\tSTEP %02d: log transformation of data\n", step_count))
 
     # infercnv_obj_file = file.path(out_dir, sprintf("%02d_logtransformed%s.infercnv_obj", step_count, resume_file_token))
@@ -474,11 +458,10 @@ run <- function(infercnv_obj,
         # saveRDS(infercnv_obj,
         #         file=infercnv_obj_file)
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
-
+        invisible(gc())
 
         ## Plot incremental steps.
         if (plot_steps){
-            invisible(gc())
             plot_cnv(infercnv_obj=infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -494,7 +477,7 @@ run <- function(infercnv_obj,
     }
     
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 5
     if (scale_data) {
         
         flog.info(sprintf("\n\n\tSTEP %02d: scaling all expression data\n", step_count))
@@ -510,11 +493,11 @@ run <- function(infercnv_obj,
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             ## Plot incremental steps.
             if (plot_steps){
                 
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -534,7 +517,7 @@ run <- function(infercnv_obj,
     ## #################################################
     ## Step: Split the reference data into groups if requested
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 6
     if (!is.null(num_ref_groups)) {
         
         if (! has_reference_cells(infercnv_obj)) {
@@ -561,7 +544,7 @@ run <- function(infercnv_obj,
     
     
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 7
     if (analysis_mode == 'subclusters' & tumor_subcluster_partition_method == 'random_trees') {
         
         flog.info(sprintf("\n\n\tSTEP %02d: computing tumor subclusters via %s\n", step_count, tumor_subcluster_partition_method))
@@ -580,9 +563,9 @@ run <- function(infercnv_obj,
                                                                                        cluster_by_groups=cluster_by_groups)
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             if (plot_steps) {
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -603,7 +586,7 @@ run <- function(infercnv_obj,
     ## Step: Subtract average reference
     ## Since we're in log space, this now becomes log(fold_change)
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 8
     flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data (before smoothing)\n", step_count))
     
     # infercnv_obj_file = file.path(out_dir,
@@ -618,9 +601,9 @@ run <- function(infercnv_obj,
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+        invisible(gc())
         
         if (plot_steps) {
-            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -635,7 +618,7 @@ run <- function(infercnv_obj,
     }
     
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 9
     if (! is.na(max_centered_threshold)) {
         
         ## #####################################################
@@ -661,12 +644,11 @@ run <- function(infercnv_obj,
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
-            
+            invisible(gc())
             
             ## Plot incremental steps.
             if (plot_steps){
                 
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -687,7 +669,7 @@ run <- function(infercnv_obj,
     ## #########################################################################
     ## Step: For each cell, smooth the data along chromosome with gene windows
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 10
     flog.info(sprintf("\n\n\tSTEP %02d: Smoothing data per cell by chromosome\n", step_count))
     
     # infercnv_obj_file = file.path(out_dir, sprintf("%02d_smoothed_by_chr%s.infercnv_obj", step_count, resume_file_token))
@@ -710,11 +692,11 @@ run <- function(infercnv_obj,
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+        invisible(gc())
         
         ## Plot incremental steps.
         if (plot_steps){
             
-            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -734,7 +716,7 @@ run <- function(infercnv_obj,
     ## Center cells/observations after smoothing. This helps reduce the
     ## effect of complexity.
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 11
     flog.info(sprintf("\n\n\tSTEP %02d: re-centering data across chromosome after smoothing\n", step_count))
     
     # infercnv_obj_file = file.path(out_dir, sprintf("%02d_recentered_cells_by_chr%s.infercnv_obj", step_count, resume_file_token))
@@ -747,11 +729,11 @@ run <- function(infercnv_obj,
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+        invisible(gc())
         
         ## Plot incremental steps.
         if (plot_steps) {
             
-            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -771,7 +753,7 @@ run <- function(infercnv_obj,
     ## ##################################
     ## Step: Subtract average reference (adjustment)
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 12
     flog.info(sprintf("\n\n\tSTEP %02d: removing average of reference data (after smoothing)\n", step_count))
     
     # infercnv_obj_file = file.path(out_dir,
@@ -786,9 +768,9 @@ run <- function(infercnv_obj,
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+        invisible(gc())
         
         if (plot_steps) {
-            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -805,7 +787,7 @@ run <- function(infercnv_obj,
     
     ## Step: Remove Ends
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 13
     if (remove_genes_at_chr_ends == TRUE) {
         
         flog.info(sprintf("\n\n\tSTEP %02d: removing genes at chr ends\n", step_count))
@@ -821,11 +803,11 @@ run <- function(infercnv_obj,
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             ## Plot incremental steps.
             if (plot_steps){
                 
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -845,7 +827,7 @@ run <- function(infercnv_obj,
     ## ###########################
     ## Step: invert log transform  (convert from log(FC) to FC)
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 14
     flog.info(sprintf("\n\n\tSTEP %02d: invert log2(FC) to FC\n", step_count))
     
     # infercnv_obj_file = file.path(out_dir, sprintf("%02d_invert_log_transform%s.infercnv_obj", step_count, resume_file_token))
@@ -860,9 +842,9 @@ run <- function(infercnv_obj,
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+        invisible(gc())
         
         if (plot_steps) {
-            invisible(gc())
             plot_cnv(infercnv_obj,
                      k_obs_groups=k_obs_groups,
                      cluster_by_groups=cluster_by_groups,
@@ -882,7 +864,7 @@ run <- function(infercnv_obj,
     ## Done restoring infercnv_obj's from files now under resume_mode
     ## ###################################################################
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 15
     if (analysis_mode == 'subclusters' & tumor_subcluster_partition_method != 'random_trees') {
         
         resume_file_token = paste0(resume_file_token, '.', tumor_subcluster_partition_method)
@@ -904,10 +886,10 @@ run <- function(infercnv_obj,
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             if (plot_steps) {
                 
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -957,13 +939,13 @@ run <- function(infercnv_obj,
     if (skip_past < step_count) {
         infercnv_obj_file = file.path(out_dir, "preliminary.infercnv_obj")
         saveRDS(infercnv_obj, file=infercnv_obj_file)
+        invisible(gc())
     
         if (! (no_prelim_plot | no_plot) ) {
             
             prelim_heatmap_png = "infercnv.preliminary.png"
             
             if (! file.exists(file.path(out_dir, prelim_heatmap_png))) {
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -980,7 +962,7 @@ run <- function(infercnv_obj,
     
     ## Below represent optional downstream analysis steps:
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 16
     if (prune_outliers) {
         
         ## ################################
@@ -1003,11 +985,11 @@ run <- function(infercnv_obj,
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             ## Plot incremental steps.
             if (plot_steps) {
                 
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1022,7 +1004,7 @@ run <- function(infercnv_obj,
         }
     }
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 17
     if (HMM) {
         flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
         
@@ -1109,14 +1091,12 @@ run <- function(infercnv_obj,
                                         out_dir=out_dir,
                                         ignore_neutral_state=hmm_center,
                                         by=HMM_report_by)
-            
-            
-            
-            
+
+            invisible(gc())
+                        
             if (! no_plot) {
                 
                 ## Plot HMM pred img
-                invisible(gc())
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1138,7 +1118,7 @@ run <- function(infercnv_obj,
         ## Bayesian Network Mixture Model
         ## ############################################################
         
-    step_count = step_count + 1
+    step_count = step_count + 1 # 18
     if (HMM == TRUE & BayesMaxPNormal > 0 & length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
         flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
         
@@ -1185,10 +1165,10 @@ run <- function(infercnv_obj,
             
             # saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)s
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             if (! no_plot) {
                 ## Plot HMM pred img after cnv removal
-                invisible(gc())
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1209,7 +1189,7 @@ run <- function(infercnv_obj,
         
         ## convert from states to representative  intensity values
         
-    step_count = step_count + 1
+    step_count = step_count + 1 # 19
     if (HMM) {
         flog.info(sprintf("\n\n\tSTEP %02d: Converting HMM-based CNV states to repr expr vals\n", step_count))
         
@@ -1229,10 +1209,10 @@ run <- function(infercnv_obj,
             
             # saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
+            invisible(gc())
             
             ## Plot HMM pred img
             if (! no_plot) {
-                invisible(gc())
                 plot_cnv(infercnv_obj=hmm.infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1262,7 +1242,7 @@ run <- function(infercnv_obj,
     ## all processes that are alternatives to the HMM prediction wrt DE analysis and/or denoising
     
     ## Step: Filtering significantly DE genes
-    step_count = step_count + 1
+    step_count = step_count + 1 # 20
     if (mask_nonDE_genes) {
         
         if (!has_reference_cells(infercnv_obj)) {
@@ -1289,11 +1269,11 @@ run <- function(infercnv_obj,
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             
+            invisible(gc())
             
             ## Plot incremental steps.
             if (plot_steps) {
                 
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
@@ -1310,7 +1290,7 @@ run <- function(infercnv_obj,
     }
     
     
-    step_count = step_count + 1
+    step_count = step_count + 1 # 21
     if (denoise) {
         
         ## ##############################
@@ -1353,10 +1333,9 @@ run <- function(infercnv_obj,
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
-            
+            invisible(gc())
             
             if (! no_plot) {
-                invisible(gc())
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
