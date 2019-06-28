@@ -28,6 +28,8 @@ Slots in the infercnv object include:
 
 \item{\code{tumor_subclusters}}{<list> stores subclustering of tumors if requested}
 
+\item{\code{options}}{<list> stores the options relevant to the analysis in itself (in contrast with options relevant to plotting or paths)}
+
 \item{\code{.hspike}}{a hidden infercnv object populated with simulated spiked-in data}
 }}
 

@@ -27,7 +27,7 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = NULL,
   mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
   test.use = "wilcoxon", require_DE_all_normals = "any",
   hspike_aggregate_normals = FALSE, no_plot = FALSE,
-  no_prelim_plot = FALSE, output_format = "png")
+  no_prelim_plot = FALSE, output_format = "png", useRaster = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -197,6 +197,8 @@ other experimental opts}
 \item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)}
 
 \item{output_format}{Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")}
+
+\item{useRaster}{Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it. (default: TRUE)}
 }
 \value{
 infercnv_obj containing filtered and transformed data

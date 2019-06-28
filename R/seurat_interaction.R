@@ -1,36 +1,22 @@
-##' @keywords internal
-##' @noRd
-##'
-#make_seurat_from_infercnv_obj <- function(infercnv_obj) {
-#    return(CreateSeuratObject(counts = infercnv_obj@count.data, project="infercnv", min.cells = 3, min.features = 200))
-#}
-#
-##' @keywords internal
-##' @noRd
-##'
-#make_seurat_from_infercnv <- function(infercnv_output_path) {
-#    if (file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
-#        return(make_seurat_from_infercnv_obj(readRDS(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))))
-#    }
-#    else {
-#        stop()
-#    }
-#}
 
-
-#' @title add_to_seurat()
-#'
 #' @description Add meta.data about CNAs to a Seurat object from an infercnv_obj
 #'
-#' @param seurat_obj Seurat object to add meta.data to
+#' @title add_to_seurat()
+#'
+#' @param seurat_obj Seurat object to add meta.data to (default: NULL)
 #'
 #' @param infercnv_output_path Path to the output folder of the infercnv run to use
 #'
 #' @param top_n How many of the largest CNA (in number of genes) to get.
 #'
+#' @return seurat_obj
+#'
 #' @export
 #'
-add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
+
+add_to_seurat <- function(seurat_obj = NULL,
+                          infercnv_output_path,
+                          top_n = 10) {
     lfiles <- list.files(infercnv_output_path, full.names = FALSE)
     
     if (!file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
@@ -148,6 +134,7 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
     
     return(seurat_obj)
 }
+
 
 #' @title .get_features()
 #'
@@ -332,5 +319,25 @@ add_to_seurat <- function(seurat_obj, infercnv_output_path, top_n = 10) {
     return(top_regions)
 }
 
+
+
+##' @keywords internal
+##' @noRd
+##'
+#make_seurat_from_infercnv_obj <- function(infercnv_obj) {
+#    return(CreateSeuratObject(counts = infercnv_obj@count.data, project="infercnv", min.cells = 3, min.features = 200))
+#}
+#
+##' @keywords internal
+##' @noRd
+##'
+#make_seurat_from_infercnv <- function(infercnv_output_path) {
+#    if (file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
+#        return(make_seurat_from_infercnv_obj(readRDS(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))))
+#    }
+#    else {
+#        stop()
+#    }
+#}
 
 

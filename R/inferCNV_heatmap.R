@@ -36,6 +36,7 @@ get_group_color_palette <- function(){
 #'                       Default is 0, which disables the scaling. Try 1 first if you want to enable.
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
+#' @param useRaster Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it.
 #' 
 #' @return A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
 #'
@@ -98,7 +99,8 @@ plot_cnv <- function(infercnv_obj,
                      png_res=300,
                      dynamic_resize=0,
                      ref_contig = NULL,
-                     write_expr_matrix=FALSE) {
+                     write_expr_matrix=FALSE,
+                     useRaster=TRUE) {
 
 
     # arg validations
@@ -346,7 +348,8 @@ plot_cnv <- function(infercnv_obj,
                           hclust_method=hclust_method,
                           layout_lmat=force_layout[["lmat"]],
                           layout_lhei=force_layout[["lhei"]],
-                          layout_lwid=force_layout[["lwid"]])
+                          layout_lwid=force_layout[["lwid"]],
+                          useRaster=useRaster)
     obs_data <- NULL
 
     if(!is.null(ref_idx)){
@@ -364,7 +367,8 @@ plot_cnv <- function(infercnv_obj,
                             cnv_ref_title=ref_title,
                             breaksList=breaksList_t,
                             x.center=x.center,
-                            layout_add=TRUE)
+                            layout_add=TRUE,
+                            useRaster=useRaster)
     }
     if (! is.na(output_format)) {
         dev.off()
@@ -440,7 +444,8 @@ plot_cnv <- function(infercnv_obj,
                                   testing=FALSE,
                                   layout_lmat=NULL,
                                   layout_lhei=NULL,
-                                  layout_lwid=NULL) {
+                                  layout_lwid=NULL,
+                                  useRaster=useRaster) {
 
     flog.info("plot_cnv_observation:Start")
     flog.info(paste("Observation data size: Cells=",
@@ -751,7 +756,8 @@ plot_cnv <- function(infercnv_obj,
                                         # Layout
                                         force_lmat=layout_lmat,
                                         force_lwid=layout_lwid,
-                                        force_lhei=layout_lhei)
+                                        force_lhei=layout_lhei,
+                                        useRaster=useRaster)
     }
     # Write data to file.
     if (class(obs_data) %in% c("matrix", "data.frame")) {
@@ -862,7 +868,8 @@ plot_cnv <- function(infercnv_obj,
                                 layout_lwid=NULL,
                                 layout_lhei=NULL,
                                 layout_add=FALSE,
-                                testing=FALSE){
+                                testing=FALSE,
+                                useRaster=useRaster){
 
     flog.info("plot_cnv_references:Start")
     flog.info(paste("Reference data size: Cells=",
@@ -1001,7 +1008,8 @@ plot_cnv <- function(infercnv_obj,
                                        force_lmat=layout_lmat,
                                        force_lwid=layout_lwid,
                                        force_lhei=layout_lhei,
-                                       force_add=layout_add)
+                                       force_add=layout_add,
+                                       useRaster=useRaster)
     }
 
                                         # Write data to file
@@ -1355,6 +1363,8 @@ heatmap.cnv <-
            force_lwid=NULL,
            force_lhei=NULL,
            force_add=FALSE,
+
+           useRaster=TRUE,
 
            ## extras
            ...
@@ -2100,8 +2110,8 @@ heatmap.cnv <-
     }
     image(seq_len(nc),seq_len(nr),
           x,
-          xlim=0.5+c(0,nc),ylim=0.5+c(0,nr),
-          axes=FALSE,xlab="",ylab="",col=colors,breaks=breaks,
+          xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
+          axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=useRaster,
           ...)
     flog.info(paste("Colors for breaks: ", paste(colors, collapse=","), sep=" "))
     flog.info(paste("Quantiles of plotted data range:", paste(quantile(x), collapse=","), sep=" "))
@@ -2109,8 +2119,8 @@ heatmap.cnv <-
     ## plot/color NAs
     if(!.invalid(na.color) & any(is.na(x))){
       mmat <- ifelse(is.na(x),1,NA)
-      image(seq_len(nc),seq_len(nr),mmat,axes=FALSE,xlab="",ylab="",
-            col=na.color,add=TRUE)
+      image(seq_len(nc),seq_len(nr), mmat, axes=FALSE, xlab="", ylab="",
+            col=na.color, add=TRUE, useRaster=useRaster)
     }
 
     ##
@@ -2246,9 +2256,9 @@ heatmap.cnv <-
       row.clusters.unique <- row.clusters.unique[!is.na(row.clusters.unique)]
 
       image(rbind(seq_len(nr)),
-            xlim=0.5+c(0,1),ylim=0.5+c(0,nr),
+            xlim=0.5+c(0,1), ylim=0.5+c(0,nr),
             col=par("bg"),
-            axes=FALSE,add=force_add)
+            axes=FALSE, add=force_add, useRaster=useRaster)
       if (!.invalid(plot.row.partitionList)){
         for (i in seq_along(plot.row.partitionList)){
           i.sep <- plot.row.partitionList[[i]]
@@ -2279,9 +2289,9 @@ heatmap.cnv <-
       col.clusters.unique <- col.clusters.unique[!is.na(col.clusters.unique)]
 
       image(cbind(seq_len(nc)),
-            xlim=0.5+c(0,nc),ylim=0.5+c(0,1),
+            xlim=0.5+c(0,nc), ylim=0.5+c(0,1),
             col=par("bg"),
-            axes=FALSE,add=force_add)
+            axes=FALSE, add=force_add, useRaster=useRaster)
 
       if (!.invalid(plot.col.partitionList)){
         for (i in seq_along(plot.col.partitionList)){
@@ -2310,18 +2320,18 @@ heatmap.cnv <-
     if(!.invalid(RowIndividualColors)) {
       par(mar=c(margins[1],0,0,0.5))
       # image(rbind(1:nr),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=force_add)
-      image(rbind(seq_len(nr)),col=RowIndividualColors[rowInd, 1],axes=FALSE,add=FALSE)
+      image(rbind(seq_len(nr)),col=RowIndividualColors[rowInd, 1], axes=FALSE, add=FALSE, useRaster=useRaster)
 
         if (dim(RowIndividualColors)[2] > 1) {
         par(mar=c(margins[1],0,0,0.5))
-            image(rbind(seq_len(nr)),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add)
+            image(rbind(seq_len(nr)),col=RowIndividualColors[rowInd, 2], axes=FALSE, add=force_add, useRaster=useRaster)
         }
     }
 
     ## 5) draw the side color bars - for col
     if(!.invalid(ColIndividualColors)) {
       par(mar=c(0.5,0,0,margins[4]))
-      image(cbind(seq_len(nc)),col=ColIndividualColors[colInd],axes=FALSE,add=force_add)
+      image(cbind(seq_len(nc)), col=ColIndividualColors[colInd], axes=FALSE, add=force_add, useRaster=useRaster)
     }
 
     ## 6) row-dend
@@ -2386,7 +2396,9 @@ heatmap.cnv <-
             yaxt="n",
             xlab=key.xlab,
             ylab="",
-            main="",add=force_add
+            main="",
+            add=force_add,
+            useRaster=useRaster
             )
 
       par(usr=c(0,1,0,1))

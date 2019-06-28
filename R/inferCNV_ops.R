@@ -144,6 +144,8 @@
 #'
 #' @param output_format Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")
 #'
+#' @param useRaster Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it. (default: TRUE)
+#'
 #' @param plot_probabilities option to plot posterior probabilities (default: TRUE)
 #'
 #' @param diagnostics option to create diagnostic plots after running the Bayesian model (default: FALSE)
@@ -281,7 +283,8 @@ run <- function(infercnv_obj,
 
                 no_plot = FALSE,
                 no_prelim_plot = FALSE,
-                output_format = "png"
+                output_format = "png",
+                useRaster = TRUE
 
 ) {
 
@@ -305,20 +308,33 @@ run <- function(infercnv_obj,
         flog.error("Error, out_dir is NULL, please provide a path.")
         stop("out_dir is NULL")
     }
-    if(out_dir != "." & !file.exists(out_dir)){
+    
+    #non_default_args = as.list(match.call())
+    #non_default_args = non_default_args[2:length(non_default_args)]
+
+    call_match = match.call()
+
+    # check if out_dir is a method call, such as "tempfile()"
+    # if it is, evaluate it so that the same path is given to the 
+    if (Reduce("|", is(call_match[["out_dir"]]) == "call")) {
+        out_dir = eval(call_match[["out_dir"]])
+        call_match[["out_dir"]] = out_dir
+    }
+    non_default_args = call_match[2:length(call_match)]
+
+    if(out_dir != "." && !file.exists(out_dir)){
+        flog.info(paste0("Creating output path ", out_dir))
         dir.create(out_dir)
     }
-    
-    non_default_args = as.list(match.call())
-    non_default_args = non_default_args[2:length(non_default_args)]
+
     infercnv_obj@options = c(infercnv_obj@options, non_default_args)
     # for (arg_name in names(non_default_args)){
     #     flog.info(paste(arg_name, tmp_args[arg_name], sep=":"))
     # }
 
-    run_call <- match.call()
-    run_call[[1]] <- as.symbol(".get_relevant_args_list")
-    reload_info = eval(run_call)
+    #run_call <- match.call()
+    call_match[[1]] <- as.symbol(".get_relevant_args_list")
+    reload_info = eval(call_match)
 
     reload_info$relevant_args
     reload_info$expected_file_names
@@ -471,7 +487,8 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_log_transformed",step_count),
                      output_format=output_format,
                      write_expr_matrix=TRUE,
-                     png_res=png_res
+                     png_res=png_res,
+                     useRaster=useRaster
                      )
         }
     }
@@ -507,7 +524,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_scaled",step_count),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
                 
             }
         }
@@ -575,7 +593,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
                 
             }
         }
@@ -613,7 +632,8 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
                      output_format=output_format,
                      write_expr_matrix=TRUE,
-                     png_res=png_res)
+                     png_res=png_res,
+                     useRaster=useRaster)
         }
     }
     
@@ -658,7 +678,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
                 
             }
         }
@@ -706,7 +727,8 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
                      output_format=output_format,
                      write_expr_matrix=TRUE,
-                     png_res=png_res)
+                     png_res=png_res,
+                     useRaster=useRaster)
         }
     }
     
@@ -743,7 +765,8 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_centering_of_smoothed", step_count),
                      output_format=output_format,
                      write_expr_matrix=TRUE,
-                     png_res=png_res)
+                     png_res=png_res,
+                     useRaster=useRaster)
             
         }
     }
@@ -780,7 +803,8 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
                      output_format=output_format,
                      write_expr_matrix=TRUE,
-                     png_res=png_res)
+                     png_res=png_res,
+                     useRaster=useRaster)
         }
     }
     
@@ -854,7 +878,8 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
                      output_format=output_format,
                      write_expr_matrix=TRUE,
-                     png_res=png_res)
+                     png_res=png_res,
+                     useRaster=useRaster)
             
         }
     }
@@ -899,7 +924,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters",step_count),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
             }
             
         }
@@ -955,7 +981,8 @@ run <- function(infercnv_obj,
                          output_filename="infercnv.preliminary", # png ext auto added
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
             }
         }
     }
@@ -999,7 +1026,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_removed_outliers", step_count),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
             }
         }
     }
@@ -1108,7 +1136,8 @@ run <- function(infercnv_obj,
                          write_expr_matrix=TRUE,
                          x.center=hmm_center,
                          x.range=hmm_state_range,
-                         png_res=png_res
+                         png_res=png_res,
+                         useRaster=useRaster
                          )
             }
         }
@@ -1119,7 +1148,7 @@ run <- function(infercnv_obj,
         ## ############################################################
         
     step_count = step_count + 1 # 18
-    if (HMM == TRUE & BayesMaxPNormal > 0 & length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
+    if (HMM == TRUE && BayesMaxPNormal > 0 && length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
         flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
         
         ## the MCMC  object
@@ -1180,7 +1209,8 @@ run <- function(infercnv_obj,
                          write_expr_matrix=TRUE,
                          x.center=3,
                          x.range=c(0,6),
-                         png_res=png_res
+                         png_res=png_res,
+                         useRaster=useRaster
                          )
             }
         }
@@ -1224,7 +1254,8 @@ run <- function(infercnv_obj,
                          write_expr_matrix=TRUE,
                          x.center=1,
                          x.range=c(-1,3),
-                         png_res=png_res
+                         png_res=png_res,
+                         useRaster=useRaster
                          )
             }
             
@@ -1283,7 +1314,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
                 
             }
         }
@@ -1332,7 +1364,7 @@ run <- function(infercnv_obj,
             }
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
+            saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
             if (! no_plot) {
@@ -1346,7 +1378,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_denoised", step_count),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         png_res=png_res)
+                         png_res=png_res,
+                         useRaster=useRaster)
             }
             
         }
@@ -1377,7 +1410,8 @@ run <- function(infercnv_obj,
                  output_filename="infercnv",
                  output_format=output_format,
                  write_expr_matrix=TRUE,
-                 png_res=png_res)
+                 png_res=png_res,
+                 useRaster=useRaster)
     }
     
     return(infercnv_obj)

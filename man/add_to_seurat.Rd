@@ -4,14 +4,17 @@
 \alias{add_to_seurat}
 \title{add_to_seurat()}
 \usage{
-add_to_seurat(seurat_obj, infercnv_output_path, top_n = 10)
+add_to_seurat(seurat_obj = NULL, infercnv_output_path, top_n = 10)
 }
 \arguments{
-\item{seurat_obj}{Seurat object to add meta.data to}
+\item{seurat_obj}{Seurat object to add meta.data to (default: NULL)}
 
 \item{infercnv_output_path}{Path to the output folder of the infercnv run to use}
 
 \item{top_n}{How many of the largest CNA (in number of genes) to get.}
+}
+\value{
+seurat_obj
 }
 \description{
 Add meta.data about CNAs to a Seurat object from an infercnv_obj
