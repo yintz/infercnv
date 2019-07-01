@@ -36,6 +36,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom edgeR estimateDisp
 #' @importFrom caTools runmean
 #' @importFrom coin oneway_test pvalue
+#' @importFrom digest digest
 #' @importFrom reshape melt
 #' @importFrom rjags jags.model coda.samples
 #' @importFrom BiocGenerics counts t

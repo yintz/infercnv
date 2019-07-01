@@ -348,7 +348,7 @@ run <- function(infercnv_obj,
             if (file.exists(reload_info$expected_file_names[[i]])) {
                 if ((i == 17 || i == 18 || i == 19) && skip_hmm == 0) {
                     hmm.infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
-                    if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), hmm.infercnv_obj@options)) {
+                    if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), hmm.infercnv_obj@options)&& (digest(hmm.infercnv_obj@count.data) == digest(reloaded_infercnv_obj@count.data))) {
                         rm(hmm.infercnv_obj)
                         invisible(gc())
                     }
@@ -360,7 +360,7 @@ run <- function(infercnv_obj,
                 else {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
 
-                    if (.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), reloaded_infercnv_obj@options)) {
+                    if (.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), reloaded_infercnv_obj@options) && (digest(infercnv_obj@count.data) == digest(reloaded_infercnv_obj@count.data))) {
                         options_backup = infercnv_obj@options
                         infercnv_obj = reloaded_infercnv_obj # replace input infercnv_obj
                         rm(reloaded_infercnv_obj) # remove first (temporary) reference so there's no duplication when they would diverge
