@@ -301,6 +301,11 @@ run <- function(infercnv_obj,
         flog.threshold(INFO)
     }
     
+    if (debug) {
+        flog.debug("Memory usage after initial call.")
+        .track_memory()
+    }
+
     flog.info(paste("::process_data:Start", sep=""))
     
     infercnv.env$GLOBAL_NUM_THREADS <- num_threads
@@ -377,7 +382,10 @@ run <- function(infercnv_obj,
         }
     }
  
-
+    if (debug) {
+        flog.debug("Memory usage after reloading step.")
+        .track_memory()
+    }
     
     # compare_args(current_args=match.call(), relevant_args=relevant_args[step_i], loaded_obj@options)
 
@@ -418,6 +426,10 @@ run <- function(infercnv_obj,
         infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after initial filterings.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
     }
     
@@ -452,6 +464,10 @@ run <- function(infercnv_obj,
         }
         
         # saveRDS(infercnv_obj, infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after normalization and hspike.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
     }
     
@@ -473,6 +489,10 @@ run <- function(infercnv_obj,
 
         # saveRDS(infercnv_obj,
         #         file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after log2 transformation.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
 
@@ -509,6 +529,10 @@ run <- function(infercnv_obj,
             infercnv_obj <- scale_infercnv_expr(infercnv_obj)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after scaling.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -555,6 +579,10 @@ run <- function(infercnv_obj,
                                        num_groups=num_ref_groups,
                                        hclust_method=hclust_method)
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after split references.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         }
         
@@ -580,6 +608,10 @@ run <- function(infercnv_obj,
                                                                                        hclust_method=hclust_method,
                                                                                        cluster_by_groups=cluster_by_groups)
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after subclustering by random trees.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -619,6 +651,10 @@ run <- function(infercnv_obj,
         infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after removing average.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -663,6 +699,10 @@ run <- function(infercnv_obj,
             infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after max centered.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -712,6 +752,10 @@ run <- function(infercnv_obj,
         }
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after smoothing.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -750,6 +794,10 @@ run <- function(infercnv_obj,
         infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method="median")
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after recentering.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -790,6 +838,10 @@ run <- function(infercnv_obj,
         infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after removing average of reference.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -826,6 +878,10 @@ run <- function(infercnv_obj,
             infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after reloading step.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -865,6 +921,10 @@ run <- function(infercnv_obj,
         infercnv_obj <- invert_log2(infercnv_obj)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
+        if (debug) {
+            flog.debug("Memory usage after log2 revert.")
+            .track_memory()
+        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -910,6 +970,10 @@ run <- function(infercnv_obj,
                                                             partition_method=tumor_subcluster_partition_method)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after subclustering by non random tree method.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -955,6 +1019,10 @@ run <- function(infercnv_obj,
                                                             partition_method='none')
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after defining signif tumor subclusters.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         }
         
@@ -1011,6 +1079,10 @@ run <- function(infercnv_obj,
                                                 upper_bound=outlier_upper_bound)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after removing outliers.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1111,6 +1183,10 @@ run <- function(infercnv_obj,
             
             
             # saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after HMM predictions.")
+                .track_memory()
+            }
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             
             ## report predicted cnv regions:
@@ -1193,6 +1269,10 @@ run <- function(infercnv_obj,
             #                                                     step_count, hmm_resume_file_token, BayesMaxPNormal))
             
             # saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)s
+            if (debug) {
+                flog.debug("Memory usage after bayesian network.")
+                .track_memory()
+            }
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1238,6 +1318,10 @@ run <- function(infercnv_obj,
             }
             
             # saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after prediction intensities.")
+                .track_memory()
+            }
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1298,6 +1382,10 @@ run <- function(infercnv_obj,
                                                     require_DE_all_normals=require_DE_all_normals)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after mask non DE genes.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             
             invisible(gc())
@@ -1364,6 +1452,10 @@ run <- function(infercnv_obj,
             }
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
+            if (debug) {
+                flog.debug("Memory usage after denoise.")
+                .track_memory()
+            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -3132,4 +3224,14 @@ cross_cell_normalize <- function(infercnv_obj) {
 
     return(list(relevant_args=relevant_args, expected_file_names=expected_file_names))
 }
+
+
+
+.track_memory <- function() {
+    for (n in ls()) { 
+        flog.debug(n); 
+        flog.debug(object.size(get(n)))
+    }
+}
+
 
