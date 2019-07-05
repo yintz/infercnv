@@ -2,6 +2,12 @@ Changes in version 1.1.1 (2019-05-20)
 + Added method to sample an infercnv object to a given number of cells, or at a given frequency, per annotation group. This is to make it easy to plot figures where all annotations groups have the same overall height, as well as downsample very large datasets that would otherwise take too long to plot (while still running the analysis on the full data)
 + Added method to plot each annotation group to a different figure and combine with sampling. Mostly intended to split data for larger datasets.
 + Added support for output_format option within run() to link to plot_cnv() to support only writting text outputs during the analysis.
+Changes in version 1.0.3 (2019-07-05)
++ Fix missing dendrograms in text output when drawing figures.
++ Fix path to save object to when splitting references.
++ Fix file name creation when using num_ref_groups option.
++ Fix reference cells indices returned from method that splits references in num_ref_groups when references are not sorted and at the beginning of the matrix.
++ Fix to support of data.frame as input type for counts matrix.
 Changes in version 1.0.2 (2019-05-21)
 + Reduce peak memory usage.
 + Fix to subclusters definition when using a sparse matrix and a non random trees method with no references.
