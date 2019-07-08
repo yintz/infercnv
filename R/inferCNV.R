@@ -317,7 +317,8 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         tumor_subclusters = NULL,
         options = list("chr_exclude" = chr_exclude,
                        "max_cells_per_group" = max_cells_per_group,
-                       "min_max_counts_per_cell" = min_max_counts_per_cell),
+                       "min_max_counts_per_cell" = min_max_counts_per_cell,
+                       "counts_md5" = digest(raw.data)),
         .hspike = NULL)
 
     validate_infercnv_obj(object)

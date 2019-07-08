@@ -344,28 +344,32 @@ run <- function(infercnv_obj,
     skip_past = 0
     
     if (resume_mode) {
+        flog.info("Checking for saved results.")
         for (i in rev(seq_along(reload_info$expected_file_names))) {
             if (file.exists(reload_info$expected_file_names[[i]])) {
+                flog.info(paste0("Trying to reload from step ", i))
                 if ((i == 17 || i == 18 || i == 19) && skip_hmm == 0) {
                     hmm.infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
-                    if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), hmm.infercnv_obj@options)&& (digest(hmm.infercnv_obj@count.data) == digest(reloaded_infercnv_obj@count.data))) {
+                    if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), hmm.infercnv_obj@options)) {
                         rm(hmm.infercnv_obj)
                         invisible(gc())
                     }
                     else {
                         hmm.infercnv_obj@options = infercnv_obj@options
                         skip_hmm = i - 16
+                        flog.info(paste0("Using backup HMM from step ", i))
                     }
                 }
                 else {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
 
-                    if (.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), reloaded_infercnv_obj@options) && (digest(infercnv_obj@count.data) == digest(reloaded_infercnv_obj@count.data))) {
+                    if (.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), reloaded_infercnv_obj@options)) {
                         options_backup = infercnv_obj@options
                         infercnv_obj = reloaded_infercnv_obj # replace input infercnv_obj
                         rm(reloaded_infercnv_obj) # remove first (temporary) reference so there's no duplication when they would diverge
                         infercnv_obj@options = options_backup
                         skip_past = i
+                        flog.info(paste0("Using backup from step ", i))
                         break
                     }
                     else {
@@ -374,6 +378,9 @@ run <- function(infercnv_obj,
                     }
                 }
             }
+        }
+        if (skip_past > 19) {
+            skip_hmm = 2
         }
     }
  
@@ -2960,7 +2967,7 @@ cross_cell_normalize <- function(infercnv_obj) {
     step_i = 1
 
     # 1 _incoming_data.infercnv_obj
-    relevant_args[[step_i]] = c("chr_exclude", "max_cells_per_group", "min_max_counts_per_cell")
+    relevant_args[[step_i]] = c("chr_exclude", "max_cells_per_group", "min_max_counts_per_cell", "counts_md5")
     expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_incoming_data.infercnv_obj", step_i))
     step_i = step_i + 1
 
