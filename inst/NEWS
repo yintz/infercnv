@@ -1,3 +1,7 @@
+Changes in version 1.1.2 (2019-07-08)
++ Added method to write table of wide array of predicted features from HMM results to file or add them as meta.data to a Seurat object if one is provided.
++ Overhaul of save/reload system to store non default arguments and keep track of relevant options at each step when trying to reload backups. Also check for input counts matrix identity with reloaded one (hash at object creation time).
++ Added linking of image() option useRaster to run() and plot_cnv() to be able to enable by default, speeding up plotting significantly.
 Changes in version 1.1.1 (2019-05-20)
 + Added method to sample an infercnv object to a given number of cells, or at a given frequency, per annotation group. This is to make it easy to plot figures where all annotations groups have the same overall height, as well as downsample very large datasets that would otherwise take too long to plot (while still running the analysis on the full data)
 + Added method to plot each annotation group to a different figure and combine with sampling. Mostly intended to split data for larger datasets.
