@@ -2164,11 +2164,21 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
         ref_idx = unlist(infercnv_obj@observation_grouped_cell_indices)
         flog.info("-no reference cells specified... using mean and sd of all cells as proxy for denoising")
     }
-    vals = infercnv_obj@expr.data[,ref_idx]
+
+    # mean_ref_sd <- mean(apply(vals, 2, function(x) sd(x, na.rm=TRUE))) * sd_amplifier
+    res = vector(mode="double", length=length(unlist(infercnv_obj@reference_grouped_cell_indices)))
+    i = 1
+    for (current_i in unlist(infercnv_obj@reference_grouped_cell_indices)) {
+        res[i] = sd(infercnv_obj@expr.data[, current_i, drop=TRUE], na.rm=TRUE)
+        i = i + 1
+    }
+    mean_ref_sd = mean(res)
+
+    # vals = infercnv_obj@expr.data[,ref_idx]
     
-    mean_ref_vals = mean(vals)
+    # mean_ref_vals = mean(vals)
     
-    mean_ref_sd <- mean(apply(vals, 2, function(x) sd(x, na.rm=TRUE))) * sd_amplifier
+    mean_ref_vals = mean(infercnv_obj@expr.data[,unlist(infercnv_obj@reference_grouped_cell_indices)])
     
     upper_bound = mean_ref_vals + mean_ref_sd
     lower_bound = mean_ref_vals - mean_ref_sd
@@ -2184,11 +2194,18 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
         infercnv_obj <- depress_log_signal_midpt_val(infercnv_obj, mean_ref_vals, threshold)
         
     } else {
-        smooth_matrix <- infercnv_obj@expr.data
+
+        for (i in seq_along(infercnv_obj@expr.data)) {
+            if (infercnv_obj@expr.data[i] > lower_bound & infercnv_obj@expr.data[i] < upper_bound) {
+                infercnv_obj@expr.data[i] = mean_ref_vals
+            }
+        }
         
-        smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
+        # smooth_matrix <- infercnv_obj@expr.data
         
-        infercnv_obj@expr.data <- smooth_matrix
+        # smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
+        
+        # infercnv_obj@expr.data <- smooth_matrix
     }
     
     if (! is.null(infercnv_obj@.hspike)) {
