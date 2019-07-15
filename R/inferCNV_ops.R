@@ -380,7 +380,7 @@ run <- function(infercnv_obj,
             }
         }
         if (skip_past > 19) {
-            skip_hmm = 2
+            skip_hmm = 3
         }
     }
  
@@ -1040,18 +1040,18 @@ run <- function(infercnv_obj,
     }
     
     step_count = step_count + 1 # 17
-    if (HMM) {
-        flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
-        
-        hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", analysis_mode)
-        
-        # hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred%s.infercnv_obj", step_count, hmm_resume_file_token))
-        
-        # if (resume_mode & file.exists(hmm.infercnv_obj_file)) {
-        #     flog.info(sprintf("-restoring hmm.infercnv_obj from %s", hmm.infercnv_obj_file))
-        #     hmm.infercnv_obj <- readRDS(hmm.infercnv_obj_file)
-        # } else {
-        if (skip_hmm < 1) {
+    if (skip_hmm < 1) {
+        if (HMM) {
+            flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
+            
+            hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", analysis_mode)
+            
+            # hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred%s.infercnv_obj", step_count, hmm_resume_file_token))
+            
+            # if (resume_mode & file.exists(hmm.infercnv_obj_file)) {
+            #     flog.info(sprintf("-restoring hmm.infercnv_obj from %s", hmm.infercnv_obj_file))
+            #     hmm.infercnv_obj <- readRDS(hmm.infercnv_obj_file)
+            # } else {
             
             if (HMM_type == 'i6') {
                 hmm_center = 3
@@ -1155,16 +1155,16 @@ run <- function(infercnv_obj,
         ## ############################################################
         
     step_count = step_count + 1 # 18
-    if (HMM == TRUE && BayesMaxPNormal > 0 && length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
-        flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
-        
-        ## the MCMC  object
-        
-        # if (resume_mode & file.exists(mcmc_obj_file)) {
-        #     flog.info(sprintf("-restoring mcmc_obj from %s", mcmc_obj_file))
-        #     mcmc_obj <- readRDS(mcmc_obj_file)
-        # } else {
-        if (skip_hmm < 2) {
+    if (skip_hmm < 2) {
+        if (HMM == TRUE && BayesMaxPNormal > 0 && length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
+            flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
+            
+            ## the MCMC  object
+            
+            # if (resume_mode & file.exists(mcmc_obj_file)) {
+            #     flog.info(sprintf("-restoring mcmc_obj from %s", mcmc_obj_file))
+            #     mcmc_obj <- readRDS(mcmc_obj_file)
+            # } else {
             mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj     = infercnv_obj,
                                                    HMM_states        = hmm.infercnv_obj@expr.data,
                                                    file_dir          = out_dir,
@@ -1227,17 +1227,17 @@ run <- function(infercnv_obj,
         ## convert from states to representative  intensity values
         
     step_count = step_count + 1 # 19
-    if (HMM) {
-        flog.info(sprintf("\n\n\tSTEP %02d: Converting HMM-based CNV states to repr expr vals\n", step_count))
-        
-        # hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities%s.Pnorm_%g.infercnv_obj",
-        #                                                    step_count, hmm_resume_file_token, BayesMaxPNormal))
-        
-        # if (resume_mode & file.exists(hmm.infercnv_obj_file)) {
-        #     flog.info(sprintf("-restoring hmm.infercnv_obj from %s", hmm.infercnv_obj_file))
-        #     hmm.infercnv_obj <- readRDS(hmm.infercnv_obj_file)
-        # } else {
-        if (skip_hmm < 2) {
+    if (skip_hmm < 3) {
+        if (HMM) {
+            flog.info(sprintf("\n\n\tSTEP %02d: Converting HMM-based CNV states to repr expr vals\n", step_count))
+            
+            # hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.repr_intensities%s.Pnorm_%g.infercnv_obj",
+            #                                                    step_count, hmm_resume_file_token, BayesMaxPNormal))
+            
+            # if (resume_mode & file.exists(hmm.infercnv_obj_file)) {
+            #     flog.info(sprintf("-restoring hmm.infercnv_obj from %s", hmm.infercnv_obj_file))
+            #     hmm.infercnv_obj <- readRDS(hmm.infercnv_obj_file)
+            # } else {
             if (HMM_type == 'i6') {
                 hmm.infercnv_obj <- assign_HMM_states_to_proxy_expr_vals(hmm.infercnv_obj)
             } else if (HMM_type == 'i3') {
