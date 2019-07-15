@@ -2166,19 +2166,19 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
     }
 
     # mean_ref_sd <- mean(apply(vals, 2, function(x) sd(x, na.rm=TRUE))) * sd_amplifier
-    res = vector(mode="double", length=length(unlist(infercnv_obj@reference_grouped_cell_indices)))
+    res = vector(mode="double", length=length(ref_idx))
     i = 1
-    for (current_i in unlist(infercnv_obj@reference_grouped_cell_indices)) {
+    for (current_i in ref_idx) {
         res[i] = sd(infercnv_obj@expr.data[, current_i, drop=TRUE], na.rm=TRUE)
         i = i + 1
     }
-    mean_ref_sd = mean(res)
+    mean_ref_sd = mean(res) * sd_amplifier
 
     # vals = infercnv_obj@expr.data[,ref_idx]
     
     # mean_ref_vals = mean(vals)
     
-    mean_ref_vals = mean(infercnv_obj@expr.data[,unlist(infercnv_obj@reference_grouped_cell_indices)])
+    mean_ref_vals = mean(infercnv_obj@expr.data[,ref_idx])
     
     upper_bound = mean_ref_vals + mean_ref_sd
     lower_bound = mean_ref_vals - mean_ref_sd
