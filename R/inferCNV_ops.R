@@ -1112,11 +1112,11 @@ run <- function(infercnv_obj,
         return(infercnv_obj)
     }
     step_count = step_count + 1 # 17
+    hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", analysis_mode)
     if (skip_hmm < 1) {
         if (HMM) {
             flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
             
-            hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", analysis_mode)
             
             # hmm.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred%s.infercnv_obj", step_count, hmm_resume_file_token))
             
