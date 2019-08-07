@@ -38,6 +38,8 @@ def convert_to_positional_file(input_gtf, output_positional, attribute_key):
         print("".join(["gtf_to_position_file.py:: ",
                        "Could not find input file : " + input_gtf]))
 
+    all_genes_found = set()
+
     # Holds lines to output after parsing.
     output_line = []
     previous_gene = None
@@ -70,13 +72,14 @@ def convert_to_positional_file(input_gtf, output_positional, attribute_key):
                 print("Could not find an attribute in the GTF with the name '"+attribute_key+"'. Line="+"\t".join(gtf_line))
                 exit(99)
             if not gene_name == previous_gene:
-                if len(gene_positions) > 1:
+                if len(gene_positions) > 1 and previous_gene not in all_genes_found:
                     i_accepted_entries += 1
                     gene_positions.sort()
                     output_line.append("\t".join([previous_gene,
                                                   previous_chr,
                                                   str(gene_positions[0]),
                                                   str(gene_positions[-1])]))
+                    all_genes_found.add(previous_gene)
                 gene_positions = []
             else:
                 i_duplicate_entries += 1
