@@ -465,7 +465,7 @@ plot_cnv <- function(infercnv_obj,
     if(!is.null(cluster_contig)){
         # restricting to single contig
         hcl_contig_indices <- which(contig_names == cluster_contig)
-        if(length(hcl_group_indices) > 0 ) {
+        if(length(hcl_contig_indices) > 0 ) {
             hcl_group_indices <- hcl_contig_indices
             hcl_desc <- cluster_contig
             flog.info(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
@@ -512,10 +512,22 @@ plot_cnv <- function(infercnv_obj,
                     }
                 }
                 else { ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
-                    obs_dendrogram[[i]] <- .single_element_dendrogram(colnames(infercnv_obj@expr.data[, infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]], drop=FALSE]))
-                    ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]], drop=FALSE]))
-                    obs_seps <- c(obs_seps, length(ordered_names))
-                    hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+                  #### actually happens with 2 cells only too, because can't cluster 2
+                    if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2)) {
+                        if (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) {
+                            obs_dendrogram[[i]] <- .pairwise_dendrogram(colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
+                        }
+                        else { ## == 1
+                            obs_dendrogram[[i]] <- .single_element_dendrogram(colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
+                        }
+                        ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
+                        obs_seps <- c(obs_seps, length(ordered_names))
+                        hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+                    }
+                    else {
+                        flog.error("Unexpected error, should not happen.")
+                        stop("Error")
+                    }
                 }
             }
             if (length(obs_dendrogram) > 1) {
@@ -2712,4 +2724,22 @@ depress_log_signal_midpt_val <- function(infercnv_obj, expr_mean, delta_midpt, s
     return(dfake)
 }
 
+
+.pairwise_dendrogram <- function(labels) {
+    dfake = list()
+    dfake[[1]] = 1L
+    dfake[[2]] = 1L
+    attr(dfake, "class") = "dendrogram"
+    attr(dfake, "height") = 1
+    attr(dfake, "members") = 2L
+    attr(dfake[[1]], "class") = "dendrogram"
+    attr(dfake[[1]], "leaf") = TRUE
+    attr(dfake[[1]], "label") = labels[1]
+    attr(dfake[[1]], "height") = 0
+    attr(dfake[[2]], "class") = "dendrogram"
+    attr(dfake[[2]], "leaf") = TRUE
+    attr(dfake[[2]], "label") = labels[2]
+    attr(dfake[[2]], "height") = 0
+    return(dfake)
+}
 
