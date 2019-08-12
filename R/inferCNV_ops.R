@@ -16,7 +16,7 @@
 #' @param window_length Length of the window for the moving average
 #'                          (smoothing). Should be an odd integer. (default: 101)#'
 #'
-#' @param smooth_method  Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
+#' @param smooth_method  Method to use for smoothing: c(runmeans,pyramidinal,coordinates)  default: pyramidinal
 #'
 #' #####
 #'
@@ -209,7 +209,7 @@ run <- function(infercnv_obj,
 
                 ## smoothing params
                 window_length=101,
-                smooth_method=c('pyramidinal', 'runmeans'),
+                smooth_method=c('pyramidinal', 'runmeans', 'coordinates'),
 
                 num_ref_groups=NULL,
                 ref_subtract_use_mean_bounds=TRUE,
@@ -290,6 +290,17 @@ run <- function(infercnv_obj,
 
 
     smooth_method = match.arg(smooth_method)
+    if (HMM && HMM_type == 'i6' && smooth_method == 'coordinates') {
+        flog.error("Cannot use 'coordinate' smoothing method with i6 HMM model at this time.")
+        stop("Incompatible HMM mode and smoothing method.")
+    }
+    if (smooth_method == 'coordinates' && window_length < 10000) {
+        window_length=10000000
+        flog.warn(paste0("smooth_method set to 'coordinates', but window_length ",
+                         "is less than 10.000, setting it to 10.000.000. Please ",
+                         "set a different value > 10.000 if this default does not seem suitable.")
+    }
+
     HMM_report_by = match.arg(HMM_report_by)
     analysis_mode = match.arg(analysis_mode)
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
@@ -714,6 +725,8 @@ run <- function(infercnv_obj,
         } else if (smooth_method == 'pyramidinal') {
             
             infercnv_obj <- smooth_by_chromosome(infercnv_obj, window_length=window_length, smooth_ends=TRUE)
+        } else if (smooth_method == 'coordinates') {
+            infercnv_obj <- smooth_by_chromosome_coordinates(infercnv_obj, window_length=window_length)
         } else {
             stop(sprintf("Error, don't recognize smoothing method: %s", smooth_method))
         }
@@ -819,7 +832,7 @@ run <- function(infercnv_obj,
     ## Step: Remove Ends
     
     step_count = step_count + 1 # 13
-    if (remove_genes_at_chr_ends == TRUE) {
+    if (remove_genes_at_chr_ends == TRUE && smooth_method != 'coordinates') {
         
         flog.info(sprintf("\n\n\tSTEP %02d: removing genes at chr ends\n", step_count))
         
@@ -2296,6 +2309,98 @@ smooth_by_chromosome <- function(infercnv_obj, window_length, smooth_ends=TRUE) 
     
     return(orig_obs_data)
 }
+
+smooth_by_chromosome_coordinates <- function(infercnv_obj, window_length) {
+    
+    gene_chr_listing = infercnv_obj@gene_order[[C_CHR]]
+    chrs = unlist(unique(gene_chr_listing))
+    
+    for (chr in chrs) {
+        chr_genes_indices = which(gene_chr_listing == chr)
+        flog.info(paste0("smooth_by_chromosome: chr: ",chr))
+        
+        chr_data=infercnv_obj@expr.data[chr_genes_indices, , drop=FALSE]
+        
+        if (nrow(chr_data) > 1) {
+            smoothed_chr_data = .smooth_window_by_coordinates(data=chr_data,
+                                                              window_length=window_length,
+                                                              genes=infercnv_obj@gene_order[which(infercnv_obj@gene_order$chr == chr) ,])
+            
+            flog.debug(paste0("smoothed data: ", paste(dim(smoothed_chr_data), collapse=",")))
+            
+            infercnv_obj@expr.data[chr_genes_indices, ] <- smoothed_chr_data
+        }
+    }
+    
+    if (! is.null(infercnv_obj@.hspike)) {  ## for now not supported.
+        flog.info("-mirroring for hspike")
+        infercnv_obj@.hspike <- smooth_by_chromosome_coordinates(infercnv_obj@.hspike, window_length=51)
+    }
+    
+    
+    return(infercnv_obj)
+}
+
+.smooth_window_by_coordinates <- function(data, window_length, genes) {
+    
+    flog.debug(paste("::smooth_window:Start.", sep=""))
+    
+    if (window_length < 2){
+        flog.warn("window length < 2, returning original unmodified data")
+        return(data)
+    }
+    
+    ## Fix ends that couldn't be smoothed since not spanned by win/2 at ends.
+    
+    data_sm <- apply(data,
+                     2,
+                     .smooth_helper_by_coordinates,
+                     window_length=window_length,
+                     genes=genes)
+    
+    
+    ## Set back row and column names
+    row.names(data_sm) <- row.names(data)
+    colnames(data_sm) <- colnames(data)
+    
+    
+    flog.debug(paste("::smooth_window: dim data_sm: ", dim(data_sm), sep=" "))
+    
+    
+    return(data_sm)
+}
+
+.smooth_helper_by_coordinates <- function(obs_data, window_length=10000000, genes) {
+
+    ### No handling of NAs for this method of smoothing.
+
+    end_data <- obs_data
+
+    for (i in seq_along(obs_data)) {
+
+        current_pos = (genes$start[i] + genes$stop[i]) / 2
+
+        around_indices = which((genes$start > (current_pos - window_length)) & (genes$stop < (current_pos + window_length)))
+        if (length(around_indices) == 0) {  ## in case the window is smaller than the current gene's size
+            around_indices = i
+        }
+        weights = 1 - abs(((genes$stop[around_indices] + genes$start[around_indices])/2) - current_pos)/window_length
+        if (length(around_indices < 10)) {
+            to_add = floor(length(around_indices - 10)/2)
+
+            new_low = max(1, (min(around_indices) - to_add))
+            new_high = min(length(obs_data), (max(around_indices) + to_add))
+            weights = c(rep(0.1, (min(around_indices) - new_low)), weights, rep(0.1, (new_high - max(around_indices))))
+            around_indices = seq(new_low, new_high)
+        }
+
+        end_data[i] = sum(obs_data[around_indices] * weights) / sum(weights)
+    }
+
+    return(end_data)
+}
+
+
 
 # Smooth vector of values over the given window length.
 #

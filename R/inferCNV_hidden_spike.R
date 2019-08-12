@@ -34,7 +34,7 @@
 
     chr_info <- .get_hspike_chr_info(num_genes_per_chr, num_total_genes)
 
-    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=seq_len(x$ngenes), end=seq_len(x$ngenes)) }))
+    gene_order = do.call(rbind, lapply(chr_info, function(x) { data.frame(chr=x$name, start=seq_len(x$ngenes), stop=seq_len(x$ngenes)) }))
     num_genes = nrow(gene_order)
     rownames(gene_order) <- paste0("gene_", seq_len(num_genes))
 
