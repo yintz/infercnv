@@ -301,14 +301,6 @@ run <- function(infercnv_obj,
         flog.threshold(INFO)
     }
     
-    if (debug) {
-        flog.debug("Memory usage after initial call.")
-        for (n in ls()) { 
-            flog.debug(n); 
-            flog.debug(object.size(get(n)))
-        }
-    }
-
     flog.info(paste("::process_data:Start", sep=""))
     
     infercnv.env$GLOBAL_NUM_THREADS <- num_threads
@@ -385,13 +377,7 @@ run <- function(infercnv_obj,
         }
     }
  
-    if (debug) {
-        flog.debug("Memory usage after reloading step.")
-        for (n in ls()) { 
-            flog.debug(n); 
-            flog.debug(object.size(get(n)))
-        }
-    }
+
     
     # compare_args(current_args=match.call(), relevant_args=relevant_args[step_i], loaded_obj@options)
 
@@ -432,13 +418,6 @@ run <- function(infercnv_obj,
         infercnv_obj <- require_above_min_cells_ref(infercnv_obj, min_cells_per_gene=min_cells_per_gene)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after initial filterings.")
-            for (n in ls()) { 
-                flog.debug(n); 
-                flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
     }
     
@@ -473,13 +452,6 @@ run <- function(infercnv_obj,
         }
         
         # saveRDS(infercnv_obj, infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after normalization and hspike.")
-            for (n in ls()) { 
-                flog.debug(n); 
-                flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
     }
     
@@ -501,13 +473,6 @@ run <- function(infercnv_obj,
 
         # saveRDS(infercnv_obj,
         #         file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after log2 transformation.")
-            for (n in ls()) { 
-                flog.debug(n); 
-                flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
 
@@ -544,13 +509,6 @@ run <- function(infercnv_obj,
             infercnv_obj <- scale_infercnv_expr(infercnv_obj)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after scaling.")
-                for (n in ls()) { 
-                    flog.debug(n); 
-                    flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -597,13 +555,6 @@ run <- function(infercnv_obj,
                                        num_groups=num_ref_groups,
                                        hclust_method=hclust_method)
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after split references.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         }
         
@@ -629,13 +580,6 @@ run <- function(infercnv_obj,
                                                                                        hclust_method=hclust_method,
                                                                                        cluster_by_groups=cluster_by_groups)
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after subclustering by random trees.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -675,13 +619,6 @@ run <- function(infercnv_obj,
         infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after removing average.")
-            for (n in ls()) { 
-                futile.logger::flog.debug(n); 
-                futile.logger::flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -726,13 +663,6 @@ run <- function(infercnv_obj,
             infercnv_obj <- apply_max_threshold_bounds(infercnv_obj, threshold=threshold)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after max centered.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -782,13 +712,6 @@ run <- function(infercnv_obj,
         }
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after smoothing.")
-            for (n in ls()) { 
-                futile.logger::flog.debug(n); 
-                futile.logger::flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -827,13 +750,6 @@ run <- function(infercnv_obj,
         infercnv_obj <- center_cell_expr_across_chromosome(infercnv_obj, method="median")
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after recentering.")
-            for (n in ls()) { 
-                futile.logger::flog.debug(n); 
-                futile.logger::flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -874,13 +790,6 @@ run <- function(infercnv_obj,
         infercnv_obj <- subtract_ref_expr_from_obs(infercnv_obj, inv_log=FALSE, use_bounds=ref_subtract_use_mean_bounds)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after removing average of reference.")
-            for (n in ls()) { 
-                futile.logger::flog.debug(n); 
-                futile.logger::flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -917,13 +826,6 @@ run <- function(infercnv_obj,
             infercnv_obj <- remove_genes_at_ends_of_chromosomes(infercnv_obj, window_length)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after reloading step.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -963,13 +865,6 @@ run <- function(infercnv_obj,
         infercnv_obj <- invert_log2(infercnv_obj)
         
         # saveRDS(infercnv_obj, file=infercnv_obj_file)
-        if (debug) {
-            flog.debug("Memory usage after log2 revert.")
-            for (n in ls()) { 
-                futile.logger::flog.debug(n); 
-                futile.logger::flog.debug(object.size(get(n)))
-            }
-        }
         saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         invisible(gc())
         
@@ -1015,13 +910,6 @@ run <- function(infercnv_obj,
                                                             partition_method=tumor_subcluster_partition_method)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after subclustering by non random tree method.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1067,13 +955,6 @@ run <- function(infercnv_obj,
                                                             partition_method='none')
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after defining signif tumor subclusters.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
         }
         
@@ -1130,13 +1011,6 @@ run <- function(infercnv_obj,
                                                 upper_bound=outlier_upper_bound)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after removing outliers.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1237,13 +1111,6 @@ run <- function(infercnv_obj,
             
             
             # saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after HMM predictions.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             
             ## report predicted cnv regions:
@@ -1326,13 +1193,6 @@ run <- function(infercnv_obj,
             #                                                     step_count, hmm_resume_file_token, BayesMaxPNormal))
             
             # saveRDS(hmm.infercnv_obj, file=mcmc.infercnv_obj_file)s
-            if (debug) {
-                flog.debug("Memory usage after bayesian network.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1378,13 +1238,6 @@ run <- function(infercnv_obj,
             }
             
             # saveRDS(hmm.infercnv_obj, file=hmm.infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after prediction intensities.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -1445,13 +1298,6 @@ run <- function(infercnv_obj,
                                                     require_DE_all_normals=require_DE_all_normals)
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after mask non DE genes.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             
             invisible(gc())
@@ -1518,13 +1364,6 @@ run <- function(infercnv_obj,
             }
             
             # saveRDS(infercnv_obj, file=infercnv_obj_file)
-            if (debug) {
-                flog.debug("Memory usage after denoise.")
-                for (n in ls()) { 
-                    futile.logger::flog.debug(n); 
-                    futile.logger::flog.debug(object.size(get(n)))
-                }
-            }
             saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
             invisible(gc())
             
@@ -3293,16 +3132,4 @@ cross_cell_normalize <- function(infercnv_obj) {
 
     return(list(relevant_args=relevant_args, expected_file_names=expected_file_names))
 }
-
-
-
-.track_memory <- function() {
-    flog.info("track_memory()")
-    flog.debug("debugging memory")
-    for (n in ls()) { 
-        flog.debug(n); 
-        flog.debug(object.size(get(n)))
-    }
-}
-
 
