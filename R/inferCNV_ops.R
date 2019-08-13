@@ -298,7 +298,7 @@ run <- function(infercnv_obj,
         window_length=10000000
         flog.warn(paste0("smooth_method set to 'coordinates', but window_length ",
                          "is less than 10.000, setting it to 10.000.000. Please ",
-                         "set a different value > 10.000 if this default does not seem suitable.")
+                         "set a different value > 10.000 if this default does not seem suitable."))
     }
 
     HMM_report_by = match.arg(HMM_report_by)
