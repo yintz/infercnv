@@ -564,14 +564,14 @@ setMethod(f="removeCNV",
               # Assign index and state that represents normal based on the HMM method 
               normalID <- ifelse(getArgs(obj)$HMM_type == 'i6', 3, 2)
               # Mean values of the probability distribution of the CNV states p(CNV == {states 1:6})
-              if ( length(obj@cnv_probabilities) == 1 ){
-                  cnv_means <- obj@cnv_probabilities[[1]] # added this option for troubleshooting only 
-              }else{
-                  cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
-              }
+              cnv_means <- sapply(obj@cnv_probabilities,function(i) colMeans(i))
+              
               futile.logger::flog.info(paste("Attempting to removing CNV(s) with a probability of being normal above ", getArgs(obj)$BayesMaxPNormal))
               futile.logger::flog.info(paste("Removing ",length(which(cnv_means[normalID,] > getArgs(obj)$BayesMaxPNormal)), " CNV(s) identified by the HMM."))
-
+              
+              # If no CNV's need to be removed, stop running function and return the object and HMM_states 
+              if (length(which(cnv_means[normalID,] > getArgs(obj)$BayesMaxPNormal)) == 0){ return(list(obj, HMM_states)) }
+              
               # check if any CNVs with probability of being normal greater than threshold
               if (any(cnv_means[normalID,] > getArgs(obj)$BayesMaxPNormal)){
 
@@ -579,6 +579,7 @@ setMethod(f="removeCNV",
                   remove_cnv <- which(cnv_means[normalID,] > getArgs(obj)$BayesMaxPNormal)
                   
                   if (getArgs(obj)$quietly == FALSE) { print("CNV's being removed have the following posterior probabilities of being a normal state: ") }
+                  
                   # 2. 
                   lapply(remove_cnv, function(i) {
                       if (getArgs(obj)$quietly == FALSE) {
