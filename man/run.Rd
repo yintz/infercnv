@@ -5,18 +5,19 @@
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
 run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = NULL,
-  window_length = 101, smooth_method = c("pyramidinal", "runmeans"),
-  num_ref_groups = NULL, ref_subtract_use_mean_bounds = TRUE,
-  cluster_by_groups = FALSE, cluster_references = TRUE,
-  k_obs_groups = 1, hclust_method = "ward.D2",
-  max_centered_threshold = 3, scale_data = FALSE, HMM = FALSE,
-  HMM_transition_prob = 1e-06, HMM_report_by = c("subcluster",
-  "consensus", "cell"), HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05,
-  HMM_i3_use_KS = TRUE, BayesMaxPNormal = 0.5,
-  sim_method = "meanvar", sim_foreground = FALSE,
-  reassignCNVs = TRUE, analysis_mode = c("samples", "subclusters",
-  "cells"), tumor_subcluster_partition_method = c("random_trees",
-  "qnorm", "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
+  window_length = 101, smooth_method = c("pyramidinal", "runmeans",
+  "coordinates"), num_ref_groups = NULL,
+  ref_subtract_use_mean_bounds = TRUE, cluster_by_groups = FALSE,
+  cluster_references = TRUE, k_obs_groups = 1,
+  hclust_method = "ward.D2", max_centered_threshold = 3,
+  scale_data = FALSE, HMM = FALSE, HMM_transition_prob = 1e-06,
+  HMM_report_by = c("subcluster", "consensus", "cell"),
+  HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05, HMM_i3_use_KS = TRUE,
+  BayesMaxPNormal = 0.5, sim_method = "meanvar",
+  sim_foreground = FALSE, reassignCNVs = TRUE,
+  analysis_mode = c("samples", "subclusters", "cells"),
+  tumor_subcluster_partition_method = c("random_trees", "qnorm",
+  "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
   denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
   noise_logistic = FALSE, outlier_method_bound = "average_bound",
   outlier_lower_bound = NA, outlier_upper_bound = NA,
@@ -44,7 +45,7 @@ default: 3}
 \item{window_length}{Length of the window for the moving average
 (smoothing). Should be an odd integer. (default: 101)#'}
 
-\item{smooth_method}{Method to use for smoothing: c(runmeans,pyramidinal)  default: pyramidinal
+\item{smooth_method}{Method to use for smoothing: c(runmeans,pyramidinal,coordinates)  default: pyramidinal
 
 #####}
 
