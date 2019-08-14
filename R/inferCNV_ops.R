@@ -2110,10 +2110,10 @@ clear_noise <- function(infercnv_obj, threshold, noise_logistic=FALSE) {
         infercnv_obj@expr.data <- .clear_noise(infercnv_obj@expr.data, threshold, center_pos=mean_ref_vals)
     }
     
-    if (! is.null(infercnv_obj@.hspike)) {
-        flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- clear_noise(infercnv_obj@.hspike, threshold, noise_logistic)
-    }
+    # if (! is.null(infercnv_obj@.hspike)) {
+    #     flog.info("-mirroring for hspike")
+    #     infercnv_obj@.hspike <- clear_noise(infercnv_obj@.hspike, threshold, noise_logistic)
+    # }
     
     return(infercnv_obj)
 }
@@ -2184,17 +2184,18 @@ clear_noise_via_ref_mean_sd <- function(infercnv_obj, sd_amplifier=1.5, noise_lo
         infercnv_obj <- depress_log_signal_midpt_val(infercnv_obj, mean_ref_vals, threshold)
         
     } else {
-        smooth_matrix <- infercnv_obj@expr.data
+        # smooth_matrix <- infercnv_obj@expr.data
         
-        smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
+        # smooth_matrix[smooth_matrix > lower_bound & smooth_matrix < upper_bound] = mean_ref_vals
+        infercnv_obj@expr.data[infercnv_obj@expr.data > lower_bound & infercnv_obj@expr.data < upper_bound] = mean_ref_vals
         
-        infercnv_obj@expr.data <- smooth_matrix
+        # infercnv_obj@expr.data <- smooth_matrix
     }
     
-    if (! is.null(infercnv_obj@.hspike)) {
-        flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- clear_noise_via_ref_mean_sd(infercnv_obj@.hspike, sd_amplifier, noise_logistic)
-    }
+    # if (! is.null(infercnv_obj@.hspike)) {
+    #     flog.info("-mirroring for hspike")
+    #     infercnv_obj@.hspike <- clear_noise_via_ref_mean_sd(infercnv_obj@.hspike, sd_amplifier, noise_logistic)
+    # }
     
     return(infercnv_obj)
 }
