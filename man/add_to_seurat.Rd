@@ -4,7 +4,8 @@
 \alias{add_to_seurat}
 \title{add_to_seurat()}
 \usage{
-add_to_seurat(seurat_obj = NULL, infercnv_output_path, top_n = 10)
+add_to_seurat(seurat_obj = NULL, infercnv_output_path, top_n = 10,
+  bp_tolerance = 2e+06)
 }
 \arguments{
 \item{seurat_obj}{Seurat object to add meta.data to (default: NULL)}
@@ -12,6 +13,8 @@ add_to_seurat(seurat_obj = NULL, infercnv_output_path, top_n = 10)
 \item{infercnv_output_path}{Path to the output folder of the infercnv run to use}
 
 \item{top_n}{How many of the largest CNA (in number of genes) to get.}
+
+\item{bp_tolerance}{How many bp of tolerance to have around feature start/end positions for top_n largest CNVs.}
 }
 \value{
 seurat_obj

@@ -9,6 +9,8 @@
 #'
 #' @param top_n How many of the largest CNA (in number of genes) to get.
 #'
+#' @param bp_tolerance How many bp of tolerance to have around feature start/end positions for top_n largest CNVs.
+#'
 #' @return seurat_obj
 #'
 #' @export
@@ -16,7 +18,8 @@
 
 add_to_seurat <- function(seurat_obj = NULL,
                           infercnv_output_path,
-                          top_n = 10) {
+                          top_n = 10,
+                          bp_tolerance = 2000000) {
     lfiles <- list.files(infercnv_output_path, full.names = FALSE)
     
     if (!file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
@@ -81,7 +84,8 @@ add_to_seurat <- function(seurat_obj = NULL,
                                      hmm_genes = hmm_genes, 
                                      center_state = center_state, 
                                      scaling_factor = scaling_factor, 
-                                     top_n = top_n)
+                                     top_n = top_n,
+                                     bp_tolerance = bp_tolerance)
     if (!is.null(seurat_obj)) {
         for (lv in levels(infercnv_obj@gene_order$chr)) {
             seurat_obj@meta.data[[paste0("has_cnv_", lv)]] = features_to_add$feature_vector_chrs_has_cnv[[lv]]
@@ -157,7 +161,7 @@ add_to_seurat <- function(seurat_obj = NULL,
 #' @keywords internal
 #' @noRd
 #'
-.get_features <- function(infercnv_obj, regions, hmm_genes, center_state, scaling_factor, top_n) {
+.get_features <- function(infercnv_obj, regions, hmm_genes, center_state, scaling_factor, top_n, bp_tolerance) {
     
     chr_gene_count = table(infercnv_obj@gene_order$chr)
     
@@ -227,9 +231,9 @@ add_to_seurat <- function(seurat_obj = NULL,
     sorted_regions_loss = sort(table(hmm_genes$gene_region_name[hmm_genes$state < center_state]), decreasing=TRUE)
     sorted_regions_dupli = sort(table(hmm_genes$gene_region_name[hmm_genes$state > center_state]), decreasing=TRUE)
     
-    top_n_cnv = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions, top_n = top_n)
-    top_n_loss = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions_loss, top_n = top_n)
-    top_n_dupli = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions_dupli, top_n = top_n)
+    top_n_cnv = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions, top_n = top_n, bp_tolerance = bp_tolerance)
+    top_n_loss = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions_loss, top_n = top_n, bp_tolerance = bp_tolerance)
+    top_n_dupli = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions_dupli, top_n = top_n, bp_tolerance = bp_tolerance)
     
     for (i in seq_along(top_n_cnv)) {
         feature_name = paste0("top_cnv_", i)
@@ -281,7 +285,7 @@ add_to_seurat <- function(seurat_obj = NULL,
 #' @keywords internal
 #' @noRd
 #'
-.get_top_n_regions <- function(hmm_genes, sorted_regions, top_n) {
+.get_top_n_regions <- function(hmm_genes, sorted_regions, top_n, bp_tolerance) {
     j = 1
     previous_region_chr = -1
     previous_region_start = -1
@@ -295,7 +299,7 @@ add_to_seurat <- function(seurat_obj = NULL,
         region_end = max(genes_in_region$end)
         # check if the current region is the same as the previous one for a different subcluster or not
         # if it is, extend the previous assignment without increasing the count of found top hits
-        if (region_chr == previous_region_chr && region_start == previous_region_start && region_end == previous_region_end) {
+        if (region_chr == previous_region_chr && region_start <= previous_region_start + bp_tolerance && region_start >= previous_region_start - bp_tolerance && region_end <= previous_region_end + bp_tolerance && region_end >= previous_region_end - bp_tolerance) {
             top_regions[[j]]$subclust_names = c(top_regions[[j]]$subclust_names, genes_in_region$cell_group_name[1])
             top_regions[[j]]$regions_names = c(top_regions[[j]]$regions_names, genes_in_region$gene_region_name[1])
         }
