@@ -227,24 +227,24 @@ add_to_seurat <- function(seurat_obj = NULL,
         }
     }
     
-    sorted_regions = sort(table(hmm_genes$gene_region_name), decreasing=TRUE)
+    # sorted_regions = sort(table(hmm_genes$gene_region_name), decreasing=TRUE)
     sorted_regions_loss = sort(table(hmm_genes$gene_region_name[hmm_genes$state < center_state]), decreasing=TRUE)
     sorted_regions_dupli = sort(table(hmm_genes$gene_region_name[hmm_genes$state > center_state]), decreasing=TRUE)
     
-    top_n_cnv = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions, top_n = top_n, bp_tolerance = bp_tolerance)
+    # top_n_cnv = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions, top_n = top_n, bp_tolerance = bp_tolerance)
     top_n_loss = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions_loss, top_n = top_n, bp_tolerance = bp_tolerance)
     top_n_dupli = .get_top_n_regions(hmm_genes = hmm_genes, sorted_regions = sorted_regions_dupli, top_n = top_n, bp_tolerance = bp_tolerance)
     
-    for (i in seq_along(top_n_cnv)) {
-        feature_name = paste0("top_cnv_", i)
-        all_features[[feature_name]] = logical_feature_vector
+    # for (i in seq_along(top_n_cnv)) {
+    #     feature_name = paste0("top_cnv_", i)
+    #     all_features[[feature_name]] = logical_feature_vector
         
-        for (subclust_name in top_n_cnv[[i]]$subclust_name) {
-            clust = subclust_name_to_clust[[subclust_name]][1]
-            subclust = subclust_name_to_clust[[subclust_name]][2]
-            all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
-        }
-    }
+    #     for (subclust_name in top_n_cnv[[i]]$subclust_name) {
+    #         clust = subclust_name_to_clust[[subclust_name]][1]
+    #         subclust = subclust_name_to_clust[[subclust_name]][2]
+    #         all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+    #     }
+    # }
     for (i in seq_along(top_n_loss)) {
         feature_name = paste0("top_loss_", i)
         all_features[[feature_name]] = logical_feature_vector
@@ -287,41 +287,97 @@ add_to_seurat <- function(seurat_obj = NULL,
 #'
 .get_top_n_regions <- function(hmm_genes, sorted_regions, top_n, bp_tolerance) {
     j = 1
-    previous_region_chr = -1
-    previous_region_start = -1
-    previous_region_end = -1
     top_regions = vector("list", top_n)
+    used_regions = list()
     
     for (i in seq_len(nrow(sorted_regions))) {
+
+        if (names(sorted_regions[i]) %in% used_regions) {
+            next
+        }
+
         genes_in_region = hmm_genes[which(hmm_genes$gene_region_name %in% names(sorted_regions[i])), ]
         region_chr = genes_in_region$chr[1]
         region_start = min(genes_in_region$start)
         region_end = max(genes_in_region$end)
-        # check if the current region is the same as the previous one for a different subcluster or not
-        # if it is, extend the previous assignment without increasing the count of found top hits
-        if (region_chr == previous_region_chr && region_start <= previous_region_start + bp_tolerance && region_start >= previous_region_start - bp_tolerance && region_end <= previous_region_end + bp_tolerance && region_end >= previous_region_end - bp_tolerance) {
-            top_regions[[j]]$subclust_names = c(top_regions[[j]]$subclust_names, genes_in_region$cell_group_name[1])
-            top_regions[[j]]$regions_names = c(top_regions[[j]]$regions_names, genes_in_region$gene_region_name[1])
+
+        # sorted_regions[i:nrow(sorted_regions)]
+        
+        to_ignore = which(hmm_genes$gene_region_name %in% used_regions)
+        
+        if (length(to_ignore) > 0) {
+            same_chr = which(hmm_genes$chr[-to_ignore] == region_chr)
         }
         else {
-            top_regions[[j]]$subclust_names = genes_in_region$cell_group_name[1]
-            top_regions[[j]]$regions_names = genes_in_region$gene_region_name[1]
-            previous_region_chr = region_chr
-            previous_region_start = region_start
-            previous_region_end = region_end
-            j = j + 1
+            same_chr = which(hmm_genes$chr == region_chr)
         }
-        if (j == top_n + 1) {
+        close_start = same_chr[which((hmm_genes$start[same_chr] <= region_start + bp_tolerance) & (hmm_genes$start[same_chr] >= region_start - bp_tolerance))]
+        close_end = same_chr[which((hmm_genes$end[same_chr] <= region_end + bp_tolerance) & (hmm_genes$end[same_chr] >= region_end - bp_tolerance))]
+        close_start_end = intersect(unique(hmm_genes$gene_region_name[close_start]), unique(hmm_genes$gene_region_name[close_end]))
+
+
+        if (length(close_start_end) > 0) {
+            top_regions[[j]]$subclust_names = unique(hmm_genes$cell_group_name[which(hmm_genes$gene_region_name %in% close_start_end)])
+            top_regions[[j]]$regions_names = close_start_end
+        }
+        else {
+            flog.error("Did not even find itself, error.")
+            stop()
+            # top_regions[[j]]$subclust_names = genes_in_region$cell_group_name[1]
+            # top_regions[[j]]$regions_names = genes_in_region$gene_region_name[1]
+        }
+
+        used_regions = c(used_regions, unique(genes_in_region$gene_region_name[close_start_end]))
+
+        if (j == top_n) {
             break
         }
+
+        j = j + 1
+
     }
-    
-    if (j < top_n + 1) { # if less non unique regions than top_n
-        top_regions = top_regions[1:j]
-    }
-    
     return(top_regions)
 }
+
+
+# .get_top_n_regions <- function(hmm_genes, sorted_regions, top_n, bp_tolerance) {
+#     j = 1
+#     previous_region_chr = -1
+#     previous_region_start = -1
+#     previous_region_end = -1
+#     top_regions = vector("list", top_n)
+    
+#     for (i in seq_len(nrow(sorted_regions))) {
+#         genes_in_region = hmm_genes[which(hmm_genes$gene_region_name %in% names(sorted_regions[i])), ]
+#         region_chr = genes_in_region$chr[1]
+#         region_start = min(genes_in_region$start)
+#         region_end = max(genes_in_region$end)
+#         # check if the current region is the same as the previous one for a different subcluster or not
+#         # if it is, extend the previous assignment without increasing the count of found top hits
+#         if (region_chr == previous_region_chr && region_start <= previous_region_start + bp_tolerance && region_start >= previous_region_start - bp_tolerance && region_end <= previous_region_end + bp_tolerance && region_end >= previous_region_end - bp_tolerance) {
+#             top_regions[[j]]$subclust_names = c(top_regions[[j]]$subclust_names, genes_in_region$cell_group_name[1])
+#             top_regions[[j]]$regions_names = c(top_regions[[j]]$regions_names, genes_in_region$gene_region_name[1])
+#         }
+#         else {
+#             top_regions[[j]]$subclust_names = genes_in_region$cell_group_name[1]
+#             top_regions[[j]]$regions_names = genes_in_region$gene_region_name[1]
+#             previous_region_chr = region_chr
+#             previous_region_start = region_start
+#             previous_region_end = region_end
+#             j = j + 1
+#         }
+#         if (j == top_n + 1) {
+#             break
+#         }
+#     }
+    
+#     if (j < top_n + 1) { # if less non unique regions than top_n
+#         top_regions = top_regions[1:j]
+#     }
+    
+#     return(top_regions)
+# }
+
 
 
 
