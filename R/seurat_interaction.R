@@ -288,7 +288,11 @@ add_to_seurat <- function(seurat_obj = NULL,
 .get_top_n_regions <- function(hmm_genes, sorted_regions, top_n, bp_tolerance) {
     j = 1
     top_regions = vector("list", top_n)
-    used_regions = list()
+    used_regions = c()
+    # flog.debug("sorted regions are:")
+    # for(sr in names(sorted_regions)) {
+    #     flog.debug(paste(sr, sorted_regions[sr]))
+    # }
     
     for (i in seq_len(nrow(sorted_regions))) {
 
@@ -298,36 +302,65 @@ add_to_seurat <- function(seurat_obj = NULL,
 
         genes_in_region = hmm_genes[which(hmm_genes$gene_region_name %in% names(sorted_regions[i])), ]
         region_chr = genes_in_region$chr[1]
-        region_start = min(genes_in_region$start)
-        region_end = max(genes_in_region$end)
+        region_start_low = min(genes_in_region$start)
+        region_start_high = region_start_low
+        region_end_low = max(genes_in_region$end)
+        region_end_high = region_end_low
 
-        # sorted_regions[i:nrow(sorted_regions)]
-        
         to_ignore = which(hmm_genes$gene_region_name %in% used_regions)
         
         if (length(to_ignore) > 0) {
-            same_chr = which(hmm_genes$chr[-to_ignore] == region_chr)
+            same_chr = setdiff(which(hmm_genes$chr == region_chr), to_ignore)
         }
         else {
             same_chr = which(hmm_genes$chr == region_chr)
         }
-        close_start = same_chr[which((hmm_genes$start[same_chr] <= region_start + bp_tolerance) & (hmm_genes$start[same_chr] >= region_start - bp_tolerance))]
-        close_end = same_chr[which((hmm_genes$end[same_chr] <= region_end + bp_tolerance) & (hmm_genes$end[same_chr] >= region_end - bp_tolerance))]
-        close_start_end = intersect(unique(hmm_genes$gene_region_name[close_start]), unique(hmm_genes$gene_region_name[close_end]))
 
+        initial_close = list()
+        repeat {
+
+            close_start = same_chr[which((hmm_genes$start[same_chr] <= region_start_high + bp_tolerance) & (hmm_genes$start[same_chr] >= region_start_low - bp_tolerance))]
+            close_end = same_chr[which((hmm_genes$end[same_chr] <= region_end_high + bp_tolerance) & (hmm_genes$end[same_chr] >= region_end_low - bp_tolerance))]
+            close_start_end = intersect(unique(hmm_genes$gene_region_name[close_start]), unique(hmm_genes$gene_region_name[close_end]))
+        
+            if ((length(setdiff(close_start_end, initial_close)) == 0) && (length(setdiff(initial_close, close_start_end)) == 0)) {
+                break
+            }
+            else {
+                initial_close = close_start_end
+                starts = c()
+                ends = c()
+                for (regi in close_start_end) {
+                    starts = c(starts, min(hmm_genes$start[which(hmm_genes$gene_region_name == regi)]))
+                    ends = c(ends, max(hmm_genes$end[which(hmm_genes$gene_region_name == regi)]))
+                }
+
+                region_start_low = min(starts)
+                region_start_high = max(starts)
+                region_end_low = min(ends)
+                region_end_high = max(ends)
+            }
+        }
 
         if (length(close_start_end) > 0) {
             top_regions[[j]]$subclust_names = unique(hmm_genes$cell_group_name[which(hmm_genes$gene_region_name %in% close_start_end)])
             top_regions[[j]]$regions_names = close_start_end
+            flog.debug(paste0("top cnv ", j, " is composed of subclusts: "))#, paste(close_start_end, sep="   ")))
+            flog.debug(paste(top_regions[[j]]$subclust_names, sep="  "))
+            flog.debug("and region names: ")
+            flog.debug(paste(top_regions[[j]]$regions_names, sep="  "))
         }
         else {
             flog.error("Did not even find itself, error.")
             stop()
-            # top_regions[[j]]$subclust_names = genes_in_region$cell_group_name[1]
-            # top_regions[[j]]$regions_names = genes_in_region$gene_region_name[1]
         }
 
-        used_regions = c(used_regions, unique(genes_in_region$gene_region_name[close_start_end]))
+        used_regions = c(used_regions, close_start_end)
+
+        if (length(used_regions) != length(unique(used_regions))) {
+            flog.error("Used the same region twice")
+            stop()
+        }
 
         if (j == top_n) {
             break
