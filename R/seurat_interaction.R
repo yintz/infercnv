@@ -79,7 +79,8 @@ add_to_seurat <- function(seurat_obj = NULL,
         stop()
     }
     
-    features_to_add <- .get_features(infercnv_obj = infercnv_obj, 
+    features_to_add <- .get_features(infercnv_obj = infercnv_obj,
+                                     infercnv_output_path = infercnv_output_path,
                                      regions = regions, 
                                      hmm_genes = hmm_genes, 
                                      center_state = center_state, 
@@ -146,6 +147,8 @@ add_to_seurat <- function(seurat_obj = NULL,
 #'
 #' @param infercnv_obj infercnv hmm object
 #'
+#' @param infercnv_output_path infercnv output folder
+#'
 #' @param regions Table with predicted CNAs regions from the HMM model
 #'
 #' @param hmm_genes Table with predicted CNAs genes from the HMM model
@@ -161,7 +164,7 @@ add_to_seurat <- function(seurat_obj = NULL,
 #' @keywords internal
 #' @noRd
 #'
-.get_features <- function(infercnv_obj, regions, hmm_genes, center_state, scaling_factor, top_n, bp_tolerance) {
+.get_features <- function(infercnv_obj, infercnv_output_path, regions, hmm_genes, center_state, scaling_factor, top_n, bp_tolerance) {
     
     chr_gene_count = table(infercnv_obj@gene_order$chr)
     
@@ -245,26 +248,54 @@ add_to_seurat <- function(seurat_obj = NULL,
     #         all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
     #     }
     # }
+
+    to_write = c()
     for (i in seq_along(top_n_loss)) {
         feature_name = paste0("top_loss_", i)
         all_features[[feature_name]] = logical_feature_vector
+        line_to_write = c()
         
         for (subclust_name in top_n_loss[[i]]$subclust_name) {
             clust = subclust_name_to_clust[[subclust_name]][1]
             subclust = subclust_name_to_clust[[subclust_name]][2]
             all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+            # line_to_write = c(line_to_write, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]))
+            line_to_write = c(line_to_write, paste(subclust_name, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]), sep=";"))
         }
+
+        # to_write = c(to_write, paste(feature_name, paste(top_n_loss[[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
+        to_write = c(to_write, paste(feature_name, line_to_write, sep=";"))
+
     }
+
+    fileConn<-file(paste(infercnv_output_path, "top_losses.txt", sep=.Platform$file.sep), open="w")
+    writeLines(to_write, con=fileConn)
+    close(fileConn)
+
+    # to_write = to_write = vector(mode="vector", length=length(top_n_dupli))
+    to_write = c()
     for (i in seq_along(top_n_dupli)) {
         feature_name = paste0("top_dupli_", i)
         all_features[[feature_name]] = logical_feature_vector
-        
+        line_to_write = c()
+
         for (subclust_name in top_n_dupli[[i]]$subclust_name) {
             clust = subclust_name_to_clust[[subclust_name]][1]
             subclust = subclust_name_to_clust[[subclust_name]][2]
             all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+            # line_to_write = c(line_to_write, paste(feature_name, paste(top_n_dupli[[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
+             # line_to_write = c(line_to_write, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]))
+             line_to_write = c(line_to_write, paste(subclust_name, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]), sep=";"))
         }
+
+        # to_write = c(to_write, paste(feature_name, paste(top_n_dupli[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
+        to_write = c(to_write, paste(feature_name, line_to_write, sep=";"))
+
     }
+
+    fileConn<-file(paste(infercnv_output_path, "top_duplis.txt", sep=.Platform$file.sep), open="w")
+    writeLines(to_write, con=fileConn)
+    close(fileConn)
     
     return(all_features)
 }
