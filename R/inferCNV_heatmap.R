@@ -467,7 +467,7 @@ plot_cnv <- function(infercnv_obj,
         hcl_contig_indices <- which(contig_names == cluster_contig)
         if(length(hcl_contig_indices) > 0 ) {
             hcl_group_indices <- hcl_contig_indices
-            hcl_desc <- cluster_contig
+            hcl_desc <- paste(cluster_contig, sep="_")
             flog.info(paste("plot_cnv_observation:Clustering only by contig ", cluster_contig))
             infercnv_obj@tumor_subclusters = NULL # so that clustering is calculated based on selected contigs only without requiring the user to manually erase this field
         } else {
