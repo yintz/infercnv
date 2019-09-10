@@ -1213,6 +1213,12 @@ run <- function(infercnv_obj,
                          useRaster=useRaster
                          )
             }
+            ## write the adjusted CNV report files
+            ## report predicted cnv regions:
+            adjust_genes_regions_report(mcmc_obj_hmm_states_list[[1]],
+                                        input_filename_prefix=sprintf("%02d_HMM_preds", (step_count-1)),
+                                        output_filename_prefix=sprintf("HMM_CNV_predictions.%s.Pnorm_%g", hmm_resume_file_token, BayesMaxPNormal),
+                                        out_dir=out_dir)
         }
     }
         
@@ -1258,15 +1264,6 @@ run <- function(infercnv_obj,
                          useRaster=useRaster
                          )
             }
-            
-            ## write the adjusted CNV report files
-            ## report predicted cnv regions:
-            generate_cnv_region_reports(hmm.infercnv_obj,
-                                        output_filename_prefix=sprintf("HMM_CNV_predictions.%s.Pnorm_%g", hmm_resume_file_token, BayesMaxPNormal),
-                                        out_dir=out_dir,
-                                        ignore_neutral_state=1,
-                                        by=HMM_report_by)
-            
         }
     }
     

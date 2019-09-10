@@ -781,6 +781,101 @@ generate_cnv_region_reports <- function(infercnv_obj,
 }
 
 
+
+#' @title adjust_genes_regions_report
+#'
+#' @description Updates the CNV region report files
+#'
+#' @param infercnv_obj infercnv object
+#'
+#' @param input_filename_prefix  prefix for input filename
+#' 
+#' @param output_filename_prefix  prefix for output filename
+#' 
+#' @param out_dir output directory for report files to be written
+#' 
+#' @return None
+#'
+#' @keywords internal
+#' @noRd
+#'
+
+adjust_genes_regions_report <- function(hmm.infercnv_obj,
+                                        input_filename_prefix,
+                                        output_filename_prefix,
+                                        out_dir) {
+    #####################
+    # Load Data
+    #####################
+    # Get the paths to the files 
+    pred_cnv_genes_path <- paste(out_dir, paste0(input_filename_prefix, ".pred_cnv_genes.dat"), sep="/")
+    pred_cnv_regions_path <- paste(out_dir, paste0(input_filename_prefix, ".pred_cnv_regions.dat"), sep="/")
+    
+    # Check if files exist 
+    if (file.exists(pred_cnv_genes_path)){
+        # Read in the files 
+        pred_cnv_genes <- read.table(file = pred_cnv_genes_path, header = T, sep = "\t")
+    } else {
+        # If the file cant be found, throw the error message 
+        error_message <- paste("Cannot find and adjust the following file.", pred_cnv_genes_path)
+        futile.logger::flog.error(error_message)
+        stop(error_message)
+    }
+    
+    # Check if files exist 
+    if (file.exists(pred_cnv_genes_path)){
+        # Read in the files 
+        pred_cnv_regions <- read.table(file = pred_cnv_regions_path, header = T, sep = "\t")
+    } else{
+        # If the file cant be found, throw the error message 
+        error_message <- paste("Cannot find and adjust the following file.", pred_cnv_regions_path)
+        futile.logger::flog.error(error_message)
+        stop(error_message)
+    }
+    
+    #####################
+    # Process the data 
+    #####################
+    # CNV regions that are in the the new data set after removal of cnv's 
+    new_regions <- sapply(hmm.infercnv_obj@cell_gene, function(i) i$cnv_regions)
+    
+    # Subset the file to only include the cnv that were not removed 
+    #-----------------
+    ## Genes file
+    #-----------------
+    ids <- which(pred_cnv_genes$gene_region_name %in% new_regions)
+    new_pred_cnv_genes <- pred_cnv_genes[ids, ]
+    
+    # Get the new states predicted by the bayesian model and add them to the data frame 
+    new_states <- sapply(new_pred_cnv_genes$gene_region_name, function(i) {
+        hmm.infercnv_obj@cell_gene[[which(new_regions %in% i)]]$State
+    })
+    # Assign the new states to the state column in the data frame 
+    new_pred_cnv_genes$state <- new_states
+    
+    # write the new file 
+    gene_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_genes.dat"), sep="/") 
+    write.table(new_pred_cnv_genes, gene_cnv_outfile, row.names=FALSE, sep="\t", quote=FALSE)
+    
+    #-----------------
+    ## Regions file
+    #-----------------
+    ids <- which(pred_cnv_regions$cnv_name %in% new_regions)
+    new_pred_cnv_regions <- pred_cnv_regions[ids, ]
+    
+    # Get the new states predicted by the bayesian model and add them to the data frame 
+    new_states <- sapply(new_pred_cnv_regions$cnv_name, function(i) {
+        hmm.infercnv_obj@cell_gene[[which(new_regions %in% i)]]$State
+    })
+    # Assign the new states to the state column in the data frame 
+    new_pred_cnv_regions$state <- new_states
+    # write the new file 
+    regions_cnv_outfile = paste(out_dir, paste0(output_filename_prefix, ".pred_cnv_regions.dat"), sep="/") 
+    write.table(new_pred_cnv_regions, regions_cnv_outfile, row.names=FALSE, sep="\t", quote=FALSE)
+}
+
+
+
 #' @title .get_state_consensus
 #'
 #' @description gets the state consensus for each gene in the input matrix
