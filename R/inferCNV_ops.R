@@ -342,7 +342,7 @@ run <- function(infercnv_obj,
         dir.create(out_dir)
     }
 
-    infercnv_obj@options = c(infercnv_obj@options, non_default_args)
+    infercnv_obj@options = c(infercnv_obj@options, lapply(non_default_args, deparse))
     # for (arg_name in names(non_default_args)){
     #     flog.info(paste(arg_name, tmp_args[arg_name], sep=":"))
     # }
@@ -3123,11 +3123,16 @@ cross_cell_normalize <- function(infercnv_obj) {
 
 .compare_args <- function(current_args, relevant_args, loaded_options) {
 
-    diff_a = any(relevant_args %in% names(current_args[!(current_args %in% loaded_options)]))
-    diff_b = any(relevant_args %in% names(loaded_options[!(loaded_options %in% current_args)]))
+    diff_a = any(relevant_args %in% names(current_args[!(names(current_args) %in% names(loaded_options))]))
+    diff_b = any(relevant_args %in% names(loaded_options[!(names(loaded_options) %in% names(current_args))]))
 
-    return (!(diff_a || diff_b))
+    if (diff_a || diff_b) {
+        return(FALSE)
+    }
 
+    return(!(any(sapply(relevant_args[relevant_args %in% names(current_args)], function(arg_n) {
+        any(current_args[[arg_n]] != loaded_options[[arg_n]])
+    }))))
 }
 
 
