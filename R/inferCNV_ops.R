@@ -1207,7 +1207,7 @@ run <- function(infercnv_obj,
             
             ## report predicted cnv regions:
             generate_cnv_region_reports(hmm.infercnv_obj,
-                                        output_filename_prefix=sprintf("%02d_HMM_preds", step_count),
+                                        output_filename_prefix=sprintf("%02d_HMM_pred%s",step_count, hmm_resume_file_token),
                                         out_dir=out_dir,
                                         ignore_neutral_state=hmm_center,
                                         by=HMM_report_by)

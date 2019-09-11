@@ -30,6 +30,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
         
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
+        tumor_group_cell_names <- colnames(infercnv_obj@expr.data[,tumor_group_idx])
         tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
 
         if (restrict_to_DE_genes) {
@@ -40,7 +41,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
             
         }
         
-        tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_expr_data, p_val, hclust_method, partition_method)
+        tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_group_cell_names, tumor_expr_data, p_val, hclust_method, partition_method)
         
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
         res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
@@ -61,7 +62,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
 
 
-.single_tumor_subclustering <- function(tumor_name, tumor_group_idx, tumor_expr_data, p_val, hclust_method,
+.single_tumor_subclustering <- function(tumor_name, tumor_group_idx, tumor_group_cell_names, tumor_expr_data, p_val, hclust_method,
                                         partition_method=c('qnorm', 'pheight', 'qgamma', 'shc', 'none')
                                         ) {
     
@@ -137,10 +138,12 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
             # subcluster_indices = tumor_group_idx[which(grps == g)]
             end_idx = start_idx + length(s[[g]]) - 1
             subcluster_indices = tumor_group_idx[hc$order[start_idx:end_idx]]
+            subcluster_names = tumor_group_cell_names[hc$order[start_idx:end_idx]]
             start_idx = end_idx + 1
             
             tumor_subcluster_info$subclusters[[ split_subcluster ]] = subcluster_indices
-            
+            names(tumor_subcluster_info$subclusters[[ split_subcluster ]]) = subcluster_names
+
         }
     }
     else {

@@ -23,7 +23,7 @@ add_to_seurat <- function(seurat_obj = NULL,
     lfiles <- list.files(infercnv_output_path, full.names = FALSE)
     
     if (!file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
-        flog.warn(sprintf("::Could not find \"run.final.infercnv_obj\" file at: %s"), paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))
+        flog.warn(sprintf("::Could not find \"run.final.infercnv_obj\" file at: %s", paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep)))
         stop()
     }
     infercnv_obj = readRDS(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))
@@ -38,14 +38,18 @@ add_to_seurat <- function(seurat_obj = NULL,
     }
     
     ## add check that data row/col names match seurat obj
-    
-    if (any(grep(lfiles, pattern="HMM_CNV_predictions.HMM.*.Pnorm_0.[0-9]+"))) {
+    analysis_mode_pattern = "samples"
+        if (!is.null(infercnv_obj@options$analysis_mode)) {
+            analysis_mode_pattern = gsub('[\"]', '', infercnv_obj@options$analysis_mode)   ## gsub to remove _"\"_ around the name of the options if it is given as string and not through a variable
+    }
+
+    if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMM.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
         ###### states are 0/0.5/1/1.5/2
         scaling_factor = 1
-        if (any(grep(lfiles, pattern="HMM_CNV_predictions.HMMi6.*.Pnorm_0.[0-9]+"))) {
+        if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMMi6.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
             center_state = 1
         }
-        else if (any(grep(lfiles, pattern="HMM_CNV_predictions.HMMi3.*.Pnorm_0.[0-9]+"))) {
+        else if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMMi3.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
             center_state = 1
         }
         else {
@@ -53,25 +57,25 @@ add_to_seurat <- function(seurat_obj = NULL,
             stop()
         }
         # sort to take lowest BayesProb if there are multiple
-        regions = read.table(paste(infercnv_output_path, sort(lfiles[grep(lfiles, pattern="HMM_CNV_predictions.HMMi6.*.Pnorm_0.[0-9]+.pred_cnv_regions.dat")])[1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
-        hmm_genes = read.table(paste(infercnv_output_path, sort(lfiles[grep(lfiles, pattern="HMM_CNV_predictions.HMMi6.*.Pnorm_0.[0-9]+.pred_cnv_genes.dat")])[1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
+        regions = read.table(paste(infercnv_output_path, sort(lfiles[grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMMi[36].*", analysis_mode_pattern, ".Pnorm_0.[0-9]+.pred_cnv_regions.dat"))])[1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
+        hmm_genes = read.table(paste(infercnv_output_path, sort(lfiles[grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMMi[36].*", analysis_mode_pattern, ".Pnorm_0.[0-9]+.pred_cnv_genes.dat"))])[1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
         # from_pbayes()
     }
-    else if (any(grep(lfiles, pattern = "17_HMM_preds"))) {
+    else if (any(grep(lfiles, pattern = paste0("17_HMM_predHMM.*", analysis_mode_pattern)))) {
         ###### states are 1/2/3/4/5/6
         scaling_factor = 2
-        if (any(grep(lfiles, pattern = "17_HMM_predHMMi6"))) {
+        if (any(grep(lfiles, pattern = paste0("17_HMM_predHMMi6.*", analysis_mode_pattern)))) {
             center_state = 3
         }
-        else if (any(grep(lfiles, pattern = "17_HMM_predHMMi3"))) {
+        else if (any(grep(lfiles, pattern = paste0("17_HMM_predHMMi3.*", analysis_mode_pattern)))) {
             center_state = 2
         }
         else {
             flog.warn("::Found HMM predictions output, but they do not match any known model type")
             stop()
         }
-        regions = read.table(paste(infercnv_output_path, "17_HMM_preds.pred_cnv_regions.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
-        hmm_genes = read.table(paste(infercnv_output_path, "17_HMM_preds.pred_cnv_genes.dat", sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
+        regions = read.table(paste(infercnv_output_path, lfiles[grep(lfiles, pattern=paste0("17_HMM_predHMMi[36].*", analysis_mode_pattern, ".pred_cnv_regions.dat"))][1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
+        hmm_genes = read.table(paste(infercnv_output_path, lfiles[grep(lfiles, pattern=paste0("17_HMM_predHMMi[36].*", analysis_mode_pattern, ".pred_cnv_genes.dat"))][1], sep=.Platform$file.sep), sep="\t", header=TRUE, check.names=FALSE)
         # from_hmm()
     }
     else {
