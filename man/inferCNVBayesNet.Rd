@@ -5,11 +5,11 @@
 \title{inferCNVBayesNet: Run Bayesian Network Mixture Model To Obtain Posterior Probabilities For HMM Predicted States}
 \usage{
 inferCNVBayesNet(file_dir, infercnv_obj, HMM_states, out_dir,
-  model_file = NULL, CORES = 1, postMcmcMethod = NULL,
-  plotingProbs = TRUE, quietly = TRUE, diagnostics = FALSE,
-  HMM_type = HMM_type, k_obs_groups = k_obs_groups,
-  cluster_by_groups = cluster_by_groups, reassignCNVs = TRUE,
-  no_plot = no_plot)
+  resume_file_token, model_file = NULL, CORES = 1,
+  postMcmcMethod = NULL, plotingProbs = TRUE, quietly = TRUE,
+  diagnostics = FALSE, HMM_type = HMM_type,
+  k_obs_groups = k_obs_groups, cluster_by_groups = cluster_by_groups,
+  reassignCNVs = TRUE, no_plot = no_plot)
 }
 \arguments{
 \item{file_dir}{Location of the directory of the inferCNV outputs.}
@@ -19,6 +19,8 @@ inferCNVBayesNet(file_dir, infercnv_obj, HMM_states, out_dir,
 \item{HMM_states}{InferCNV object with HMM states in expression data.}
 
 \item{out_dir}{(string) Path to where the output file should be saved to.}
+
+\item{resume_file_token}{(string) String token that contains some info on settings used to name files.}
 
 \item{model_file}{Path to the BUGS Model file.}
 

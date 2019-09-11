@@ -377,7 +377,14 @@ run <- function(infercnv_obj,
                 }
                 else {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
-
+                    if (skip_past > i) { # in case denoise was found
+                        if (20 > i) { # if 21/20 already found and checked HMM too, stop
+                            break
+                        }
+                        else { # if 21 denoise found, don't check 20 maskDE
+                            next
+                        }
+                    }
                     if (.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), reloaded_infercnv_obj@options)) {
                         options_backup = infercnv_obj@options
                         infercnv_obj = reloaded_infercnv_obj # replace input infercnv_obj
@@ -385,7 +392,9 @@ run <- function(infercnv_obj,
                         infercnv_obj@options = options_backup
                         skip_past = i
                         flog.info(paste0("Using backup from step ", i))
-                        break
+                        if (i < 21) { # do not stop check right away if denoise was found to also allow to check for HMM
+                            break
+                        }
                     }
                     else {
                         rm(reloaded_infercnv_obj)
@@ -394,9 +403,9 @@ run <- function(infercnv_obj,
                 }
             }
         }
-        if (skip_past > 19) {
-            skip_hmm = 3
-        }
+        # if (skip_past > 19) {
+        #     skip_hmm = 3
+        # }
     }
  
 
@@ -1207,7 +1216,7 @@ run <- function(infercnv_obj,
             
             ## report predicted cnv regions:
             generate_cnv_region_reports(hmm.infercnv_obj,
-                                        output_filename_prefix=sprintf("%02d_HMM_pred%s",step_count, hmm_resume_file_token),
+                                        output_filename_prefix=sprintf("%02d_HMM_pred%s", step_count, hmm_resume_file_token),
                                         out_dir=out_dir,
                                         ignore_neutral_state=hmm_center,
                                         by=HMM_report_by)
@@ -1223,7 +1232,7 @@ run <- function(infercnv_obj,
                          cluster_references=cluster_references,
                          out_dir=out_dir,
                          title=sprintf("%02d_HMM_preds",step_count),
-                         output_filename=sprintf("infercnv.%02d_HMM_pred%s",step_count, hmm_resume_file_token),
+                         output_filename=sprintf("infercnv.%02d_HMM_pred%s", step_count, hmm_resume_file_token),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
                          x.center=hmm_center,
@@ -1260,6 +1269,7 @@ run <- function(infercnv_obj,
                                                    no_plot           = no_plot,
                                                    postMcmcMethod    = "removeCNV",
                                                    out_dir           = file.path(out_dir, sprintf("BayesNetOutput.%s", hmm_resume_file_token)),
+                                                   resume_file_token = hmm_resume_file_token,
                                                    quietly           = TRUE,
                                                    CORES             = num_threads,
                                                    plotingProbs      = plot_probabilities,
@@ -1312,7 +1322,8 @@ run <- function(infercnv_obj,
             ## write the adjusted CNV report files
             ## report predicted cnv regions:
             adjust_genes_regions_report(mcmc_obj_hmm_states_list[[1]],
-                                        input_filename_prefix=sprintf("%02d_HMM_preds", (step_count-1)),
+                                        # input_filename_prefix=sprintf("%02d_HMM_preds", (step_count-1)),
+                                        input_filename_prefix=sprintf("%02d_HMM_pred%s", (step_count-1), hmm_resume_file_token),
                                         output_filename_prefix=sprintf("HMM_CNV_predictions.%s.Pnorm_%g", hmm_resume_file_token, BayesMaxPNormal),
                                         out_dir=out_dir)
         }

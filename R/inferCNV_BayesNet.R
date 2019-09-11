@@ -296,8 +296,8 @@ setMethod(f="initializeObject",
               obj@args <- args_parsed
 
               ## Load the files for cnv predictions
-              cell_groups_PATH <- files[grep(files, pattern = "_HMM_preds.cell_groupings")]
-              pred_cnv_genes_PATH <- files[grep(files, pattern = "_HMM_preds.pred_cnv_genes.dat")]
+              cell_groups_PATH <- files[grep(files, pattern = paste0("17_HMM_pred", args_parsed$resume_file_token, ".cell_groupings"))]
+              pred_cnv_genes_PATH <- files[grep(files, pattern = paste0("17_HMM_pred", args_parsed$resume_file_token, ".pred_cnv_genes.dat"))]
               cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE, sep="\t")
               pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE, sep="\t")
 
@@ -1160,6 +1160,7 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #' @param model_file Path to the BUGS Model file.
 #' @param CORES Option to run parallel by specifying the number of cores to be used. (Default: 1)
 #' @param out_dir (string) Path to where the output file should be saved to.
+#' @param resume_file_token (string) String token that contains some info on settings used to name files.
 #' @param postMcmcMethod What actions to take after finishing the MCMC.
 #' @param plotingProbs Option for adding plots of Cell and CNV probabilities. (Default: TRUE)
 #' @param quietly Option to print descriptions along each step. (Default: TRUE)
@@ -1216,6 +1217,7 @@ inferCNVBayesNet <- function( file_dir,
                               infercnv_obj,
                               HMM_states,
                               out_dir,
+                              resume_file_token,
                               model_file        = NULL,
                               CORES             = 1,
                               postMcmcMethod    = NULL,
@@ -1269,8 +1271,9 @@ inferCNVBayesNet <- function( file_dir,
                         "model_file" = model_file,
                         "CORES" = CORES,
                         "out_dir"= out_dir,
+                        "resume_file_token" = resume_file_token,
                         "plotingProbs" = plotingProbs,
-                        "postMcmcMethod"=postMcmcMethod,
+                        "postMcmcMethod"= postMcmcMethod,
                         "quietly" = quietly,
                         "BayesMaxPNormal" = 0,
                         "HMM_type" = HMM_type,
