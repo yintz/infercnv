@@ -18,6 +18,15 @@ Changes in version 1.1.1 (2019-05-20)
 + Added method to sample an infercnv object to a given number of cells, or at a given frequency, per annotation group. This is to make it easy to plot figures where all annotations groups have the same overall height, as well as downsample very large datasets that would otherwise take too long to plot (while still running the analysis on the full data)
 + Added method to plot each annotation group to a different figure and combine with sampling. Mostly intended to split data for larger datasets.
 + Added support for output_format option within run() to link to plot_cnv() to support only writting text outputs during the analysis.
+Changes in version 1.0.4 (2019-09-16)
++ Fix check that contig to cluster by was found when specified.
++ Added support to plot_cnv for cell groups with exactly 2 cells.
++ Fix which input file type is checked.
++ Made it so that plot_cnv recalculates clustering automatically if non null ref_contig argument is provided.
++ Fix for plot_cnv() when providing multiple ref_contigs and cluster_by_group is False.
++ Fix only 1/n genes being taken into account when using n ref_contig in plot_cnv.
++ Fix error in file creation when using multiple ref_contig and cluster_by_groups=FALSE in plot_cnv.
++ Bayesian filtering now preserves CNV ids in outputs
 Changes in version 1.0.3 (2019-07-05)
 + Fix missing dendrograms in text output when drawing figures.
 + Fix path to save object to when splitting references.
