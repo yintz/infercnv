@@ -1203,6 +1203,7 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #'                               file_dir           = out_dir,
 #'                               postMcmcMethod     = "removeCNV",
 #'                               out_dir            = out_dir,
+#'                               resume_file_token  = "HMMi6.hmm_mode-samples",
 #'                               quietly            = TRUE,
 #'                               CORES              = 2,
 #'                               plotingProbs       = FALSE,
