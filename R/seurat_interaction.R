@@ -39,18 +39,18 @@ add_to_seurat <- function(seurat_obj = NULL,
     
     ## add check that data row/col names match seurat obj
     analysis_mode_pattern = "samples"
-        if (!is.null(infercnv_obj@options$analysis_mode)) {
+    if (!is.null(infercnv_obj@options$analysis_mode)) {
             analysis_mode_pattern = gsub('[\"]', '', infercnv_obj@options$analysis_mode)   ## gsub to remove _"\"_ around the name of the options if it is given as string and not through a variable
     }
-
+    scaling_factor = 2
     if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMM.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
-        ###### states are 0/0.5/1/1.5/2
-        scaling_factor = 1
+        ###### states used to be 0/0.5/1/1.5/2, they are now 1/2/3/4/5/6
+        # scaling_factor = 1
         if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMMi6.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
-            center_state = 1
+            center_state = 3
         }
         else if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMMi3.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
-            center_state = 1
+            center_state = 2
         }
         else {
             flog.warn("::Found filtered HMM predictions output, but they do not match any known model type.")
@@ -63,7 +63,7 @@ add_to_seurat <- function(seurat_obj = NULL,
     }
     else if (any(grep(lfiles, pattern = paste0("17_HMM_predHMM.*", analysis_mode_pattern)))) {
         ###### states are 1/2/3/4/5/6
-        scaling_factor = 2
+        # scaling_factor = 2
         if (any(grep(lfiles, pattern = paste0("17_HMM_predHMMi6.*", analysis_mode_pattern)))) {
             center_state = 3
         }
