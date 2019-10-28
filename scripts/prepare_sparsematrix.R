@@ -107,8 +107,7 @@ out_size = object.size(sparse_matrix)
 fileConn<-file("prepare_smallest.txt")
 if (in_size < out_size) {
 	writeLines(args$input, fileConn)
-}
-else {
+} else {
 	writeLines(paste(args$output, "rds", sep="."), fileConn)	
 }
 close(fileConn)
