@@ -307,6 +307,19 @@ run <- function(infercnv_obj,
 
     HMM_report_by = match.arg(HMM_report_by)
     analysis_mode = match.arg(analysis_mode)
+    if(analysis_mode == "samples" && HMM_report_by == "subclusters") {
+        HMM_report_by = "samples"
+        flog.warn(paste0("analysis_mode is \"samples\" but HMM_report_by is \"subclusters\", "),
+                         "changing HMM_report_by to \"samples\".")
+    } else if(analysis_mode == "subclusters" && HMM_report_by == "samples"){
+        HMM_report_by = "subclusters"
+        flog.warn(paste0("analysis_mode is \"subclusters\" but HMM_report_by is \"samples\", "),
+                         "changing HMM_report_by to \"subclusters\".")
+    } else if(analysis_mode == "cells") {
+        flog.warn(paste0("analysis_mode is \"cells\" but HMM_report_by is not, "),
+                         "changing HMM_report_by to \"cells\".")
+        HMM_report_by = "cells"
+    }
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
     HMM_type = match.arg(HMM_type)
     
