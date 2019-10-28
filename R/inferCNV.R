@@ -183,7 +183,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     ## read annotations file
     if (Reduce("|", is(annotations_file) == "character")) {
         flog.info(sprintf("Parsing cell annotations file: %s", annotations_file))
-        input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE, colClasses = 'character')
+        input_classifications <- read.table(annotations_file, header=FALSE, row.names=1, sep=delim, stringsAsFactors=FALSE, colClasses = c('character', 'character'))
     }
     else if (Reduce("|", is(annotations_file) %in% c("dgCMatrix", "matrix", "data.frame"))) {
         input_classifications <- annotations_file
