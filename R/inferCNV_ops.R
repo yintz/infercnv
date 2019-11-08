@@ -294,6 +294,7 @@ run <- function(infercnv_obj,
 
 
     smooth_method = match.arg(smooth_method)
+    HMM_type = match.arg(HMM_type)
     if (HMM && HMM_type == 'i6' && smooth_method == 'coordinates') {
         flog.error("Cannot use 'coordinate' smoothing method with i6 HMM model at this time.")
         stop("Incompatible HMM mode and smoothing method.")
@@ -313,7 +314,6 @@ run <- function(infercnv_obj,
         HMM_report_by = "cell"
     }
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
-    HMM_type = match.arg(HMM_type)
     
     if (debug) {
         flog.threshold(DEBUG)
