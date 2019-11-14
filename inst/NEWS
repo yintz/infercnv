@@ -1,3 +1,9 @@
+Changes in version 1.2.1 (2019-11-14)
++ Fix _R_CHECK_LENGTH_1_LOGIC2_ related error because an argument was checked before matching to it's list of potential arguments.
++ Fix text outputs for CNV reports when running with report_by="cell".
++ Fix add_to_seurat method to handle CNVs reported by cells in HMM predictions.
++ Fix how options used for a run are stored in the object and compared when trying to reload previous results so that it handles arguments given as variables in the call to run(). This also fixes the command-line script to run infercnv.
+
 Changes in version 1.1.4 (2019-10-29)
 + Fix reading of input annotations when some are only digits to be properly read as characters.
 + Added checks that HMM_report_by option is compatible with analysis_mode option. If not, change it automatically.
