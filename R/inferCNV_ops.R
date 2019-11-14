@@ -328,26 +328,25 @@ run <- function(infercnv_obj,
         flog.error("Error, out_dir is NULL, please provide a path.")
         stop("out_dir is NULL")
     }
-    
-    #non_default_args = as.list(match.call())
-    #non_default_args = non_default_args[2:length(non_default_args)]
 
     call_match = match.call()
 
-    # check if out_dir is a method call, such as "tempfile()"
-    # if it is, evaluate it so that the same path is given to the 
-    if (Reduce("|", is(call_match[["out_dir"]]) == "call")) {
-        out_dir = eval(call_match[["out_dir"]])
-        call_match[["out_dir"]] = out_dir
+    arg_names = names(call_match)
+    arg_names = arg_names[-which(arg_names == "" | arg_names == "infercnv_obj")]
+
+    for (n in arg_names) {
+        call_match[[n]] = get(n)
     }
-    non_default_args = call_match[2:length(call_match)]
+
+    
+    current_args = as.list(call_match[-which(names(call_match) == "" | names(call_match) == "infercnv_obj")])
 
     if(out_dir != "." && !file.exists(out_dir)){
         flog.info(paste0("Creating output path ", out_dir))
         dir.create(out_dir)
     }
 
-    infercnv_obj@options = c(infercnv_obj@options, lapply(non_default_args, deparse))
+    infercnv_obj@options = c(infercnv_obj@options, current_args)
     # for (arg_name in names(non_default_args)){
     #     flog.info(paste(arg_name, tmp_args[arg_name], sep=":"))
     # }

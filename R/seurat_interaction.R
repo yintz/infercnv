@@ -42,6 +42,12 @@ add_to_seurat <- function(seurat_obj = NULL,
     if (!is.null(infercnv_obj@options$analysis_mode)) {
             analysis_mode_pattern = gsub('[\"]', '', infercnv_obj@options$analysis_mode)   ## gsub to remove _"\"_ around the name of the options if it is given as string and not through a variable
     }
+
+    by_cells = FALSE
+    if (analysis_mode_pattern == "cells") {
+        by_cells = TRUE
+    }
+
     scaling_factor = 2
     if (any(grep(lfiles, pattern=paste0("HMM_CNV_predictions.HMM.*", analysis_mode_pattern, ".Pnorm_0.[0-9]+")))) {
         ###### states used to be 0/0.5/1/1.5/2, they are now 1/2/3/4/5/6
@@ -88,7 +94,8 @@ add_to_seurat <- function(seurat_obj = NULL,
                                      regions = regions, 
                                      hmm_genes = hmm_genes, 
                                      center_state = center_state, 
-                                     scaling_factor = scaling_factor, 
+                                     scaling_factor = scaling_factor,
+                                     by_cells = by_cells,
                                      top_n = top_n,
                                      bp_tolerance = bp_tolerance)
     if (!is.null(seurat_obj)) {
@@ -161,6 +168,8 @@ add_to_seurat <- function(seurat_obj = NULL,
 #'
 #' @param scaling_factor Factor to multiply divergence from center_state to get CNA amplitude.
 #'
+#' @param by_cells Whether the HMM predictions are given by cells or not.
+#'
 #' @param top_n How many of the largest CNA (in number of genes) to get.
 #'
 #' @return all_features A list of all the calculated meta.data to add.
@@ -168,7 +177,7 @@ add_to_seurat <- function(seurat_obj = NULL,
 #' @keywords internal
 #' @noRd
 #'
-.get_features <- function(infercnv_obj, infercnv_output_path, regions, hmm_genes, center_state, scaling_factor, top_n, bp_tolerance) {
+.get_features <- function(infercnv_obj, infercnv_output_path, regions, hmm_genes, center_state, scaling_factor, by_cells, top_n, bp_tolerance) {
     
     chr_gene_count = table(infercnv_obj@gene_order$chr)
     
@@ -204,31 +213,60 @@ add_to_seurat <- function(seurat_obj = NULL,
     # map for top_n mapping
     subclust_name_to_clust = list()
 
-    for (clust in names(infercnv_obj@tumor_subclusters$subclusters)) {
-        for (subclust in names(infercnv_obj@tumor_subclusters$subclusters[[clust]])) {
-            subclust_name = paste(clust, subclust, sep=".")
-            subclust_name_to_clust[[subclust_name]] = c(clust, subclust)
-            res = regions[regions$cell_group_name == subclust_name, , drop=FALSE]
-            gres = hmm_genes[hmm_genes$cell_group_name == subclust_name, , drop=FALSE]
+    if (!by_cells) {
+        for (clust in names(infercnv_obj@tumor_subclusters$subclusters)) {
+            for (subclust in names(infercnv_obj@tumor_subclusters$subclusters[[clust]])) {
+                subclust_name = paste(clust, subclust, sep=".")
+                subclust_name_to_clust[[subclust_name]] = c(clust, subclust)
+                res = regions[regions$cell_group_name == subclust_name, , drop=FALSE]
+                gres = hmm_genes[hmm_genes$cell_group_name == subclust_name, , drop=FALSE]
+                if (nrow(res) > 0) {
+                    for (c in unique(res$chr)) {
+                        all_features$feature_vector_chrs_has_cnv[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+                        all_features$feature_vector_chrs_gene_cnv_proportion[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (length(which(gres$chr == c)) / chr_gene_count[[c]])
+                        all_features$feature_vector_chrs_gene_cnv_proportion_scaled[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (sum(abs(gres[(which(gres$chr == c)), "state"] - center_state)) / (chr_gene_count[[c]] * scaling_factor))
+                    }
+                    
+                    sub_gres = gres[gres$state < center_state, ]
+                    for (c in unique(sub_gres$chr)) {
+                        all_features$feature_vector_chrs_has_loss[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+                        all_features$feature_vector_chrs_gene_loss_proportion[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (length(which(sub_gres$chr == c)) / chr_gene_count[[c]])
+                        all_features$feature_vector_chrs_gene_loss_proportion_scaled[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (abs(sum(sub_gres[(which(sub_gres$chr == c)), "state"] - center_state)) / (chr_gene_count[[c]] * scaling_factor))
+                    }
+                    
+                    sub_gres = gres[gres$state > center_state, ]
+                    for (c in unique(sub_gres$chr)) {
+                        all_features$feature_vector_chrs_has_dupli[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+                        all_features$feature_vector_chrs_gene_dupli_proportion[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (length(which(sub_gres$chr == c)) / chr_gene_count[[c]])
+                        all_features$feature_vector_chrs_gene_dupli_proportion_scaled[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (sum(sub_gres[(which(sub_gres$chr == c)), "state"] - center_state) / (chr_gene_count[[c]] * scaling_factor))
+                    }
+                }
+            }
+        }
+    } else {
+        for (cell_id in seq_len(ncol(infercnv_obj@expr.data))) {
+            cell_name = colnames(infercnv_obj@expr.data)[cell_id]
+            res = regions[regions$cell_group_name == cell_name, , drop=FALSE]
+            gres = hmm_genes[hmm_genes$cell_group_name == cell_name, , drop=FALSE]
             if (nrow(res) > 0) {
                 for (c in unique(res$chr)) {
-                    all_features$feature_vector_chrs_has_cnv[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
-                    all_features$feature_vector_chrs_gene_cnv_proportion[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (length(which(gres$chr == c)) / chr_gene_count[[c]])
-                    all_features$feature_vector_chrs_gene_cnv_proportion_scaled[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (sum(abs(gres[(which(gres$chr == c)), "state"] - center_state)) / (chr_gene_count[[c]] * scaling_factor))
+                    all_features$feature_vector_chrs_has_cnv[[c]][cell_name] = TRUE
+                    all_features$feature_vector_chrs_gene_cnv_proportion[[c]][cell_name] = (length(which(gres$chr == c)) / chr_gene_count[[c]])
+                    all_features$feature_vector_chrs_gene_cnv_proportion_scaled[[c]][cell_name] = (sum(abs(gres[(which(gres$chr == c)), "state"] - center_state)) / (chr_gene_count[[c]] * scaling_factor))
                 }
                 
                 sub_gres = gres[gres$state < center_state, ]
                 for (c in unique(sub_gres$chr)) {
-                    all_features$feature_vector_chrs_has_loss[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
-                    all_features$feature_vector_chrs_gene_loss_proportion[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (length(which(sub_gres$chr == c)) / chr_gene_count[[c]])
-                    all_features$feature_vector_chrs_gene_loss_proportion_scaled[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (abs(sum(sub_gres[(which(sub_gres$chr == c)), "state"] - center_state)) / (chr_gene_count[[c]] * scaling_factor))
+                    all_features$feature_vector_chrs_has_loss[[c]][cell_name] = TRUE
+                    all_features$feature_vector_chrs_gene_loss_proportion[[c]][cell_name] = (length(which(sub_gres$chr == c)) / chr_gene_count[[c]])
+                    all_features$feature_vector_chrs_gene_loss_proportion_scaled[[c]][cell_name] = (abs(sum(sub_gres[(which(sub_gres$chr == c)), "state"] - center_state)) / (chr_gene_count[[c]] * scaling_factor))
                 }
                 
                 sub_gres = gres[gres$state > center_state, ]
                 for (c in unique(sub_gres$chr)) {
-                    all_features$feature_vector_chrs_has_dupli[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
-                    all_features$feature_vector_chrs_gene_dupli_proportion[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (length(which(sub_gres$chr == c)) / chr_gene_count[[c]])
-                    all_features$feature_vector_chrs_gene_dupli_proportion_scaled[[c]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = (sum(sub_gres[(which(sub_gres$chr == c)), "state"] - center_state) / (chr_gene_count[[c]] * scaling_factor))
+                    all_features$feature_vector_chrs_has_dupli[[c]][cell_name] = TRUE
+                    all_features$feature_vector_chrs_gene_dupli_proportion[[c]][cell_name] = (length(which(sub_gres$chr == c)) / chr_gene_count[[c]])
+                    all_features$feature_vector_chrs_gene_dupli_proportion_scaled[[c]][cell_name] = (sum(sub_gres[(which(sub_gres$chr == c)), "state"] - center_state) / (chr_gene_count[[c]] * scaling_factor))
                 }
             }
         }
@@ -259,12 +297,19 @@ add_to_seurat <- function(seurat_obj = NULL,
         all_features[[feature_name]] = logical_feature_vector
         line_to_write = c()
         
-        for (subclust_name in top_n_loss[[i]]$subclust_name) {
-            clust = subclust_name_to_clust[[subclust_name]][1]
-            subclust = subclust_name_to_clust[[subclust_name]][2]
-            all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
-            # line_to_write = c(line_to_write, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]))
-            line_to_write = c(line_to_write, paste(subclust_name, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]), sep=";"))
+        if (!by_cells) {
+            for (subclust_name in top_n_loss[[i]]$subclust_name) {
+                clust = subclust_name_to_clust[[subclust_name]][1]
+                subclust = subclust_name_to_clust[[subclust_name]][2]
+                all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+                # line_to_write = c(line_to_write, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]))
+                line_to_write = c(line_to_write, paste(subclust_name, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]), sep=";"))
+            }
+        } else {
+            for (cell_id in top_n_loss[[i]]$subclust_name) {
+                all_features[[feature_name]][cell_id] = TRUE
+                line_to_write = c(line_to_write, paste(cell_id, cell_id, sep=";"))
+            }
         }
 
         # to_write = c(to_write, paste(feature_name, paste(top_n_loss[[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
@@ -283,13 +328,20 @@ add_to_seurat <- function(seurat_obj = NULL,
         all_features[[feature_name]] = logical_feature_vector
         line_to_write = c()
 
-        for (subclust_name in top_n_dupli[[i]]$subclust_name) {
-            clust = subclust_name_to_clust[[subclust_name]][1]
-            subclust = subclust_name_to_clust[[subclust_name]][2]
-            all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
-            # line_to_write = c(line_to_write, paste(feature_name, paste(top_n_dupli[[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
-             # line_to_write = c(line_to_write, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]))
-             line_to_write = c(line_to_write, paste(subclust_name, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]), sep=";"))
+        if (!by_cells) {
+            for (subclust_name in top_n_dupli[[i]]$subclust_name) {
+                clust = subclust_name_to_clust[[subclust_name]][1]
+                subclust = subclust_name_to_clust[[subclust_name]][2]
+                all_features[[feature_name]][names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]])] = TRUE
+                # line_to_write = c(line_to_write, paste(feature_name, paste(top_n_dupli[[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
+                 # line_to_write = c(line_to_write, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]))
+                 line_to_write = c(line_to_write, paste(subclust_name, names(infercnv_obj@tumor_subclusters$subclusters[[clust]][[subclust]]), sep=";"))
+            }
+        } else {
+            for (cell_id in top_n_dupli[[i]]$subclust_name) {
+                all_features[[feature_name]][cell_id] = TRUE
+                line_to_write = c(line_to_write, paste(cell_id, cell_id, sep=";"))
+            }
         }
 
         # to_write = c(to_write, paste(feature_name, paste(top_n_dupli[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))

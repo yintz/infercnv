@@ -631,11 +631,14 @@ get_predicted_CNV_regions <- function(infercnv_obj, by=c("consensus", "subcluste
     }
     
     if (by == "consensus") {
-        cell_groups = infercnv_obj@observation_grouped_cell_indices
+        # cell_groups = infercnv_obj@observation_grouped_cell_indices
+        cell_groups = c(infercnv_obj@reference_grouped_cell_indices, infercnv_obj@observation_grouped_cell_indices)
     } else if (by == "subcluster") {
         cell_groups = unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=FALSE)
     } else if (by == "cell") {
-        cell_groups = lapply(unlist(infercnv_obj@observation_grouped_cell_indices), function(x) x) 
+        # cell_groups = lapply(unlist(infercnv_obj@observation_grouped_cell_indices), function(x) x) 
+        cell_groups = c(unlist(infercnv_obj@reference_grouped_cell_indices, use.names=FALSE), unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
+        names(cell_groups) = colnames(infercnv_obj@expr.data)[cell_groups]
     }
     else {
         stop("Error, shouldn't get here ... bug")
