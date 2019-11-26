@@ -44,7 +44,7 @@ add_to_seurat <- function(seurat_obj = NULL,
     }
 
     by_cells = FALSE
-    if (infercnv_obj@options$HMM_report_by == "cell") {
+    if (!is.null(infercnv_obj@options$HMM_report_by) && infercnv_obj@options$HMM_report_by == "cell") {
         by_cells = TRUE
     }
 
