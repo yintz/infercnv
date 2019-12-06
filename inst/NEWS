@@ -1,3 +1,5 @@
+Changes in version 1.3.2 (2019-12-06)
++ Added an new option "custom_color_pal" to plot_cnv() so a user can provide their choice of colors for the heatmap.
 Changes in version 1.2.2 (2019-12-06)
 + Fixed check of how HMM results are reported by so that add_to_seurat works when HMM_report_by is "cell" but HMM analysis_mode was "subclusters".
 + Fix check of HMM_report_by setting in add_to_seurat when the option was not specified.
