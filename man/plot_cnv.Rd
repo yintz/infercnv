@@ -9,10 +9,10 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   cluster_by_groups = TRUE, cluster_references = TRUE,
   k_obs_groups = 3, contig_cex = 1,
   x.center = mean(infercnv_obj@expr.data), x.range = "auto",
-  hclust_method = "ward.D", color_safe_pal = FALSE,
-  output_filename = "infercnv", output_format = "png", png_res = 300,
-  dynamic_resize = 0, ref_contig = NULL, write_expr_matrix = FALSE,
-  useRaster = TRUE)
+  hclust_method = "ward.D", custom_color_pal = NULL,
+  color_safe_pal = FALSE, output_filename = "infercnv",
+  output_format = "png", png_res = 300, dynamic_resize = 0,
+  ref_contig = NULL, write_expr_matrix = FALSE, useRaster = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -38,6 +38,10 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
 \item{x.range}{vector containing the extreme values in the heatmap (ie. c(-3,4) )}
 
 \item{hclust_method}{Clustering method to use for hclust.}
+
+\item{custom_color_pal}{Specify a custom set of colors for the heatmap. 
+Has to be in the shape color.palette(c("darkblue", "white", "darkred"),
+                                     c(2, 2))}
 
 \item{color_safe_pal}{Logical indication of using a color blindness safe palette.}
 

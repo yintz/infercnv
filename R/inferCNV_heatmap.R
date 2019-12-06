@@ -26,6 +26,9 @@ get_group_color_palette <- function(){
 #' @param x.center Value on which to center expression.
 #' @param x.range vector containing the extreme values in the heatmap (ie. c(-3,4) )
 #' @param hclust_method Clustering method to use for hclust.
+#' @param custom_color_pal Specify a custom set of colors for the heatmap. 
+#'                         Has to be in the shape color.palette(c("darkblue", "white", "darkred"),
+#'                                                              c(2, 2))
 #' @param color_safe_pal Logical indication of using a color blindness safe palette.
 #' @param output_filename Filename to save the figure to.
 #' @param output_format format for heatmap image file (default: 'png'), options('png', 'pdf', NA)
@@ -93,6 +96,7 @@ plot_cnv <- function(infercnv_obj,
                      x.center=mean(infercnv_obj@expr.data),
                      x.range="auto", #NA,
                      hclust_method='ward.D',
+                     custom_color_pal=NULL,
                      color_safe_pal=FALSE,
                      output_filename="infercnv",
                      output_format="png", #pdf, png, NA
@@ -183,12 +187,16 @@ plot_cnv <- function(infercnv_obj,
     names(ct.colors) <- unique_contigs
 
     # Select color palette
-    custom_pal <- color.palette(c("purple3", "white", "darkorange2"),
-                                c(2, 2))
-    if (color_safe_pal == FALSE){
+    if (!is.null(custom_color_pal)) {
+        custom_pal = custom_color_pal
+    } else if (color_safe_pal == FALSE){
         custom_pal <- color.palette(c("darkblue", "white", "darkred"),
                                     c(2, 2))
+    } else {
+        custom_pal <- color.palette(c("purple3", "white", "darkorange2"),
+                                    c(2, 2))
     }
+
     
     ## Row separation based on reference
     ref_idx <- NULL
