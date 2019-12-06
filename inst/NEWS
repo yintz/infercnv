@@ -1,3 +1,6 @@
+Changes in version 1.2.2 (2019-12-06)
++ Fixed check of how HMM results are reported by so that add_to_seurat works when HMM_report_by is "cell" but HMM analysis_mode was "subclusters".
++ Fix check of HMM_report_by setting in add_to_seurat when the option was not specified.
 Changes in version 1.2.1 (2019-11-14)
 + Fix _R_CHECK_LENGTH_1_LOGIC2_ related error because an argument was checked before matching to it's list of potential arguments.
 + Fix text outputs for CNV reports when running with report_by="cell".
