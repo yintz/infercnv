@@ -1673,20 +1673,22 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
 }
 
 
-# Not testing, parameters ok.
-# Helper function allowing greater control over the steps in a color palette.
-# Source:http://menugget.blogspot.com/2011/11/define-color-steps-for-
-#               colorramppalette.html#more
-
-# Args:
-# steps Vector of colors to change use in the palette
-# between: Steps where gradients change
+#' @description Helper function allowing greater control over the steps in a color palette.
+#'              Source: http://menugget.blogspot.com/2011/11/define-color-steps-for-
+#'              colorramppalette.html#more
+#'
+#' @title Helper function allowing greater control over the steps in a color palette.
+# 
+#' @param  steps Vector of colors to change use in the palette
+#' @param  between: Steps where gradients change
 #
-# Returns:
-# Color palette
-
-#' @keywords internal
-#' @noRd
+#' @return Color palette
+#'
+#' @export
+#'
+#' @examples
+#' color.palette(c("darkblue", "white", "darkred"),
+#'               c(2, 2))
 #'
 
 color.palette <- function(steps,

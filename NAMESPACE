@@ -3,6 +3,7 @@
 export(CreateInfercnvObject)
 export(add_to_seurat)
 export(apply_median_filtering)
+export(color.palette)
 export(filterHighPNormals)
 export(inferCNVBayesNet)
 export(plot_cnv)
