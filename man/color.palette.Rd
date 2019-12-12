@@ -9,7 +9,9 @@ color.palette(steps, between = NULL, ...)
 \arguments{
 \item{steps}{Vector of colors to change use in the palette}
 
-\item{between:}{Steps where gradients change}
+\item{between}{Steps where gradients change}
+
+\item{...}{Additional arguments of colorRampPalette}
 }
 \value{
 Color palette

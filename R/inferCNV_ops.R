@@ -1679,8 +1679,9 @@ subtract_ref_expr_from_obs <- function(infercnv_obj, inv_log=FALSE, use_bounds=T
 #'
 #' @title Helper function allowing greater control over the steps in a color palette.
 # 
-#' @param  steps Vector of colors to change use in the palette
-#' @param  between: Steps where gradients change
+#' @param steps Vector of colors to change use in the palette
+#' @param between Steps where gradients change
+#' @param ... Additional arguments of colorRampPalette
 #
 #' @return Color palette
 #'
