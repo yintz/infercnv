@@ -489,11 +489,11 @@ plot_cnv <- function(infercnv_obj,
                                      sep=" "))
         }
     }
-    
-    # HCL with a inversely weighted euclidean distance.
-    flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
+        
     # obs_hcl <- NULL
     obs_dendrogram <- list()
+    # obs_hclust <- list()
+    obs_hclust <- NULL
     ordered_names <- NULL
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
@@ -505,6 +505,7 @@ plot_cnv <- function(infercnv_obj,
             for (i in seq(1, max(obs_annotations_groups))) {
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])) {
                     obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
+                    # obs_hclust[[i]] = infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]
                     # ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
                     ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$labels[infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$order])
                     obs_seps <- c(obs_seps, length(ordered_names))
@@ -540,9 +541,19 @@ plot_cnv <- function(infercnv_obj,
                 }
             }
             if (length(obs_dendrogram) > 1) {
+                tmp_dendrogram = obs_dendrogram[[1]]
+                for (i in 2:length(obs_dendrogram)) {
+                    tmp_dendrogram <- merge(tmp_dendrogram, as.dendrogram(obs_dendrogram[[i]]))
+                }
+                obs_hclust <- as.hclust(tmp_dendrogram)
+
                 obs_dendrogram <- do.call(merge, obs_dendrogram)
+
+                # obs_hclust <- do.call(merge, obs_hclust)
             } else {
                 obs_dendrogram <- obs_dendrogram[[1]]
+                obs_hclust <- as.hclust(obs_dendrogram)
+                # obs_hclust <- obs_clust[[1]]
             }
             split_groups <- rep(1, dim(obs_data)[1])
             names(split_groups) <- ordered_names
@@ -558,6 +569,7 @@ plot_cnv <- function(infercnv_obj,
                 file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
   
             obs_dendrogram <- as.dendrogram(obs_hcl)
+            obs_hclust <- obs_hcl
             # ordered_names <- row.names(obs_data)[obs_hcl$order]
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
@@ -590,7 +602,8 @@ plot_cnv <- function(infercnv_obj,
     else if (cluster_by_groups) {  # at this point this and the else below should only be an error fallback, or when trying to plot before the subclustering step
 
         ## Clustering separately by groups (ie. patients)
-
+        # HCL with a inversely weighted euclidean distance.
+        flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
         for (i in seq_len(max(obs_annotations_groups))) {
             cell_indices_in_group <- which(obs_annotations_groups == i)
             num_cells_in_group <- length(cell_indices_in_group)
@@ -640,9 +653,15 @@ plot_cnv <- function(infercnv_obj,
         }
         if (length(obs_dendrogram) > 1) {
             # merge separate dendrograms into a single dendrogram
+            tmp_dendrogram = obs_dendrogram[[1]]
+            for (i in 2:length(obs_dendrogram)) {
+                tmp_dendrogram <- merge(tmp_dendrogram, as.dendrogram(obs_dendrogram[[i]]))
+            }
+            obs_hclust = as.hclust(tmp_dendrogram)
             obs_dendrogram <- do.call(merge, obs_dendrogram)
         } else {
             obs_dendrogram <- obs_dendrogram[[1]]
+            obs_hclust <- as.hclust(obs_dendrogram)
         }
         split_groups <- rep(1, dim(obs_data)[1])
         names(split_groups) <- ordered_names
@@ -650,6 +669,8 @@ plot_cnv <- function(infercnv_obj,
     }
     else {
         # clustering all groups together
+        # HCL with a inversely weighted euclidean distance.
+        flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
         if (nrow(obs_data) > 1) {
             obs_hcl <- hclust(dist(obs_data[, hcl_group_indices]), method=hclust_method)
                                             
@@ -657,6 +678,7 @@ plot_cnv <- function(infercnv_obj,
                        file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
             
             obs_dendrogram <- as.dendrogram(obs_hcl)
+            obs_hclust <- obs_hcl
             # ordered_names <- row.names(obs_data)[obs_hcl$order]
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
@@ -694,6 +716,7 @@ plot_cnv <- function(infercnv_obj,
         hcl_obs_annotations_groups <- obs_annotations_groups[ordered_names]
     }
     
+    # obs_hclust = as.hclust(obs_dendrogram)
     
     if (length(obs_seps) > 1) {
         obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
@@ -716,6 +739,7 @@ plot_cnv <- function(infercnv_obj,
     colnames(file_groups) <- c("Dendrogram Group", "Dendrogram Color", "Annotation Group", "Annotation Color")
     # write.table(t(file_groups), groups_file_name)
     write.table(file_groups, groups_file_name)
+    flog.info("plot_cnv_observation:Done writing observation groupings/color.")
 
     # Generate the Sep list for heatmap.3
     contigSepList <- create_sep_list(row_count=nrow(obs_data),
@@ -731,8 +755,10 @@ plot_cnv <- function(infercnv_obj,
     orig_row_names <- row.names(obs_data)
     row.names(obs_data) <- rep("", nrow(obs_data))
 
+    flog.info("plot_cnv_observation:Writing observation heatmap thresholds.")
     heatmap_thresholds_file_name <- file.path(file_base_name, sprintf("%s.heatmap_thresholds.txt", output_filename_prefix))
     write.table(breaksList, heatmap_thresholds_file_name, row.names=FALSE, col.names=FALSE)
+    flog.info("plot_cnv_observation:Done writing observation heatmap thresholds.")
 
     if (do_plot) {
         data_observations <- heatmap.cnv(obs_data,
@@ -740,6 +766,8 @@ plot_cnv <- function(infercnv_obj,
                                         Colv=FALSE,
                                         cluster.by.row=TRUE,
                                         cluster.by.col=FALSE,
+                                        # hclust.row=obs_hclust,
+                                        # cluster.by.row=obs_hclust,
                                         main=cnv_title,
                                         ylab=cnv_obs_title,
                                         margin.for.labCol=2,
@@ -1467,43 +1495,46 @@ heatmap.cnv <-
     }
   }
 
+
   ## generate dist.obj - row/col ##
-  if (inherits(x,"dist")){
-    dist.row <- dist.col <- x ## dist.obj
-    x <- as.matrix(x)
-    mat.row <- mat.col <- x ## mat.obj
-    symm <- TRUE
-  } else if (is.matrix(x)){
+  # if (inherits(x,"dist")){
+  #   dist.row <- dist.col <- x ## dist.obj
+  #   x <- as.matrix(x)
+  #   mat.row <- mat.col <- x ## mat.obj
+  #   symm <- TRUE
+  # } else if (is.matrix(x)){
     symm <- isSymmetric(x)
-    if (diss){
-      if (!symm){
-        stop("Dissimilary matrix should be symmetric. Please set `diss' to FALSE if `x' is not dissimilary matrix.")
-      } else {
-        flush.console()
-      }
-      mat.row <- mat.col <- x
-      dist.row <- dist.col <- as.dist(x)
-    } else{
-      if (cluster.by.row) {
-        if (.invalid(dist.row)){
-          dist.row <- .call.FUN(dist.FUN,x,MoreArgs=dist.FUN.MoreArgs)
-        }
-        mat.row <- as.matrix(dist.row)
-      } else {
-        dist.row <- NULL
-        mat.row <- NULL
-      }
-      if (cluster.by.col) {
-        if (.invalid(dist.col)){
-          dist.col <- .call.FUN(dist.FUN,t(x),MoreArgs=dist.FUN.MoreArgs)
-        }
-        mat.col <- as.matrix(dist.col)
-      } else {
-        dist.col <- NULL
-        mat.col <- NULL
-      }
-    }
-  }
+  #   if (diss){
+  #     if (!symm){
+  #       stop("Dissimilary matrix should be symmetric. Please set `diss' to FALSE if `x' is not dissimilary matrix.")
+  #     } else {
+  #       flush.console()
+  #     }
+  #     mat.row <- mat.col <- x
+  #     dist.row <- dist.col <- as.dist(x)
+  #   } else{
+  #     if (cluster.by.row) {
+  #       if (.invalid(dist.row)){
+  #         dist.row <- .call.FUN(dist.FUN,x,MoreArgs=dist.FUN.MoreArgs)
+  #         # dist.row <- NULL
+  #       }
+  #       mat.row <- as.matrix(dist.row)
+  #       # mat.row <- NULL
+  #     } else {
+  #       dist.row <- NULL
+  #       mat.row <- NULL
+  #     }
+  #     if (cluster.by.col) {
+  #       if (.invalid(dist.col)){
+  #         dist.col <- .call.FUN(dist.FUN,t(x),MoreArgs=dist.FUN.MoreArgs)
+  #       }
+  #       mat.col <- as.matrix(dist.col)
+  #     } else {
+  #       dist.col <- NULL
+  #       mat.col <- NULL
+  #     }
+  #   }
+  # }
   ## check input - take2: di ##
   di <- dim(x)
 
@@ -1573,17 +1604,18 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   flush.console()
 
-  if ( (!inherits(Rowv,"dendrogram") & !identical(Rowv,FALSE)) | (cluster.by.row & .invalid(row.clusters))){
-    if (.invalid(hclust.row)){
-      hclust.row <- .call.FUN(hclust.FUN,dist.row,MoreArgs=hclust.FUN.MoreArgs)
-    } else {
-      if (length(hclust.row$order) != nr){
-        stop("`hclust.row' should have equal size as the rows.")
-      }
-    }
-  } else{
-    hclust.row <- NULL
-  }
+  # if ( (!inherits(Rowv,"dendrogram") & !identical(Rowv,FALSE)) | (cluster.by.row & .invalid(row.clusters))){
+  # if ( (!inherits(Rowv,"dendrogram") & !identical(Rowv,FALSE))) {
+  #   if (.invalid(hclust.row)){
+  #     hclust.row <- .call.FUN(hclust.FUN,dist.row,MoreArgs=hclust.FUN.MoreArgs)
+  #   } else {
+  #     if (length(hclust.row$order) != nr){
+  #       stop("`hclust.row' should have equal size as the rows.")
+  #     }
+  #   }
+  # } else{
+  #   hclust.row <- NULL
+  # }
 
   if(symm){
     hclust.col <- hclust.row
@@ -1851,7 +1883,7 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   ## check if it is sufficient to draw side plots ##
   ## ------------------------------------------------------------------------
-  if (cluster.by.row){
+  if (cluster.by.row & (plot.row.clusters  | plot.row.partition)){
     if (!.invalid(row.clusters)) {## suppress kr
       if(!is.numeric(row.clusters) | length(row.clusters)!=nr | !(.is.grouped(row.clusters))){
         warning("`row.clusters' is not a grouped numeric vector of length nrow(x); cluster.by.row is set to FALSE.")
@@ -2129,6 +2161,7 @@ heatmap.cnv <-
       x <- t(x)
       if (!.invalid(cellnote)) cellnote <- t(cellnote)
     }
+    flog.info("Drawing the heatmap.")
     image(seq_len(nc),seq_len(nr),
           x,
           xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
@@ -2552,16 +2585,23 @@ heatmap.cnv <-
     x.save <- x
   }
 
+  # ret <-
+  #   list(x.ori=x.ori,
+  #        x=x.save,
+  #        rowInd=rowInd,colInd=colInd,
+  #        row.clusters=row.clusters,col.clusters=col.clusters,
+  #        dist.row=dist.row,dist.col=dist.col,
+  #        hclust.row=hclust.row,hclust.col=hclust.col,
+  #        kr=kr,kc=kc
+  #        )
   ret <-
     list(x.ori=x.ori,
          x=x.save,
          rowInd=rowInd,colInd=colInd,
-         row.clusters=row.clusters,col.clusters=col.clusters,
-         dist.row=dist.row,dist.col=dist.col,
-         hclust.row=hclust.row,hclust.col=hclust.col,
+         # row.clusters=row.clusters,col.clusters=col.clusters,
          kr=kr,kc=kc
          )
-  class(ret) <- c("hclustering",class(ret))
+  # class(ret) <- c("hclustering",class(ret))
   invisible(ret)
 }
 
