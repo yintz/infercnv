@@ -489,11 +489,8 @@ plot_cnv <- function(infercnv_obj,
                                      sep=" "))
         }
     }
-        
-    # obs_hcl <- NULL
+
     obs_dendrogram <- list()
-    # obs_hclust <- list()
-    obs_hclust <- NULL
     ordered_names <- NULL
     isfirst <- TRUE
     hcl_obs_annotations_groups <- vector()
@@ -502,14 +499,14 @@ plot_cnv <- function(infercnv_obj,
 
     if (!is.null(infercnv_obj@tumor_subclusters)) {
         if (cluster_by_groups) {
-            for (i in seq(1, max(obs_annotations_groups))) {
+            # for (i in seq(1, max(obs_annotations_groups))) {
+            for (i in seq_along(obs_annotations_names)) {
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])) {
+
                     obs_dendrogram[[i]] = as.dendrogram(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])
-                    # obs_hclust[[i]] = infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]
-                    # ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), hcl_group_indices])[(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])$order])
-                    ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$labels[infercnv_obj@tumor_subclusters$hc[[obs_annotations_names[i]]]$order])
+                    ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]$labels[infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]$order])
                     obs_seps <- c(obs_seps, length(ordered_names))
-                    hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+                    hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]$order)))
                     
                     if (isfirst) {
                         write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
@@ -541,25 +538,14 @@ plot_cnv <- function(infercnv_obj,
                 }
             }
             if (length(obs_dendrogram) > 1) {
-                tmp_dendrogram = obs_dendrogram[[1]]
-                for (i in 2:length(obs_dendrogram)) {
-                    tmp_dendrogram <- merge(tmp_dendrogram, as.dendrogram(obs_dendrogram[[i]]))
-                }
-                obs_hclust <- as.hclust(tmp_dendrogram)
-
                 obs_dendrogram <- do.call(merge, obs_dendrogram)
-
-                # obs_hclust <- do.call(merge, obs_hclust)
             } else {
                 obs_dendrogram <- obs_dendrogram[[1]]
-                obs_hclust <- as.hclust(obs_dendrogram)
-                # obs_hclust <- obs_clust[[1]]
             }
             split_groups <- rep(1, dim(obs_data)[1])
             names(split_groups) <- ordered_names
             
             for(subtumor in infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]]) {
-                # length(subtumor)
                 sub_obs_seps <- c(sub_obs_seps, (sub_obs_seps[length(sub_obs_seps)] + length(subtumor)))
             }
         }
@@ -569,14 +555,11 @@ plot_cnv <- function(infercnv_obj,
                 file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
   
             obs_dendrogram <- as.dendrogram(obs_hcl)
-            obs_hclust <- obs_hcl
-            # ordered_names <- row.names(obs_data)[obs_hcl$order]
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
             split_groups <- split_groups[ordered_names]
-            #hcl_obs_annotations_groups <- obs_annotations_groups[obs_hcl$order]
             hcl_obs_annotations_groups <- obs_annotations_groups[ordered_names]
-            
+
             # Make a file of members of each group
             flog.info("plot_cnv_observation:Writing observations by grouping.")
             for (cut_group in unique(split_groups)){
@@ -615,7 +598,6 @@ plot_cnv <- function(infercnv_obj,
 
                 # when only 1 cell in the group, we need an artificial dendrogram for it
                 obs_dendrogram[[length(obs_dendrogram) + 1]] = .single_element_dendrogram(unique_label=row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
-                
                 hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
                 if (isfirst) {
@@ -632,7 +614,6 @@ plot_cnv <- function(infercnv_obj,
                 data_to_cluster <- obs_data[cell_indices_in_group, hcl_group_indices, drop=FALSE]
                 flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
                 group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
-                # ordered_names <- c(ordered_names, row.names(obs_data[which(obs_annotations_groups == i), ])[group_obs_hcl$order])
                 ordered_names <- c(ordered_names, group_obs_hcl$labels[group_obs_hcl$order])
 
                 if (isfirst) {
@@ -648,20 +629,14 @@ plot_cnv <- function(infercnv_obj,
 
             group_obs_dend <- as.dendrogram(group_obs_hcl)
             obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
-            hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+            hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, num_cells_in_group))
             obs_seps <- c(obs_seps, length(ordered_names))
         }
         if (length(obs_dendrogram) > 1) {
             # merge separate dendrograms into a single dendrogram
-            tmp_dendrogram = obs_dendrogram[[1]]
-            for (i in 2:length(obs_dendrogram)) {
-                tmp_dendrogram <- merge(tmp_dendrogram, as.dendrogram(obs_dendrogram[[i]]))
-            }
-            obs_hclust = as.hclust(tmp_dendrogram)
             obs_dendrogram <- do.call(merge, obs_dendrogram)
         } else {
             obs_dendrogram <- obs_dendrogram[[1]]
-            obs_hclust <- as.hclust(obs_dendrogram)
         }
         split_groups <- rep(1, dim(obs_data)[1])
         names(split_groups) <- ordered_names
@@ -678,8 +653,6 @@ plot_cnv <- function(infercnv_obj,
                        file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
             
             obs_dendrogram <- as.dendrogram(obs_hcl)
-            obs_hclust <- obs_hcl
-            # ordered_names <- row.names(obs_data)[obs_hcl$order]
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
             split_groups <- split_groups[ordered_names]
@@ -716,7 +689,6 @@ plot_cnv <- function(infercnv_obj,
         hcl_obs_annotations_groups <- obs_annotations_groups[ordered_names]
     }
     
-    # obs_hclust = as.hclust(obs_dendrogram)
     
     if (length(obs_seps) > 1) {
         obs_seps <- obs_seps[length(obs_seps)] - obs_seps[(length(obs_seps) - 1):1]
@@ -766,8 +738,6 @@ plot_cnv <- function(infercnv_obj,
                                         Colv=FALSE,
                                         cluster.by.row=TRUE,
                                         cluster.by.col=FALSE,
-                                        # hclust.row=obs_hclust,
-                                        # cluster.by.row=obs_hclust,
                                         main=cnv_title,
                                         ylab=cnv_obs_title,
                                         margin.for.labCol=2,
@@ -810,7 +780,7 @@ plot_cnv <- function(infercnv_obj,
     }
     # Write data to file.
     if (class(obs_data) %in% c("matrix", "data.frame")) {
-        flog.info(paste("plot_cnv_references:Writing observation data to",
+        flog.info(paste("plot_cnv_observations:Writing observation data to",
                         observation_file_base,
                         sep=" "))
         row.names(obs_data) <- orig_row_names
@@ -1440,7 +1410,6 @@ heatmap.cnv <-
   ## store input
   Rowv.ori <- Rowv
   Colv.ori <- Colv
-
   ## check
   dendrogram <- match.arg(dendrogram)
   if ( (dendrogram %in% c("both","row")) & !inherits(Rowv,"dendrogram") ){
@@ -1476,7 +1445,6 @@ heatmap.cnv <-
       cluster.by.col <- TRUE
     }
   }
-
   if (!.invalid(kr)){
     if (is.numeric(kr)){
       if(!plot.row.partition){
@@ -1496,45 +1464,8 @@ heatmap.cnv <-
   }
 
 
-  ## generate dist.obj - row/col ##
-  # if (inherits(x,"dist")){
-  #   dist.row <- dist.col <- x ## dist.obj
-  #   x <- as.matrix(x)
-  #   mat.row <- mat.col <- x ## mat.obj
-  #   symm <- TRUE
-  # } else if (is.matrix(x)){
-    symm <- isSymmetric(x)
-  #   if (diss){
-  #     if (!symm){
-  #       stop("Dissimilary matrix should be symmetric. Please set `diss' to FALSE if `x' is not dissimilary matrix.")
-  #     } else {
-  #       flush.console()
-  #     }
-  #     mat.row <- mat.col <- x
-  #     dist.row <- dist.col <- as.dist(x)
-  #   } else{
-  #     if (cluster.by.row) {
-  #       if (.invalid(dist.row)){
-  #         dist.row <- .call.FUN(dist.FUN,x,MoreArgs=dist.FUN.MoreArgs)
-  #         # dist.row <- NULL
-  #       }
-  #       mat.row <- as.matrix(dist.row)
-  #       # mat.row <- NULL
-  #     } else {
-  #       dist.row <- NULL
-  #       mat.row <- NULL
-  #     }
-  #     if (cluster.by.col) {
-  #       if (.invalid(dist.col)){
-  #         dist.col <- .call.FUN(dist.FUN,t(x),MoreArgs=dist.FUN.MoreArgs)
-  #       }
-  #       mat.col <- as.matrix(dist.col)
-  #     } else {
-  #       dist.col <- NULL
-  #       mat.col <- NULL
-  #     }
-  #   }
-  # }
+  symm <- isSymmetric(x)
+  
   ## check input - take2: di ##
   di <- dim(x)
 
@@ -1604,23 +1535,6 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   flush.console()
 
-  # if ( (!inherits(Rowv,"dendrogram") & !identical(Rowv,FALSE)) | (cluster.by.row & .invalid(row.clusters))){
-  # if ( (!inherits(Rowv,"dendrogram") & !identical(Rowv,FALSE))) {
-  #   if (.invalid(hclust.row)){
-  #     hclust.row <- .call.FUN(hclust.FUN,dist.row,MoreArgs=hclust.FUN.MoreArgs)
-  #   } else {
-  #     if (length(hclust.row$order) != nr){
-  #       stop("`hclust.row' should have equal size as the rows.")
-  #     }
-  #   }
-  # } else{
-  #   hclust.row <- NULL
-  # }
-
-  if(symm){
-    hclust.col <- hclust.row
-  }
-
   if ( !inherits(Colv,"dendrogram") & !identical(Colv,FALSE) | (cluster.by.col & .invalid(col.clusters))){
     if (.invalid(hclust.col)){
       hclust.col <- .call.FUN(hclust.FUN,dist.col,MoreArgs=hclust.FUN.MoreArgs)
@@ -1644,22 +1558,6 @@ heatmap.cnv <-
     ddr <- Rowv ## use Rowv 'as-is',when it is dendrogram
     # rowInd <- order.dendrogram(ddr)
     rowInd <- seq_len(nr)  ### data has already been sorted in the proper order, and coloring vectors too
-  } else if (is.integer(Rowv)){ ## compute dendrogram and do reordering based on given vector
-    ddr <- as.dendrogram(hclust.row)
-    ddr <-  reorder(ddr,Rowv)
-    rowInd <- order.dendrogram(ddr)
-    if(nr != length(rowInd)){
-      stop("`rowInd' is of wrong length.")
-    }
-  } else if (isTRUE(Rowv)){ ## if TRUE,compute dendrogram and do reordering based on rowMeans
-
-    Rowv <- rowMeans(x,na.rm=TRUE)
-    ddr <- as.dendrogram(hclust.row)
-    ddr <- reorder(ddr,Rowv)
-    rowInd <- order.dendrogram(ddr)
-    if(nr !=length(rowInd)){
-      stop("`rowInd' is of wrong length.")
-    }
   } else{
     rowInd <- nr:1 ## from bottom.
   }
@@ -1744,6 +1642,7 @@ heatmap.cnv <-
   ## ------------------------------------------------------------------------
   flush.console()
   ## reorder x and cellnote ##
+  # rowInd and colInd should both be seq_len
   x <- x[rowInd,colInd,drop=FALSE]
 
   if (!.invalid(cellnote)) cellnote <- cellnote[rowInd,colInd,drop=FALSE ]
@@ -1860,7 +1759,7 @@ heatmap.cnv <-
   }
   flog.debug( paste("inferCNV::heatmap.cnv x range set to: ",
                           paste(x.range, collapse=",")), sep="" )
-
+  flog.info("heatmap::around line 1836")
   ## set breaks for centering colors to the value of x.center ##
   if(length(breaks)==1){
     breaks <-
@@ -1880,63 +1779,11 @@ heatmap.cnv <-
   max.breaks <- max(breaks)
   x[] <- ifelse(x<min.breaks,min.breaks,x)
   x[] <- ifelse(x>max.breaks,max.breaks,x)
-  ## ------------------------------------------------------------------------
-  ## check if it is sufficient to draw side plots ##
-  ## ------------------------------------------------------------------------
-  if (cluster.by.row & (plot.row.clusters  | plot.row.partition)){
-    if (!.invalid(row.clusters)) {## suppress kr
-      if(!is.numeric(row.clusters) | length(row.clusters)!=nr | !(.is.grouped(row.clusters))){
-        warning("`row.clusters' is not a grouped numeric vector of length nrow(x); cluster.by.row is set to FALSE.")
-        cluster.by.row <- FALSE
-      } else{
-        row.clusters <- row.clusters[rowInd]
-        kr <- length(unique(row.clusters))
-      }
-    } else {
-      if (.invalid(kr)) kr <- 2
-      if (is.numeric(kr) & length(kr)==1){
-        row.clusters <- cutree(hclust.row,k=kr)
-        row.clusters <- row.clusters[rowInd]
-      } else {
-        warning("`kr' should be numeric of length one; cluster.by.row is set to FALSE.")
-        cluster.by.row <- FALSE
-      }
-    }
-  }
 
-  if (cluster.by.col){
-    if (!.invalid(col.clusters)) {## suppress kc
-      if(!is.numeric(col.clusters) | length(col.clusters)!=nc | !(.is.grouped(col.clusters))){
-        warning("`col.clusters' is not a grouped numeric vector of length ncol(x); cluster.by.col is set to FALSE.")
-        cluster.by.col <- FALSE
-      } else{
-        col.clusters <- col.clusters[colInd]
-        kc <- length(unique(col.clusters))
-        if(revC){ ## x columns reversed
-          col.clusters <- rev(col.clusters)
-        }
-
-      }
-    } else {
-      if (.invalid(kc)) kc <- 2
-      if (is.numeric(kc) & length(kc)==1){
-        col.clusters <- cutree(hclust.col,k=kc)
-        col.clusters <- col.clusters[colInd]
-        if(revC){ ## x columns reversed
-          col.clusters <- rev(col.clusters)
-        }
-
-      } else {
-        warning("`kc' should be numeric of length one; cluster.by.col is set to FALSE.")
-        cluster.by.col <- FALSE
-      }
-    }
-  }
   ## ------------------------------------------------------------------------
   ## Plotting
   ## ------------------------------------------------------------------------
   if (if.plot){
-
     ir <- length(plot.row.individuals.list)
     ic <- length(plot.col.individuals.list)
     cr <- length(plot.row.clustering.list)
@@ -2161,7 +2008,6 @@ heatmap.cnv <-
       x <- t(x)
       if (!.invalid(cellnote)) cellnote <- t(cellnote)
     }
-    flog.info("Drawing the heatmap.")
     image(seq_len(nc),seq_len(nr),
           x,
           xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
