@@ -137,7 +137,7 @@ plot_cnv <- function(infercnv_obj,
     if (write_expr_matrix) {
         expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
 
-        if (class(plot_data) %in% c("matrix", "data.frame")) {
+        if ("matrix" %in% is(plot_data)) {
             write.table(plot_data, file=expr_dat_file, quote=FALSE, sep="\t")
         }
         
@@ -779,7 +779,7 @@ plot_cnv <- function(infercnv_obj,
                                         useRaster=useRaster)
     }
     # Write data to file.
-    if (class(obs_data) %in% c("matrix", "data.frame")) {
+    if ("matrix" %in% is(obs_data)) {
         flog.info(paste("plot_cnv_observations:Writing observation data to",
                         observation_file_base,
                         sep=" "))
@@ -1065,8 +1065,8 @@ plot_cnv <- function(infercnv_obj,
                                        useRaster=useRaster)
     }
 
-                                        # Write data to file
-    if (class(ref_data) %in% c("matrix", "data.frame")) {
+    # Write data to file
+    if ("matrix" %in% is(ref_data)) {
 
         ## TODO: write files for dgcMatrix too.
         row.names(ref_data) <- ref_orig_names
