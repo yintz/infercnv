@@ -519,7 +519,7 @@ plot_cnv <- function(infercnv_obj,
                     }
                 }
                 else { ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
-                  #### actually happens with 2 cells only too, because can't cluster 2
+                    #### actually happens with 2 cells only too, because can't cluster 2
                     if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2)) {
                         if (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) {
                             obs_dendrogram[[i]] <- .pairwise_dendrogram(colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
@@ -529,7 +529,7 @@ plot_cnv <- function(infercnv_obj,
                         }
                         ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
                         obs_seps <- c(obs_seps, length(ordered_names))
-                        hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(which(obs_annotations_groups == i))))
+                        hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, ordered_names))
                     }
                     else {
                         flog.error("Unexpected error, should not happen.")
@@ -572,10 +572,10 @@ plot_cnv <- function(infercnv_obj,
                 # Record seperation
                 ordered_memb <- which(ordered_names %in% group_memb)
                 if (is.null(obs_seps)) {
-                  obs_seps <- c(length(ordered_memb))
+                    obs_seps <- c(length(ordered_memb))
                 }
                 else {
-                  obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
+                    obs_seps <- c(obs_seps, (obs_seps[length(obs_seps)] + length(ordered_memb)))
                 }
             }
             obs_seps <- c(obs_seps, length(ordered_names))
@@ -906,38 +906,72 @@ plot_cnv <- function(infercnv_obj,
     # If there is more than one reference group, visually break
     # up the groups with a row seperator. Also plot the rows in
     # order so the current groups are shown and seperated.
-    if(length(ref_groups) > 1){
+
+    ordered_names <- c()
+    if (!is.null(infercnv_obj@tumor_subclusters)) {
         if (cluster_references) {
-            order_idx <- lapply(ref_groups, function(ref_grp) {
-                if (cluster_references && length(ref_grp) > 2) {
-                    ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
-                    ref_grp <- ref_grp[ref_hcl$order]
+            split_groups <- c()
+            for (i in seq_along(name_ref_groups)) {
+                if (!is.null(infercnv_obj@tumor_subclusters$hc[[ name_ref_groups[i] ]])) {
+                    ordered_names <- c(ordered_names, infercnv_obj@tumor_subclusters$hc[[ name_ref_groups[i] ]]$labels[infercnv_obj@tumor_subclusters$hc[[ name_ref_groups[i] ]]$order])
+                    ref_seps <- c(ref_seps, length(ordered_names))
+                    split_groups <- c(split_groups, rep(i, length(infercnv_obj@tumor_subclusters$hc[[ name_ref_groups[i] ]]$order)))
                 }
-                ref_grp
-            })
-            ref_seps <- head(cumsum(lengths(order_idx)), -1)
-            split_groups <- unlist(mapply(rep, seq_along(order_idx), lengths(order_idx)))
-            order_idx <- unlist(order_idx)
+                else {  ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
+                    #### actually happens with 2 cells only too, because can't cluster 2
+                    if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])) == 2)) {
+                        ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[ name_ref_groups[i] ]]), drop=FALSE]))
+                        ref_seps <- c(ref_seps, length(ordered_names))
+                        split_groups <- c(split_groups, rep(i, length(ordered_names)))
+                    }
+                    else {
+                        flog.error("Unexpected error, should not happen.")
+                        stop("Error")
+                    }
+                }
+            }
         }
         else {
-            ref_seps <- head(cumsum(lengths(ref_groups)), -1)
-            split_groups <- unlist(mapply(rep, seq_along(ref_groups), lengths(ref_groups)))
-            order_idx <- unlist(ref_groups)
+            ordered_names <- infercnv_obj@tumor_subclusters$hc[["all_references"]]$labels[infercnv_obj@tumor_subclusters$hc[["all_references"]]$order]
+            split_groups <- rep(1, length(ordered_names))
         }
+
+        ref_data <- ref_data[, ordered_names, drop=FALSE]
     }
     else {
-        if (cluster_references) {
-            ref_hcl <- hclust(dist(t(ref_data)), method=hclust_method)  # all ref_data is part of the only group
-            # order_idx <- unlist(ref_groups)[ref_hcl$order]
-            order_idx = ref_hcl$order # ref_data has been reindexed beforehand in the calling method
+        if(length(ref_groups) > 1){
+            if (cluster_references) {
+                order_idx <- lapply(ref_groups, function(ref_grp) {
+                    if (cluster_references && length(ref_grp) > 2) {
+                        ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
+                        ref_grp <- ref_grp[ref_hcl$order]
+                    }
+                    ref_grp
+                })
+                ref_seps <- head(cumsum(lengths(order_idx)), -1)
+                split_groups <- unlist(mapply(rep, seq_along(order_idx), lengths(order_idx)))
+                order_idx <- unlist(order_idx)
+            }
+            else {
+                ref_seps <- head(cumsum(lengths(ref_groups)), -1)
+                split_groups <- unlist(mapply(rep, seq_along(ref_groups), lengths(ref_groups)))
+                order_idx <- unlist(ref_groups)
+            }
         }
         else {
-            order_idx = unlist(ref_groups)
+            if (cluster_references) {
+                ref_hcl <- hclust(dist(t(ref_data)), method=hclust_method)  # all ref_data is part of the only group
+                # order_idx <- unlist(ref_groups)[ref_hcl$order]
+                order_idx = ref_hcl$order # ref_data has been reindexed beforehand in the calling method
+            }
+            else {
+                order_idx = unlist(ref_groups)
+            }
+            split_groups <- rep(1, length(ref_groups[[1]]))
         }
-        split_groups <- rep(1, length(ref_groups[[1]]))
+        
+        ref_data <- ref_data[, order_idx, drop=FALSE]
     }
-    
-    ref_data <- ref_data[, order_idx, drop=FALSE]
 
     # Handle only one reference
     # heatmap3 requires a 2 x 2 matrix, so with one reference
