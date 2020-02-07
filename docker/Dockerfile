@@ -1,5 +1,5 @@
 # Docker file for inferCNV
-FROM bioconductor/devel_base2
+FROM bioconductor/bioconductor_docker:devel
 
 LABEL org.label-schema.license="BSD-3-Clause" \
       org.label-schema.vendor="Broad Institute" \
@@ -7,7 +7,7 @@ LABEL org.label-schema.license="BSD-3-Clause" \
 
 RUN apt-get update && apt-get -y install curl libssl-dev libcurl4-openssl-dev \
                                         libxml2-dev git python3 jags \
-                                        r-cran-rjags && \
+                                        r-cran-rjags time && \
                       apt-get clean && rm -rf /var/tmp/* \
                                           /tmp/* /var/lib/apt/lists/*
 
@@ -23,13 +23,14 @@ RUN R -e "install.packages(c('devtools','KernSmooth', 'lattice', 'Matrix', \
                              'tidyr', 'gridExtra', 'argparse', 'knitr', \
                              'rmarkdown', 'testthat', 'optparse', 'logging', \
                              'data.table', 'BiocManager'), repos = 'http://cran.us.r-project.org')"
+RUN R -e "install.packages(c('cluster', 'Seurat'), repos = 'http://cran.us.r-project.org')"
 RUN R -e "BiocManager::install(c('BiocGenerics', 'edgeR', 'SingleCellExperiment', \
             'SummarizedExperiment', 'BiocStyle', 'BiocCheck'))"
 
 # Checkout and install infercnv
-# update to 2019-05-28 commit (Fix observations heatmap chromosome labels)
+# update to version bump commit
 RUN git clone https://github.com/broadinstitute/infercnv && cd infercnv && \
-      git checkout master && git checkout aeb3a5603fe1de11951307e7205b663141aa04a9 && \
+      git checkout master && git checkout cc19b7efaf09e3eff329a93df1ada475c73d2b40 && \
       R CMD INSTALL . 
 
 ENV PATH=${PATH}:/infercnv/scripts
