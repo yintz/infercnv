@@ -1,3 +1,9 @@
+Changes in version 1.3.3 (2020-02-07)
++ Large speed improvements in plot_cnv() that are more significant the bigger the matrix size.
++ plot_cnv() now uses clustering information stored in the infercnv object for the references instead of rerunning the clustering every time.
++ Fix assumption that length(class(obj)) == 1, in this case for matrix objects for R 2020-01-28 update.
++ Made color.palette an exported function so that it can be used for the "custom_color_pal" option.
++ Updated some logging to be more accurate.
 Changes in version 1.3.2 (2019-12-06)
 + Added an new option "custom_color_pal" to plot_cnv() so a user can provide their choice of colors for the heatmap.
 Changes in version 1.2.2 (2019-12-06)
