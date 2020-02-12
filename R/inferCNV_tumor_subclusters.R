@@ -31,7 +31,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
         tumor_group_cell_names <- colnames(infercnv_obj@expr.data[,tumor_group_idx])
-        tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx]
+        tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx, drop=FALSE]
 
         if (restrict_to_DE_genes) {
             p_vals <- .find_DE_stat_significance(normal_expr_data, tumor_expr_data)

@@ -277,9 +277,9 @@ plot_cnv <- function(infercnv_obj,
         if (output_format == "pdf") {
             pdf(paste(out_dir, paste(output_filename, ".pdf", sep=""), sep="/"),
                 useDingbats=FALSE,
-                width=10,
+                width=11,
                 height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
-                paper="USr")
+                paper="special")
         } else if (output_format == "png") {
             png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
                 width=10,
@@ -520,7 +520,7 @@ plot_cnv <- function(infercnv_obj,
                 }
                 else { ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
                     #### actually happens with 2 cells only too, because can't cluster 2
-                    if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2)) {
+                    if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 1)) {
                         if (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]])) == 2) {
                             obs_dendrogram[[i]] <- .pairwise_dendrogram(colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
                         }
@@ -529,7 +529,7 @@ plot_cnv <- function(infercnv_obj,
                         }
                         ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]), drop=FALSE]))
                         obs_seps <- c(obs_seps, length(ordered_names))
-                        hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, ordered_names))
+                        hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(unlist(infercnv_obj@tumor_subclusters$subclusters[[obs_annotations_names[i]]]))))
                     }
                     else {
                         flog.error("Unexpected error, should not happen.")
@@ -908,7 +908,7 @@ plot_cnv <- function(infercnv_obj,
     # order so the current groups are shown and seperated.
 
     ordered_names <- c()
-    if (!is.null(infercnv_obj@tumor_subclusters)) {
+    if (all(name_ref_groups %in% infercnv_obj@tumor_subclusters$subclusters) || !is.null(infercnv_obj@tumor_subclusters$hc[["all_references"]])) { 
         if (cluster_references) {
             split_groups <- c()
             for (i in seq_along(name_ref_groups)) {
@@ -919,10 +919,10 @@ plot_cnv <- function(infercnv_obj,
                 }
                 else {  ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
                     #### actually happens with 2 cells only too, because can't cluster 2
-                    if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])) == 2)) {
+                    if ((length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])) == 2) || (length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])) == 1)) {
                         ordered_names <- c(ordered_names, colnames(infercnv_obj@expr.data[, unlist(infercnv_obj@tumor_subclusters$subclusters[[ name_ref_groups[i] ]]), drop=FALSE]))
                         ref_seps <- c(ref_seps, length(ordered_names))
-                        split_groups <- c(split_groups, rep(i, length(ordered_names)))
+                        split_groups <- c(split_groups, rep(i, length(length(unlist(infercnv_obj@tumor_subclusters$subclusters[[name_ref_groups[i]]])))))
                     }
                     else {
                         flog.error("Unexpected error, should not happen.")
