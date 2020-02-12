@@ -23,7 +23,8 @@ run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = NULL,
   outlier_lower_bound = NA, outlier_upper_bound = NA,
   final_scale_limits = NULL, final_center_val = NULL, debug = FALSE,
   num_threads = 4, plot_steps = FALSE, resume_mode = TRUE,
-  png_res = 300, plot_probabilities = TRUE, diagnostics = FALSE,
+  png_res = 300, plot_probabilities = TRUE, save_rds = TRUE,
+  save_final_rds = TRUE, diagnostics = FALSE,
   remove_genes_at_chr_ends = FALSE, prune_outliers = FALSE,
   mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
   test.use = "wilcoxon", require_DE_all_normals = "any",
@@ -169,6 +170,10 @@ Will preferentially use outlier_lower_bounda and outlier_upper_bound if set.}
 \item{png_res}{Resolution for png output.}
 
 \item{plot_probabilities}{option to plot posterior probabilities (default: TRUE)}
+
+\item{save_rds}{Whether to save the current step object results as an .rds file (default: TRUE)}
+
+\item{save_final_rds}{Whether to save the final object results as an .rds file (default: TRUE)}
 
 \item{diagnostics}{option to create diagnostic plots after running the Bayesian model (default: FALSE)
 
