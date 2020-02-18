@@ -971,7 +971,7 @@ run <- function(infercnv_obj,
     ## This is a milestone step and results should always be examined here.
     if (skip_past < step_count) {
         if (save_rds) {
-            saveRDS(infercnv_obj, file=infercnv_obj_file)
+            saveRDS(infercnv_obj, file=file.path(out_dir, "preliminary.infercnv_obj"))
         }
         
         invisible(gc())
