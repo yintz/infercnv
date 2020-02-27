@@ -91,6 +91,8 @@ plot_cnv <- function(infercnv_obj,
                      ref_title="References (Cells)",
                      cluster_by_groups=TRUE,
                      cluster_references=TRUE,
+                     plot_chr_scale=FALSE,
+                     chr_lengths=NULL,
                      k_obs_groups = 3,
                      contig_cex=1,
                      x.center=mean(infercnv_obj@expr.data),
@@ -329,6 +331,48 @@ plot_cnv <- function(infercnv_obj,
         length.out=nb_breaks)
 
 
+    if (plot_chr_scale) {
+        # gene table to heatmap width
+        chr_name_list = unique(infercnv_obj@gene_order[["chr"]])
+        
+        # get average distance for tail end? 
+        # optionally give vector of chr lengths
+        # if chr_lengths not given, take furthest gene and add 10k bp
+        if (is.null(chr_lengths)) {
+            chr_lengths = c()
+            for (chr_name in chr_name_list) {
+                chr_lengths = c(chr_lengths, max(infercnv_obj@gene_order$stop[which(infercnv_obj@gene_order$chr == chr_name)]) + 10000)
+            }
+            names(chr_lengths) = chr_name_list
+        }
+        gene_position_breaks = vector(mode="integer", length=(length(unlist(infercnv_obj@gene_order$chr)) + 1))
+
+        sum_previous_contigs = 0
+        gene_position_breaks[1] = 1
+        current_idx = 2
+        col_sep_idx = 1
+
+        for (chr_name in chr_name_list) {
+            index_pos = which(infercnv_obj@gene_order$chr == chr_name)
+            latest_position = 1
+            for (i in index_pos[2:length(index_pos)]) {
+                gene_position_breaks[current_idx] = sum_previous_contigs + ((latest_position + infercnv_obj@gene_order$start[i]) / 2)
+                latest_position = max(infercnv_obj@gene_order$stop[i], latest_position)
+                current_idx = current_idx + 1
+            }
+            gene_position_breaks[current_idx] = sum_previous_contigs + chr_lengths[chr_name]
+            current_idx = current_idx + 1
+            sum_previous_contigs = sum_previous_contigs + chr_lengths[chr_name]
+
+            if (col_sep_idx != length(chr_name_list)) {
+                col_sep[col_sep_idx] = sum_previous_contigs
+                col_sep_idx = col_sep_idx + 1
+            }
+        }
+    }
+
+
+
     # Create file base for plotting output
     force_layout <- .plot_observations_layout(grouping_key_height=grouping_key_height, dynamic_extension=dynamic_extension)
     .plot_cnv_observations(infercnv_obj=infercnv_obj,
@@ -352,6 +396,7 @@ plot_cnv <- function(infercnv_obj,
                           cnv_obs_title=obs_title,
                           contig_lab_size=contig_cex,
                           breaksList=breaksList_t,
+                          gene_position_breaks=gene_position_breaks,
                           x.center=x.center,
                           hclust_method=hclust_method,
                           layout_lmat=force_layout[["lmat"]],
@@ -374,6 +419,7 @@ plot_cnv <- function(infercnv_obj,
                             output_filename_prefix=output_filename,
                             cnv_ref_title=ref_title,
                             breaksList=breaksList_t,
+                            gene_position_breaks=gene_position_breaks,
                             x.center=x.center,
                             layout_add=TRUE,
                             useRaster=useRaster)
@@ -447,6 +493,7 @@ plot_cnv <- function(infercnv_obj,
                                   grouping_key_coln,
                                   cluster_by_groups,
                                   breaksList,
+                                  gene_position_breaks,
                                   x.center,
                                   hclust_method="ward.D",
                                   testing=FALSE,
@@ -753,6 +800,7 @@ plot_cnv <- function(infercnv_obj,
                                         dendrogram="row",
                                         cexRow=0.8,
                                         breaks=breaksList,
+                                        gene_position_breaks=gene_position_breaks,
                                         scale="none",
                                         x.center=x.center,
                                         color.FUN=col_pal,
@@ -882,6 +930,7 @@ plot_cnv <- function(infercnv_obj,
                                 output_filename_prefix,
                                 cnv_ref_title,
                                 breaksList,
+                                gene_position_breaks,
                                 x.center=x.center,
                                 layout_lmat=NULL,
                                 layout_lwid=NULL,
@@ -1044,6 +1093,7 @@ plot_cnv <- function(infercnv_obj,
                                        Rowv=FALSE,
                                        cexRow=0.4,
                                        breaks=breaksList,
+                                       gene_position_breaks=gene_position_breaks,
                                        scale="none",
                                        x.center=x.center,
                                        color.FUN=col_pal,
@@ -1300,6 +1350,7 @@ heatmap.cnv <-
 
            ## mapping data to colors
            breaks,
+           gene_position_breaks,
            ## centering colors to a value
            x.center,
            ## colors
@@ -2061,19 +2112,33 @@ heatmap.cnv <-
                 cellnote <- t(cellnote)
             }
         }
-        image(seq_len(nc), seq_len(nr),
-              x,
-              xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
-              axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=useRaster,
-              ...)
+        if (!is.null(gene_position_breaks)) {
+            image(gene_position_breaks, seq_len(nr+1),
+                  x,
+                  xlim=0.5+c(0,max(gene_position_breaks)), ylim=0.5+c(0,nr),
+                  axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=FALSE,
+                  ...)
+
+        } else {
+            image(seq_len(nc), seq_len(nr),
+                  x,
+                  xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
+                  axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=useRaster,
+                  ...)
+        }
         flog.info(paste("Colors for breaks: ", paste(colors, collapse=","), sep=" "))
         flog.info(paste("Quantiles of plotted data range:", paste(quantile(x), collapse=","), sep=" "))
     
         ## plot/color NAs
         if(!.invalid(na.color) & any(is.na(x))) {
             mmat <- ifelse(is.na(x),1,NA)
-            image(seq_len(nc),seq_len(nr), mmat, axes=FALSE, xlab="", ylab="",
-                  col=na.color, add=TRUE, useRaster=useRaster)
+            if (!is.null(gene_position_breaks)) {
+                image(gene_position_breaks, seq_len(nr+1), mmat, axes=FALSE, xlab="", ylab="",
+                      col=na.color, add=TRUE, useRaster=FALSE)
+            } else {
+                image(seq_len(nc),seq_len(nr), mmat, axes=FALSE, xlab="", ylab="",
+                      col=na.color, add=TRUE, useRaster=useRaster)
+            }
         }
 
         ##
@@ -2243,10 +2308,17 @@ heatmap.cnv <-
             col.clusters.unique <- unique(col.clusters)
             col.clusters.unique <- col.clusters.unique[!is.na(col.clusters.unique)]
     
-                image(cbind(seq_len(nc)),
-                      xlim=0.5+c(0,nc), ylim=0.5+c(0,1),
-                      col=par("bg"),
-                      axes=FALSE, add=force_add, useRaster=useRaster)
+                if (!is.null(gene_position_breaks)) {
+                    image(cbind(seq_len(nc)),
+                          xlim=0.5+c(0,nc), ylim=0.5+c(0,1),
+                          col=par("bg"),
+                          axes=FALSE, add=force_add, useRaster=useRaster)
+                } else {   
+                    image(cbind(seq_len(nc)),
+                          xlim=0.5+c(0,nc), ylim=0.5+c(0,1),
+                          col=par("bg"),
+                          axes=FALSE, add=force_add, useRaster=useRaster)
+                }
     
                 if (!.invalid(plot.col.partitionList)) {
                     for (i in seq_along(plot.col.partitionList)) {
@@ -2286,7 +2358,12 @@ heatmap.cnv <-
         ## 5) draw the side color bars - for col
         if(!.invalid(ColIndividualColors)) {
             par(mar=c(0.5,0,0,margins[4]))
-            image(cbind(seq_len(nc)), col=ColIndividualColors[colInd], axes=FALSE, add=force_add, useRaster=useRaster)
+            if (!is.null(gene_position_breaks)) {
+                #image(cbind(gene_position_breaks), col=ColIndividualColors[colInd], axes=FALSE, add=force_add, useRaster=FALSE)
+                image(gene_position_breaks, 1, cbind(seq_len(nc)), col=ColIndividualColors[colInd], axes=FALSE, add=force_add, useRaster=FALSE)
+            } else {
+                image(cbind(seq_len(nc)), col=ColIndividualColors[colInd], axes=FALSE, add=force_add, useRaster=useRaster)
+            }
         }
 
         ## 6) row-dend
