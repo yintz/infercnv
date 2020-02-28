@@ -21,6 +21,8 @@ get_group_color_palette <- function(){
 #' @param ref_title Title for the reference matrix.
 #' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.
 #' @param cluster_references Whether to cluster references within their annotations or not. (dendrogram not displayed)
+#' @param plot_chr_scale Whether to scale the chromosme width on the heatmap based on their actual size rather than just the number of expressed genes.
+#' @param chr_lengths A named list of chromsomes lengths to use when plot_chr_scale=TRUE, or else chromosome size is assumed to be the last chromosome's stop position + 10k bp
 #' @param k_obs_groups Number of groups to break observation into.
 #' @param contig_cex Contig text size. 
 #' @param x.center Value on which to center expression.
@@ -460,6 +462,7 @@ plot_cnv <- function(infercnv_obj,
 #' @param obs_annotations_groups Vector of observations annotations group assignation (as indices).
 #' @param cluster_by_groups Whether to cluster observations by their annotations or not. Using this ignores num_obs_groups.
 #' @param breaksList List of values used as splitters on coloring range.
+#' @param gene_position_breaks List of gene break positions for scaled chromosome size plot
 #' @param hclust_method Method to use for hclust.
 #' @param testing If TRUE, does not plot anything.
 #' @param layout_lmat lmat values to use in layout.

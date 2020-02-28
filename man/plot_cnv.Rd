@@ -7,12 +7,13 @@
 plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
   obs_title = "Observations (Cells)", ref_title = "References (Cells)",
   cluster_by_groups = TRUE, cluster_references = TRUE,
-  k_obs_groups = 3, contig_cex = 1,
-  x.center = mean(infercnv_obj@expr.data), x.range = "auto",
-  hclust_method = "ward.D", custom_color_pal = NULL,
-  color_safe_pal = FALSE, output_filename = "infercnv",
-  output_format = "png", png_res = 300, dynamic_resize = 0,
-  ref_contig = NULL, write_expr_matrix = FALSE, useRaster = TRUE)
+  plot_chr_scale = FALSE, chr_lengths = NULL, k_obs_groups = 3,
+  contig_cex = 1, x.center = mean(infercnv_obj@expr.data),
+  x.range = "auto", hclust_method = "ward.D",
+  custom_color_pal = NULL, color_safe_pal = FALSE,
+  output_filename = "infercnv", output_format = "png", png_res = 300,
+  dynamic_resize = 0, ref_contig = NULL, write_expr_matrix = FALSE,
+  useRaster = TRUE)
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -28,6 +29,10 @@ plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
 \item{cluster_by_groups}{Whether to cluster observations by their annotations or not. Using this ignores k_obs_groups.}
 
 \item{cluster_references}{Whether to cluster references within their annotations or not. (dendrogram not displayed)}
+
+\item{plot_chr_scale}{Whether to scale the chromosme width on the heatmap based on their actual size rather than just the number of expressed genes.}
+
+\item{chr_lengths}{A named list of chromsomes lengths to use when plot_chr_scale=TRUE, or else chromosome size is assumed to be the last chromosome's stop position + 10k bp}
 
 \item{k_obs_groups}{Number of groups to break observation into.}
 
