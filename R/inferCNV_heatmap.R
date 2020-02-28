@@ -333,6 +333,7 @@ plot_cnv <- function(infercnv_obj,
         length.out=nb_breaks)
 
 
+    gene_position_breaks = NULL
     if (plot_chr_scale) {
         # gene table to heatmap width
         chr_name_list = unique(infercnv_obj@gene_order[["chr"]])
@@ -1353,7 +1354,7 @@ heatmap.cnv <-
 
            ## mapping data to colors
            breaks,
-           gene_position_breaks,
+           gene_position_breaks=NULL,
            ## centering colors to a value
            x.center,
            ## colors
