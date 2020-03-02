@@ -152,7 +152,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
             raw.data <- readRDS(raw_counts_matrix)
         }
         else {
-            raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)    
+            raw.data <- read.table(raw_counts_matrix, sep=delim, header=TRUE, row.names=1, check.names=FALSE)
             raw.data <- as.matrix(raw.data)
         }
     } else if (Reduce("|", is(raw_counts_matrix) %in% c("dgCMatrix", "matrix"))) {
