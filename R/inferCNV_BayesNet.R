@@ -299,7 +299,7 @@ setMethod(f="initializeObject",
               cell_groups_PATH <- files[grep(files, pattern = paste0("17_HMM_pred", args_parsed$resume_file_token, ".cell_groupings"))]
               pred_cnv_genes_PATH <- files[grep(files, pattern = paste0("17_HMM_pred", args_parsed$resume_file_token, ".pred_cnv_genes.dat"))]
               cell_groups_df <- read.table(cell_groups_PATH, header = T, check.names = FALSE, sep="\t")
-              pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE, sep="\t")
+              pred_cnv_genes_df <- read.table(pred_cnv_genes_PATH, header = T, check.names = FALSE, sep="\t", stringsAsFactors = TRUE)
 
               # cnv region id's
               obj@cnv_regions <- unique(pred_cnv_genes_df$gene_region_name)
