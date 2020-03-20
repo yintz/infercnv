@@ -1,3 +1,5 @@
+Changes in version 1.3.6 (2020-03-20)
++ Fix a read.table() call who's behavior was changed by the latest R base devel changes.
 Changes in version 1.3.5 (2020-03-02)
 + Fix saving file name for preliminary object.
 + Added an option to plot_cnv(), plot_chr_scale, that allows to plot chromosomes proportionally to their full size. Either a list of chromosomes sizes is provided, or the last gene stop position + 10k bp is assumed. Gene width is proportional to the area in the chromosomes they "cover" (midpoints between genes). This option is slower than the default as rasterization can not be applied when drawing the heatmap.
