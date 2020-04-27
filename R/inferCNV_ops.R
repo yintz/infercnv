@@ -3009,6 +3009,13 @@ cross_cell_normalize <- function(infercnv_obj) {
 }
 
 
+# This function returns TRUE wherever elements are the same, including NA's,
+# and FALSE everywhere else.
+compareNA <- function(v1,v2) {
+    same <- (v1 == v2) | (is.na(v1) & is.na(v2))
+    same[is.na(same)] <- FALSE
+    return(same)
+}
 
 #' @return FALSE if relevant args are not identical, TRUE if they are
 #'
@@ -3026,7 +3033,7 @@ cross_cell_normalize <- function(infercnv_obj) {
     }
 
     return(!(any(sapply(relevant_args[relevant_args %in% names(current_args)], function(arg_n) {
-        any(current_args[[arg_n]] != loaded_options[[arg_n]])
+        all(compareNA(current_args[[arg_n]], loaded_options[[arg_n]]))
     }))))
 }
 
