@@ -16,9 +16,9 @@
 #' @export
 #'
 #' @examples
-#' # data(data)
-#' # data(annots)
-#' # data(genes)
+#' # data(infercnv_data)
+#' # data(infercnv_annots)
+#' # data(infercnv_genes)
 #'
 #' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
 #' #                                                gene_order_file=genes,
@@ -34,7 +34,7 @@
 #' #                               num_threads=2,
 #' #                               no_plot=TRUE)
 #'
-#' data(infercnv_object)
+#' data(infercnv_object_example)
 #'
 #' infercnv_obj <- infercnv::apply_median_filtering(infercnv_obj)
 #' # plot result object

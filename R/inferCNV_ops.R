@@ -187,9 +187,9 @@
 #' @export
 #'
 #' @examples
-#' data(data)
-#' data(annots)
-#' data(genes)
+#' data(infercnv_data)
+#' data(infercnv_annots)
+#' data(infercnv_genes)
 #'
 #' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
 #'                                                gene_order_file=genes,

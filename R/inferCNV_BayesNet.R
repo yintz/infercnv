@@ -1179,9 +1179,9 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #' @export
 #'
 #' @examples
-#' data(data)
-#' data(annots)
-#' data(genes)
+#' data(infercnv_data)
+#' data(infercnv_annots)
+#' data(infercnv_genes)
 #' data(HMM_states)
 #'
 #' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 

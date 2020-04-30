@@ -24,9 +24,9 @@
 #' @export
 #'
 #' @examples
-#' # data(data)
-#' # data(annots)
-#' # data(genes)
+#' # data(infercnv_data)
+#' # data(infercnv_annots)
+#' # data(infercnv_genes)
 #'
 #' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
 #' #                                                gene_order_file=genes,
@@ -42,7 +42,7 @@
 #' #                               num_threads=2,
 #' #                               no_plot=TRUE)
 #'
-#' data(infercnv_object)
+#' data(infercnv_object_example)
 #'
 #' infercnv_obj <- infercnv::sample_object(infercnv_obj, n_cells=5)
 #' # plot result object
@@ -475,9 +475,9 @@ sample_object <- function(infercnv_obj,
 #' @export
 #'
 #' @examples
-#' # data(data)
-#' # data(annots)
-#' # data(genes)
+#' # data(infercnv_data)
+#' # data(infercnv_annots)
+#' # data(infercnv_genes)
 #'
 #' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
 #' #                                                gene_order_file=genes,
@@ -493,7 +493,7 @@ sample_object <- function(infercnv_obj,
 #' #                               num_threads=2,
 #' #                               no_plot=TRUE)
 #'
-#' data(infercnv_object)
+#' data(infercnv_object_example)
 #'
 #' infercnv::plot_per_group(infercnv_obj, out_dir=tempfile())
 #'
