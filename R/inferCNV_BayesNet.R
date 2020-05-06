@@ -681,6 +681,8 @@ setMethod(f="removeCells",
 #' normal before running any kind of post MCMC modification.
 #'
 #' @param obj The MCMC_inferCNV_obj S4 object.
+#' 
+#' @param diagnostics Option to create the diagnostic plots. 
 #'
 #' @return obj The MCMC_inferCNV_obj S4 object.
 #'
@@ -688,7 +690,7 @@ setMethod(f="removeCells",
 #' @keywords internal
 #' @noRd
 setGeneric(name="runMCMC",
-           def=function(obj)
+           def=function(obj, diagnostics)
            { standardGeneric("runMCMC") }
 )
 
@@ -697,13 +699,19 @@ setGeneric(name="runMCMC",
 #' @noRd
 setMethod(f="runMCMC",
           signature="MCMC_inferCNV",
-          definition=function(obj)
+          definition=function(obj,
+                              diagnostics = FALSE)
           {
               # Run MCMC
               if(getArgs(obj)$CORES == 1){
                   mcmc <- nonParallel(obj)
               } else {
                   mcmc <- withParallel(obj)
+              }
+              
+              # Create Diagnostic Plots.
+              if (diagnostics == TRUE){
+                  mcmcDiagnosticPlots(obj, mcmc)
               }
 
               # Get the probability of of each cell line and complete CNV belonging to a specific state
@@ -900,7 +908,7 @@ setMethod(f="mcmcDiagnosticPlots",
               if (getArgs(obj)$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Autocorrelation Plots.")) }
               pdf(file = file.path(file.path(getArgs(obj)$out_dir),"CNVautocorrelationPlots.pdf"), onefile = TRUE)
               lapply(seq_along(cnvMCMCList), function(i){
-                  autocorr.plot(coda::mcmc.list(cnvMCMCList[[i]]))
+                  coda::autocorr.plot(coda::mcmc.list(cnvMCMCList[[i]]))
               })
               dev.off()
 
@@ -913,7 +921,7 @@ setMethod(f="mcmcDiagnosticPlots",
               if (getArgs(obj)$quietly == FALSE) { futile.logger::flog.info(paste("Plotting CNV Gelman Plots.")) }
               pdf(file = file.path(file.path(getArgs(obj)$out_dir),"CNVGelmanPlots.pdf"), onefile = TRUE)
               lapply(seq_along(cellMCMCList), function(i){
-                  gelman.plot(coda::mcmc.list(cnvMCMCList[[i]]))
+                  coda::gelman.plot(coda::mcmc.list(cnvMCMCList[[i]]))
               })
               dev.off()
 
@@ -1311,7 +1319,7 @@ inferCNVBayesNet <- function( file_dir,
     ################################
     ## Run Gibbs sampling and time the process
     start_time <- Sys.time()
-    MCMC_inferCNV_obj <- runMCMC(MCMC_inferCNV_obj)
+    MCMC_inferCNV_obj <- runMCMC(MCMC_inferCNV_obj, diagnostics)
     end_time <- Sys.time()
     futile.logger::flog.info(paste("Gibbs sampling time: ", difftime(end_time, start_time, units = "min")[[1]], " Minutes"))
     
@@ -1321,10 +1329,7 @@ inferCNVBayesNet <- function( file_dir,
     ########
     # Plot #
     ########
-    # Create Diagnostic Plots.
-    if (diagnostics == TRUE){
-        mcmcDiagnosticPlots(MCMC_inferCNV_obj)
-    }
+    
     # Plot the probability of not being normal state.
     ## Create the title for the plottig the probability of not being normal. 
     if (getArgs(MCMC_inferCNV_obj)$postMcmcMethod == "removeCNV" || getArgs(MCMC_inferCNV_obj)$reassignCNVs == TRUE ){
