@@ -1192,35 +1192,35 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #' data(infercnv_genes)
 #' data(HMM_states)
 #'
-#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#'                                                gene_order_file=genes,
-#'                                                annotations_file=annots,
-#'                                                ref_group_names=c("normal"))
-#'
+#' infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#'                                                           gene_order_file=genes,
+#'                                                           annotations_file=annots,
+#'                                                           ref_group_names=c("normal"))
+#'           
 #' out_dir = tempfile()
-#' infercnv_obj <- infercnv::run(infercnv_obj,
-#'                               cutoff=1,
-#'                               out_dir=out_dir, 
-#'                               cluster_by_groups=TRUE, 
-#'                               denoise=TRUE,
-#'                               HMM=TRUE,
-#'                               num_threads=2,
-#'                               no_plot=TRUE)
-#' mcmc_obj <- infercnv::inferCNVBayesNet( infercnv_obj   = infercnv_obj,
-#'                               HMM_states         = HMM_states,
-#'                               file_dir           = out_dir,
-#'                               postMcmcMethod     = "removeCNV",
-#'                               out_dir            = out_dir,
-#'                               resume_file_token  = "HMMi6.hmm_mode-samples",
-#'                               quietly            = TRUE,
-#'                               CORES              = 2,
-#'                               plotingProbs       = FALSE,
-#'                               diagnostics        = FALSE,
-#'                               HMM_type           = 'i6',
-#'                               k_obs_groups       = 1,
-#'                               cluster_by_groups  = FALSE,
-#'                               reassignCNVs      = FALSE,
-#'                               no_plot           = TRUE)
+#' infercnv_object_example <- infercnv::run(infercnv_object_example,
+#'                                          cutoff=1,
+#'                                          out_dir=out_dir, 
+#'                                          cluster_by_groups=TRUE, 
+#'                                          denoise=TRUE,
+#'                                          HMM=TRUE,
+#'                                          num_threads=2,
+#'                                          no_plot=TRUE)
+#' mcmc_obj <- infercnv::inferCNVBayesNet(infercnv_object_example = infercnv_object_example,
+#'                                        HMM_states              = HMM_states,
+#'                                        file_dir                = out_dir,
+#'                                        postMcmcMethod          = "removeCNV",
+#'                                        out_dir                 = out_dir,
+#'                                        resume_file_token       = "HMMi6.hmm_mode-samples",
+#'                                        quietly                 = TRUE,
+#'                                        CORES                   = 2,
+#'                                        plotingProbs            = FALSE,
+#'                                        diagnostics             = FALSE,
+#'                                        HMM_type                = 'i6',
+#'                                        k_obs_groups            = 1,
+#'                                        cluster_by_groups       = FALSE,
+#'                                        reassignCNVs            = FALSE,
+#'                                        no_plot                 = TRUE)
 #'                               
 inferCNVBayesNet <- function( file_dir,
                               infercnv_obj,

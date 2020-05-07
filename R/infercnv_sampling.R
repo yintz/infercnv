@@ -28,23 +28,23 @@
 #' # data(infercnv_annots)
 #' # data(infercnv_genes)
 #'
-#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#' #                                                gene_order_file=genes,
-#' #                                                annotations_file=annots,
-#' #                                                ref_group_names=c("normal"))
+#' # infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' #                                                           gene_order_file=genes,
+#' #                                                           annotations_file=annots,
+#' #                                                           ref_group_names=c("normal"))
 #'
-#' # infercnv_obj <- infercnv::run(infercnv_obj,
-#' #                               cutoff=1,
-#' #                               out_dir=tempfile(), 
-#' #                               cluster_by_groups=TRUE, 
-#' #                               denoise=TRUE,
-#' #                               HMM=FALSE,
-#' #                               num_threads=2,
-#' #                               no_plot=TRUE)
+#' # infercnv_object_example <- infercnv::run(infercnv_object_example,
+#' #                                          cutoff=1,
+#' #                                          out_dir=tempfile(), 
+#' #                                          cluster_by_groups=TRUE, 
+#' #                                          denoise=TRUE,
+#' #                                          HMM=FALSE,
+#' #                                          num_threads=2,
+#' #                                          no_plot=TRUE)
 #'
 #' data(infercnv_object_example)
 #'
-#' infercnv_obj <- infercnv::sample_object(infercnv_obj, n_cells=5)
+#' infercnv_object_example <- infercnv::sample_object(infercnv_object_example, n_cells=5)
 #' # plot result object
 #'
 
@@ -479,23 +479,23 @@ sample_object <- function(infercnv_obj,
 #' # data(infercnv_annots)
 #' # data(infercnv_genes)
 #'
-#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#' #                                                gene_order_file=genes,
-#' #                                                annotations_file=annots,
-#' #                                                ref_group_names=c("normal"))
+#' # infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' #                                                           gene_order_file=genes,
+#' #                                                           annotations_file=annots,
+#' #                                                           ref_group_names=c("normal"))
 #'
-#' # infercnv_obj <- infercnv::run(infercnv_obj,
-#' #                               cutoff=1,
-#' #                               out_dir=tempfile(), 
-#' #                               cluster_by_groups=TRUE, 
-#' #                               denoise=TRUE,
-#' #                               HMM=FALSE,
-#' #                               num_threads=2,
-#' #                               no_plot=TRUE)
+#' # infercnv_object_example <- infercnv::run(infercnv_object_example,
+#' #                                          cutoff=1,
+#' #                                          out_dir=tempfile(), 
+#' #                                          cluster_by_groups=TRUE, 
+#' #                                          denoise=TRUE,
+#' #                                          HMM=FALSE,
+#' #                                          num_threads=2,
+#' #                                          no_plot=TRUE)
 #'
 #' data(infercnv_object_example)
 #'
-#' infercnv::plot_per_group(infercnv_obj, out_dir=tempfile())
+#' infercnv::plot_per_group(infercnv_object_example, out_dir=tempfile())
 #'
 
 plot_per_group <- function(infercnv_obj,

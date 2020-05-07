@@ -53,23 +53,23 @@ get_group_color_palette <- function(){
 #' # data(infercnv_annots)
 #' # data(infercnv_genes)
 #'
-#' # infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#' #                                                gene_order_file=genes,
-#' #                                                annotations_file=annots,
-#' #                                                ref_group_names=c("normal"))
+#' # infercnv_object_exampleinfercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' #                                                                                  gene_order_file=genes,
+#' #                                                                                  annotations_file=annots,
+#' #                                                                                  ref_group_names=c("normal"))
 #'
-#' # infercnv_obj <- infercnv::run(infercnv_obj,
-#' #                               cutoff=1,
-#' #                               out_dir=tempfile(), 
-#' #                               cluster_by_groups=TRUE, 
-#' #                               denoise=TRUE,
-#' #                               HMM=FALSE,
-#' #                               num_threads=2,
-#' #                               no_plot=TRUE)
+#' # infercnv_object_example <- infercnv::run(infercnv_object_example,
+#' #                                          cutoff=1,
+#' #                                          out_dir=tempfile(), 
+#' #                                          cluster_by_groups=TRUE, 
+#' #                                          denoise=TRUE,
+#' #                                          HMM=FALSE,
+#' #                                          num_threads=2,
+#' #                                          no_plot=TRUE)
 #'
 #' data(infercnv_object_example)
 #'
-#' plot_cnv(infercnv_obj,
+#' plot_cnv(infercnv_object_example,
 #'          out_dir=tempfile(),
 #'          obs_title="Observations (Cells)",
 #'          ref_title="References (Cells)",
@@ -409,7 +409,8 @@ plot_cnv <- function(infercnv_obj,
     obs_data <- NULL
 
     if(!is.null(ref_idx)){
-        .plot_cnv_references(ref_data=ref_data_t,
+        .plot_cnv_references(infercnv_obj=infercnv_obj,
+                            ref_data=ref_data_t,
                             ref_groups=ref_groups,
                             name_ref_groups=name_ref_groups,
                             cluster_references=cluster_references,
@@ -902,6 +903,7 @@ plot_cnv <- function(infercnv_obj,
 # Plot the reference samples
 #
 #' Args:
+#' infercnv_obj: infercnv obj to access the subclusters information
 #' ref_data Data to plot as references. Rows = Cells, Col = Genes
 #' ref_groups Groups of references to plot together.
 #' col_pal The color palette to use.
@@ -921,7 +923,8 @@ plot_cnv <- function(infercnv_obj,
 #' @keywords internal
 #' @noRd
 #'
-.plot_cnv_references <- function(ref_data,
+.plot_cnv_references <- function(infercnv_obj,
+                                ref_data,
                                 ref_groups,
                                 name_ref_groups,
                                 cluster_references,

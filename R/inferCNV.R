@@ -123,7 +123,7 @@ infercnv <- methods::setClass(
 #' data(infercnv_annots)
 #' data(infercnv_genes)
 #'
-#' infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
+#' infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
 #'                                                gene_order_file=genes,
 #'                                                annotations_file=annots,
 #'                                                ref_group_names=c("normal"))
