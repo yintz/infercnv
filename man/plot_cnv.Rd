@@ -4,16 +4,31 @@
 \alias{plot_cnv}
 \title{Plot the matrix as a heatmap, with cells as rows and genes as columns, ordered according to chromosome}
 \usage{
-plot_cnv(infercnv_obj, out_dir = ".", title = "inferCNV",
-  obs_title = "Observations (Cells)", ref_title = "References (Cells)",
-  cluster_by_groups = TRUE, cluster_references = TRUE,
-  plot_chr_scale = FALSE, chr_lengths = NULL, k_obs_groups = 3,
-  contig_cex = 1, x.center = mean(infercnv_obj@expr.data),
-  x.range = "auto", hclust_method = "ward.D",
-  custom_color_pal = NULL, color_safe_pal = FALSE,
-  output_filename = "infercnv", output_format = "png", png_res = 300,
-  dynamic_resize = 0, ref_contig = NULL, write_expr_matrix = FALSE,
-  useRaster = TRUE)
+plot_cnv(
+  infercnv_obj,
+  out_dir = ".",
+  title = "inferCNV",
+  obs_title = "Observations (Cells)",
+  ref_title = "References (Cells)",
+  cluster_by_groups = TRUE,
+  cluster_references = TRUE,
+  plot_chr_scale = FALSE,
+  chr_lengths = NULL,
+  k_obs_groups = 3,
+  contig_cex = 1,
+  x.center = mean(infercnv_obj@expr.data),
+  x.range = "auto",
+  hclust_method = "ward.D",
+  custom_color_pal = NULL,
+  color_safe_pal = FALSE,
+  output_filename = "infercnv",
+  output_format = "png",
+  png_res = 300,
+  dynamic_resize = 0,
+  ref_contig = NULL,
+  write_expr_matrix = FALSE,
+  useRaster = TRUE
+)
 }
 \arguments{
 \item{infercnv_obj}{infercnv object}
@@ -74,27 +89,27 @@ A list of all relevent settings used for the plotting to be able to reuse them i
 Formats the data and sends it for plotting.
 }
 \examples{
-# data(data)
-# data(annots)
-# data(genes)
+# data(infercnv_data_example)
+# data(infercnv_annots_example)
+# data(infercnv_genes_example)
 
-# infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#                                                gene_order_file=genes,
-#                                                annotations_file=annots,
-#                                                ref_group_names=c("normal"))
+# infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
+#                                                           gene_order_file=infercnv_genes_example,
+#                                                           annotations_file=infercnv_annots_example,
+#                                                           ref_group_names=c("normal"))
 
-# infercnv_obj <- infercnv::run(infercnv_obj,
-#                               cutoff=1,
-#                               out_dir=tempfile(), 
-#                               cluster_by_groups=TRUE, 
-#                               denoise=TRUE,
-#                               HMM=FALSE,
-#                               num_threads=2,
-#                               no_plot=TRUE)
+# infercnv_object_example <- infercnv::run(infercnv_object_example,
+#                                          cutoff=1,
+#                                          out_dir=tempfile(), 
+#                                          cluster_by_groups=TRUE, 
+#                                          denoise=TRUE,
+#                                          HMM=FALSE,
+#                                          num_threads=2,
+#                                          no_plot=TRUE)
 
-data(infercnv_object)
+data(infercnv_object_example)
 
-plot_cnv(infercnv_obj,
+plot_cnv(infercnv_object_example,
          out_dir=tempfile(),
          obs_title="Observations (Cells)",
          ref_title="References (Cells)",

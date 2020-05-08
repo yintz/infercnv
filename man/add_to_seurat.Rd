@@ -4,8 +4,12 @@
 \alias{add_to_seurat}
 \title{add_to_seurat()}
 \usage{
-add_to_seurat(seurat_obj = NULL, infercnv_output_path, top_n = 10,
-  bp_tolerance = 2e+06)
+add_to_seurat(
+  seurat_obj = NULL,
+  infercnv_output_path,
+  top_n = 10,
+  bp_tolerance = 2e+06
+)
 }
 \arguments{
 \item{seurat_obj}{Seurat object to add meta.data to (default: NULL)}

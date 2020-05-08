@@ -4,12 +4,22 @@
 \alias{plot_per_group}
 \title{plot_per_group}
 \usage{
-plot_per_group(infercnv_obj, on_references = TRUE,
-  on_observations = TRUE, sample = FALSE, n_cells = 1000,
-  every_n = NULL, above_m = 1000,
-  base_filename = "infercnv_per_group", output_format = "png",
-  write_expr_matrix = TRUE, save_objects = FALSE, png_res = 300,
-  dynamic_resize = 0, out_dir)
+plot_per_group(
+  infercnv_obj,
+  on_references = TRUE,
+  on_observations = TRUE,
+  sample = FALSE,
+  n_cells = 1000,
+  every_n = NULL,
+  above_m = 1000,
+  base_filename = "infercnv_per_group",
+  output_format = "png",
+  write_expr_matrix = TRUE,
+  save_objects = FALSE,
+  png_res = 300,
+  dynamic_resize = 0,
+  out_dir
+)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
@@ -55,26 +65,26 @@ to allow plotting of each group on a seperate plot. If references are selected, 
 on the observation heatmap area as it is larger.
 }
 \examples{
-# data(data)
-# data(annots)
-# data(genes)
+# data(infercnv_data_example)
+# data(infercnv_annots_example)
+# data(infercnv_genes_example)
 
-# infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#                                                gene_order_file=genes,
-#                                                annotations_file=annots,
-#                                                ref_group_names=c("normal"))
+# infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
+#                                                           gene_order_file=infercnv_genes_example,
+#                                                           annotations_file=infercnv_annots_example,
+#                                                           ref_group_names=c("normal"))
 
-# infercnv_obj <- infercnv::run(infercnv_obj,
-#                               cutoff=1,
-#                               out_dir=tempfile(), 
-#                               cluster_by_groups=TRUE, 
-#                               denoise=TRUE,
-#                               HMM=FALSE,
-#                               num_threads=2,
-#                               no_plot=TRUE)
+# infercnv_object_example <- infercnv::run(infercnv_object_example,
+#                                          cutoff=1,
+#                                          out_dir=tempfile(), 
+#                                          cluster_by_groups=TRUE, 
+#                                          denoise=TRUE,
+#                                          HMM=FALSE,
+#                                          num_threads=2,
+#                                          no_plot=TRUE)
 
-data(infercnv_object)
+data(infercnv_object_example)
 
-infercnv::plot_per_group(infercnv_obj, out_dir=tempfile())
+infercnv::plot_per_group(infercnv_object_example, out_dir=tempfile())
 
 }

@@ -4,28 +4,28 @@
 #' @format A data frame with 8252 rows (genes) and 20 columns (cells)
 #'
 #'
-"data"
+"infercnv_data_example"
 
 #' Generated classification for 10 normal cells and 10 tumor cells.
 #'
 #' @format A data frame with 20 rows (cells) and 1 columns (classification)
 #'
 #'
-"annots"
+"infercnv_annots_example"
 
 #' Downsampled gene coordinates file from GrCh37
 #'
 #' @format A data frame with 10338 rows (genes) and 3 columns (chr, start, end)
 #'
 #'
-"genes"
+"infercnv_genes_example"
 
 #' infercnv object result of the processing of run() in the example, to be used for other examples.
 #'
 #' @format An infercnv object
 #'
 #'
-"infercnv_obj"
+"infercnv_object_example"
 
 #' infercnv object result of the processing of run() in the HMM example, to be used for other examples.
 #'

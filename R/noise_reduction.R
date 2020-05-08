@@ -16,13 +16,13 @@
 #' @export
 #'
 #' @examples
-#' # data(infercnv_data)
-#' # data(infercnv_annots)
-#' # data(infercnv_genes)
+#' # data(infercnv_data_example)
+#' # data(infercnv_annots_example)
+#' # data(infercnv_genes_example)
 #'
-#' # infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#' #                                                           gene_order_file=genes,
-#' #                                                           annotations_file=annots,
+#' # infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
+#' #                                                           gene_order_file=infercnv_genes_example,
+#' #                                                           annotations_file=infercnv_annots_example,
 #' #                                                           ref_group_names=c("normal"))
 #'
 #' # infercnv_object_example <- infercnv::run(infercnv_object_example,

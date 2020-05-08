@@ -4,7 +4,9 @@
 \name{HMM_states}
 \alias{HMM_states}
 \title{infercnv object result of the processing of run() in the HMM example, to be used for other examples.}
-\format{An infercnv object containing HMM predictions}
+\format{
+An infercnv object containing HMM predictions
+}
 \usage{
 HMM_states
 }

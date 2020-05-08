@@ -4,8 +4,14 @@
 \alias{sample_object}
 \title{sample_object}
 \usage{
-sample_object(infercnv_obj, n_cells = 100, every_n = NULL,
-  above_m = NULL, on_references = TRUE, on_observations = TRUE)
+sample_object(
+  infercnv_obj,
+  n_cells = 100,
+  every_n = NULL,
+  above_m = NULL,
+  on_references = TRUE,
+  on_observations = TRUE
+)
 }
 \arguments{
 \item{infercnv_obj}{infercnv_object}
@@ -31,27 +37,27 @@ Apply sampling on an infercnv object to reduce the number of cells in it
 and allow faster plotting or have all groups take up the same height on the heatmap
 }
 \examples{
-# data(data)
-# data(annots)
-# data(genes)
+# data(infercnv_data_example)
+# data(infercnv_annots_example)
+# data(infercnv_genes_example)
 
-# infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-#                                                gene_order_file=genes,
-#                                                annotations_file=annots,
-#                                                ref_group_names=c("normal"))
+# infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
+#                                                           gene_order_file=infercnv_genes_example,
+#                                                           annotations_file=infercnv_annots_example,
+#                                                           ref_group_names=c("normal"))
 
-# infercnv_obj <- infercnv::run(infercnv_obj,
-#                               cutoff=1,
-#                               out_dir=tempfile(), 
-#                               cluster_by_groups=TRUE, 
-#                               denoise=TRUE,
-#                               HMM=FALSE,
-#                               num_threads=2,
-#                               no_plot=TRUE)
+# infercnv_object_example <- infercnv::run(infercnv_object_example,
+#                                          cutoff=1,
+#                                          out_dir=tempfile(), 
+#                                          cluster_by_groups=TRUE, 
+#                                          denoise=TRUE,
+#                                          HMM=FALSE,
+#                                          num_threads=2,
+#                                          no_plot=TRUE)
 
-data(infercnv_object)
+data(infercnv_object_example)
 
-infercnv_obj <- infercnv::sample_object(infercnv_obj, n_cells=5)
+infercnv_object_example <- infercnv::sample_object(infercnv_object_example, n_cells=5)
 # plot result object
 
 }

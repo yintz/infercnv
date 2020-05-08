@@ -4,33 +4,66 @@
 \alias{run}
 \title{run() : Invokes a routine inferCNV analysis to Infer CNV changes given a matrix of RNASeq counts.}
 \usage{
-run(infercnv_obj, cutoff = 1, min_cells_per_gene = 3, out_dir = NULL,
-  window_length = 101, smooth_method = c("pyramidinal", "runmeans",
-  "coordinates"), num_ref_groups = NULL,
-  ref_subtract_use_mean_bounds = TRUE, cluster_by_groups = FALSE,
-  cluster_references = TRUE, k_obs_groups = 1,
-  hclust_method = "ward.D2", max_centered_threshold = 3,
-  scale_data = FALSE, HMM = FALSE, HMM_transition_prob = 1e-06,
+run(
+  infercnv_obj,
+  cutoff = 1,
+  min_cells_per_gene = 3,
+  out_dir = NULL,
+  window_length = 101,
+  smooth_method = c("pyramidinal", "runmeans", "coordinates"),
+  num_ref_groups = NULL,
+  ref_subtract_use_mean_bounds = TRUE,
+  cluster_by_groups = FALSE,
+  cluster_references = TRUE,
+  k_obs_groups = 1,
+  hclust_method = "ward.D2",
+  max_centered_threshold = 3,
+  scale_data = FALSE,
+  HMM = FALSE,
+  HMM_transition_prob = 1e-06,
   HMM_report_by = c("subcluster", "consensus", "cell"),
-  HMM_type = c("i6", "i3"), HMM_i3_pval = 0.05, HMM_i3_use_KS = TRUE,
-  BayesMaxPNormal = 0.5, sim_method = "meanvar",
-  sim_foreground = FALSE, reassignCNVs = TRUE,
+  HMM_type = c("i6", "i3"),
+  HMM_i3_pval = 0.05,
+  HMM_i3_use_KS = TRUE,
+  BayesMaxPNormal = 0.5,
+  sim_method = "meanvar",
+  sim_foreground = FALSE,
+  reassignCNVs = TRUE,
   analysis_mode = c("samples", "subclusters", "cells"),
-  tumor_subcluster_partition_method = c("random_trees", "qnorm",
-  "pheight", "qgamma", "shc"), tumor_subcluster_pval = 0.1,
-  denoise = FALSE, noise_filter = NA, sd_amplifier = 1.5,
-  noise_logistic = FALSE, outlier_method_bound = "average_bound",
-  outlier_lower_bound = NA, outlier_upper_bound = NA,
-  final_scale_limits = NULL, final_center_val = NULL, debug = FALSE,
-  num_threads = 4, plot_steps = FALSE, resume_mode = TRUE,
-  png_res = 300, plot_probabilities = TRUE, save_rds = TRUE,
-  save_final_rds = TRUE, diagnostics = FALSE,
-  remove_genes_at_chr_ends = FALSE, prune_outliers = FALSE,
-  mask_nonDE_genes = FALSE, mask_nonDE_pval = 0.05,
-  test.use = "wilcoxon", require_DE_all_normals = "any",
-  hspike_aggregate_normals = FALSE, no_plot = FALSE,
-  no_prelim_plot = FALSE, output_format = "png", useRaster = TRUE,
-  up_to_step = 100)
+  tumor_subcluster_partition_method = c("random_trees", "qnorm", "pheight", "qgamma",
+    "shc"),
+  tumor_subcluster_pval = 0.1,
+  denoise = FALSE,
+  noise_filter = NA,
+  sd_amplifier = 1.5,
+  noise_logistic = FALSE,
+  outlier_method_bound = "average_bound",
+  outlier_lower_bound = NA,
+  outlier_upper_bound = NA,
+  final_scale_limits = NULL,
+  final_center_val = NULL,
+  debug = FALSE,
+  num_threads = 4,
+  plot_steps = FALSE,
+  resume_mode = TRUE,
+  png_res = 300,
+  plot_probabilities = TRUE,
+  save_rds = TRUE,
+  save_final_rds = TRUE,
+  diagnostics = FALSE,
+  remove_genes_at_chr_ends = FALSE,
+  prune_outliers = FALSE,
+  mask_nonDE_genes = FALSE,
+  mask_nonDE_pval = 0.05,
+  test.use = "wilcoxon",
+  require_DE_all_normals = "any",
+  hspike_aggregate_normals = FALSE,
+  no_plot = FALSE,
+  no_prelim_plot = FALSE,
+  output_format = "png",
+  useRaster = TRUE,
+  up_to_step = 100
+)
 }
 \arguments{
 \item{infercnv_obj}{An infercnv object populated with raw count data}
@@ -216,22 +249,22 @@ infercnv_obj containing filtered and transformed data
 Function doing the actual analysis before calling the plotting functions.
 }
 \examples{
-data(data)
-data(annots)
-data(genes)
+data(infercnv_data_example)
+data(infercnv_annots_example)
+data(infercnv_genes_example)
 
-infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-                                               gene_order_file=genes,
-                                               annotations_file=annots,
-                                               ref_group_names=c("normal"))
+infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
+                                                          gene_order_file=infercnv_genes_example,
+                                                          annotations_file=infercnv_annots_example,
+                                                          ref_group_names=c("normal"))
 
-infercnv_obj <- infercnv::run(infercnv_obj,
-                              cutoff=1,
-                              out_dir=tempfile(), 
-                              cluster_by_groups=TRUE, 
-                              denoise=TRUE,
-                              HMM=FALSE,
-                              num_threads=2,
-                              no_plot=TRUE)
+infercnv_object_example <- infercnv::run(infercnv_object_example,
+                                         cutoff=1,
+                                         out_dir=tempfile(), 
+                                         cluster_by_groups=TRUE, 
+                                         denoise=TRUE,
+                                         HMM=FALSE,
+                                         num_threads=2,
+                                         no_plot=TRUE)
 
 }

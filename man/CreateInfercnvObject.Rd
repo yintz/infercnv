@@ -4,10 +4,16 @@
 \alias{CreateInfercnvObject}
 \title{CreateInfercnvObject}
 \usage{
-CreateInfercnvObject(raw_counts_matrix, gene_order_file, annotations_file,
-  ref_group_names, delim = "\\t", max_cells_per_group = NULL,
-  min_max_counts_per_cell = NULL, chr_exclude = c("chrX", "chrY",
-  "chrM"))
+CreateInfercnvObject(
+  raw_counts_matrix,
+  gene_order_file,
+  annotations_file,
+  ref_group_names,
+  delim = "\\t",
+  max_cells_per_group = NULL,
+  min_max_counts_per_cell = NULL,
+  chr_exclude = c("chrX", "chrY", "chrM")
+)
 }
 \arguments{
 \item{raw_counts_matrix}{the matrix of genes (rows) vs. cells (columns) containing the raw counts
@@ -78,13 +84,13 @@ The annotations_file, containing the cell name and the cell type classification,
 and the ref_group_names vector might look like so:  c("Microglia/Macrophage","Oligodendrocytes (non-malignant)")
 }
 \examples{
-data(data)
-data(annots)
-data(genes)
+data(infercnv_data_example)
+data(infercnv_annots_example)
+data(infercnv_genes_example)
 
-infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=data, 
-                                               gene_order_file=genes,
-                                               annotations_file=annots,
+infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
+                                               gene_order_file=infercnv_genes_example,
+                                               annotations_file=infercnv_annots_example,
                                                ref_group_names=c("normal"))
 
 }
