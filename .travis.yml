@@ -3,7 +3,10 @@ r: bioc-devel
 bioc_required: true
 bioc_use_devel: true
 
-script: true
+cache:
+  apt: true
+  packages: true
+  timeout: 3000
 
 before_install:
   - sudo apt-get update
