@@ -75,8 +75,8 @@ data(infercnv_genes_example)
 data(HMM_states)
 
 infercnv_object_example <- infercnv::CreateInfercnvObject(raw_counts_matrix=infercnv_data_example, 
-                                                          gene_order_file=infercnv_annots_example,
-                                                          annotations_file=infercnv_genes_example,
+                                                          gene_order_file=infercnv_genes_example,
+                                                          annotations_file=infercnv_annots_example,
                                                           ref_group_names=c("normal"))
           
 out_dir = tempfile()
