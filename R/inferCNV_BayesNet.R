@@ -1206,7 +1206,7 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #'                                          HMM=TRUE,
 #'                                          num_threads=2,
 #'                                          no_plot=TRUE)
-#' mcmc_obj <- infercnv::inferCNVBayesNet(infercnv_object   = infercnv_object_example,
+#' mcmc_obj <- infercnv::inferCNVBayesNet(infercnv_obj      = infercnv_object_example,
 #'                                        HMM_states        = HMM_states,
 #'                                        file_dir          = out_dir,
 #'                                        postMcmcMethod    = "removeCNV",
