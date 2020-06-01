@@ -373,6 +373,11 @@ add_to_seurat <- function(seurat_obj = NULL,
 #' @noRd
 #'
 .get_top_n_regions <- function(hmm_genes, sorted_regions, top_n, bp_tolerance) {
+    
+    if is.null(sorted_regions) {
+        return(c())
+    }
+
     j = 1
     top_regions = vector("list", top_n)
     used_regions = c()
@@ -380,7 +385,7 @@ add_to_seurat <- function(seurat_obj = NULL,
     # for(sr in names(sorted_regions)) {
     #     flog.debug(paste(sr, sorted_regions[sr]))
     # }
-    
+
     for (i in seq_len(nrow(sorted_regions))) {
 
         if (names(sorted_regions[i]) %in% used_regions) {
@@ -449,14 +454,14 @@ add_to_seurat <- function(seurat_obj = NULL,
             stop()
         }
 
-        if (j == top_n) {
-            break
-        }
-
         j = j + 1
 
+        if (j == (top_n + 1)) {
+            break
+        }
     }
-    return(top_regions)
+
+    return(top_regions[1:(j-1)])
 }
 
 
