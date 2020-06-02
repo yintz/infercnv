@@ -374,7 +374,7 @@ add_to_seurat <- function(seurat_obj = NULL,
 #'
 .get_top_n_regions <- function(hmm_genes, sorted_regions, top_n, bp_tolerance) {
     
-    if is.null(sorted_regions) {
+    if (is.null(sorted_regions)) {
         return(c())
     }
 
