@@ -317,6 +317,10 @@ add_to_seurat <- function(seurat_obj = NULL,
 
     }
 
+    if (is.null(to_write)) {
+        to_write = ""
+    }
+
     fileConn<-file(paste(infercnv_output_path, "top_losses.txt", sep=.Platform$file.sep), open="w")
     writeLines(to_write, con=fileConn)
     close(fileConn)
@@ -347,6 +351,10 @@ add_to_seurat <- function(seurat_obj = NULL,
         # to_write = c(to_write, paste(feature_name, paste(top_n_dupli[i]]$subclust_name, sep=" "), paste(line_to_write, sep=" "), sep=";"))
         to_write = c(to_write, paste(feature_name, line_to_write, sep=";"))
 
+    }
+
+    if (is.null(to_write)) {
+        to_write = ""
     }
 
     fileConn<-file(paste(infercnv_output_path, "top_duplis.txt", sep=.Platform$file.sep), open="w")
