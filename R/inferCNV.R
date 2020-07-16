@@ -209,34 +209,60 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         stop(error_message)
     }
 
-    ## Determine if we need to do filtering on counts per cell
-    if (! is.null(min_max_counts_per_cell)) {
-        min_counts_per_cell = min_max_counts_per_cell[1]
-        max_counts_per_cell = min_max_counts_per_cell[2]
+    ## extract the genes indicated in the gene ordering file:
+    order_ret <- .order_reduce(data=raw.data, genomic_position=gene_order)
 
-        cs = colSums(raw.data)
+    num_genes_removed = dim(raw.data)[1] - dim(order_ret$exp)[1]
 
-        cells.keep <- which(cs >= min_counts_per_cell & cs <= max_counts_per_cell)
-
-        n_orig_cells <- ncol(raw.data)
-        n_to_remove <- n_orig_cells - length(cells.keep)
-        
-        flog.info(sprintf("-filtering out cells < %g or > %g, removing %g %% of cells",
-                          min_counts_per_cell,
-                          max_counts_per_cell,
-                          n_to_remove/n_orig_cells * 100) )
-        
-        raw.data <- raw.data[, cells.keep]
-        
-        input_classifications <- input_classifications[ rownames(input_classifications) %in% colnames(raw.data), , drop=FALSE]
-
-        orig_ref_group_names = ref_group_names
-        ref_group_names <- ref_group_names[ ref_group_names %in% unique(input_classifications[,1]) ]
-        if (! all.equal(ref_group_names, orig_ref_group_names)) {
-            flog.warn(sprintf("-warning, at least one reference group has been removed due to cells lacking: %s",
-                              orig_ref_group_names[! orig_ref_group_names %in% ref_group_names ] ))
-        }
+    if (num_genes_removed > 0) {
+        flog.info(paste("num genes removed taking into account provided gene ordering list: ",
+                        num_genes_removed,
+                        " = ",
+                        num_genes_removed / dim(raw.data)[1] * 100,
+                        "% removed.", sep=""))
     }
+    
+    raw.data <- order_ret$expr
+    input_gene_order <- order_ret$order
+    
+    if(is.null(raw.data)) {
+        error_message <- paste("None of the genes in the expression data",
+                               "matched the genes in the reference genomic",
+                               "position file. Analysis Stopped.")
+        stop(error_message)
+    }
+
+    ## Determine if we need to do filtering on counts per cell
+    if (is.null(min_max_counts_per_cell)) {
+        min_max_counts_per_cell = c(1, +Inf)
+    }
+
+    min_counts_per_cell = max(1, min_max_counts_per_cell[1])  # so that it is always at least 1
+    max_counts_per_cell = min_max_counts_per_cell[2]
+
+    cs = colSums(raw.data)
+
+    cells.keep <- which(cs >= min_counts_per_cell & cs <= max_counts_per_cell)
+
+    n_orig_cells <- ncol(raw.data)
+    n_to_remove <- n_orig_cells - length(cells.keep)
+    
+    flog.info(sprintf("-filtering out cells < %g or > %g, removing %g %% of cells",
+                      min_counts_per_cell,
+                      max_counts_per_cell,
+                      n_to_remove/n_orig_cells * 100) )
+    
+    raw.data <- raw.data[, cells.keep]
+    
+    input_classifications <- input_classifications[ rownames(input_classifications) %in% colnames(raw.data), , drop=FALSE]
+
+    orig_ref_group_names = ref_group_names
+    ref_group_names <- ref_group_names[ ref_group_names %in% unique(input_classifications[,1]) ]
+    if (! all.equal(ref_group_names, orig_ref_group_names)) {
+        flog.warn(sprintf("-warning, at least one reference group has been removed due to cells lacking: %s",
+                          orig_ref_group_names[! orig_ref_group_names %in% ref_group_names ] ))
+    }
+
     
     
     if (! is.null(max_cells_per_group)) {
@@ -275,30 +301,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     ## rest of the cells are the 'observed' set.
     all_group_names <- unique(input_classifications[,1])
     obs_group_names <- setdiff(all_group_names, ref_group_names)
-        
-    ## extract the genes indicated in the gene ordering file:
-    order_ret <- .order_reduce(data=raw.data, genomic_position=gene_order)
 
-    num_genes_removed = dim(raw.data)[1] - dim(order_ret$exp)[1]
-
-    if (num_genes_removed > 0) {
-        flog.info(paste("num genes removed taking into account provided gene ordering list: ",
-                        num_genes_removed,
-                        " = ",
-                        num_genes_removed / dim(raw.data)[1] * 100,
-                        "% removed.", sep=""))
-    }
-    
-    raw.data <- order_ret$expr
-    input_gene_order <- order_ret$order
-    
-    if(is.null(raw.data)) {
-        error_message <- paste("None of the genes in the expression data",
-                               "matched the genes in the reference genomic",
-                               "position file. Analysis Stopped.")
-        stop(error_message)
-    }
-    
     ## define groupings according to the observation annotation names
     
     obs_group_cell_indices = list()
