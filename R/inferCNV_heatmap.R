@@ -265,11 +265,15 @@ plot_cnv <- function(infercnv_obj,
     }
 
     name_ref_groups = names(infercnv_obj@reference_grouped_cell_indices)
-    grouping_key_coln[2] <- floor(123/(max(nchar(name_ref_groups)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
-    if (grouping_key_coln[2] < 1) {
-        grouping_key_coln[2] <- 1
+    if (is.null(name_ref_groups)) {
+        grouping_key_coln[2] = 1
+    } else {
+        grouping_key_coln[2] <- floor(123/(max(nchar(name_ref_groups)) + 4))  ## 123 is the max width in number of characters, 4 is the space taken by the color box itself and the spacing around it
+        if (grouping_key_coln[2] < 1) {
+            grouping_key_coln[2] <- 1
+        }
     }
-    
+
     grouping_key_rown <- c()
     grouping_key_rown[1] <- ceiling(length(obs_annotations_names)/grouping_key_coln[1])
     grouping_key_rown[2] <- ceiling(length(name_ref_groups)/grouping_key_coln[2])
@@ -327,10 +331,11 @@ plot_cnv <- function(infercnv_obj,
     ref_groups <- updated_ref_groups
     
     nb_breaks <- 16
-    breaksList_t <-
-        seq(min(min(obs_data, na.rm=TRUE), min(ref_data_t, na.rm=TRUE)),
-        max(max(obs_data,na.rm=TRUE), max(ref_data_t, na.rm=TRUE)),
-        length.out=nb_breaks)
+    # breaksList_t <-
+    #     seq(min(min(obs_data, na.rm=TRUE), min(ref_data_t, na.rm=TRUE)),
+    #     max(max(obs_data,na.rm=TRUE), max(ref_data_t, na.rm=TRUE)),
+    #     length.out=nb_breaks)
+    breaksList_t <- seq(x.range[1], x.range[2], length.out=nb_breaks)
 
 
     gene_position_breaks = NULL
