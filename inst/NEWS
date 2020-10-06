@@ -1,3 +1,17 @@
+Changes in version 1.5.1 (2020-10-06)
++ Fix to reload in cases where comparing NULL/NA.
++ Fixed issue in denoising when trying to reload results from step 18 or 19.
++ Fixed MCMC Diagnostic plots by adding diagnostic generation.
++ Update included data objects to contain additional option slot, and prevent common name collisions.
++ Fully rename data objects and name of the vars they provide.
++ Fix reference plotting not having access to the actual subclustering information but that of the previous provided data object (that was renamed to avoid name collision by mistake like this one).
++ Added checks in add_to_seurat methods that there are gains/losses found when taking the top hits.
++ Added check that output to write in add_to_seurat top regions is not null and output an empty file without erroring if it is.
++ Change to remove genes in "chr_exclude" from counts before doing the read level filtering of cells.
++ Added minimum read count requirement per cell of 1 after removal of "chr_exclude" genes so that there are no divisions by 0 when normalizing.
++ Changed default min_max_counts_per_cell to select cells with at least 100 counts by default.
++ Fix to plotting for HMM coloring of heatmap when the full range of values are not present.
++ Fix to plotting when no reference groups are used to not produce warnings.
 Changes in version 1.3.6 (2020-03-20)
 + Fix a read.table() call who's behavior was changed by the latest R base devel changes.
 Changes in version 1.3.5 (2020-03-02)
