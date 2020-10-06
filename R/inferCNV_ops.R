@@ -382,7 +382,7 @@ run <- function(infercnv_obj,
                         flog.info(paste0("Using backup HMM from step ", i))
                     }
                 }
-                else {
+                else if (i != 17 && i != 18 && i != 19) {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
                     if (skip_past > i) { # in case denoise was found
                         if (20 > i) { # if 21/20 already found and checked HMM too, stop
