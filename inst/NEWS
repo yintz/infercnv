@@ -1,3 +1,5 @@
+Changes in version 1.5.2 (2020-10-23)
++ Added reordering of cells in metadata exported to a seurat object so that it always matches, in case the cells are not sorted in the same order in the data provided to infercnv and in seurat.
 Changes in version 1.5.1 (2020-10-06)
 + Fix to reload in cases where comparing NULL/NA.
 + Fixed issue in denoising when trying to reload results from step 18 or 19.
