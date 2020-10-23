@@ -1255,7 +1255,9 @@ inferCNVBayesNet <- function( file_dir,
         stop(error_message)
     }
     if (!(CORES == 1)){
-        if (as.integer(CORES) > detectCores()){
+        if (is.na(detectCores())){
+            futile.logger::flog.warn(paste("Unable to detect number of cores available through parallel:detectCores(), using the provided number", CORES))
+        } else if (as.integer(CORES) > detectCores()){
             error_message <- paste("Too many cores previded. The following system has ",detectCores(), " cores.",
                                    "Please select an appropriate amount.")
             futile.logger::flog.error(error_message)
