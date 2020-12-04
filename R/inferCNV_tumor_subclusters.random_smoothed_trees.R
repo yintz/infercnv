@@ -20,12 +20,12 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
     }
     else {
-        if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
-            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE), all_references=unlist(infercnv_obj@reference_grouped_cell_indices, use.names=FALSE))
-        }
-        else {
-            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
-        }
+        # if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
+        tumor_groups <- c(list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE)), infercnv_obj@reference_grouped_cell_indices)
+        # }
+        # else {
+        #     tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
+        # }
     }
 
     res = list()

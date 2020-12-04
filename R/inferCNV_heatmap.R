@@ -969,7 +969,12 @@ plot_cnv <- function(infercnv_obj,
     # order so the current groups are shown and seperated.
 
     ordered_names <- c()
-    if (all(name_ref_groups %in% infercnv_obj@tumor_subclusters$subclusters) || !is.null(infercnv_obj@tumor_subclusters$hc[["all_references"]])) { 
+    if (!is.null(infercnv_obj@tumor_subclusters$hc[["all_references"]])) {  # this allows runs made with some versions of infercnv to be plotted, but shouldn't be happening anymore
+        ordered_names <- infercnv_obj@tumor_subclusters$hc[["all_references"]]$labels[infercnv_obj@tumor_subclusters$hc[["all_references"]]$order]
+        split_groups <- rep(1, length(ordered_names))
+        ref_data <- ref_data[, ordered_names, drop=FALSE]
+    }
+    else if (all(name_ref_groups %in% infercnv_obj@tumor_subclusters$subclusters)) { 
         if (cluster_references) {
             split_groups <- c()
             for (i in seq_along(name_ref_groups)) {
@@ -992,11 +997,6 @@ plot_cnv <- function(infercnv_obj,
                 }
             }
         }
-        else {
-            ordered_names <- infercnv_obj@tumor_subclusters$hc[["all_references"]]$labels[infercnv_obj@tumor_subclusters$hc[["all_references"]]$order]
-            split_groups <- rep(1, length(ordered_names))
-        }
-
         ref_data <- ref_data[, ordered_names, drop=FALSE]
     }
     else {

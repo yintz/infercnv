@@ -17,12 +17,12 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
     }
     else {
-        if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
-            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE), all_references=unlist(infercnv_obj@reference_grouped_cell_indices, use.names=FALSE))
-        }
-        else {
-            tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
-        }
+        # if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
+        tumor_groups <- c(list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE)), infercnv_obj@reference_grouped_cell_indices)
+        # }c
+        # else {
+        #     tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
+        # }
     }
 
     for (tumor_group in names(tumor_groups)) {
