@@ -38,7 +38,12 @@ add_to_seurat <- function(seurat_obj = NULL,
     }
 
     # all(colnames(infercnv_obj@expr.data)[match(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data))] == colnames(seurat_obj@assays$RNA))
-    cell_ordering_match = match(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data))
+    if (is.null(seurat_obj)) {
+        cell_ordering_match = seq_len(ncol(infercnv_obj@expr.data))
+    }
+    else {
+        cell_ordering_match = match(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data))
+    }
     
     ## add check that data row/col names match seurat obj
     analysis_mode_pattern = "samples"
