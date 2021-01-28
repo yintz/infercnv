@@ -219,7 +219,9 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
     sm_expr_data = apply(expr_matrix, 2, caTools::runmean, k=window_size)
-    sm_expr_data = scale(sm_expr_data, center=TRUE, scale=FALSE)
+    # sm_expr_data = scale(sm_expr_data, center=TRUE, scale=FALSE)
+    sm_expr_data = .center_columns(sm_expr_data, 'median')
+
     
     d = dist(t(sm_expr_data))
     
@@ -257,7 +259,8 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         
         ## smooth it and re-center:
         sm.rand.tumor.expr.data = apply(rand.tumor.expr.data, 2, caTools::runmean, k=window_size)
-        sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=TRUE, scale=FALSE)
+        # sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=TRUE, scale=FALSE)
+        sm.rand.tumor.expr.data = .center_columns(sm.rand.tumor.expr.data, 'median')
         
         rand.dist = dist(t(sm.rand.tumor.expr.data))
         h_rand <- hclust(rand.dist, method=hclust_method)
