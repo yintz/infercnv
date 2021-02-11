@@ -7,7 +7,7 @@ Authors@R: c( person("Timothy", "Tickle", email = "ttickle@broadinstitute.org", 
 BugReports: https://github.com/broadinstitute/inferCNV/issues
 Description: Using single-cell RNA-Seq expression to visualize CNV in cells.
 biocViews: Software, CopyNumberVariation, VariantDetection, StructuralVariation, GenomicVariation, Genetics, Transcriptomics, StatisticalMethod, Bayesian, HiddenMarkovModel, SingleCell
-Depends: R(>= 4.0)
+Depends: R(>= 4.1)
 License: BSD_3_clause + file LICENSE
 LazyData: TRUE
 VignetteBuilder: knitr
