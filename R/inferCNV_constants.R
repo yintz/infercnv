@@ -22,6 +22,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom methods setClass new is
 #' @importFrom gplots bluered
 #' @importFrom ape write.tree as.phylo read.tree drop.tip
+#' @importFrom phyclust get.rooted.tree.height
 #' @importFrom fastcluster hclust
 #' @import RColorBrewer
 #' @importFrom Matrix Matrix rowMeans colSums
@@ -37,6 +38,8 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom caTools runmean
 #' @importFrom coin oneway_test pvalue
 #' @importFrom digest digest
+#' @importFrom RANN nn2
+#' @importFrom leiden leiden
 #' @importFrom reshape melt
 #' @importFrom rjags jags.model coda.samples
 #' @importFrom BiocGenerics counts t

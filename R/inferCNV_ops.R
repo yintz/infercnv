@@ -89,11 +89,16 @@
 #' @param analysis_mode options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
 #'                                                          default: samples (fastest, but subclusters is ideal)
 #'
-#' @param tumor_subcluster_partition_method  method for defining tumor subclusters. Options('random_trees', 'qnorm')
-#'                                           random_trees: (default) slow but best. Uses permutation statistics w/ tree construction.
+#' @param tumor_subcluster_partition_method  method for defining tumor subclusters. Options('leiden', 'random_trees', 'qnorm')
+#'                                           leiden: Runs a nearest neighbor search, where communities are then partitionned with the Leiden algorithm.
+#'                                           random_trees: Slow, uses permutation statistics w/ tree construction.
 #'                                           qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval
 #'
 #' @param tumor_subcluster_pval max p-value for defining a significant tumor subcluster (default: 0.1)
+#'
+#' @param k_nn number k of nearest neighbors to search for when using the Leiden partition method for subclustering (default: 30)
+#'
+#' @param leiden_resolution resolution parameter for the Leiden algorithm
 #'
 #'
 #'
@@ -249,9 +254,10 @@ run <- function(infercnv_obj,
 
                 ## tumor subclustering options
                 analysis_mode=c('samples', 'subclusters', 'cells'), # for filtering and HMM
-                tumor_subcluster_partition_method=c('random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
+                tumor_subcluster_partition_method=c('leiden', 'random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 tumor_subcluster_pval=0.1,
-
+                k_nn=30,
+                leiden_resolution=1,
 
                 ## noise settings
                 denoise=FALSE,
@@ -669,7 +675,7 @@ run <- function(infercnv_obj,
         
         ## #####################################################
         ## Apply maximum centered expression thresholds to data
-        ## Cap values between threshold and -threshold, retaining earlier center
+        ## Cap values between threshold and -threshold, retaining earlier center_cell_expr_across_chromosome
         
         flog.info(sprintf("\n\n\tSTEP %02d: apply max centered expression threshold: %s\n", step_count, max_centered_threshold))
 
@@ -921,6 +927,8 @@ run <- function(infercnv_obj,
         if (skip_past < step_count) {
             infercnv_obj <- define_signif_tumor_subclusters(infercnv_obj,
                                                             p_val=tumor_subcluster_pval,
+                                                            k_nn=k_nn,
+                                                            leiden_resolution=leiden_resolution,
                                                             hclust_method=hclust_method,
                                                             cluster_by_groups=cluster_by_groups,
                                                             partition_method=tumor_subcluster_partition_method)
@@ -3160,7 +3168,7 @@ compareNA <- function(v1,v2) {
     relevant_args[[step_i]] = c("analysis_mode", "tumor_subcluster_partition_method")
     if (analysis_mode == 'subclusters' & tumor_subcluster_partition_method != 'random_trees') {
         resume_file_token = paste0(resume_file_token, '.', tumor_subcluster_partition_method)
-        relevant_args[[step_i]] = c(relevant_args[[step_i]], "tumor_subcluster_pval", "hclust_method", "cluster_by_groups")
+        relevant_args[[step_i]] = c(relevant_args[[step_i]], "k_nn", "leiden_resolution", "tumor_subcluster_pval", "hclust_method", "cluster_by_groups")
         expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_tumor_subclusters%s.infercnv_obj", step_i, resume_file_token))
     }
     else if (analysis_mode != 'subclusters') {

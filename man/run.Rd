@@ -30,9 +30,11 @@ run(
   sim_foreground = FALSE,
   reassignCNVs = TRUE,
   analysis_mode = c("samples", "subclusters", "cells"),
-  tumor_subcluster_partition_method = c("random_trees", "qnorm", "pheight", "qgamma",
-    "shc"),
+  tumor_subcluster_partition_method = c("leiden", "random_trees", "qnorm", "pheight",
+    "qgamma", "shc"),
   tumor_subcluster_pval = 0.1,
+  k_nn = 30,
+  leiden_resolution = 1,
   denoise = FALSE,
   noise_filter = NA,
   sd_amplifier = 1.5,
@@ -151,11 +153,16 @@ i3: infercnv 3-state model (del, neutral, amp) configured based on normal cells 
 \item{analysis_mode}{options(samples|subclusters|cells), Grouping level for image filtering or HMM predictions.
 default: samples (fastest, but subclusters is ideal)}
 
-\item{tumor_subcluster_partition_method}{method for defining tumor subclusters. Options('random_trees', 'qnorm')
-random_trees: (default) slow but best. Uses permutation statistics w/ tree construction.
+\item{tumor_subcluster_partition_method}{method for defining tumor subclusters. Options('leiden', 'random_trees', 'qnorm')
+leiden: Runs a nearest neighbor search, where communities are then partitionned with the Leiden algorithm.
+random_trees: Slow, uses permutation statistics w/ tree construction.
 qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval}
 
-\item{tumor_subcluster_pval}{max p-value for defining a significant tumor subcluster (default: 0.1)
+\item{tumor_subcluster_pval}{max p-value for defining a significant tumor subcluster (default: 0.1)}
+
+\item{k_nn}{number k of nearest neighbors to search for when using the Leiden partition method for subclustering (default: 30)}
+
+\item{leiden_resolution}{resolution parameter for the Leiden algorithm
 
 
 

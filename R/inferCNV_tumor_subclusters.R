@@ -1,5 +1,5 @@
 
-define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, cluster_by_groups, partition_method, restrict_to_DE_genes=FALSE) {
+define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, leiden_resolution=1, hclust_method="ward.D2", cluster_by_groups=TRUE, partition_method="leiden", restrict_to_DE_genes=FALSE) {
     
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
@@ -19,7 +19,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     else {
         # if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
         tumor_groups <- c(list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE)), infercnv_obj@reference_grouped_cell_indices)
-        # }c
+        # }
         # else {
         #     tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
         # }
@@ -30,8 +30,9 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
         
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
-        tumor_group_cell_names <- colnames(infercnv_obj@expr.data[,tumor_group_idx])
+        # tumor_group_cell_names <- colnames(infercnv_obj@expr.data[,tumor_group_idx])
         tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx, drop=FALSE]
+        tumor_group_cell_names <- colnames(tumor_expr_data)
 
         if (restrict_to_DE_genes) {
             p_vals <- .find_DE_stat_significance(normal_expr_data, tumor_expr_data)
@@ -41,8 +42,13 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
             
         }
         
-        tumor_subcluster_info <- .single_tumor_subclustering(tumor_group, tumor_group_idx, tumor_group_cell_names, tumor_expr_data, p_val, hclust_method, partition_method)
-        
+        if (partition_method == "leiden") {
+            tumor_subcluster_info <- .single_tumor_leiden_subclustering(tumor_group=tumor_group, tumor_group_idx=tumor_group_idx, tumor_group_cell_names=tumor_group_cell_names, tumor_expr_data=tumor_expr_data, k_nn=k_nn, leiden_resolution=leiden_resolution, hclust_method=hclust_method)
+        }
+        else {
+            tumor_subcluster_info <- .single_tumor_subclustering(tumor_group=tumor_group, tumor_group_idx=tumor_group_idx, tumor_group_cell_names=tumor_group_cell_names, tumor_expr_data=tumor_expr_data, p_val=p_val, hclust_method=hclust_method, partition_method=partition_method)
+        }
+
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
         res$subclusters[[tumor_group]] <- tumor_subcluster_info$subclusters
 
@@ -53,7 +59,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
 
     if (! is.null(infercnv_obj@.hspike)) {
         flog.info("-mirroring for hspike")
-        infercnv_obj@.hspike <- define_signif_tumor_subclusters(infercnv_obj@.hspike, p_val, hclust_method, cluster_by_groups, partition_method, restrict_to_DE_genes)
+        infercnv_obj@.hspike <- define_signif_tumor_subclusters(infercnv_obj@.hspike, p_val=p_val, k_nn=k_nn, leiden_resolution=leiden_resolution, hclust_method=hclust_method, cluster_by_groups=cluster_by_groups, partition_method=partition_method, restrict_to_DE_genes=restrict_to_DE_genes)
     }
         
     
@@ -388,4 +394,103 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val, hclust_method, 
     return(h)
 }
 
+
+.single_tumor_leiden_subclustering <- function(tumor_group, tumor_group_idx, tumor_group_cell_names, tumor_expr_data, k_nn, leiden_resolution, hclust_method) {
+    res = list()
+    res$subclusters = list()
+
+    if (k_nn > length(tumor_group_idx)) {
+        flog.info(paste0("Less cells in group ", tumor_group, " then k_nn setting. Keeping as a single subcluster."))
+        res$subclusters[[ tumor_group ]] = tumor_group_idx
+        res$hc = hclust(dist(t(tumor_expr_data)), method=hclust_method)
+        return(res)
+    }
+
+    snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
+    adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
+    rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- tumor_group_cell_names
+    for(ii in seq_len(ncol(tumor_expr_data))) {
+        adjacency_matrix[ii, tumor_group_cell_names[snn[ii, ]]] <- 1L
+    }
+
+    # check that rows add to k_nn
+    # sum(adjacency_matrix[1,]) == k_nn
+    # table(apply(adjacency_matrix, 1, sum))
+    partition <- leiden(adjacency_matrix, resolution=leiden_resolution)
+
+    tmp_full_phylo = NULL
+    added_height = 1
+    # find a way to sort partition by size to make sure not to start with a single cell partition
+    for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
+        res$subclusters[[ paste(tumor_group, i, sep="_s") ]] = tumor_group_idx[which(partition == i)]
+
+        if (length(which(partition == i)) >= 2) {
+            tmp_phylo = as.phylo(hclust(dist(t(tumor_expr_data[, which(partition == i), drop=FALSE])), method=hclust_method))
+
+            if (is.null(tmp_full_phylo)) {
+                tmp_full_phylo = tmp_phylo
+            }
+            else {
+                height1 = get.rooted.tree.height(tmp_phylo)
+                height2 = get.rooted.tree.height(tmp_full_phylo)
+
+                if (height1 == height2) {
+                     tmp_phylo$root.edge = added_height
+                     tmp_full_phylo$root.edge = added_height
+                }
+                else if (height1 > height2) {
+                     tmp_phylo$root.edge = added_height
+                     tmp_full_phylo$root.edge = height1 - height2 + added_height
+                }
+                else {  # height2 > height1
+                     tmp_phylo$root.edge = height2 - height1 + added_height
+                     tmp_full_phylo$root.edge = added_height
+                }
+
+                tmp_full_phylo = tmp_phylo + tmp_full_phylo  # x + y is a shortcut for: bind.tree(x, y, position = if (is.null(x$root.edge)) 0 else x$root.edge)
+            }
+        }
+        else {  # ==1
+            add_single_branch_to_phylo(tmp_full_phylo, tumor_group_cell_names[which(partition == i)])
+        }
+    }
+
+    # as.hclust(merge(merge(as.dendrogram(subclust_obj@tumor_subclusters$hc$`all_observations`), as.dendrogram(subclust_obj@tumor_subclusters$hc$`Microglia/Macrophage`)), as.dendrogram(subclust_obj@tumor_subclusters$hc$`Oligodendrocytes (non-malignant)`)))
+    res$hc = as.hclust(tmp_full_phylo)
+
+    return(res)
+}
+
+
+add_single_branch_to_phylo = function(in_tree, label) {
+    in_root_height = get.rooted.tree.height(in_tree)
+
+    n_tips = length(in_tree$tip.label)
+
+    tip_nodes = which(in_tree$edge <= n_tips)
+    internal_nodes = which(in_tree$edge > n_tips)
+
+    # update the existing list of internal node splits to make space for the new top branching
+    in_tree$edge[tip_nodes] = in_tree$edge[tip_nodes] + 1
+    in_tree$edge[internal_nodes] = in_tree$edge[internal_nodes] + 2
+
+    # update the existing list of internal nodes to add the new top branching
+    in_tree$edge = rbind(c(n_tips + 2, n_tips + 3), in_tree$edge)
+    in_tree$edge = rbind(c(n_tips + 2, 1), in_tree$edge)
+
+    # update the internal nodes count
+    in_tree$Nnode = in_tree$Nnode + 1
+
+    # add the heights of the 2 new branches from the new top branching
+    root_height = 1
+    if (!is.null(in_tree$root.edge)) {
+        root_height = in_tree$root.edge
+    }
+    in_tree$edge.length = c(in_root_height + root_height, root_height, in_tree$edge.length)
+
+    # update the list of tip labels
+    in_tree$tip.label = c(label, in_tree$tip.label)
+
+    return(in_tree)
+}
 
