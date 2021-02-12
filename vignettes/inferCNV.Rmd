@@ -29,7 +29,7 @@ vignette: >
 # Installation
 ## Required dependencies
 
-_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r Biocpkg("BiocGenerics")`, `r CRANpkg("binhf")`, `r CRANpkg("caTools")`, `r CRANpkg("coda")`, `r CRANpkg("coin")`, `r CRANpkg("dplyr")`, `r CRANpkg("doparallel")`, `r Biocpkg("edgeR")`, `r CRANpkg("fastcluster")`, `r CRANpkg("fitdistrplus")`, `r CRANpkg("foreach")`, `r CRANpkg("futile.logger")`, `r CRANpkg("future")`, `r CRANpkg("gplots")`, `r CRANpkg("ggplot2")`, `r CRANpkg("HiddenMarkov")`, `r CRANpkg("reshape")`, `r CRANpkg("rjags")`, `r CRANpkg("RColorBrewer")`, `r Biocpkg("SingleCellExperiment")`, `r Biocpkg("SummarizedExperiment")` and imports functions from the archived `r CRANpkg("GMD")`.
+_inferCNV_ uses the _R_ packages `r CRANpkg("ape")`, `r Biocpkg("BiocGenerics")`, `r CRANpkg("binhf")`, `r CRANpkg("caTools")`, `r CRANpkg("coda")`, `r CRANpkg("coin")`, `r CRANpkg("dplyr")`, `r CRANpkg("doparallel")`, `r Biocpkg("edgeR")`, `r CRANpkg("fastcluster")`, `r CRANpkg("fitdistrplus")`, `r CRANpkg("foreach")`, `r CRANpkg("futile.logger")`, `r CRANpkg("future")`, `r CRANpkg("gplots")`, `r CRANpkg("ggplot2")`, `r CRANpkg("HiddenMarkov")`, `r CRANpkg("leiden")`, `r CRANpkg("phyclust")`, `r CRANpkg("RANN")`, `r CRANpkg("reshape")`, `r CRANpkg("rjags")`, `r CRANpkg("RColorBrewer")`, `r Biocpkg("SingleCellExperiment")`, `r Biocpkg("SummarizedExperiment")`, `r CRANpkg("tidyr")` and imports functions from the archived `r CRANpkg("GMD")`.
 
 <!--
 [https://cran.r-project.org/web/packages/ape/index.html]

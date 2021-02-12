@@ -46,7 +46,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
             tumor_subcluster_info <- .single_tumor_leiden_subclustering(tumor_group=tumor_group, tumor_group_idx=tumor_group_idx, tumor_group_cell_names=tumor_group_cell_names, tumor_expr_data=tumor_expr_data, k_nn=k_nn, leiden_resolution=leiden_resolution, hclust_method=hclust_method)
         }
         else {
-            tumor_subcluster_info <- .single_tumor_subclustering(tumor_group=tumor_group, tumor_group_idx=tumor_group_idx, tumor_group_cell_names=tumor_group_cell_names, tumor_expr_data=tumor_expr_data, p_val=p_val, hclust_method=hclust_method, partition_method=partition_method)
+            tumor_subcluster_info <- .single_tumor_subclustering(tumor_name=tumor_group, tumor_group_idx=tumor_group_idx, tumor_group_cell_names=tumor_group_cell_names, tumor_expr_data=tumor_expr_data, p_val=p_val, hclust_method=hclust_method, partition_method=partition_method)
         }
 
         res$hc[[tumor_group]] <- tumor_subcluster_info$hc
