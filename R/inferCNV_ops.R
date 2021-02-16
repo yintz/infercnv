@@ -1371,7 +1371,7 @@ run <- function(infercnv_obj,
             }
             invisible(gc())
             
-            if (! no_plot) {
+            if (plot_steps) {
                 plot_cnv(infercnv_obj,
                          k_obs_groups=k_obs_groups,
                          cluster_by_groups=cluster_by_groups,
