@@ -364,11 +364,11 @@ run <- function(infercnv_obj,
     call_match[[1]] <- as.symbol(".get_relevant_args_list")
     reload_info = eval(call_match)
 
-    reload_info$relevant_args
-    reload_info$expected_file_names
+    # reload_info$relevant_args
+    # reload_info$expected_file_names
 
     skip_hmm = 0
-    skip_mcmc = 0
+    # skip_mcmc = 0
     skip_past = 0
     
     if (resume_mode) {
@@ -376,25 +376,40 @@ run <- function(infercnv_obj,
         for (i in rev(seq_along(reload_info$expected_file_names))) {
             if (file.exists(reload_info$expected_file_names[[i]])) {
                 flog.info(paste0("Trying to reload from step ", i))
-                if ((i == 17 || i == 18 || i == 19) && skip_hmm == 0) {
-                    hmm.infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
-                    if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), hmm.infercnv_obj@options)) {
-                        rm(hmm.infercnv_obj)
-                        invisible(gc())
+                # if ((i == 17 && skip_hmm == 0) || (i %in% (18:20))) {
+                if ((i == 20) || (i %in% c(19, 17) && skip_hmm == 0) || (i == 18 && skip_hmm == 3)) {
+                    if (i == 18) {  # mcmc_obj
+                        mcmc_obj = readRDS(reload_info$expected_file_names[[i]])
+                        if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), mcmc_obj@options)) {
+                            rm(mcmc_obj)
+                            invisible(gc())
+                        }
+                        else {
+                            mcmc_obj@options = infercnv_obj@options
+                            skip_hmm = i - 16    # storing in skip_mcmc rather than skip_hmm because skip_hmm/hmm_obj is still required for applying bayesian filter at step 19
+                            flog.info(paste0("Using backup MCMC from step ", i))
+                        }
                     }
                     else {
-                        hmm.infercnv_obj@options = infercnv_obj@options
-                        skip_hmm = i - 16
-                        flog.info(paste0("Using backup HMM from step ", i))
+                        hmm.infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
+                        if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), hmm.infercnv_obj@options)) {
+                            rm(hmm.infercnv_obj)
+                            invisible(gc())
+                        }
+                        else {
+                            hmm.infercnv_obj@options = infercnv_obj@options
+                            skip_hmm = i - 16
+                            flog.info(paste0("Using backup HMM from step ", i))
+                        }
                     }
                 }
-                else if (i != 17 && i != 18 && i != 19) {
+                else if (i %in% 17:20) {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
                     if (skip_past > i) { # in case denoise was found
-                        if (20 > i) { # if 21/20 already found and checked HMM too, stop
+                        if (21 > i) { # if 22/21 already found and checked HMM too, stop
                             break
                         }
-                        else { # if 21 denoise found, don't check 20 maskDE
+                        else { # if 22 denoise found, don't check 21 maskDE
                             next
                         }
                     }
@@ -1167,7 +1182,7 @@ run <- function(infercnv_obj,
     step_count = step_count + 1 # 18
     if (skip_hmm < 2) {
         if (HMM == TRUE && BayesMaxPNormal > 0 && length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
-            flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNV's\n", step_count))
+            flog.info(sprintf("\n\n\tSTEP %02d: Run Bayesian Network Model on HMM predicted CNVs\n", step_count))
             
             ## the MCMC  object
             
@@ -1187,13 +1202,29 @@ run <- function(infercnv_obj,
                                                    cluster_by_groups = cluster_by_groups,
                                                    reassignCNVs      = reassignCNVs)
 
-            mcmc_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj",
-                                                   step_count, hmm_resume_file_token))
+            # mcmc_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj",
+            #                                        step_count, hmm_resume_file_token))
             
             if (save_rds) {
-                saveRDS(mcmc_obj, file=mcmc_obj_file)
+                # saveRDS(mcmc_obj, file=mcmc_obj_file)
+                saveRDS(mcmc_obj, reload_info$expected_file_names[[step_count]])
             }
+        }
+    }
 
+
+        ## ############################################################
+        ## Bayesian Filtering
+        ## ############################################################
+
+    if (up_to_step == step_count) {
+        flog.info("Reached up_to_step")
+        return(infercnv_obj)
+    }
+    step_count = step_count + 1 # 19
+    if (skip_hmm < 3) {
+        if (HMM == TRUE && BayesMaxPNormal > 0 && length(unique(apply(hmm.infercnv_obj@expr.data,2,unique))) != 1 ) {
+            flog.info(sprintf("\n\n\tSTEP %02d: Filter HMM predicted CNVs based on the Bayesian Network Model results and BayesMaxPNormal\n", step_count))
             ## Filter CNV's by posterior Probabilities
             mcmc_obj_hmm_states_list <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
                                                                      HMM_states = hmm.infercnv_obj@expr.data, 
@@ -1231,7 +1262,7 @@ run <- function(infercnv_obj,
             ## report predicted cnv regions:
             adjust_genes_regions_report(mcmc_obj_hmm_states_list[[1]],
                                         # input_filename_prefix=sprintf("%02d_HMM_preds", (step_count-1)),
-                                        input_filename_prefix=sprintf("%02d_HMM_pred%s", (step_count-1), hmm_resume_file_token),
+                                        input_filename_prefix=sprintf("%02d_HMM_pred%s", (step_count-2), hmm_resume_file_token),
                                         output_filename_prefix=sprintf("HMM_CNV_predictions.%s.Pnorm_%g", hmm_resume_file_token, BayesMaxPNormal),
                                         out_dir=out_dir)
         }
@@ -1244,8 +1275,8 @@ run <- function(infercnv_obj,
         flog.info("Reached up_to_step")
         return(infercnv_obj)
     }
-    step_count = step_count + 1 # 19
-    if (skip_hmm < 3) {
+    step_count = step_count + 1 # 20
+    if (skip_hmm < 4) {
         if (HMM) {
             flog.info(sprintf("\n\n\tSTEP %02d: Converting HMM-based CNV states to repr expr vals\n", step_count))
             
@@ -1287,7 +1318,7 @@ run <- function(infercnv_obj,
         flog.info("Reached up_to_step")
         return(infercnv_obj)
     }
-    step_count = step_count + 1 # 20
+    step_count = step_count + 1 # 21
     if (mask_nonDE_genes) {
         
         if (!has_reference_cells(infercnv_obj)) {
@@ -1334,7 +1365,7 @@ run <- function(infercnv_obj,
         flog.info("Reached up_to_step")
         return(infercnv_obj)
     }
-    step_count = step_count + 1 # 21
+    step_count = step_count + 1 # 22
     if (denoise) {
         
         ## ##############################
@@ -3213,11 +3244,22 @@ compareNA <- function(v1,v2) {
         # mcmc_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token))
         # mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj", step_i, hmm_resume_file_token, BayesMaxPNormal))
         # expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token)), 
+        expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.infercnv_obj", step_i, hmm_resume_file_token))
+    }
+    step_i = step_i + 1
+
+    # 19 _HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj
+    relevant_args[[step_i]] = c("HMM", "BayesMaxPNormal")
+    if (HMM == TRUE & BayesMaxPNormal > 0) {
+        # relevant_args[[step_i]] = c(relevant_args[[step_i]], "diagnostics", "reassignCNVs")
+        # mcmc_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token))
+        # mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj", step_i, hmm_resume_file_token, BayesMaxPNormal))
+        # expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token)), 
         expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj", step_i, hmm_resume_file_token, BayesMaxPNormal))
     }
     step_i = step_i + 1
 
-    # 19 _HMM_pred.repr_intensities%s.Pnorm_%g.infercnv_obj
+    # 20 _HMM_pred.repr_intensities%s.Pnorm_%g.infercnv_obj
     relevant_args[[step_i]] = c("HMM")
     if (HMM) {
         relevant_args[[step_i]] = c(relevant_args[[step_i]], "BayesMaxPNormal")
@@ -3226,7 +3268,7 @@ compareNA <- function(v1,v2) {
     }
     step_i = step_i + 1
 
-    # 20 _mask_nonDE%s.infercnv_obj
+    # 21 _mask_nonDE%s.infercnv_obj
     relevant_args[[step_i]] = c("mask_nonDE_genes")
     if (mask_nonDE_genes) {
         relevant_args[[step_i]] = c(relevant_args[[step_i]], "require_DE_all_normals", "test.use", "mask_nonDE_pval")
@@ -3234,7 +3276,7 @@ compareNA <- function(v1,v2) {
     }
     step_i = step_i + 1
 
-    # 21 _denoise%s.NF_%s.SD_%g.NL_%s.infercnv_obj
+    # 22 _denoise%s.NF_%s.SD_%g.NL_%s.infercnv_obj
     relevant_args[[step_i]] = c("denoise")
     if (denoise) {
         relevant_args[[step_i]] = c(relevant_args[[step_i]], "noise_filter", "sd_amplifier", "noise_logistic")

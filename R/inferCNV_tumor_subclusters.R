@@ -399,8 +399,8 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     res = list()
     res$subclusters = list()
 
-    if (k_nn > length(tumor_group_idx)) {
-        flog.info(paste0("Less cells in group ", tumor_group, " then k_nn setting. Keeping as a single subcluster."))
+    if (k_nn >= length(tumor_group_idx)) {
+        flog.info(paste0("Less cells in group ", tumor_group, " than k_nn setting. Keeping as a single subcluster."))
         res$subclusters[[ tumor_group ]] = tumor_group_idx
         res$hc = hclust(dist(t(tumor_expr_data)), method=hclust_method)
         return(res)
