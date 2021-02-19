@@ -403,7 +403,7 @@ run <- function(infercnv_obj,
                         }
                     }
                 }
-                else if (i %in% 17:20) {
+                else if (!(i %in% 17:20)) {
                     reloaded_infercnv_obj = readRDS(reload_info$expected_file_names[[i]])
                     if (skip_past > i) { # in case denoise was found
                         if (21 > i) { # if 22/21 already found and checked HMM too, stop
