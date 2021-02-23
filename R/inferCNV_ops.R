@@ -3244,7 +3244,7 @@ compareNA <- function(v1,v2) {
         # mcmc_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token))
         # mcmc.infercnv_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.Pnorm_%g.infercnv_obj", step_i, hmm_resume_file_token, BayesMaxPNormal))
         # expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token)), 
-        expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.infercnv_obj", step_i, hmm_resume_file_token))
+        expected_file_names[[step_i]] = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj", step_i, hmm_resume_file_token))
     }
     step_i = step_i + 1
 
