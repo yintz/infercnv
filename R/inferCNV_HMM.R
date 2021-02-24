@@ -945,7 +945,7 @@ adjust_genes_regions_report <- function(hmm.infercnv_obj,
         
         for (i in seq(2,length(gene_idx))) {
             state = chr_states[i]
-            pos_end = gene_order[gene_idx[i-1],,drop=TRUE]
+            pos_end = gene_order[gene_idx[i],,drop=TRUE]
             next_gene_entry = data.frame(state=state,
                                          gene=gene_names[gene_idx[i]],
                                          chr=pos_end$chr,

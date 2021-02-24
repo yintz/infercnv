@@ -1132,14 +1132,6 @@ run <- function(infercnv_obj,
                 
             }
             
-            ## ##################################
-            ## Note, HMM invercnv object is only leveraged here, but stored as file for future use:
-            ## ##################################
-            
-            
-            if (save_rds) {
-                saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
-            }
             
             ## report predicted cnv regions:
             generate_cnv_region_reports(hmm.infercnv_obj,
@@ -1148,6 +1140,15 @@ run <- function(infercnv_obj,
                                         ignore_neutral_state=hmm_center,
                                         by=HMM_report_by)
 
+            
+            ## ##################################
+            ## Note, HMM invercnv object is only leveraged here, but stored as file for future use:
+            ## ##################################
+            
+            if (save_rds) {
+                saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
+            }
+            
             invisible(gc())
                         
             if (! no_plot) {
