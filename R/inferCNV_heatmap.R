@@ -1047,8 +1047,8 @@ plot_cnv <- function(infercnv_obj,
 
     # Make row color column colors from groupings
     flog.info(paste("plot_cnv_references:Number reference groups=",
-                           length(ref_groups)),
-                           sep=" ")
+                           length(ref_groups),
+                           sep=" "))
 
     # Transpose data.
     ref_data <- t(ref_data)
