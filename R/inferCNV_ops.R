@@ -377,7 +377,7 @@ run <- function(infercnv_obj,
             if (file.exists(reload_info$expected_file_names[[i]])) {
                 flog.info(paste0("Trying to reload from step ", i))
                 # if ((i == 17 && skip_hmm == 0) || (i %in% (18:20))) {
-                if ((i == 20) || (i %in% c(19, 17) && skip_hmm == 0) || (i == 18 && skip_hmm == 3)) {
+                if ((i == 20) || (i %in% seq(17, 19) && skip_hmm == 0) || (i == 17 && skip_hmm == 2)) {   # step 17 appears in two conditions because if last found step is 18, step 19 requires the results of both step 17 and 18 to run
                     if (i == 18) {  # mcmc_obj
                         mcmc_obj = readRDS(reload_info$expected_file_names[[i]])
                         if (!.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), mcmc_obj@options)) {
@@ -386,7 +386,7 @@ run <- function(infercnv_obj,
                         }
                         else {
                             mcmc_obj@options = infercnv_obj@options
-                            skip_hmm = i - 16    # storing in skip_mcmc rather than skip_hmm because skip_hmm/hmm_obj is still required for applying bayesian filter at step 19
+                            skip_hmm = max(skip_hmm, i - 16)
                             flog.info(paste0("Using backup MCMC from step ", i))
                         }
                     }
@@ -398,7 +398,7 @@ run <- function(infercnv_obj,
                         }
                         else {
                             hmm.infercnv_obj@options = infercnv_obj@options
-                            skip_hmm = i - 16
+                            skip_hmm = max(skip_hmm, i - 16)  # max for case where step 18 is found, so can be skipped, but still needed to reload step 17 results to be able to run step 19
                             flog.info(paste0("Using backup HMM from step ", i))
                         }
                     }
@@ -1148,7 +1148,7 @@ run <- function(infercnv_obj,
             if (save_rds) {
                 saveRDS(hmm.infercnv_obj, reload_info$expected_file_names[[step_count]])
             }
-            
+
             invisible(gc())
                         
             if (! no_plot) {
