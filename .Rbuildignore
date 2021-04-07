@@ -27,3 +27,4 @@
 ^external
 ^\.gitmodules
 ^scripts
+^WDL/infercnv.wdl
