@@ -16,7 +16,7 @@
 
 # Load libraries
 library(optparse)
-library(logging)
+library(futile.logger)
 #if (!require('fastcluster')) {
 #    warning("fastcluster library not available, using the default hclust method instead.")
 #}
@@ -24,7 +24,7 @@ library(infercnv)
 options("preferRaster" = TRUE)
 
 # Logging level choices
-C_LEVEL_CHOICES <- names(loglevels)
+C_LEVEL_CHOICES <- c("DEBUG", "INFO", "WARN", "ERROR")
 # Visualization outlier thresholding and bounding method choices
 C_VIS_OUTLIER_CHOICES <- c("average_bound")
 C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
@@ -34,7 +34,8 @@ CHR = "chr"
 START = "start"
 STOP = "stop"
 
-logging::basicConfig(level='INFO') #initialize to info setting.
+
+flog.threshold("INFO") #initialize to info setting.
 
 #' Check arguments and make sure the user input meet certain
 #' additional requirements.
@@ -46,10 +47,10 @@ logging::basicConfig(level='INFO') #initialize to info setting.
 #'    @return: Updated arguments
 check_arguments <- function(arguments){
 
-    logging::loginfo(paste("::check_arguments:Start", sep=""))
+    flog.info(paste("::check_arguments:Start", sep=""))
     # Require the name of a output pdf file
     if ( (!( "output_dir" %in% names(arguments))) || (arguments$output_dir == "") || (is.na(arguments$output_dir)) ) {
-        logging::logerror(paste(":: --output_dir: Please enter a file path to ",
+        flog.error(paste(":: --output_dir: Please enter a file path to ",
                                 "save the heatmap.",
                                  sep=""))
 
@@ -58,7 +59,7 @@ check_arguments <- function(arguments){
 
     # Require the cut off to be above 0
     if (arguments$cutoff < 0){
-        logging::logerror(paste(":: --cutoff: Please enter a value",
+        flog.error(paste(":: --cutoff: Please enter a value",
                                 "greater or equal to zero for the cut off.",
                                 sep=""))
 
@@ -67,29 +68,30 @@ check_arguments <- function(arguments){
 
     # Require the logging level to be one handled by logging
     if (!(arguments$log_level %in% C_LEVEL_CHOICES)){
-        logging::logerror(paste(":: --log_level: Please use a logging level ",
+        flog.error(paste(":: --log_level: Please use a logging level ",
                                 "given here: ", C_LEVEL_CHOICES,
                                 collapse=",", sep=""))
         stop("error, not recognizing log level")
     }
+    flog.threshold(arguments$log_level)
 
     # Require the visualization outlier detection to be a correct choice.
     if (!(arguments$bound_method_vis %in% C_VIS_OUTLIER_CHOICES)){
-        logging::logerror(paste(":: --vis_bound_method: Please use a method ",
+        flog.error(paste(":: --vis_bound_method: Please use a method ",
                                 "given here: ", C_VIS_OUTLIER_CHOICES,
                                 collapse=",", sep=""))
         stop("error, must specify acceptable --vis_bound_method")
     }
 
     if (! (arguments$ref_subtract_method %in% C_REF_SUBTRACT_METHODS) ) {
-        logging::logerror(paste(":: --ref_subtract_method: acceptable values are: ",
+        flog.error(paste(":: --ref_subtract_method: acceptable values are: ",
                                 paste(C_REF_SUBTRACT_METHODS, collapse=","), sep="") )
         stop("error, must specify acceptable --ref_subtract_method")
     }
 
 
     if (! (arguments$hclust_method %in% C_HCLUST_METHODS) ) {
-        logging::logerror(paste(":: --hclust_method: acceptable values are: ",
+        flog.error(paste(":: --hclust_method: acceptable values are: ",
                                 paste(C_HCLUST_METHODS, collapse=","), sep="") )
         stop("error, must specify acceptable --hclust_method")
     }
@@ -113,7 +115,7 @@ check_arguments <- function(arguments){
     }
 
     if (arguments$contig_tail < 0){
-        logging::logerror(paste(":: --tail: Please enter a value",
+        flog.error(paste(":: --tail: Please enter a value",
                                 "greater or equal to zero for the tail.",
                                 sep=""))
 
@@ -129,7 +131,7 @@ check_arguments <- function(arguments){
     }
     else {
         if(!is.null(arguments$num_ref_groups)) {
-            logging::logerror(paste("::  cannot use --num_ref_groups without",
+            flog.error(paste("::  cannot use --num_ref_groups without",
                                     "using --ref_groups as the average of all",
                                     "cells is used."))
             stop(978)
@@ -697,12 +699,12 @@ if (!is.null(args$ref_group_names)) {
 #}
 
 # Log the input parameters
-logging::loginfo(paste("::Input arguments. Start."))
+flog.info(paste("::Input arguments. Start."))
 for (arg_name in names(args)){
-    logging::loginfo(paste(":Input_Argument:",arg_name,"=",args[[arg_name]],
+    flog.info(paste(":Input_Argument:",arg_name,"=",args[[arg_name]],
                            sep=""))
 }
-logging::loginfo(paste("::Input arguments. End."))
+flog.info(paste("::Input arguments. End."))
 
 infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=args$raw_counts_matrix,
                                                gene_order_file=args$gene_order_file,
