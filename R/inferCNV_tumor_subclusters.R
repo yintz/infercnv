@@ -451,7 +451,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
             }
         }
         else {  # ==1
-            add_single_branch_to_phylo(tmp_full_phylo, tumor_group_cell_names[which(partition == i)])
+            tmp_full_phylo = add_single_branch_to_phylo(tmp_full_phylo, tumor_group_cell_names[which(partition == i)])
         }
     }
 
