@@ -1,4 +1,4 @@
-Changes in version 1.7.2 (2020-02-??)
+Changes in version 1.7.2 (2020-05-05)
 + New dependencies : RANN, leiden, phyclust
 + Added new partition method for subclustering that uses the Leiden algorithm based on a K-nn adjacency matrix.
 + Changed the default subclustering method to leiden which is much faster than the random trees method.
