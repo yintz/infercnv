@@ -12,6 +12,7 @@ plot_per_group(
   n_cells = 1000,
   every_n = NULL,
   above_m = 1000,
+  k_obs_groups = 1,
   base_filename = "infercnv_per_group",
   output_format = "png",
   write_expr_matrix = TRUE,
@@ -38,6 +39,8 @@ Requires above_m to be set to work, overriding n_cells parameter. (Default: NULL
 
 \item{above_m}{Sample only groups that have at least above_m cells if sampling is enabled. (default: 1000)
 Does not require every_n to be set.}
+
+\item{k_obs_groups}{Number of groups to break each group in with cutree (in the color bars on the left side of the plot only). (Default: 1)}
 
 \item{base_filename}{Base prefix for the output files names. 
 Will be followed by OBS/REF to indidate the type of the group, and the group name. (Default: "infercnv_per_group")}

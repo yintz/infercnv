@@ -444,6 +444,8 @@ sample_object <- function(infercnv_obj,
 #'
 #' @param above_m Sample only groups that have at least above_m cells if sampling is enabled. (default: 1000)
 #' Does not require every_n to be set.
+#'
+#' @param k_obs_groups Number of groups to break each group in with cutree (in the color bars on the left side of the plot only). (Default: 1)
 #' 
 #' @param every_n Sample 1 cell every_n cells for each group that has above_m cells, if sampling is enabled. 
 #' If subclusters are defined, this will make sure that at least one cell per subcluster is sampled. 
@@ -505,6 +507,7 @@ plot_per_group <- function(infercnv_obj,
     n_cells=1000,
     every_n=NULL,
     above_m=1000,
+    k_obs_groups=1,
     base_filename="infercnv_per_group",
     output_format="png",
     write_expr_matrix=TRUE,
@@ -536,12 +539,12 @@ plot_per_group <- function(infercnv_obj,
             if (!is.null(infercnv_obj@tumor_subclusters)) {
                 new_obj@tumor_subclusters$hc = list()
                 new_obj@tumor_subclusters$subclusters = list()
-                new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
+                new_obj@tumor_subclusters$hc[["all_observations"]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
 
                 # match(pre_obj@observation_grouped_cell_indices$CBTP3_187188XL, unlist(pre_obj@tumor_subclusters$subclusters$CBTP3_187188XL, use.names=FALSE))
                 # match -> pos1 in pos2
                 for (subcluster_id in names(infercnv_obj@tumor_subclusters$subclusters[[sample_name]])) {
-                    new_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@reference_grouped_cell_indices[[sample_name]]))
+                    new_obj@tumor_subclusters$subclusters[["all_observations"]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@reference_grouped_cell_indices[[sample_name]]))
                 }
             }
             else {
@@ -568,9 +571,9 @@ plot_per_group <- function(infercnv_obj,
                 title=paste("inferCNV", sample_name),
                 obs_title=sample_name,
                 ref_title="",
-                cluster_by_groups=TRUE,
-                cluster_references=TRUE,
-                k_obs_groups=3,
+                cluster_by_groups=FALSE,
+                cluster_references=FALSE,
+                k_obs_groups=k_obs_groups,
                 contig_cex=1,
                 x.center=plot_center,
                 x.range=plot_range,
@@ -602,10 +605,10 @@ plot_per_group <- function(infercnv_obj,
             if (!is.null(infercnv_obj@tumor_subclusters)) {
                 new_obj@tumor_subclusters$hc = list()
                 new_obj@tumor_subclusters$subclusters = list()
-                new_obj@tumor_subclusters$hc[[sample_name]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
+                new_obj@tumor_subclusters$hc[["all_observations"]] = infercnv_obj@tumor_subclusters$hc[[sample_name]]
              
                 for (subcluster_id in names(infercnv_obj@tumor_subclusters$subclusters[[sample_name]])) {
-                    new_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
+                    new_obj@tumor_subclusters$subclusters[["all_observations"]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
                 }
             }
             else {
@@ -633,9 +636,9 @@ plot_per_group <- function(infercnv_obj,
                 title=paste("inferCNV", sample_name),
                 obs_title=sample_name,
                 ref_title="",
-                cluster_by_groups=TRUE,
-                cluster_references=TRUE,
-                k_obs_groups=3,
+                cluster_by_groups=FALSE,
+                cluster_references=FALSE,
+                k_obs_groups=k_obs_groups,
                 contig_cex=1,
                 x.center=plot_center,
                 x.range=plot_range,
