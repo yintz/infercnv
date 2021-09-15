@@ -3077,8 +3077,13 @@ cross_cell_normalize <- function(infercnv_obj) {
 # This function returns TRUE wherever elements are the same, including NA's,
 # and FALSE everywhere else.
 compareNA <- function(v1,v2) {
-    same <- (v1 == v2) || (is.null(v1) & is.null(v2)) || (is.na(v1) & is.na(v2))
-    return(same)
+    if ((is.null(v1) != is.null(v2)) || (length(v1) != length(v2))) {
+        return(FALSE)
+    }
+    if (all((v1 == v2) | (is.na(v1) & is.na(v2)))) {
+        return(TRUE)
+    }
+    return(FALSE)
 }
 
 #' @return FALSE if relevant args are not identical, TRUE if they are
