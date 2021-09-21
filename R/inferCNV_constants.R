@@ -42,7 +42,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom leiden leiden
 #' @importFrom reshape melt
 #' @importFrom rjags jags.model coda.samples
-#' @importFrom BiocGenerics counts t
+#' @importFrom BiocGenerics counts t mean
 #' @importFrom SummarizedExperiment start colData rowData assays assays<- rowData<- colData<- 
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom tidyr gather

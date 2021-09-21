@@ -142,7 +142,7 @@ plot_cnv <- function(infercnv_obj,
         expr_dat_file <- paste(out_dir, paste("expr.", output_filename, ".dat", sep=""), sep="/")
 
         if ("matrix" %in% is(plot_data)) {
-            write.table(plot_data, file=expr_dat_file, quote=FALSE, sep="\t")
+            write.table(as.matrix(plot_data), file=expr_dat_file, quote=FALSE, sep="\t")
         }
         
     }
@@ -625,7 +625,7 @@ plot_cnv <- function(infercnv_obj,
                 memb_file <- file(paste(file_base_name,
                                         paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
                                         sep=.Platform$file.sep))
-                write.table(obs_data[group_memb,], memb_file)
+                write.table(as.matrix(obs_data[group_memb,]), memb_file)
                 # Record seperation
                 ordered_memb <- which(ordered_names %in% group_memb)
                 if (is.null(obs_seps)) {
@@ -722,7 +722,7 @@ plot_cnv <- function(infercnv_obj,
                 memb_file <- file(paste(file_base_name,
                                         paste(hcl_desc,"HCL",cut_group,"members.txt",sep="_"),
                                         sep=.Platform$file.sep))
-                write.table(obs_data[group_memb,], memb_file)
+                write.table(as.matrix(obs_data[group_memb,]), memb_file)
                 # Record seperation
                 ordered_memb <- which(ordered_names %in% group_memb)
                 if (is.null(obs_seps)) {
@@ -844,14 +844,14 @@ plot_cnv <- function(infercnv_obj,
         row.names(obs_data) <- orig_row_names
 
         if (do_plot) {
-            write.table(t(obs_data[data_observations$rowInd,data_observations$colInd]),
+            write.table(as.matrix(t(obs_data[data_observations$rowInd,data_observations$colInd])),
                     file=observation_file_base)
         }
         else {
             # Rowv inherits dendrogram, Colv is FALSE
             # rowInd = seq_len(nrow(ref_data)) == everything in normal order
             # colInd = seq_len(ncol(ref_data)) == everything in normal order
-            write.table(t(obs_data), file=observation_file_base)
+            write.table(as.matrix(t(obs_data)), file=observation_file_base)
         }
     }
 }
@@ -1139,12 +1139,12 @@ plot_cnv <- function(infercnv_obj,
         ## Rowv is FALSE, Colv is FALSE
 
         if (do_plot) {
-            write.table(t(ref_data[data_references$rowInd,data_references$colInd]),
+            write.table(as.matrix(t(ref_data[data_references$rowInd,data_references$colInd])),
                         file=reference_data_file)
         }
         else {
             # colInd = seq_len(ncol(ref_data)) == everything in normal order
-            write.table(t(ref_data[rev(seq_len(nrow(ref_data))), ]),
+            write.table(as.matrix(t(ref_data[rev(seq_len(nrow(ref_data))), ])),
                         file=reference_data_file)
         }
     }
