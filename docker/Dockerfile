@@ -13,24 +13,17 @@ RUN apt-get update && apt-get -y install curl libssl-dev libcurl4-openssl-dev \
 
 # Install R and Bioconductor packages
 RUN echo "options(repos = c(CRAN = 'https://cran.rstudio.com'))" >.Rprofile
-RUN R -e "install.packages(c('devtools','KernSmooth', 'lattice', 'Matrix', \
-                             'survival', 'MASS', 'TH.data', 'nlme', 'ape', \
-                             'fitdistrplus', 'multcomp', 'coin', 'binhf', \
-                             'caTools', 'coda', 'dplyr', 'doparallel', \
-                             'fastcluster', 'foreach', 'futile.logger', \
-                             'future', 'gplots', 'ggplot2', 'HiddenMarkov', \
-                             'reshape', 'rjags', 'RColorBrew', 'doParallel', \
-                             'tidyr', 'gridExtra', 'argparse', 'knitr', \
-                             'rmarkdown', 'testthat', 'optparse', 'logging', \
-                             'data.table', 'BiocManager'), repos = 'http://cran.us.r-project.org')"
+RUN R -e "BiocManager::install('infercnv')"
 RUN R -e "install.packages(c('cluster', 'Seurat'), repos = 'http://cran.us.r-project.org')"
-RUN R -e "BiocManager::install(c('BiocGenerics', 'edgeR', 'SingleCellExperiment', \
-            'SummarizedExperiment', 'BiocStyle', 'BiocCheck'))"
+RUN R -e "install.packages('phyclust', repos = 'http://cran.us.r-project.org')"
+
+RUN pip3 install numpy igraph pandas leidenalg
+ENV RETICULATE_PYTHON=/usr/bin/python3
 
 # Checkout and install infercnv
 # update to version bump commit
 RUN git clone https://github.com/broadinstitute/infercnv && cd infercnv && \
-      git checkout master && git checkout cc19b7efaf09e3eff329a93df1ada475c73d2b40 && \
+      git checkout master && git checkout f8616bcb848c75fb1bd9d206f4cfd2795e1d4925 && \
       R CMD INSTALL . 
 
 ENV PATH=${PATH}:/infercnv/scripts
