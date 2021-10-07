@@ -73,7 +73,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     sm_tumor_expr_data = .center_columns(sm_tumor_expr_data, 'median')
         
     
-    hc <- hclust(dist(t(sm_tumor_expr_data)), method=hclust_method)
+    hc <- hclust(parallelDist(t(sm_tumor_expr_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
     
     tumor_subcluster_info$hc = hc
     
@@ -223,7 +223,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     sm_expr_data = .center_columns(sm_expr_data, 'median')
 
     
-    d = dist(t(sm_expr_data))
+    d = parallelDist(t(sm_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS)
     
     h_obs = hclust(d, method=hclust_method)
     
@@ -262,7 +262,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
         # sm.rand.tumor.expr.data = scale(sm.rand.tumor.expr.data, center=TRUE, scale=FALSE)
         sm.rand.tumor.expr.data = .center_columns(sm.rand.tumor.expr.data, 'median')
         
-        rand.dist = dist(t(sm.rand.tumor.expr.data))
+        rand.dist = parallelDist(t(sm.rand.tumor.expr.data), threads=infercnv.env$GLOBAL_NUM_THREADS)
         h_rand <- hclust(rand.dist, method=hclust_method)
         max_rand_height <- max(h_rand$height)
 

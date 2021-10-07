@@ -670,7 +670,7 @@ plot_cnv <- function(infercnv_obj,
             else {
                 data_to_cluster <- obs_data[cell_indices_in_group, hcl_group_indices, drop=FALSE]
                 flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
-                group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
+                group_obs_hcl <- hclust(parallelDist(data_to_cluster), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
                 ordered_names <- c(ordered_names, group_obs_hcl$labels[group_obs_hcl$order])
 
                 if (isfirst) {
@@ -704,7 +704,7 @@ plot_cnv <- function(infercnv_obj,
         # HCL with a inversely weighted euclidean distance.
         flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
         if (nrow(obs_data) > 1) {
-            obs_hcl <- hclust(dist(obs_data[, hcl_group_indices]), method=hclust_method)
+            obs_hcl <- hclust(parallelDist(obs_data[, hcl_group_indices]), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
                                             
             write.tree(as.phylo(obs_hcl),
                        file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
@@ -1004,7 +1004,7 @@ plot_cnv <- function(infercnv_obj,
             if (cluster_references) {
                 order_idx <- lapply(ref_groups, function(ref_grp) {
                     if (cluster_references && length(ref_grp) > 2) {
-                        ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
+                        ref_hcl <- hclust(parallelDist(t(ref_data[, ref_grp])), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
                         ref_grp <- ref_grp[ref_hcl$order]
                     }
                     ref_grp
@@ -1021,7 +1021,7 @@ plot_cnv <- function(infercnv_obj,
         }
         else {
             if (cluster_references) {
-                ref_hcl <- hclust(dist(t(ref_data)), method=hclust_method)  # all ref_data is part of the only group
+                ref_hcl <- hclust(parallelDist(t(ref_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)  # all ref_data is part of the only group
                 # order_idx <- unlist(ref_groups)[ref_hcl$order]
                 order_idx = ref_hcl$order # ref_data has been reindexed beforehand in the calling method
             }
@@ -1057,7 +1057,7 @@ plot_cnv <- function(infercnv_obj,
     # if (cluster_references) {
     #   if (number_references > 1) {
     #       for (i in seq_len(length(ref_groups))) {
-    #           ref_hcl <- hclust(dist(ref_data[ref_groups[[i]], ]), method=hclust_method)
+    #           ref_hcl <- hclust(parallelDist(ref_data[ref_groups[[i]], ]), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
     #           ref_data[ref_groups[[i]], ] <- ref_data[ref_groups[[i]][ref_hcl$order], , drop=FALSE]
     #       }
     #   }
@@ -2639,7 +2639,7 @@ gdist <-
         )
 
     if(method %in% COMMON_METHODS) {
-        d <- dist(x=x, method=method, diag=diag, upper=upper, p=MoreArgs$p)
+        d <- parallelDist(x=x, method=method, diag=diag, upper=upper, p=MoreArgs$p, threads=infercnv.env$GLOBAL_NUM_THREADS)
     } else if (method %in% c("correlation","correlation.of.observations","correlation.of.variables")) {
     ##d <- .call.FUN(FUN,x,MoreArgs)
     d <- FUN(x, method=MoreArgs$method, use=MoreArgs$use)

@@ -1752,7 +1752,7 @@ split_references <- function(infercnv_obj,
     
     ref_expr_matrix = infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
     
-    hc <- hclust(dist(t(ref_expr_matrix)), method=hclust_method)
+    hc <- hclust(parallelDist(t(ref_expr_matrix)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
     
     split_groups <- cutree(hc, k=num_groups)
     
@@ -3064,7 +3064,7 @@ cross_cell_normalize <- function(infercnv_obj) {
         
         grp_expr_data = infercnv_obj@expr.data[, grp_cell_idx, drop=FALSE]
         
-        hc <- hclust(dist(t(grp_expr_data)), method=hclust_method)
+        hc <- hclust(parallelDist(t(grp_expr_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
 
         infercnv_obj@tumor_subclusters$hc[[grp_name]] <- hc
     }
