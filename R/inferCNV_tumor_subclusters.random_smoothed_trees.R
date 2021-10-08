@@ -73,7 +73,7 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     sm_tumor_expr_data = .center_columns(sm_tumor_expr_data, 'median')
         
     
-    hc <- hclust(parallelDist(t(sm_tumor_expr_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
+    hc <- hclust(parallelDist(t(sm_tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
     
     tumor_subcluster_info$hc = hc
     

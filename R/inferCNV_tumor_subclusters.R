@@ -77,7 +77,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     
     if (ncol(tumor_expr_data) > 2) {
 
-        hc <- hclust(parallelDist(t(tumor_expr_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
+        hc <- hclust(parallelDist(t(tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
         
         tumor_subcluster_info$hc = hc
         
@@ -233,7 +233,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         stop("Error, found too many names in current clade")
     }
     
-    hc <- hclust(parallelDist(t(tumor_expr_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
+    hc <- hclust(parallelDist(t(tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
 
     rand_params_info = .parameterize_random_cluster_heights(tumor_expr_data, hclust_method)
 
@@ -398,7 +398,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     if (k_nn >= length(tumor_group_idx)) {
         flog.info(paste0("Less cells in group ", tumor_group, " than k_nn setting. Keeping as a single subcluster."))
         res$subclusters[[ tumor_group ]] = tumor_group_idx
-        res$hc = hclust(parallelDist(t(tumor_expr_data)), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS)
+        res$hc = hclust(parallelDist(t(tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
         return(res)
     }
 
@@ -422,7 +422,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         # names(res$subclusters[[ paste(tumor_group, i, sep="_s") ]]) = tumor_group_idx[which(partition == i)]
 
         if (length(which(partition == i)) >= 2) {
-            tmp_phylo = as.phylo(hclust(parallelDist(t(tumor_expr_data[, which(partition == i), drop=FALSE])), method=hclust_method, threads=infercnv.env$GLOBAL_NUM_THREADS))
+            tmp_phylo = as.phylo(hclust(parallelDist(t(tumor_expr_data[, which(partition == i), drop=FALSE]), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method))
 
             if (is.null(tmp_full_phylo)) {
                 tmp_full_phylo = tmp_phylo
