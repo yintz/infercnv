@@ -2127,14 +2127,14 @@ heatmap.cnv <-
         if (!is.null(gene_position_breaks)) {
             image(gene_position_breaks, seq_len(nr+1),
                   x,
-                  xlim=0.5+c(0,max(gene_position_breaks)), ylim=0.5+c(0,nr),
+                  # xlim=0.5+c(0,max(gene_position_breaks)), ylim=0.5+c(0,nr),
                   axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=FALSE,
                   ...)
 
         } else {
             image(seq_len(nc), seq_len(nr),
                   x,
-                  xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
+                  # xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
                   axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=useRaster,
                   ...)
         }
