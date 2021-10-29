@@ -403,16 +403,25 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     }
 
     snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
-    adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
-    rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- colnames(tumor_expr_data)
-    for(ii in seq_len(ncol(tumor_expr_data))) {
-        adjacency_matrix[ii, colnames(tumor_expr_data)[snn[ii, ]]] <- 1L
-    }
+
+    sparse_adjacency_matrix <- sparseMatrix(
+        i = rep(seq_len(ncol(tumor_expr_data)), each=k_nn), 
+        j = unlist(t(snn)), 
+        dims = c(ncol(tumor_expr_data), ncol(tumor_expr_data)),
+        dimnames = list(colnames(tumor_expr_data), colnames(tumor_expr_data))
+    )
+    partition = leiden(sparse_adjacency_matrix, resolution_parameter=leiden_resolution)
+
+    # adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
+    # rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- colnames(tumor_expr_data)
+    # for(ii in seq_len(ncol(tumor_expr_data))) {
+    #     adjacency_matrix[ii, colnames(tumor_expr_data)[snn[ii, ]]] <- 1L
+    # }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     # check that rows add to k_nn
     # sum(adjacency_matrix[1,]) == k_nn
     # table(apply(adjacency_matrix, 1, sum))
-    partition <- leiden(adjacency_matrix, resolution_parameter=leiden_resolution)
+    # partition <- leiden(adjacency_matrix, resolution_parameter=leiden_resolution)
 
     tmp_full_phylo = NULL
     added_height = 1

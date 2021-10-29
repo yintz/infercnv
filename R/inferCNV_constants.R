@@ -26,7 +26,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom fastcluster hclust
 #' @importFrom parallelDist parallelDist
 #' @import RColorBrewer
-#' @importFrom Matrix Matrix rowMeans colSums
+#' @importFrom Matrix Matrix rowMeans colSums sparseMatrix
 #' @importFrom dplyr %>% count
 #' @import fitdistrplus
 #' @import foreach
