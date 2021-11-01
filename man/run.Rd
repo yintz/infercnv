@@ -248,6 +248,10 @@ other experimental opts}
 \item{useRaster}{Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it. (default: TRUE)}
 
 \item{up_to_step}{run() only up to this exact step number (default: 100 >> 23 steps currently in the process)}
+
+\item{plot_chr_scale}{Whether to scale the chromosme width on the heatmap based on their actual size rather than just the number of expressed genes.}
+
+\item{chr_lengths}{A named list of chromsomes lengths to use when plot_chr_scale=TRUE, or else chromosome size is assumed to be the last chromosome's stop position + 10k bp}
 }
 \value{
 infercnv_obj containing filtered and transformed data
