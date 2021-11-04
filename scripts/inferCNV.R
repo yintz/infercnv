@@ -657,6 +657,15 @@ pargs <- optparse::add_option(pargs, c("--median_filter"),
                                          " filtering for an additional plot. ",
                                          "[Default %default]"))
 
+pargs <- optparse::add_option(pargs, c("--top_n"),
+                              type="numeric",
+                              default=10,
+                              action="store",
+                              dest="top_n",
+                              metavar="Top n exported CNV",
+                              help=paste("(int) number of top CNVs to export with add_to_seurat.",
+                                         "[Default %default]"))
+
 args <- optparse::parse_args(pargs)
 
 # Check arguments
@@ -783,4 +792,10 @@ if (args$median_filter) {
              output_filename="infercnv_pdf",
              write_expr_matrix=TRUE)
 
+}
+
+if (args$HMM) {
+    add_to_seurat(infercnv_output_path=args$out_dir,
+                  top_n=args$top_n
+    )
 }
