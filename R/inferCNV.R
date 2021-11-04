@@ -309,6 +309,12 @@ CreateInfercnvObject <- function(raw_counts_matrix,
         cell_indices = which(input_classifications[,1] == name_group)
         obs_group_cell_indices[[ toString(name_group) ]] <- cell_indices
     }
+
+    if ((2*ncol(raw.data)) >=  10^getOption("scipen")) {
+        flog.warn(paste0("Please use \"option(scipen = 100)\" before running infercnv ",
+                         "if you are using the analysis_mode=\"subclusters\" option or ",
+                         "you may encounter an error while the hclust is being generated."))
+    }
     
     object <- new(
         Class = "infercnv",
