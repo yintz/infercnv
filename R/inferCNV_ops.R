@@ -302,6 +302,8 @@ run <- function(infercnv_obj,
                 no_plot = FALSE,
                 no_prelim_plot = FALSE,
                 output_format = "png",
+                plot_chr_scale = FALSE,
+                chr_lengths = NULL,
                 useRaster = TRUE,
 
                 up_to_step=100
