@@ -1,3 +1,14 @@
+Changes in 1.11.1 (2021-11-08)
++ Link "plot_chr_scale" and "chr_lengths" options from plot_cnv() to run().
++ Added parameter k_obs_group to plot_per_group so that it can be applied to each of the subsequent group plotting calls if desired.
++ Added a check to plot_cnv when using the dynamic_resize option that the increased size is not above the max size allowed when using Cairo as the graphical back end on Linux. If it is, set the size to the highest allowed instead.
++ Replaced all calls to dist() with parallelDist(num_threads). (suggestion from @WalterMuskovic)
++ Updated the code to run the Leiden clustering to be able to handle bigger datasets (work around R not having long vectors implemented) and be more efficient.
++ Add a warning to infercnv object creation if the number of cells is more than half of the setting for scientific notation in R, as it may cause an issue while using as.hclust(phylo_obj) in the Leiden subclustering step.
++ Updated plot_cnv method and imports to handle sparse matrices.
++ Fix main heatmap drawing which in some cases caused the plotting to be out of field in the output.
++ Fix method that compares arguments with backups with changes in R 4.1.1
+
 Changes in 1.10.1 (2021-11-08)
 + Fix missing colnames in subcluster information when using the Leiden method (used downstream by add_to_seurat).
 + Fix "plot_per_group" to handle infercnv objects with NULL clustering information (mainly to be able to plot using existing results but changing the annotations).
