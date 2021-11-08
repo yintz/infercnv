@@ -14,7 +14,7 @@ RUN apt-get update && apt-get -y install curl libssl-dev libcurl4-openssl-dev \
 # Install R and Bioconductor packages
 RUN echo "options(repos = c(CRAN = 'https://cran.rstudio.com'))" >.Rprofile
 RUN R -e "BiocManager::install('infercnv')"
-RUN R -e "install.packages(c('cluster', 'Seurat'), repos = 'http://cran.us.r-project.org')"
+RUN R -e "install.packages(c('cluster', 'Seurat', 'parallelDist', 'optparse'), repos = 'http://cran.us.r-project.org')"
 RUN R -e "install.packages('phyclust', repos = 'http://cran.us.r-project.org')"
 
 RUN pip3 install numpy igraph pandas leidenalg

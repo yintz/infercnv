@@ -63,6 +63,8 @@ run(
   no_plot = FALSE,
   no_prelim_plot = FALSE,
   output_format = "png",
+  plot_chr_scale = FALSE,
+  chr_lengths = NULL,
   useRaster = TRUE,
   up_to_step = 100
 )
@@ -244,6 +246,10 @@ other experimental opts}
 \item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)}
 
 \item{output_format}{Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")}
+
+\item{plot_chr_scale}{Whether to scale the chromosme width on the heatmap based on their actual size rather than just the number of expressed genes.}
+
+\item{chr_lengths}{A named list of chromsomes lengths to use when plot_chr_scale=TRUE, or else chromosome size is assumed to be the last chromosome's stop position + 10k bp}
 
 \item{useRaster}{Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it. (default: TRUE)}
 

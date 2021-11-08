@@ -289,9 +289,16 @@ plot_cnv <- function(infercnv_obj,
                 height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
                 paper="special")
         } else if (output_format == "png") {
+            png_height = 8.22 + sum(grouping_key_height) + dynamic_extension
+            if ((getOption("bitmapType") == "cairo") & (png_height > 32768/png_res)) {  # 32768 is the pixel limit for cairo backend
+                png_height = round((32767/png_res) - 5*10^(-3), 2) # floor() with 2 decimals
+                flog.warn(paste0("Requested PNG output height too big at the current resolution, ",
+                    "using the max height instead. (cairo seems to have a size limit of 32767 (2^15-1) pixels ",
+                    "per dimension and 49151 (2^15+2^14-1)pixels for the sum of dimensions)"))
+            }
             png(paste(out_dir, paste(output_filename, ".png", sep=""), sep="/"),
                 width=10,
-                height=(8.22 + sum(grouping_key_height)) + dynamic_extension,
+                height=png_height,
                 units="in",
                 res=png_res)
         }
@@ -670,7 +677,7 @@ plot_cnv <- function(infercnv_obj,
             else {
                 data_to_cluster <- obs_data[cell_indices_in_group, hcl_group_indices, drop=FALSE]
                 flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
-                group_obs_hcl <- hclust(dist(data_to_cluster), method=hclust_method)
+                group_obs_hcl <- hclust(parallelDist(data_to_cluster, threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
                 ordered_names <- c(ordered_names, group_obs_hcl$labels[group_obs_hcl$order])
 
                 if (isfirst) {
@@ -704,7 +711,7 @@ plot_cnv <- function(infercnv_obj,
         # HCL with a inversely weighted euclidean distance.
         flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
         if (nrow(obs_data) > 1) {
-            obs_hcl <- hclust(dist(obs_data[, hcl_group_indices]), method=hclust_method)
+            obs_hcl <- hclust(parallelDist(obs_data[, hcl_group_indices], threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
                                             
             write.tree(as.phylo(obs_hcl),
                        file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
@@ -1004,7 +1011,7 @@ plot_cnv <- function(infercnv_obj,
             if (cluster_references) {
                 order_idx <- lapply(ref_groups, function(ref_grp) {
                     if (cluster_references && length(ref_grp) > 2) {
-                        ref_hcl <- hclust(dist(t(ref_data[, ref_grp])), method=hclust_method)
+                        ref_hcl <- hclust(parallelDist(t(ref_data[, ref_grp]), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
                         ref_grp <- ref_grp[ref_hcl$order]
                     }
                     ref_grp
@@ -1021,7 +1028,7 @@ plot_cnv <- function(infercnv_obj,
         }
         else {
             if (cluster_references) {
-                ref_hcl <- hclust(dist(t(ref_data)), method=hclust_method)  # all ref_data is part of the only group
+                ref_hcl <- hclust(parallelDist(t(ref_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)  # all ref_data is part of the only group
                 # order_idx <- unlist(ref_groups)[ref_hcl$order]
                 order_idx = ref_hcl$order # ref_data has been reindexed beforehand in the calling method
             }
@@ -1057,7 +1064,7 @@ plot_cnv <- function(infercnv_obj,
     # if (cluster_references) {
     #   if (number_references > 1) {
     #       for (i in seq_len(length(ref_groups))) {
-    #           ref_hcl <- hclust(dist(ref_data[ref_groups[[i]], ]), method=hclust_method)
+    #           ref_hcl <- hclust(parallelDist(ref_data[ref_groups[[i]], ], threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
     #           ref_data[ref_groups[[i]], ] <- ref_data[ref_groups[[i]][ref_hcl$order], , drop=FALSE]
     #       }
     #   }
@@ -2127,14 +2134,14 @@ heatmap.cnv <-
         if (!is.null(gene_position_breaks)) {
             image(gene_position_breaks, seq_len(nr+1),
                   x,
-                  xlim=0.5+c(0,max(gene_position_breaks)), ylim=0.5+c(0,nr),
+                  # xlim=0.5+c(0,max(gene_position_breaks)), ylim=0.5+c(0,nr),
                   axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=FALSE,
                   ...)
 
         } else {
             image(seq_len(nc), seq_len(nr),
                   x,
-                  xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
+                  # xlim=0.5+c(0,nc), ylim=0.5+c(0,nr),
                   axes=FALSE, xlab="", ylab="", col=colors, breaks=breaks, useRaster=useRaster,
                   ...)
         }
@@ -2639,7 +2646,7 @@ gdist <-
         )
 
     if(method %in% COMMON_METHODS) {
-        d <- dist(x=x, method=method, diag=diag, upper=upper, p=MoreArgs$p)
+        d <- parallelDist(x=x, method=method, diag=diag, upper=upper, p=MoreArgs$p, threads=infercnv.env$GLOBAL_NUM_THREADS)
     } else if (method %in% c("correlation","correlation.of.observations","correlation.of.variables")) {
     ##d <- .call.FUN(FUN,x,MoreArgs)
     d <- FUN(x, method=MoreArgs$method, use=MoreArgs$use)

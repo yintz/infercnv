@@ -24,8 +24,9 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom ape write.tree as.phylo read.tree drop.tip
 #' @importFrom phyclust get.rooted.tree.height
 #' @importFrom fastcluster hclust
+#' @importFrom parallelDist parallelDist
 #' @import RColorBrewer
-#' @importFrom Matrix Matrix rowMeans colSums
+#' @importFrom Matrix Matrix rowMeans colSums sparseMatrix
 #' @importFrom dplyr %>% count
 #' @import fitdistrplus
 #' @import foreach

@@ -17,6 +17,7 @@ infercnv_obj = infercnv::run(infercnv_obj,
                              cutoff=1, # cutoff=1 works well for Smart-seq2, and cutoff=0.1 works well for 10x Genomics
                              out_dir=out_dir, 
                              cluster_by_groups=TRUE, 
+                             analysis_mode="subclusters",    
                              plot_steps=FALSE,
                              denoise=TRUE,
                              HMM=TRUE

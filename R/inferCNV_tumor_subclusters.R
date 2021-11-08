@@ -77,7 +77,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     
     if (ncol(tumor_expr_data) > 2) {
 
-        hc <- hclust(dist(t(tumor_expr_data)), method=hclust_method)
+        hc <- hclust(parallelDist(t(tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
         
         tumor_subcluster_info$hc = hc
         
@@ -233,7 +233,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         stop("Error, found too many names in current clade")
     }
     
-    hc <- hclust(dist(t(tumor_expr_data)), method=hclust_method)
+    hc <- hclust(parallelDist(t(tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
 
     rand_params_info = .parameterize_random_cluster_heights(tumor_expr_data, hclust_method)
 
@@ -294,7 +294,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
     t_tumor.expr.data = t(expr_matrix) # cells as rows, genes as cols
-    d = dist(t_tumor.expr.data)
+    d = parllelDist(t_tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
 
     h_obs = hclust(d, method=hclust_method)
 
@@ -319,7 +319,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         #message(sprintf("iter i:%d", i))
         rand.tumor.expr.data = permute_col_vals(t_tumor.expr.data)
         
-        rand.dist = dist(rand.tumor.expr.data)
+        rand.dist = parllelDist(rand.tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
         h_rand <- hclust(rand.dist, method=hclust_method)
         h_rand_ex = h_rand
         max_rand_heights = c(max_rand_heights, max(h_rand$height))
@@ -398,21 +398,30 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     if (k_nn >= length(tumor_group_idx)) {
         flog.info(paste0("Less cells in group ", tumor_group, " than k_nn setting. Keeping as a single subcluster."))
         res$subclusters[[ tumor_group ]] = tumor_group_idx
-        res$hc = hclust(dist(t(tumor_expr_data)), method=hclust_method)
+        res$hc = hclust(parallelDist(t(tumor_expr_data), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
         return(res)
     }
 
     snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
-    adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
-    rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- colnames(tumor_expr_data)
-    for(ii in seq_len(ncol(tumor_expr_data))) {
-        adjacency_matrix[ii, colnames(tumor_expr_data)[snn[ii, ]]] <- 1L
-    }
+
+    sparse_adjacency_matrix <- sparseMatrix(
+        i = rep(seq_len(ncol(tumor_expr_data)), each=k_nn), 
+        j = unlist(t(snn)), 
+        dims = c(ncol(tumor_expr_data), ncol(tumor_expr_data)),
+        dimnames = list(colnames(tumor_expr_data), colnames(tumor_expr_data))
+    )
+    partition = leiden(sparse_adjacency_matrix, resolution_parameter=leiden_resolution)
+
+    # adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
+    # rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- colnames(tumor_expr_data)
+    # for(ii in seq_len(ncol(tumor_expr_data))) {
+    #     adjacency_matrix[ii, colnames(tumor_expr_data)[snn[ii, ]]] <- 1L
+    # }
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
     # check that rows add to k_nn
     # sum(adjacency_matrix[1,]) == k_nn
     # table(apply(adjacency_matrix, 1, sum))
-    partition <- leiden(adjacency_matrix, resolution_parameter=leiden_resolution)
+    # partition <- leiden(adjacency_matrix, resolution_parameter=leiden_resolution)
 
     tmp_full_phylo = NULL
     added_height = 1
@@ -422,7 +431,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         # names(res$subclusters[[ paste(tumor_group, i, sep="_s") ]]) = tumor_group_idx[which(partition == i)]
 
         if (length(which(partition == i)) >= 2) {
-            tmp_phylo = as.phylo(hclust(dist(t(tumor_expr_data[, which(partition == i), drop=FALSE])), method=hclust_method))
+            tmp_phylo = as.phylo(hclust(parallelDist(t(tumor_expr_data[, which(partition == i), drop=FALSE]), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method))
 
             if (is.null(tmp_full_phylo)) {
                 tmp_full_phylo = tmp_phylo
