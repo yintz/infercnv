@@ -8,26 +8,28 @@ workflow infercnv {
         String additional_args = ""
         Int cpu = 1
         String memory = "12G"
-        String docker = "trinityctat/infercnv:1.7.1-S"
+        String docker = "trinityctat/infercnv:1.11.1"
         Int preemptible = 2
         Int extra_disk_space = 10
     }
 
     call run_infercnv {
         input:
-            raw_counts_matrix=raw_counts_matrix,
-            gene_order_file=gene_order_file,
-            annotations_file=annotations_file,
-            additional_args=additional_args,
-            cpu=cpu,
-            memory=memory,
-            extra_disk_space=extra_disk_space,
-            docker=docker,
-            preemptible=preemptible
+            raw_counts_matrix = raw_counts_matrix,
+            gene_order_file = gene_order_file,
+            annotations_file = annotations_file,
+            additional_args = additional_args,
+            cpu = cpu,
+            memory = memory,
+            extra_disk_space = extra_disk_space,
+            docker = docker,
+            preemptible = preemptible
     }
 
     output {
+        Array[File] infercnv_figures = run_infercnv.infercnv_outputs
         Array[File] infercnv_outputs = run_infercnv.infercnv_outputs
+        File infercnv_full_outputs = run_infercnv.infercnv_full_outputs
     }
 }
 
@@ -44,22 +46,26 @@ task run_infercnv {
         Int extra_disk_space
     }
 
-    command <<<
+    command {
         set -e
 
         mkdir infercnv
 
         inferCNV.R \
-        --raw_counts_matrix ~{raw_counts_matrix} \
-        --annotations_file ~{annotations_file} \
-        --gene_order_file ~{gene_order_file} \
-        --num_threads ~{cpu} \
+        --raw_counts_matrix ${raw_counts_matrix} \
+        --annotations_file ${annotations_file} \
+        --gene_order_file ${gene_order_file} \
+        --num_threads ${cpu} \
         --out_dir infercnv \
-        ~{additional_args} \
-    >>>
+        ${additional_args}
+
+        tar -cvzf infercnv_full_outputs.tar.gz infercnv
+    }
 
     output {
-        Array[File] infercnv_outputs = glob("infercnv/*")
+        File infercnv_full_outputs = "infercnv_full_outputs.tar.gz"
+        Array[File] infercnv_figures = glob("infercnv/*.png")
+        Array[File] infercnv_outputs = glob("infercnv/infercnv.*.txt infercnv/top_*.txt infercnv/*pred_cnv_*.dat")
     }
 
     runtime {

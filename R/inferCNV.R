@@ -311,7 +311,7 @@ CreateInfercnvObject <- function(raw_counts_matrix,
     }
 
     if ((2*ncol(raw.data)) >=  10^getOption("scipen")) {
-        flog.warn(paste0("Please use \"option(scipen = 100)\" before running infercnv ",
+        flog.warn(paste0("Please use \"options(scipen = 100)\" before running infercnv ",
                          "if you are using the analysis_mode=\"subclusters\" option or ",
                          "you may encounter an error while the hclust is being generated."))
     }

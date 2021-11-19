@@ -22,6 +22,7 @@ library(futile.logger)
 #}
 library(infercnv)
 options("preferRaster" = TRUE)
+options(scipen = 100)
 
 # Logging level choices
 C_LEVEL_CHOICES <- c("DEBUG", "INFO", "WARN", "ERROR")
