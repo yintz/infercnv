@@ -1794,6 +1794,10 @@ split_references <- function(infercnv_obj,
     
     flog.info(paste("::split_references:Start", sep=""))
     
+    if ("sparseMatrix" %in% is(infercnv_obj@expr.data)) {
+        infercnv_obj@expr.data = as.matrix(infercnv_obj@expr.data)
+    }
+
     ref_expr_matrix = infercnv_obj@expr.data[ , get_reference_grouped_cell_indices(infercnv_obj) ]
     
     hc <- hclust(parallelDist(t(ref_expr_matrix), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
