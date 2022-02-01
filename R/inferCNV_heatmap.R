@@ -290,7 +290,7 @@ plot_cnv <- function(infercnv_obj,
                 paper="special")
         } else if (output_format == "png") {
             png_height = 8.22 + sum(grouping_key_height) + dynamic_extension
-            if ((getOption("bitmapType") == "cairo") & (png_height > 32768/png_res)) {  # 32768 is the pixel limit for cairo backend
+            if (!is.null(getOption("bitmapType")) || (getOption("bitmapType") == "cairo") & (png_height > 32768/png_res)) {  # 32768 is the pixel limit for cairo backend
                 png_height = round((32767/png_res) - 5*10^(-3), 2) # floor() with 2 decimals
                 flog.warn(paste0("Requested PNG output height too big at the current resolution, ",
                     "using the max height instead. (cairo seems to have a size limit of 32767 (2^15-1) pixels ",
