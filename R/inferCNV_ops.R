@@ -369,6 +369,7 @@ run <- function(infercnv_obj,
     call_match$prune_outliers = prune_outliers
     call_match$BayesMaxPNormal = BayesMaxPNormal
     call_match$mask_nonDE_genes = mask_nonDE_genes
+    call_match$denoise = denoise
     call_match$noise_filter = noise_filter
     call_match$sd_amplifier = sd_amplifier
     call_match$noise_logistic = noise_logistic
