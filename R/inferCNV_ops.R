@@ -1315,8 +1315,8 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_HMM_pred.Bayes_Net.Pnorm_%g",step_count, BayesMaxPNormal),
                          output_format=output_format,
                          write_expr_matrix=TRUE,
-                         x.center=3,
-                         x.range=c(0,6),
+                         x.center=hmm_center,
+                         x.range=hmm_state_range,
                          png_res=png_res,
                          useRaster=useRaster
                          )
