@@ -364,6 +364,7 @@ run <- function(infercnv_obj,
     call_match$analysis_mode = analysis_mode
     call_match$tumor_subcluster_partition_method = tumor_subcluster_partition_method
     # add argument needed to get relevant args list
+    call_match$HMM = HMM
     call_match$max_centered_threshold = max_centered_threshold
     call_match$remove_genes_at_chr_ends = remove_genes_at_chr_ends
     call_match$prune_outliers = prune_outliers
