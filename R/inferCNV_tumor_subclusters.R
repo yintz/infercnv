@@ -294,7 +294,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
     t_tumor.expr.data = t(expr_matrix) # cells as rows, genes as cols
-    d = parllelDist(t_tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
+    d = parallelDist(t_tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
 
     h_obs = hclust(d, method=hclust_method)
 
