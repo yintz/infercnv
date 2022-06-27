@@ -319,7 +319,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         #message(sprintf("iter i:%d", i))
         rand.tumor.expr.data = permute_col_vals(t_tumor.expr.data)
         
-        rand.dist = parllelDist(rand.tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
+        rand.dist = parallelDist(rand.tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
         h_rand <- hclust(rand.dist, method=hclust_method)
         h_rand_ex = h_rand
         max_rand_heights = c(max_rand_heights, max(h_rand$height))
