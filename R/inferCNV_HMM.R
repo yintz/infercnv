@@ -371,7 +371,7 @@ predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
     tumor_subclusters <- unlist(infercnv_obj@tumor_subclusters[["subclusters"]], recursive=FALSE)
     
     ## add the normals, so they get predictions too:
-    tumor_subclusters <- c(tumor_subclusters, infercnv_obj@reference_grouped_cell_indices)
+    #tumor_subclusters <- c(tumor_subclusters, infercnv_obj@reference_grouped_cell_indices)
     
     ## run through each chr separately
     lapply(chrs, function(chr) {
