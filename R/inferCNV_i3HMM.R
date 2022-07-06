@@ -1,14 +1,11 @@
 
 #' @title .i3HMM_get_sd_trend_by_num_cells_fit
 #'
-#' @description Determines the characteristics for the tumor cell residual intensities, including
-#'              fitting the variance in mean intensity as a function of number of cells sampled.
+#' @description Determines the characteristics for the tumor cell residual intensities.
 #'
 #' @param infercnv_obj infercnv object
 #'
 #' @param i3_p_val  the p-value to use for defining the position of means for the alternate amp/del distributions.
-#'
-#' @param plot   boolean, set to TRUE to plot the mean/var fit.
 #'
 #' @return normal_sd_trend list
 #' 
@@ -17,7 +14,7 @@
 #'
 
 
-.i3HMM_get_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05, plot=FALSE) {
+.i3HMM_get_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05) {
     
     tumor_samples = infercnv_obj@reference_grouped_cell_indices
     
@@ -25,38 +22,38 @@
     
     mu = mean(tumor_expr_vals)
     sigma = sd(tumor_expr_vals)
-    nrounds = 100
-    sds = c()
-    ngenes = nrow(tumor_expr_vals)
-
-    num_tumor_samples = length(tumor_samples)
-    flog.info(paste(".i3HMM_get_sd_trend_by_num_cells_fit:: -got", num_tumor_samples, "samples"))
-    
-    for (ncells in seq_len(100)) {
-        means = c()
-        
-        for(i in seq_len(nrounds)) {
-            ## pick a random gene
-            rand.gene = sample(seq_len(ngenes), size=1)
-            
-            ## pick a random normal cell type
-            rand.sample = sample(seq_len(num_tumor_samples), size=1)
-            #message("rand.sample: " , rand.sample)
-            
-            vals = sample(infercnv_obj@expr.data[rand.gene, tumor_samples[[rand.sample]] ], size=ncells, replace=TRUE)
-            m_val = mean(vals)
-            means = c(means,  m_val)
-        }
-        sds = c(sds, sd(means))
-    }
-    
-    ## fit linear model
-    num_cells = seq_along(sds)
-    fit = lm(log(sds) ~ log(num_cells)) #note, hbadger does something similar, but not for the hmm cnv state levels
-    
-    if (plot) {
-        plot(log(num_cells), log(sds), main='log(sd) vs. log(num_cells)')
-    }
+    # nrounds = 100
+    # sds = c()
+    # ngenes = nrow(tumor_expr_vals)
+    # 
+    # num_tumor_samples = length(tumor_samples)
+    # flog.info(paste(".i3HMM_get_sd_trend_by_num_cells_fit:: -got", num_tumor_samples, "samples"))
+    # 
+    # for (ncells in seq_len(100)) {
+    #     means = c()
+    #     
+    #     for(i in seq_len(nrounds)) {
+    #         ## pick a random gene
+    #         rand.gene = sample(seq_len(ngenes), size=1)
+    #         
+    #         ## pick a random normal cell type
+    #         rand.sample = sample(seq_len(num_tumor_samples), size=1)
+    #         #message("rand.sample: " , rand.sample)
+    #         
+    #         vals = sample(infercnv_obj@expr.data[rand.gene, tumor_samples[[rand.sample]] ], size=ncells, replace=TRUE)
+    #         m_val = mean(vals)
+    #         means = c(means,  m_val)
+    #     }
+    #     sds = c(sds, sd(means))
+    # }
+    # 
+    # ## fit linear model
+    # num_cells = seq_along(sds)
+    # fit = lm(log(sds) ~ log(num_cells)) #note, hbadger does something similar, but not for the hmm cnv state levels
+    # 
+    # if (plot) {
+    #     plot(log(num_cells), log(sds), main='log(sd) vs. log(num_cells)')
+    # }
     
     ## get distribution position according to p_val in a qnorm
     mean_delta = determine_mean_delta_via_Z(sigma, p=i3_p_val)    
@@ -69,7 +66,7 @@
     
     sd_trend = list(mu=mu,
                     sigma=sigma,
-                    fit=fit,
+                    #fit=fit,
                     mean_delta=mean_delta,
                     KS_delta=KS_delta)
     
@@ -84,8 +81,6 @@
 #'
 #' @param sd_trend  the normal sd trend info list
 #'
-#' @param num_cells  number of cells in a subcluster
-#'
 #' @param t  alt state transition probability
 #'
 #' @param i3_p_val p-value used to define position of mean for amp/del dists (default: 0.05)
@@ -96,7 +91,7 @@
 #'
 #' @noRd
 
-.i3HMM_get_HMM <- function(sd_trend, num_cells, t, i3_p_val=0.05, use_KS) {
+.i3HMM_get_HMM <- function(sd_trend, t, i3_p_val=0.05, use_KS) {
 
     ## Here we do something very similar to HoneyBadger
     ## which is to estimate the mean/var for the CNV states
@@ -192,7 +187,7 @@ i3HMM_predict_CNV_via_HMM_on_indiv_cells  <- function(infercnv_obj,
     hmm.data = expr.data
     hmm.data[,] = -1 #init to invalid state
 
-    HMM_info  <- .i3HMM_get_HMM(sd_trend, num_cells = 1, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
+    HMM_info  <- .i3HMM_get_HMM(sd_trend, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
 
     message(HMM_info)
     
@@ -284,7 +279,7 @@ i3HMM_predict_CNV_via_HMM_on_tumor_subclusters  <- function(infercnv_obj,
             
             num_cells = length(tumor_subcluster_cells_idx)
 
-            HMM_info  <- .i3HMM_get_HMM(sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
+            HMM_info  <- .i3HMM_get_HMM(sd_trend, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
                                                 
             hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                        HMM_info[['state_transitions']],
@@ -361,7 +356,7 @@ i3HMM_predict_CNV_via_HMM_on_whole_tumor_samples  <- function(infercnv_obj,
             
             num_cells = length(tumor_sample_cells_idx)
             
-            HMM_info  <- .i3HMM_get_HMM(sd_trend, num_cells=num_cells, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
+            HMM_info  <- .i3HMM_get_HMM(sd_trend, t=t, i3_p_val=i3_p_val, use_KS=use_KS)
             
             hmm <- HiddenMarkov::dthmm(gene_expr_vals,
                                        HMM_info[['state_transitions']],
