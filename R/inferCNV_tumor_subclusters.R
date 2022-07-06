@@ -417,7 +417,21 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         dims = c(ncol(tumor_expr_data), ncol(tumor_expr_data)),
         dimnames = list(colnames(tumor_expr_data), colnames(tumor_expr_data))
     )
-    partition = leiden(sparse_adjacency_matrix, resolution_parameter=leiden_resolution)
+    
+    graph_obj = graph_from_adjacency_matrix(sparse_adjacency_matrix, mode="undirected")
+    partition_obj = cluster_leiden(graph_obj, resolution_parameter=leiden_resolution)
+
+    flog.info(paste0("Group ", tumor_group, " was subdivided into ", partition_obj$nb_clusters, 
+        " clusters with a partition quality score of ", partition_obj$quality))
+
+    flog.info("If this score is too low and you observe too much fragmentation, try decreasing the leiden resolution parameter")
+    flog.info("If this score is too low and you observe clusters that are still too diverse, try increasing the leiden resolution parameter")
+
+    #subcluster_graph = igraph::graph_from_adj_list(snn, mode="all")
+    #tst2 =igraph::cluster_leiden(subcluster_graph)
+
+    #partition = leiden(sparse_adjacency_matrix, resolution_parameter=leiden_resolution)
+    partition = partition_obj$membership
 
     # adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
     # rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- colnames(tumor_expr_data)
