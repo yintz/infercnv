@@ -1128,18 +1128,19 @@ run <- function(infercnv_obj,
     }
     step_count = step_count + 1 # 17
     hmm_resume_file_token = paste0(resume_file_token, ".hmm_mode-", analysis_mode)
-    if (skip_hmm < 1) {
-        if (HMM) {
+    if (HMM) {
+
+        if (HMM_type == 'i6') {
+            hmm_center = 3
+            hmm_state_range = c(0,6)
+        } else {
+            ## i3
+            hmm_center = 2
+            hmm_state_range = c(1,3)
+        }
+        
+        if (skip_hmm < 1) {
             flog.info(sprintf("\n\n\tSTEP %02d: HMM-based CNV prediction\n", step_count))
-            
-            if (HMM_type == 'i6') {
-                hmm_center = 3
-                hmm_state_range = c(0,6)
-            } else {
-                ## i3
-                hmm_center = 2
-                hmm_state_range = c(1,3)
-            }
             
             if (analysis_mode == 'subclusters') {
                 
