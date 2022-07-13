@@ -19,7 +19,6 @@
 #' @slot cell_probabilities Probabilities of each cell being in a particular state, from 0 (least likely)to 1 (most likely).
 #' @slot args Input arguments given by the user
 #' @slot cnv_regions ID for each CNV found by the HMM
-#' @slot States States that are identified and (depending on posterior MCMC input methods) modified.
 #'
 #' @exportClass MCMC_inferCNV
 #' @name MCMC_inferCNV-class
@@ -37,8 +36,7 @@ MCMC_inferCNV <- setClass("MCMC_inferCNV", slots = c(bugs_model = "character",
                                                      cnv_probabilities = "list",
                                                      cell_probabilities = "list",
                                                      args = "list",
-                                                     cnv_regions = "factor",
-                                                     States = "ANY"),
+                                                     cnv_regions = "factor"),
                           contains = "infercnv")
 
 
@@ -167,17 +165,28 @@ setMethod(f="MeanSD",
                   }
               } else {
                   # i3 HMM method 
-                  states <- unique(c(HMM_states))
-                  ## c(HMM_states), c(infercnv_obj@expr.data) : Converts HMM_states and expression data matrix into a vector 
-                  # MEAN
-                  means <- vapply(states, function(i) mean(c(infercnv_obj@expr.data)[which(c(HMM_states) %in% i)]), FUN.VALUE = numeric(1))
-                  names(means)<-states
-                  obj@mu <- means[sort(names(means))]
-                  # SD
-                  std <- sapply(states, function(i) sd(c(infercnv_obj@expr.data)[which(c(HMM_states) %in% i)]))
-                  names(std)<-states
-                  obj@sig <- std[sort(names(std))]
-                  obj@sig <- 1/(obj@sig^2)
+                  # states <- unique(c(HMM_states))
+                  # ## c(HMM_states), c(infercnv_obj@expr.data) : Converts HMM_states and expression data matrix into a vector 
+                  # # MEAN
+                  # means <- vapply(states, function(i) mean(c(infercnv_obj@expr.data)[which(c(HMM_states) %in% i)]), FUN.VALUE = numeric(1))
+                  # names(means)<-states
+                  # obj@mu <- means[sort(names(means))]
+                  # # SD
+                  # std <- sapply(states, function(i) sd(c(infercnv_obj@expr.data)[which(c(HMM_states) %in% i)]))
+                  # names(std)<-states
+                  # obj@sig <- std[sort(names(std))]
+                  # obj@sig <- 1/(obj@sig^2)
+                  suppressMessages(invisible(capture.output(cnv_mean_sd <- .i3HMM_get_sd_trend_by_num_cells_fit(obj))))
+                  mean <- c(cnv_mean_sd$mu - cnv_mean_sd$mean_delta,
+                            cnv_mean_sd$mu,
+                            cnv_mean_sd$mu + cnv_mean_sd$mean_delta)
+                
+                  sd <- c(1/(cnv_mean_sd$sigma^2),
+                          1/(cnv_mean_sd$sigma^2),
+                          1/(cnv_mean_sd$sigma^2))
+                  
+                  obj@mu <- mean
+                  obj@sig <- sd
                   
                   if (getArgs(obj)$quietly == FALSE) {
                       print(paste("Means: ", obj@mu, collapse = ""))
@@ -401,7 +410,7 @@ setMethod(f="withParallel",
           {
               par_func <- function(i){
                   if (getArgs(obj)$quietly == FALSE) {
-                      futile.logger::flog.info(paste("Sampleing Number: ", i))
+                      futile.logger::flog.info(paste("Sampling Number: ", i))
                   }
                   if(!(length(obj@cell_gene[[i]]$Cells) == 0)){
                       tumor_grouping <- obj@group_id[ obj@cell_gene[[i]]$Cells ] # subset the tumor ids for the cells wanted

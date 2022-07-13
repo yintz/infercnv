@@ -294,7 +294,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
     ## inspired by: https://www.frontiersin.org/articles/10.3389/fgene.2016.00144/full
 
     t_tumor.expr.data = t(expr_matrix) # cells as rows, genes as cols
-    d = parllelDist(t_tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
+    d = parallelDist(t_tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
 
     h_obs = hclust(d, method=hclust_method)
 
@@ -319,7 +319,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         #message(sprintf("iter i:%d", i))
         rand.tumor.expr.data = permute_col_vals(t_tumor.expr.data)
         
-        rand.dist = parllelDist(rand.tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
+        rand.dist = parallelDist(rand.tumor.expr.data, threads=infercnv.env$GLOBAL_NUM_THREADS)
         h_rand <- hclust(rand.dist, method=hclust_method)
         h_rand_ex = h_rand
         max_rand_heights = c(max_rand_heights, max(h_rand$height))
@@ -412,11 +412,26 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
 
     sparse_adjacency_matrix <- sparseMatrix(
         i = rep(seq_len(ncol(tumor_expr_data)), each=k_nn), 
-        j = unlist(t(snn)), 
+        j = t(snn),
+        x = rep(1, ncol(tumor_expr_data) * k_nn),
         dims = c(ncol(tumor_expr_data), ncol(tumor_expr_data)),
         dimnames = list(colnames(tumor_expr_data), colnames(tumor_expr_data))
     )
-    partition = leiden(sparse_adjacency_matrix, resolution_parameter=leiden_resolution)
+    
+    graph_obj = graph_from_adjacency_matrix(sparse_adjacency_matrix, mode="undirected")
+    partition_obj = cluster_leiden(graph_obj, resolution_parameter=leiden_resolution)
+
+    flog.info(paste0("Group ", tumor_group, " was subdivided into ", partition_obj$nb_clusters, 
+        " clusters with a partition quality score of ", partition_obj$quality))
+
+    flog.info("If this score is too low and you observe too much fragmentation, try decreasing the leiden resolution parameter")
+    flog.info("If this score is too low and you observe clusters that are still too diverse, try increasing the leiden resolution parameter")
+
+    #subcluster_graph = igraph::graph_from_adj_list(snn, mode="all")
+    #tst2 =igraph::cluster_leiden(subcluster_graph)
+
+    #partition = leiden(sparse_adjacency_matrix, resolution_parameter=leiden_resolution)
+    partition = partition_obj$membership
 
     # adjacency_matrix <- matrix(0L, ncol(tumor_expr_data), ncol(tumor_expr_data))
     # rownames(adjacency_matrix) <- colnames(adjacency_matrix) <- colnames(tumor_expr_data)

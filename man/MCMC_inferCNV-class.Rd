@@ -31,8 +31,6 @@ cell line in the CNV.
 \item{\code{args}}{Input arguments given by the user}
 
 \item{\code{cnv_regions}}{ID for each CNV found by the HMM}
-
-\item{\code{States}}{States that are identified and (depending on posterior MCMC input methods) modified.}
 }}
 
 \keyword{classes}
