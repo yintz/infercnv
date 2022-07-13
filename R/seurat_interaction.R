@@ -10,6 +10,8 @@
 #' @param top_n How many of the largest CNA (in number of genes) to get.
 #'
 #' @param bp_tolerance How many bp of tolerance to have around feature start/end positions for top_n largest CNVs.
+#' 
+#' @param column_prefix String to add as a prefix to the metadata columns to add. Default is NULL
 #'
 #' @return seurat_obj
 #'
@@ -19,7 +21,8 @@
 add_to_seurat <- function(seurat_obj = NULL,
                           infercnv_output_path,
                           top_n = 10,
-                          bp_tolerance = 2000000) {
+                          bp_tolerance = 2000000,
+                          column_prefix = NULL) {
     lfiles <- list.files(infercnv_output_path, full.names = FALSE)
     
     if (!file.exists(paste(infercnv_output_path, "run.final.infercnv_obj", sep=.Platform$file.sep))) {
@@ -125,6 +128,10 @@ add_to_seurat <- function(seurat_obj = NULL,
                 seurat_obj@meta.data[[paste0("proportion_scaled_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion_scaled[[lv]][cell_ordering_match][cell_ordering_match]
                 seurat_obj@meta.data[[paste0("proportion_scaled_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion_scaled[[lv]][cell_ordering_match]
             }
+        }
+      
+        if (! is.null(column_prefix)) {
+          names(features_to_add) <- paste(column_prefix, names(features_to_add),sep="_")
         }
         
         for (n in names(features_to_add)[grep(names(features_to_add), pattern = "top_")] ) {
