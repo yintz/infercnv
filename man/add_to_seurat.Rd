@@ -21,7 +21,7 @@ add_to_seurat(
 
 \item{bp_tolerance}{How many bp of tolerance to have around feature start/end positions for top_n largest CNVs.}
 
-\item{column_prefix}{String to add as a prefix to the metadata columns to add. Default is NULL}
+\item{column_prefix}{String to add as a prefix to the Seurat metadata columns. Only applied to the seurat_obj, if supplied. Default is NULL}
 }
 \value{
 seurat_obj

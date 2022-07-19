@@ -124,7 +124,6 @@ add_to_seurat <- function(seurat_obj = NULL,
         prefix <- ""
       }
       
-      names(features_to_add) <- paste(prefix, names(features_to_add), sep = "")
       
         for (lv in levels(infercnv_obj@gene_order$chr)) {
             seurat_obj@meta.data[[paste0(prefix, "has_cnv_", lv)]] = features_to_add$feature_vector_chrs_has_cnv[[lv]][cell_ordering_match]
@@ -140,9 +139,9 @@ add_to_seurat <- function(seurat_obj = NULL,
             }
         }
       
-        for (n in names(features_to_add)[grep(names(features_to_add), pattern = paste(prefix, "top_", sep = ""))] ) {
+        for (n in names(features_to_add)[grep(names(features_to_add), pattern = "top_")] ) {
           
-            seurat_obj@meta.data[[n]] = features_to_add[[n]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, n)]] = features_to_add[[n]][cell_ordering_match]
         }
     }
 
