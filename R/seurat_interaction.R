@@ -11,7 +11,7 @@
 #'
 #' @param bp_tolerance How many bp of tolerance to have around feature start/end positions for top_n largest CNVs.
 #' 
-#' @param column_prefix String to add as a prefix to the metadata columns to add. Default is NULL
+#' @param column_prefix String to add as a prefix to the Seurat metadata columns. Only applied to the seurat_obj, if supplied. Default is NULL
 #'
 #' @return seurat_obj
 #'
@@ -116,25 +116,32 @@ add_to_seurat <- function(seurat_obj = NULL,
                                      top_n = top_n,
                                      bp_tolerance = bp_tolerance)
     if (!is.null(seurat_obj)) {
+      
+      if (! is.null(column_prefix)) {
+        prefix <- paste(column_prefix, "_", sep = "")
+        
+      } else {
+        prefix <- ""
+      }
+      
+      names(features_to_add) <- paste(prefix, names(features_to_add), sep = "")
+      
         for (lv in levels(infercnv_obj@gene_order$chr)) {
-            seurat_obj@meta.data[[paste0("has_cnv_", lv)]] = features_to_add$feature_vector_chrs_has_cnv[[lv]][cell_ordering_match]
-            seurat_obj@meta.data[[paste0("has_loss_", lv)]] = features_to_add$feature_vector_chrs_has_loss[[lv]][cell_ordering_match]
-            seurat_obj@meta.data[[paste0("has_dupli_", lv)]] = features_to_add$feature_vector_chrs_has_dupli[[lv]][cell_ordering_match]
-            seurat_obj@meta.data[[paste0("proportion_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion[[lv]][cell_ordering_match]
-            seurat_obj@meta.data[[paste0("proportion_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion[[lv]][cell_ordering_match]
-            seurat_obj@meta.data[[paste0("proportion_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion[[lv]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, "has_cnv_", lv)]] = features_to_add$feature_vector_chrs_has_cnv[[lv]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, "has_loss_", lv)]] = features_to_add$feature_vector_chrs_has_loss[[lv]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, "has_dupli_", lv)]] = features_to_add$feature_vector_chrs_has_dupli[[lv]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, "proportion_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion[[lv]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, "proportion_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion[[lv]][cell_ordering_match]
+            seurat_obj@meta.data[[paste0(prefix, "proportion_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion[[lv]][cell_ordering_match]
             if (mode == "i6") {
-                seurat_obj@meta.data[[paste0("proportion_scaled_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion_scaled[[lv]][cell_ordering_match]
-                seurat_obj@meta.data[[paste0("proportion_scaled_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion_scaled[[lv]][cell_ordering_match][cell_ordering_match]
-                seurat_obj@meta.data[[paste0("proportion_scaled_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion_scaled[[lv]][cell_ordering_match]
+                seurat_obj@meta.data[[paste0(prefix, "proportion_scaled_cnv_", lv)]] = features_to_add$feature_vector_chrs_gene_cnv_proportion_scaled[[lv]][cell_ordering_match]
+                seurat_obj@meta.data[[paste0(prefix, "proportion_scaled_loss_", lv)]] = features_to_add$feature_vector_chrs_gene_loss_proportion_scaled[[lv]][cell_ordering_match][cell_ordering_match]
+                seurat_obj@meta.data[[paste0(prefix, "proportion_scaled_dupli_", lv)]] = features_to_add$feature_vector_chrs_gene_dupli_proportion_scaled[[lv]][cell_ordering_match]
             }
         }
       
-        if (! is.null(column_prefix)) {
-          names(features_to_add) <- paste(column_prefix, names(features_to_add),sep="_")
-        }
-        
-        for (n in names(features_to_add)[grep(names(features_to_add), pattern = "top_")] ) {
+        for (n in names(features_to_add)[grep(names(features_to_add), pattern = paste(prefix, "top_", sep = ""))] ) {
+          
             seurat_obj@meta.data[[n]] = features_to_add[[n]][cell_ordering_match]
         }
     }
