@@ -856,11 +856,12 @@ plot_cnv <- function(infercnv_obj,
     }
     # Write data to file.
     if ("matrix" %in% is(obs_data)) {
-        flog.info(paste("plot_cnv_observations:Writing observation data to",
-                        observation_file_base,
-                        sep=" "))
-        row.names(obs_data) <- orig_row_names
-
+        if (write_expr_matrix) {
+            flog.info(paste("plot_cnv_observations:Writing observation data to",
+                            observation_file_base,
+                            sep=" "))
+            row.names(obs_data) <- orig_row_names
+        }
         if (do_plot && write_expr_matrix) {
             write.table(as.matrix(t(obs_data[data_observations$rowInd,data_observations$colInd])),
                     file=observation_file_base)
@@ -1150,12 +1151,13 @@ plot_cnv <- function(infercnv_obj,
     # Write data to file
     if ("matrix" %in% is(ref_data)) {
 
-        ## TODO: write files for dgcMatrix too.
-        row.names(ref_data) <- ref_orig_names
-        flog.info(paste("plot_cnv_references:Writing reference data to",
-                        reference_data_file,
-                        sep=" "))
-
+        if (write_expr_matrix) {
+            ## TODO: write files for dgcMatrix too.
+            row.names(ref_data) <- ref_orig_names
+            flog.info(paste("plot_cnv_references:Writing reference data to",
+                            reference_data_file,
+                            sep=" "))
+        }
         ## Rowv is FALSE, Colv is FALSE
 
         if (do_plot && write_expr_matrix) {
