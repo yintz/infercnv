@@ -673,7 +673,7 @@ plot_cnv <- function(infercnv_obj,
 
                 # when only 1 cell in the group, we need an artificial dendrogram for it
                 obs_dendrogram[[length(obs_dendrogram) + 1]] = .single_element_dendrogram(unique_label=row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
-                hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
+                # hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
                 if (isfirst) {
                     write(row.names(obs_data[which(obs_annotations_groups == i), ]),
@@ -690,6 +690,8 @@ plot_cnv <- function(infercnv_obj,
                 flog.info(paste("group size being clustered: ", paste(dim(data_to_cluster), collapse=","), sep=" "))
                 group_obs_hcl <- hclust(parallelDist(data_to_cluster, threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
                 ordered_names <- c(ordered_names, group_obs_hcl$labels[group_obs_hcl$order])
+                group_obs_dend <- as.dendrogram(group_obs_hcl)
+                obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
 
                 if (isfirst) {
                     write.tree(as.phylo(group_obs_hcl),
@@ -702,8 +704,6 @@ plot_cnv <- function(infercnv_obj,
                 }
             }
 
-            group_obs_dend <- as.dendrogram(group_obs_hcl)
-            obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
             hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, num_cells_in_group))
             obs_seps <- c(obs_seps, length(ordered_names))
         }
