@@ -1056,23 +1056,23 @@ run <- function(infercnv_obj,
     
         if (! (no_prelim_plot | no_plot) ) {
             
-            prelim_heatmap_png = "infercnv.preliminary.png"
+            #prelim_heatmap_png = "infercnv.preliminary.png"
             
-            if (! file.exists(file.path(out_dir, prelim_heatmap_png))) {
-                plot_cnv(infercnv_obj,
-                         k_obs_groups=k_obs_groups,
-                         cluster_by_groups=cluster_by_groups,
-                         cluster_references=cluster_references,
-                         plot_chr_scale=plot_chr_scale,
-                         chr_lengths=chr_lengths,
-                         out_dir=out_dir,
-                         title="Preliminary infercnv (pre-noise filtering)",
-                         output_filename="infercnv.preliminary", # png ext auto added
-                         output_format=output_format,
-                         write_expr_matrix=TRUE,
-                         png_res=png_res,
-                         useRaster=useRaster)
-            }
+            #if (! file.exists(file.path(out_dir, prelim_heatmap_png))) {
+            plot_cnv(infercnv_obj,
+                     k_obs_groups=k_obs_groups,
+                     cluster_by_groups=cluster_by_groups,
+                     cluster_references=cluster_references,
+                     plot_chr_scale=plot_chr_scale,
+                     chr_lengths=chr_lengths,
+                     out_dir=out_dir,
+                     title="Preliminary infercnv (pre-noise filtering)",
+                     output_filename="infercnv.preliminary", # png ext auto added
+                     output_format=output_format,
+                     write_expr_matrix=TRUE,
+                     png_res=png_res,
+                     useRaster=useRaster)
+            #}
         }
     }
     
