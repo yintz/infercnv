@@ -479,9 +479,14 @@ run <- function(infercnv_obj,
                     }
                     if (.compare_args(infercnv_obj@options, unlist(reload_info$relevant_args[1:i]), reloaded_infercnv_obj@options)) {
                         if (i ==  15 && per_chr_hmm_subclusters) {
-                            tmp = length(reload_info$expected_file_names[[step_count]])
-                            tmp = paste0(reload_info$expected_file_names[[step_count]][1:(tmp-13)], ".per_chr_subclusts", reload_info$expected_file_names[[step_count]][(tmp-13):tmp])
-                            subclusters_per_chr = readRDS(tmp)
+                            tmp = nchar(reload_info$expected_file_names[[i]])
+                            tmp = paste0(substr(reload_info$expected_file_names[[i]], 1, tmp-13), ".per_chr_subclusters", substr(reload_info$expected_file_names[[i]], tmp-12, tmp))
+                            if (file.exists(tmp)) {
+                                subclusters_per_chr = readRDS(tmp)
+                            }
+                            else {
+                                next
+                            }
                         }
                         options_backup = infercnv_obj@options
                         infercnv_obj = reloaded_infercnv_obj # replace input infercnv_obj

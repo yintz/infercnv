@@ -85,6 +85,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
                                                                         k_nn=k_nn,
                                                                         leiden_resolution=leiden_resolution,
                                                                         leiden_method=leiden_method,
+                                                                        leiden_function=leiden_function,
                                                                         hclust_method=hclust_method
                                                                         )
         }
@@ -109,7 +110,9 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         subclusters_per_chr <- .whole_dataset_leiden_subclustering_per_chr(expr_data = infercnv_obj@expr.data,
                                                                            chrs = chrs,
                                                                            k_nn = k_nn,
-                                                                           leiden_resolution = leiden_resolution)         
+                                                                           leiden_resolution = (leiden_resolution/10),
+                                                                           leiden_function = leiden_function
+                                                                           )         
     }
     else {
         subclusters_per_chr = NULL
@@ -625,7 +628,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         # graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
         # partition_obj = cluster_leiden(graph_obj, resolution_parameter=leiden_resolution, objective_function=leiden_function)
         # partition = partition_obj$membership
-        partition = .leiden_seurat_preprocess_routine(expr_data=tumor_expr_data, k_nn=k_nn, resolution_parameter=leiden_resolution)
+        partition = .leiden_seurat_preprocess_routine(expr_data=tumor_expr_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
     }
     else { # "default"
         snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
@@ -710,7 +713,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
 }
 
 
-.whole_dataset_leiden_subclustering_per_chr <- function(expr_data, chrs, k_nn, leiden_resolution) {
+.whole_dataset_leiden_subclustering_per_chr <- function(expr_data, chrs, k_nn, leiden_resolution, leiden_function) {
     # z score filtering over all the data based on refs, done in calling method
 
     # subclusters_per_chr = vector(mode="list", length=length(unique(chrs)))
@@ -722,7 +725,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
 
         c_data = expr_data[which(chrs == c), , drop=FALSE]
 
-        partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=(leiden_resolution/10))
+        partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
 
         # seurat_obs = CreateSeuratObject(c_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
         # seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
@@ -747,7 +750,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     return(subclusters_per_chr)
 }
 
-.leiden_seurat_preprocess_routine <- function(expr_data, k_nn, resolution_parameter) {
+.leiden_seurat_preprocess_routine <- function(expr_data, k_nn, resolution_parameter, objective_function) {
     seurat_obs = CreateSeuratObject(expr_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
     seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
 
@@ -758,7 +761,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
 
     graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
-    partition_obj = cluster_leiden(graph_obj, resolution_parameter=resolution_parameter)
+    partition_obj = cluster_leiden(graph_obj, resolution_parameter=resolution_parameter, objective_function=objective_function)
     partition = partition_obj$membership
 
     return(partition)
