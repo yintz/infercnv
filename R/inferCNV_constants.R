@@ -49,7 +49,7 @@ infercnv.env$GLOBAL_NUM_THREADS <- 1  # default is single-threaded.
 #' @importFrom tidyr gather
 #' @importFrom parallel detectCores
 #' @importFrom gridExtra ttheme_default tableGrob gtable_combine marrangeGrob 
-
+#' @importFrom Seurat CreateSeuratObject FindVariableFeatures ScaleData RunPCA FindNeighbors
 
 
 NULL
