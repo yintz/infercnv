@@ -25,6 +25,24 @@ define_signif_tumor_subclusters <- function(infercnv_obj, p_val=0.1, k_nn=30, le
         # }
     }
 
+    outliers = NULL
+    # if (partition_method == "leiden" && grepl("filter", leiden_method, fixed=TRUE)) {
+    if (z_score_filter > 0) {
+        ref_matrix = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices), drop=FALSE]
+        z_score = (ref_matrix - mean(ref_matrix))/sd(ref_matrix)
+        outliers =  which(apply(abs(z_score), 1, mean) >= 0.8)
+
+        if (!is.null(outliers)) {
+            chrs = infercnv_obj@gene_order$chr[-outliers]
+        }
+        # leiden_method = "seurat" leiden_method[1:(length(leiden_method) - 7)]
+        rm(ref_matrix)
+        rm(z_score)
+    }
+    else {
+        chrs = infercnv_obj@gene_order$chr
+    }
+
     for (tumor_group in names(tumor_groups)) {
 
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
