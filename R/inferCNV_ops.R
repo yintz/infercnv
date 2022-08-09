@@ -269,7 +269,7 @@ run <- function(infercnv_obj,
 
 
                 ## tumor subclustering options
-                analysis_mode=c('samples', 'subclusters', 'cells'), # for filtering and HMM
+                analysis_mode=c('subclusters', 'samples', 'cells'), # for filtering and HMM
                 tumor_subcluster_partition_method=c('leiden', 'random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 tumor_subcluster_pval=0.1,
                 k_nn=20,
