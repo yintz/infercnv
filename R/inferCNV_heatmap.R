@@ -861,16 +861,11 @@ plot_cnv <- function(infercnv_obj,
                             observation_file_base,
                             sep=" "))
             row.names(obs_data) <- orig_row_names
-        }
-        if (do_plot && write_expr_matrix) {
-            write.table(as.matrix(t(obs_data[data_observations$rowInd,data_observations$colInd])),
-                    file=observation_file_base)
-        }
-        else {
             # Rowv inherits dendrogram, Colv is FALSE
             # rowInd = seq_len(nrow(ref_data)) == everything in normal order
             # colInd = seq_len(ncol(ref_data)) == everything in normal order
-            write.table(as.matrix(t(obs_data)), file=observation_file_base)
+            write.table(as.matrix(t(obs_data[data_observations$rowInd,data_observations$colInd])),
+                    file=observation_file_base)
         }
     }
 }
@@ -1157,16 +1152,10 @@ plot_cnv <- function(infercnv_obj,
             flog.info(paste("plot_cnv_references:Writing reference data to",
                             reference_data_file,
                             sep=" "))
-        }
-        ## Rowv is FALSE, Colv is FALSE
 
-        if (do_plot && write_expr_matrix) {
-            write.table(as.matrix(t(ref_data[data_references$rowInd,data_references$colInd])),
-                        file=reference_data_file)
-        }
-        else {
+            ## Rowv is FALSE, Colv is FALSE
             # colInd = seq_len(ncol(ref_data)) == everything in normal order
-            write.table(as.matrix(t(ref_data[rev(seq_len(nrow(ref_data))), ])),
+            write.table(as.matrix(t(ref_data[data_references$rowInd,data_references$colInd])),
                         file=reference_data_file)
         }
     }
