@@ -1046,7 +1046,7 @@ run <- function(infercnv_obj,
                                                    per_chr_hmm_subclusters = per_chr_hmm_subclusters,
                                                    z_score_filter=z_score_filter
                                                    )
-            browser()
+
             infercnv_obj = res[[1]]
             subclusters_per_chr = res[[2]]
             rm(res)
@@ -1092,8 +1092,13 @@ run <- function(infercnv_obj,
                                                             hclust_method=hclust_method,
                                                             cluster_by_groups=cluster_by_groups,
                                                             partition_method='none',
+                                                            per_chr_hmm_subclusters=per_chr_hmm_subclusters,
+                                                            k_nn = k_nn,
+                                                            leiden_resolution = leiden_resolution,
+                                                            leiden_method = leiden_method,
+                                                            leiden_function=leiden_function,
                                                             z_score_filter=z_score_filter
-                                                            )
+                                                            )[[1]]
             
             if (save_rds) {
                 saveRDS(infercnv_obj, reload_info$expected_file_names[[step_count]])
