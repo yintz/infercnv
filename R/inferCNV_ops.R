@@ -1092,11 +1092,7 @@ run <- function(infercnv_obj,
                                                             hclust_method=hclust_method,
                                                             cluster_by_groups=cluster_by_groups,
                                                             partition_method='none',
-                                                            per_chr_hmm_subclusters=per_chr_hmm_subclusters,
-                                                            k_nn = k_nn,
-                                                            leiden_resolution = leiden_resolution,
-                                                            leiden_method = leiden_method,
-                                                            leiden_function=leiden_function,
+                                                            per_chr_hmm_subclusters=FALSE,
                                                             z_score_filter=z_score_filter
                                                             )[[1]]
             
