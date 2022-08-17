@@ -675,8 +675,8 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     added_height = 1
     # find a way to sort partition by size to make sure not to start with a single cell partition
     for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
-        res$subclusters[[ paste(tumor_group, i, sep="_s") ]] = tumor_group_idx[which(partition == i)]
-        names(res$subclusters[[ paste(tumor_group, i, sep="_s") ]]) = tumor_group_idx[which(partition == i)]
+        res$subclusters[[ paste(tumor_group, i, sep="_s") ]] = tumor_group_idx[which(partition == i)]  # this should transfer names as well
+        # names(res$subclusters[[ paste(tumor_group, i, sep="_s") ]]) = tumor_group_idx[which(partition == i)]
 
         if (length(which(partition == i)) >= 2) {
             tmp_phylo = as.phylo(hclust(parallelDist(t(tumor_expr_data[, which(partition == i), drop=FALSE]), threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method))
@@ -747,6 +747,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         # no HClust on these subclusters as they may mix both ref and obs cells
         for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
             subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]] = which(partition == i)
+            names(subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]]) = colnames(c_data)[which(partition == i)]
         }
     }
 
