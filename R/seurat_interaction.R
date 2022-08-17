@@ -5,6 +5,8 @@
 #'
 #' @param seurat_obj Seurat object to add meta.data to (default: NULL)
 #'
+#' @param assay_name Name of the assay in the Seurat object if provided. (default: "RNA")
+#'
 #' @param infercnv_output_path Path to the output folder of the infercnv run to use
 #'
 #' @param top_n How many of the largest CNA (in number of genes) to get.
@@ -19,6 +21,7 @@
 #'
 
 add_to_seurat <- function(seurat_obj = NULL,
+                          assay_name="RNA",
                           infercnv_output_path,
                           top_n = 10,
                           bp_tolerance = 2000000,
@@ -35,17 +38,17 @@ add_to_seurat <- function(seurat_obj = NULL,
         flog.info("No Seurat object provided, will only write metadata matrix.")
     }
     else if(!(setequal(row.names(seurat_obj@meta.data), colnames(infercnv_obj@expr.data)) ||
-         setequal(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data)))) {
+         setequal(colnames(seurat_obj@assays[[assay_name]]), colnames(infercnv_obj@expr.data)))) {
         flog.warn("::Cell names in Seurat object and infercnv results do not match")
         stop()
     }
 
-    # all(colnames(infercnv_obj@expr.data)[match(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data))] == colnames(seurat_obj@assays$RNA))
+    # all(colnames(infercnv_obj@expr.data)[match(colnames(seurat_obj@assays[[assay_name]]), colnames(infercnv_obj@expr.data))] == colnames(seurat_obj@assays[[assay_name]]))
     if (is.null(seurat_obj)) {
         cell_ordering_match = seq_len(ncol(infercnv_obj@expr.data))
     }
     else {
-        cell_ordering_match = match(colnames(seurat_obj@assays$RNA), colnames(infercnv_obj@expr.data))
+        cell_ordering_match = match(colnames(seurat_obj@assays[[assay_name]]), colnames(infercnv_obj@expr.data))
     }
     
     ## add check that data row/col names match seurat obj
