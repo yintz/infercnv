@@ -3,7 +3,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
                                             p_val=0.1,
                                             k_nn=20,
                                             leiden_resolution=0.05,
-                                            leiden_method=c("default", "seurat"),
+                                            leiden_method=c("PCA", "simple"),
                                             leiden_function = "CPM",
                                             hclust_method="ward.D2",
                                             cluster_by_groups=TRUE,
@@ -12,7 +12,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
                                             z_score_filter=0.8,
                                             restrict_to_DE_genes=FALSE) 
 {
-    # leiden_method=c("default", "per_chr", "intersect_chr", "per_select_chr", "seurat", "seurat2")
+    # leiden_method=c("simple", "per_chr", "intersect_chr", "per_select_chr", "PCA", "seurat2")
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
     # tumor_groups <- infercnv_obj@observation_grouped_cell_indices
@@ -127,7 +127,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
                                                                p_val=p_val,
                                                                k_nn=k_nn,
                                                                leiden_resolution=leiden_resolution,
-                                                               leiden_method="default",
+                                                               leiden_method="simple",
                                                                hclust_method=hclust_method,
                                                                cluster_by_groups=cluster_by_groups,
                                                                partition_method=partition_method,
@@ -618,7 +618,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     #     partition_obj = cluster_leiden(graph_obj, resolution_parameter=leiden_resolution)
     #     partition = partition_obj$membership
     # }
-    if (leiden_method == "seurat") {
+    if (leiden_method == "PCA") {
         # seurat_obs = CreateSeuratObject(tumor_expr_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
         # seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
 
@@ -633,7 +633,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         # partition = partition_obj$membership
         partition = .leiden_seurat_preprocess_routine(expr_data=tumor_expr_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
     }
-    else { # "default"
+    else { # "simple"
         snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
 
         sparse_adjacency_matrix <- sparseMatrix(
