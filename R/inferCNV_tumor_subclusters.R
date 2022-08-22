@@ -761,7 +761,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     all.genes <- rownames(seurat_obs)
     seurat_obs <- ScaleData(seurat_obs, features = all.genes)
 
-    seurat_obs = RunPCA(seurat_obs)
+    seurat_obs = RunPCA(seurat_obs, npcs=10) # only settings dims to 10 since FindNeighbors only uses 1:10 by default, if needed, could add optional settings for npcs and dims
     seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
 
     graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
