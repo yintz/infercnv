@@ -634,19 +634,20 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         partition = .leiden_seurat_preprocess_routine(expr_data=tumor_expr_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
     }
     else { # "simple"
-        snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
+        partition = .leiden_simple_snn(tumor_expr_data, k_nn, leiden_resolution, leiden_function)
+        # snn <- nn2(t(tumor_expr_data), k=k_nn)$nn.idx
 
-        sparse_adjacency_matrix <- sparseMatrix(
-           i = rep(seq_len(ncol(tumor_expr_data)), each=k_nn), 
-           j = t(snn),
-           x = rep(1, ncol(tumor_expr_data) * k_nn),
-           dims = c(ncol(tumor_expr_data), ncol(tumor_expr_data)),
-           dimnames = list(colnames(tumor_expr_data), colnames(tumor_expr_data))
-        )
+        # sparse_adjacency_matrix <- sparseMatrix(
+        #    i = rep(seq_len(ncol(tumor_expr_data)), each=k_nn), 
+        #    j = t(snn),
+        #    x = rep(1, ncol(tumor_expr_data) * k_nn),
+        #    dims = c(ncol(tumor_expr_data), ncol(tumor_expr_data)),
+        #    dimnames = list(colnames(tumor_expr_data), colnames(tumor_expr_data))
+        # )
         
-        graph_obj = graph_from_adjacency_matrix(sparse_adjacency_matrix, mode="undirected")
-        partition_obj = cluster_leiden(graph_obj, resolution_parameter=leiden_resolution, objective_function=leiden_function)
-        partition = partition_obj$membership
+        # graph_obj = graph_from_adjacency_matrix(sparse_adjacency_matrix, mode="undirected")
+        # partition_obj = cluster_leiden(graph_obj, resolution_parameter=leiden_resolution, objective_function=leiden_function)
+        # partition = partition_obj$membership
 
         #flog.info(paste0("Group ", tumor_group, " was subdivided into ", partition_obj$nb_clusters, 
         #   " clusters with a partition quality score of ", partition_obj$quality))
@@ -728,6 +729,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
 
         c_data = expr_data[which(chrs == c), , drop=FALSE]
 
+        flog.info(paste0("Running leiden subclustering for chromosome ", c))
         partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
 
         # seurat_obs = CreateSeuratObject(c_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
@@ -756,15 +758,42 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
 
 .leiden_seurat_preprocess_routine <- function(expr_data, k_nn, resolution_parameter, objective_function) {
     seurat_obs = CreateSeuratObject(expr_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
-    seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
+    # seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
+    seurat_obs = tryCatch(FindVariableFeatures(seurat_obs), 
+                          warning=function(w) {
+                            flog.info(paste0("Got a warning:\n\t", w$message, "\n\nFalling back to simple Leiden clustering for this chromosome.\n"))
+                          })
 
-    all.genes <- rownames(seurat_obs)
-    seurat_obs <- ScaleData(seurat_obs, features = all.genes)
+    if ("Seurat" %in% is(seurat_obs)) {
+        all.genes <- rownames(seurat_obs)
+        seurat_obs <- ScaleData(seurat_obs, features = all.genes)
 
-    seurat_obs = RunPCA(seurat_obs, npcs=10) # only settings dims to 10 since FindNeighbors only uses 1:10 by default, if needed, could add optional settings for npcs and dims
-    seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
+        seurat_obs = RunPCA(seurat_obs, npcs=10) # only settings dims to 10 since FindNeighbors only uses 1:10 by default, if needed, could add optional settings for npcs and dims
+        seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
 
-    graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
+        graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
+        partition_obj = cluster_leiden(graph_obj, resolution_parameter=resolution_parameter, objective_function=objective_function)
+        partition = partition_obj$membership
+    }
+    else {
+        partition = .leiden_simple_snn(expr_data, k_nn, resolution_parameter, objective_function)
+    }
+
+    return(partition)
+}
+
+.leiden_simple_snn <- function(expr_data, k_nn, resolution_parameter, objective_function) {
+    snn <- nn2(t(expr_data), k=k_nn)$nn.idx
+
+    sparse_adjacency_matrix <- sparseMatrix(
+       i = rep(seq_len(ncol(expr_data)), each=k_nn), 
+       j = t(snn),
+       x = rep(1, ncol(expr_data) * k_nn),
+       dims = c(ncol(expr_data), ncol(expr_data)),
+       dimnames = list(colnames(expr_data), colnames(expr_data))
+    )
+    
+    graph_obj = graph_from_adjacency_matrix(sparse_adjacency_matrix, mode="undirected")
     partition_obj = cluster_leiden(graph_obj, resolution_parameter=resolution_parameter, objective_function=objective_function)
     partition = partition_obj$membership
 
