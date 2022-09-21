@@ -39,7 +39,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
 
     outliers = NULL
     # if (partition_method == "leiden" && grepl("filter", leiden_method, fixed=TRUE)) {
-    if (z_score_filter > 0) {
+    if (z_score_filter > 0 && length(infercnv_obj@reference_grouped_cell_indices) > 0) {
         ref_matrix = infercnv_obj@expr.data[, unlist(infercnv_obj@reference_grouped_cell_indices), drop=FALSE]
         z_score = (ref_matrix - mean(ref_matrix))/sd(ref_matrix)
         outliers =  which(apply(abs(z_score), 1, mean) >= 0.8)
