@@ -725,31 +725,36 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     
     # per_chr_partition = vector(mode="list", length=length(unique(chrs)))
 
-    for (c in unique(chrs)) {
+    for (c in levels(chrs)) {
+        if (!(c %in% unique(chrs))) {
+            subclusters_per_chr[[c]] = list()
+            subclusters_per_chr[[c]][["all_cells"]] = seq_len(ncol(expr_data))
+            names(subclusters_per_chr[[c]][["all_cells"]]) = colnames(c_data)[seq_len(ncol(expr_data))]  # the [] shouldn't matter
+        }
+        else {
+            c_data = expr_data[which(chrs == c), , drop=FALSE]
 
-        c_data = expr_data[which(chrs == c), , drop=FALSE]
+            partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
 
-        flog.info(paste0("Running leiden subclustering for chromosome ", c))
-        partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
+            # seurat_obs = CreateSeuratObject(c_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
+            # seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
 
-        # seurat_obs = CreateSeuratObject(c_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
-        # seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
+            # all.genes <- rownames(seurat_obs)
+            # seurat_obs <- ScaleData(seurat_obs, features = all.genes)
 
-        # all.genes <- rownames(seurat_obs)
-        # seurat_obs <- ScaleData(seurat_obs, features = all.genes)
+            # seurat_obs = RunPCA(seurat_obs)
+            # seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
 
-        # seurat_obs = RunPCA(seurat_obs)
-        # seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
+            # graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
+            # partition_obj = cluster_leiden(graph_obj, resolution_parameter=(leiden_resolution/10))
+            # partition = partition_obj$membership
 
-        # graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
-        # partition_obj = cluster_leiden(graph_obj, resolution_parameter=(leiden_resolution/10))
-        # partition = partition_obj$membership
-
-        subclusters_per_chr[[c]] = list()
-        # no HClust on these subclusters as they may mix both ref and obs cells
-        for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
-            subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]] = which(partition == i)
-            names(subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]]) = colnames(c_data)[which(partition == i)]
+            subclusters_per_chr[[c]] = list()
+            # no HClust on these subclusters as they may mix both ref and obs cells
+            for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
+                subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]] = which(partition == i)
+                names(subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]]) = colnames(c_data)[which(partition == i)]
+            }
         }
     }
 
