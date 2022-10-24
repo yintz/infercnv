@@ -1109,7 +1109,7 @@ run_gibb_sampling <- function(gene_exp,
 plot_cell_prob <- function(df, title, HMM_type){
     # i3 or i6 HMM method, need to determine the number of columns on the graph
     df$mag = seq_len(ifelse(HMM_type == "i6", 6, 3))
-    long_data <- reshape::melt(df, id = "mag")
+    long_data <- melt(df, id = "mag")
     long_data$mag <- as.factor(long_data$mag)
     ggplot2::ggplot(long_data, ggplot2::aes_string(x = 'variable', y = 'value', fill = 'mag'))+
         ggplot2::geom_bar(stat="identity", width = 1) +
@@ -1210,7 +1210,8 @@ plot_cnv_prob <- function(df, title, HMM_type){
 #' infercnv_object_example <- infercnv::run(infercnv_object_example,
 #'                                          cutoff=1,
 #'                                          out_dir=out_dir, 
-#'                                          cluster_by_groups=TRUE, 
+#'                                          cluster_by_groups=TRUE,
+#'                                          analysis_mode="samples",
 #'                                          denoise=TRUE,
 #'                                          HMM=TRUE,
 #'                                          num_threads=2,
