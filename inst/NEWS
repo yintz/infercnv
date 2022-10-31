@@ -16,7 +16,7 @@ Changes in 1.13.1 (2022-10-17)
 + Linked write_expr_matrix option in plot_cnv to the methods that plot the observations and references so that the split matrix also don't get output when set to false.
 + Fix for plot_cnv(plot_chr_scale=T) to handle chromosomes with a single gene on them, though such chromosomes should be dropped entirely.
 
-+ Changes in 1.11.3 (2022-04-11)
+Changes in 1.11.3 (2022-04-11)
 + Add tumor_subcluster_partition_method option to CLI script.
 + Add sd_amplifier option to example run.R to match wiki better.
 + Transfer denoise default parameter to reloading function when its not manually set.
