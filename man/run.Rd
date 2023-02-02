@@ -34,10 +34,14 @@ run(
     "qgamma", "shc"),
   tumor_subcluster_pval = 0.1,
   k_nn = 20,
-  leiden_resolution = 0.05,
   leiden_method = c("PCA", "simple"),
   leiden_function = c("CPM", "modularity"),
+  leiden_resolution = 0.05,
+  leiden_method_per_chr = c("simple", "PCA"),
+  leiden_function_per_chr = c("modularity", "CPM"),
+  leiden_resolution_per_chr = 1,
   per_chr_hmm_subclusters = FALSE,
+  per_chr_hmm_subclusters_references = FALSE,
   z_score_filter = 0.8,
   denoise = FALSE,
   noise_filter = NA,
@@ -169,11 +173,17 @@ qnorm: defines tree height based on the quantile defined by the tumor_subcluster
 
 \item{k_nn}{number k of nearest neighbors to search for when using the Leiden partition method for subclustering (default: 20)}
 
-\item{leiden_resolution}{resolution parameter for the Leiden algorithm using the CPM quality score (default: 0.05)}
-
-\item{leiden_method}{Method used to generate the graph on which the Leiden algorithm is applied (default: "PCA")}
+\item{leiden_method}{Method used to generate the graph on which the Leiden algorithm is applied, one of "PCA" or "simple". (default: "PCA")}
 
 \item{leiden_function}{Whether to use the Constant Potts Model (CPM) or modularity in igraph. Must be either "CPM" or "modularity". (default: "CPM")}
+
+\item{leiden_resolution}{resolution parameter for the Leiden algorithm using the CPM quality score (default: 0.05)}
+
+\item{leiden_method_per_chr}{Method used to generate the graph on which the Leiden algorithm is applied for the per chromosome subclustering, one of "PCA" or "simple". (default: "simple")}
+
+\item{leiden_function_per_chr}{Whether to use the Constant Potts Model (CPM) or modularity in igraph for the per chromosome subclustering. Must be either "CPM" or "modularity". (default: "modularity")}
+
+\item{leiden_resolution_per_chr}{resolution parameter for the Leiden algorithm for the per chromosome subclustering (default: 1)}
 
 \item{per_chr_hmm_subclusters}{Run subclustering per chromosome over all cells combined to run the HMM on those subclusters instead. Only applicable when using Leiden subclustering.
 This should provide enough definition in the predictions while avoiding subclusters that are too small thus providing less evidence to work with. (default: TRUE)}

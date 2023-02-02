@@ -98,11 +98,17 @@
 #'
 #' @param k_nn number k of nearest neighbors to search for when using the Leiden partition method for subclustering (default: 20)
 #'
-#' @param leiden_resolution resolution parameter for the Leiden algorithm using the CPM quality score (default: 0.05)
-#'
-#' @param leiden_method Method used to generate the graph on which the Leiden algorithm is applied (default: "PCA")
+#' @param leiden_method Method used to generate the graph on which the Leiden algorithm is applied, one of "PCA" or "simple". (default: "PCA")
 #'
 #' @param leiden_function Whether to use the Constant Potts Model (CPM) or modularity in igraph. Must be either "CPM" or "modularity". (default: "CPM")
+#'
+#' @param leiden_resolution resolution parameter for the Leiden algorithm using the CPM quality score (default: 0.05)
+#'
+#' @param leiden_method_per_chr Method used to generate the graph on which the Leiden algorithm is applied for the per chromosome subclustering, one of "PCA" or "simple". (default: "simple")
+#'
+#' @param leiden_function_per_chr Whether to use the Constant Potts Model (CPM) or modularity in igraph for the per chromosome subclustering. Must be either "CPM" or "modularity". (default: "modularity")
+#'
+#' @param leiden_resolution_per_chr resolution parameter for the Leiden algorithm for the per chromosome subclustering (default: 1)
 #'
 #' @param per_chr_hmm_subclusters Run subclustering per chromosome over all cells combined to run the HMM on those subclusters instead. Only applicable when using Leiden subclustering.
 #'                                This should provide enough definition in the predictions while avoiding subclusters that are too small thus providing less evidence to work with. (default: TRUE)
@@ -274,10 +280,14 @@ run <- function(infercnv_obj,
                 tumor_subcluster_partition_method=c('leiden', 'random_trees', 'qnorm', 'pheight', 'qgamma', 'shc'),
                 tumor_subcluster_pval=0.1,
                 k_nn=20,
-                leiden_resolution=0.05,
                 leiden_method=c("PCA", "simple"),
                 leiden_function = c("CPM", "modularity"),
-                per_chr_hmm_subclusters=TRUE,
+                leiden_resolution=0.05,
+                leiden_method_per_chr=c("simple", "PCA"),
+                leiden_function_per_chr = c("modularity", "CPM"),
+                leiden_resolution_per_chr = 1,
+                per_chr_hmm_subclusters=FALSE,
+                per_chr_hmm_subclusters_references=FALSE,
                 z_score_filter = 0.8,
 
 
@@ -344,6 +354,7 @@ run <- function(infercnv_obj,
     }
 
     leiden_function = match.arg(leiden_function)
+    leiden_function_per_chr = match.arg(leiden_function_per_chr)
     HMM_report_by = match.arg(HMM_report_by)
     analysis_mode = match.arg(analysis_mode)
     if(analysis_mode == "cells" && HMM_report_by != "cell") {
@@ -353,6 +364,7 @@ run <- function(infercnv_obj,
     }
     tumor_subcluster_partition_method = match.arg(tumor_subcluster_partition_method)
     leiden_method = match.arg(leiden_method)
+    leiden_method_per_chr = match.arg(leiden_method_per_chr)
     if (tumor_subcluster_partition_method != "leiden") {
         per_chr_hmm_subclusters = FALSE
     }
@@ -1040,7 +1052,10 @@ run <- function(infercnv_obj,
                                                    k_nn = k_nn,
                                                    leiden_resolution = leiden_resolution,
                                                    leiden_method = leiden_method,
-                                                   leiden_function=leiden_function,
+                                                   leiden_function = leiden_function,
+                                                   leiden_method_per_chr = leiden_method_per_chr,
+                                                   leiden_function_per_chr = leiden_function_per_chr,
+                                                   leiden_resolution_per_chr = leiden_resolution_per_chr,
                                                    hclust_method = hclust_method,
                                                    cluster_by_groups = cluster_by_groups,
                                                    partition_method = tumor_subcluster_partition_method,
@@ -3350,7 +3365,7 @@ compareNA <- function(v1,v2) {
     relevant_args[[step_i]] = c("analysis_mode", "tumor_subcluster_partition_method", "z_score_filter")
     if (run_arguments$analysis_mode == 'subclusters' & run_arguments$tumor_subcluster_partition_method != 'random_trees') {
         resume_file_token = paste0(resume_file_token, '.', run_arguments$tumor_subcluster_partition_method)
-        relevant_args[[step_i]] = c(relevant_args[[step_i]], "k_nn", "leiden_resolution", "tumor_subcluster_pval", "leiden_method", "leiden_function", "per_chr_hmm_subclusters", "hclust_method", "cluster_by_groups")
+        relevant_args[[step_i]] = c(relevant_args[[step_i]], "k_nn", "leiden_resolution", "tumor_subcluster_pval", "leiden_method", "leiden_function", "leiden_method_per_chr", "leiden_function_per_chr", "leiden_resolution_per_chr", "per_chr_hmm_subclusters", "per_chr_hmm_subclusters_references", "hclust_method", "cluster_by_groups") 
         expected_file_names[[step_i]] = file.path(run_arguments$out_dir, sprintf("%02d_tumor_subclusters%s.infercnv_obj", step_i, resume_file_token))
     }
     else if (run_arguments$analysis_mode != 'subclusters') {

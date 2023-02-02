@@ -2,17 +2,25 @@
 define_signif_tumor_subclusters <- function(infercnv_obj,
                                             p_val=0.1,
                                             k_nn=20,
-                                            leiden_resolution=0.05,
                                             leiden_method=c("PCA", "simple"),
-                                            leiden_function = "CPM",
+                                            leiden_function = c("CPM", "modularity"),
+                                            leiden_resolution=0.05,
+                                            leiden_method_per_chr=c("simple", "PCA"),
+                                            leiden_function_per_chr = c("modularity", "CPM"),
+                                            leiden_resolution_per_chr = 1,
                                             hclust_method="ward.D2",
                                             cluster_by_groups=TRUE,
                                             partition_method="leiden",
                                             per_chr_hmm_subclusters=FALSE,
+                                            per_chr_hmm_subclusters_references=FALSE,
                                             z_score_filter=0.8,
                                             restrict_to_DE_genes=FALSE) 
 {
     # leiden_method=c("simple", "per_chr", "intersect_chr", "per_select_chr", "PCA", "seurat2")
+    leiden_method = match.arg(leiden_method)
+    leiden_method_per_chr = match.arg(leiden_method_per_chr)
+    leiden_function = match.arg(leiden_function)
+    leiden_function_per_chr = match.arg(leiden_function_per_chr)
     flog.info(sprintf("define_signif_tumor_subclusters(p_val=%g", p_val))
     
     # tumor_groups <- infercnv_obj@observation_grouped_cell_indices
@@ -29,12 +37,7 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         tumor_groups <- c(infercnv_obj@observation_grouped_cell_indices, infercnv_obj@reference_grouped_cell_indices)
     }
     else {
-        # if(length(infercnv_obj@reference_grouped_cell_indices) > 0) {
         tumor_groups <- c(list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE)), infercnv_obj@reference_grouped_cell_indices)
-        # }
-        # else {
-        #     tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
-        # }
     }
 
     outliers = NULL
@@ -45,23 +48,37 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         outliers =  which(apply(abs(z_score), 1, mean) >= 0.8)
 
         if (!is.null(outliers)) {
-            chrs = infercnv_obj@gene_order$chr[-outliers]
+            # if (mask_zscore) {   ## option to add to handle if to completely remove the outliers from the analysis, or add alternate option to assign them a value from neighbor genes
+                # infercnv_obj@gene_order = infercnv_obj@gene_order[-outliers, , drop=FALSE]
+                # infercnv_obj@expr.data = infercnv_obj@expr.data[-outliers, , drop=FALSE]
+            # }
+            # else {
+                gene_order = infercnv_obj@gene_order[-outliers, , drop=FALSE]
+                expr.data = infercnv_obj@expr.data[-outliers, , drop=FALSE]
+            # }
+        }
+        else {
+            # chrs = infercnv_obj@gene_order$chr
+            gene_order = infercnv_obj@gene_order
+            expr.data = infercnv_obj@expr.data
         }
         # leiden_method = "seurat" leiden_method[1:(length(leiden_method) - 7)]
         rm(ref_matrix)
         rm(z_score)
     }
     else {
-        chrs = infercnv_obj@gene_order$chr
+        gene_order = infercnv_obj@gene_order
+        expr.data = infercnv_obj@expr.data
     }
+
 
     for (tumor_group in names(tumor_groups)) {
 
         flog.info(sprintf("define_signif_tumor_subclusters(), tumor: %s", tumor_group))
         
         tumor_group_idx <- tumor_groups[[ tumor_group ]]
-        names(tumor_group_idx) <- colnames(infercnv_obj@expr.data[,tumor_group_idx])
-        tumor_expr_data <- infercnv_obj@expr.data[,tumor_group_idx, drop=FALSE]
+        names(tumor_group_idx) <- colnames(expr.data[,tumor_group_idx])
+        tumor_expr_data <- expr.data[,tumor_group_idx, drop=FALSE]
 
         if (restrict_to_DE_genes) {
             p_vals <- .find_DE_stat_significance(normal_expr_data, tumor_expr_data)
@@ -73,15 +90,14 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
         
         if (partition_method == "leiden") {
 
-            if (!is.null(outliers)) {
-                tumor_expr_data = tumor_expr_data[-outliers, , drop=FALSE]
-            }
+            # if (!is.null(outliers)) {
+            #     tumor_expr_data = tumor_expr_data[-outliers, , drop=FALSE]
+            # }
 
             #tumor_subcluster_info <- .single_tumor_leiden_subclustering(tumor_group=tumor_group, tumor_group_idx=tumor_group_idx, tumor_expr_data=tumor_expr_data, chrs=infercnv_obj@gene_order$chr, k_nn=k_nn, leiden_resolution=leiden_resolution, leiden_method=leiden_method, select_chr=select_chr, hclust_method=hclust_method)
             tumor_subcluster_info <- .single_tumor_leiden_subclustering(tumor_group=tumor_group,
                                                                         tumor_group_idx=tumor_group_idx,
                                                                         tumor_expr_data=tumor_expr_data,
-                                                                        chrs=chrs,
                                                                         k_nn=k_nn,
                                                                         leiden_resolution=leiden_resolution,
                                                                         leiden_method=leiden_method,
@@ -107,18 +123,30 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
     infercnv_obj@tumor_subclusters <- res
 
     if (per_chr_hmm_subclusters && partition_method == "leiden") {
-        if (!is.null(outliers)) {
-            tumor_expr_data = infercnv_obj@expr.data[-outliers, , drop=FALSE]
+        if (!per_chr_hmm_subclusters_references) {
+            if (cluster_by_groups) {
+                tumor_groups <- infercnv_obj@observation_grouped_cell_indices
+            }
+            else {
+                tumor_groups <- list(all_observations=unlist(infercnv_obj@observation_grouped_cell_indices, use.names=FALSE))
+            }
         }
-        else {
-            tumor_expr_data = infercnv_obj@expr.data
-        }
-        subclusters_per_chr <- .whole_dataset_leiden_subclustering_per_chr(expr_data = tumor_expr_data,
-                                                                           chrs = chrs,
+        # else use the same as for regular subclusters
+
+        subclusters_per_chr <- .whole_dataset_leiden_subclustering_per_chr(expr_data = expr.data,
+                                                                           tumor_groups = tumor_groups,
+                                                                           chrs = gene_order$chr,
                                                                            k_nn = k_nn,
-                                                                           leiden_resolution = (leiden_resolution/10),
-                                                                           leiden_function = leiden_function
+                                                                           leiden_resolution = leiden_resolution_per_chr,
+                                                                           leiden_method = leiden_method_per_chr,
+                                                                           leiden_function = leiden_function_per_chr
                                                                            )
+
+        if (!per_chr_hmm_subclusters_references) {
+            for (i in names(subclusters_per_chr)) {
+                subclusters_per_chr[[i]]  = c(subclusters_per_chr[[i]], infercnv_obj@reference_grouped_cell_indices)
+            }
+        }
     }
     else {
         subclusters_per_chr = NULL
@@ -529,7 +557,7 @@ plot_subclusters = function(infercnv_obj, out_dir, output_filename = "subcluster
 }
 
 
-.single_tumor_leiden_subclustering <- function(tumor_group, tumor_group_idx, tumor_expr_data, chrs, k_nn, leiden_resolution, leiden_method, leiden_function, hclust_method) {
+.single_tumor_leiden_subclustering <- function(tumor_group, tumor_group_idx, tumor_expr_data, k_nn, leiden_resolution, leiden_method, leiden_function, hclust_method) {
     res = list()
     res$subclusters = list()
 
@@ -598,51 +626,42 @@ plot_subclusters = function(infercnv_obj, out_dir, output_filename = "subcluster
 }
 
 
-.whole_dataset_leiden_subclustering_per_chr <- function(expr_data, chrs, k_nn, leiden_resolution, leiden_function) {
+.whole_dataset_leiden_subclustering_per_chr <- function(expr_data, tumor_groups, chrs, k_nn, leiden_resolution, leiden_method, leiden_function) {
     # z score filtering over all the data based on refs, done in calling method
 
     subclusters_per_chr = list()
 
     for (c in levels(chrs)) {
-        if (!(c %in% unique(chrs))) {
-            subclusters_per_chr[[c]] = list()
-            subclusters_per_chr[[c]][["all_cells"]] = seq_len(ncol(expr_data))
-            names(subclusters_per_chr[[c]][["all_cells"]]) = colnames(expr_data)[seq_len(ncol(expr_data))]  # the [] shouldn't matter
-        }
-        else {
-            c_data = expr_data[which(chrs == c), , drop=FALSE]
-
-            if (ncol(c_data) < 3) {
-                flog.info(paste0("Too few cells in group ", tumor_group, " for any per chr (sub)clustering. Keeping as is."))
-                subclusters_per_chr[[c]][["all_cells"]] = seq_len(ncol(expr_data))
-                names(subclusters_per_chr[[c]][["all_cells"]]) = colnames(expr_data)[seq_len(ncol(expr_data))]
-            }
-            else if (k_nn >= ncol(c_data)) {
-                flog.info(paste0("Less cells in group ", tumor_group, " than k_nn setting. Keeping as a single per chr subcluster."))
-                subclusters_per_chr[[c]][["all_cells"]] = seq_len(ncol(expr_data))
-                names(subclusters_per_chr[[c]][["all_cells"]]) = colnames(expr_data)[seq_len(ncol(expr_data))]
+        subclusters_per_chr[[c]] = list()
+        for (tumor_group in names(tumor_groups)) {
+            if (!(c %in% unique(chrs))) {
+                subclusters_per_chr[[c]][[tumor_group]] = seq_len(ncol(expr_data))
+                names(subclusters_per_chr[[c]][[tumor_group]]) = colnames(expr_data)[seq_len(ncol(expr_data))]  # the [] shouldn't matter
             }
             else {
-                partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
+                c_data = expr_data[which(chrs == c), tumor_groups[[tumor_group]], drop=FALSE]
 
-                # seurat_obs = CreateSeuratObject(c_data, "assay" = "infercnv", project = "infercnv", names.field = 1)
-                # seurat_obs = FindVariableFeatures(seurat_obs) # , selection.method = "vst", nfeatures = 2000
+                if (ncol(c_data) < 3) {
+                    flog.info(paste0("Too few cells in group ", tumor_group, " for any per chr (sub)clustering. Keeping as is."))
+                    subclusters_per_chr[[c]][[tumor_group]] = tumor_groups[[tumor_group]]
+                }
+                else if (k_nn >= ncol(c_data)) {
+                    flog.info(paste0("Less cells in group ", tumor_group, " than k_nn setting. Keeping as a single per chr subcluster."))
+                    subclusters_per_chr[[c]][[tumor_group]] = tumor_groups[[tumor_group]]
+                }
+                else {
+                    if (leiden_method == "PCA") {
+                        partition = .leiden_seurat_preprocess_routine(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function)
+                    }
+                    else { # "simple"
+                        partition = .leiden_simple_snn(expr_data=c_data, k_nn=k_nn, resolution_parameter=leiden_resolution, objective_function=leiden_function) 
+                    }
 
-                # all.genes <- rownames(seurat_obs)
-                # seurat_obs <- ScaleData(seurat_obs, features = all.genes)
-
-                # seurat_obs = RunPCA(seurat_obs)
-                # seurat_obs = FindNeighbors(seurat_obs, k.param=k_nn)
-
-                # graph_obj = graph_from_adjacency_matrix(seurat_obs@graphs$infercnv_snn, mode="min", weighted=TRUE)
-                # partition_obj = cluster_leiden(graph_obj, resolution_parameter=(leiden_resolution/10))
-                # partition = partition_obj$membership
-
-                subclusters_per_chr[[c]] = list()
-                # no HClust on these subclusters as they may mix both ref and obs cells
-                for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
-                    subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]] = which(partition == i)
-                    names(subclusters_per_chr[[c]][[ paste("all_cells", i, sep="_s") ]]) = colnames(c_data)[which(partition == i)]
+                    # no HClust on these subclusters as they may mix both ref and obs cells
+                    for (i in unique(partition[grouping(partition)])) {  # grouping() is there to make sure we do not start looking at a one cell cluster since it cannot be added to a phylo object
+                        subclusters_per_chr[[c]][[ paste(tumor_group, i, sep="_s") ]] = tumor_groups[[tumor_group]][which(partition == i)]
+                        #   names(subclusters_per_chr[[c]][[ paste(tumor_group, i, sep="_s") ]]) = colnames(c_data)[which(partition == i)]
+                    }
                 }
             }
         }
