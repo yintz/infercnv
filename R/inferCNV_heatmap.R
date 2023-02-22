@@ -537,6 +537,8 @@ plot_cnv <- function(infercnv_obj,
                     ncol(obs_data),
                     sep=" "))
     observation_file_base <- paste(file_base_name, sprintf("%s.observations.txt", output_filename_prefix), sep=.Platform$file.sep)
+
+    write_phylo = FALSE
     
     # Output dendrogram representation as Newick
     # Need to precompute the dendrogram so we can manipulate
@@ -583,14 +585,16 @@ plot_cnv <- function(infercnv_obj,
                     obs_seps <- c(obs_seps, length(ordered_names))
                     hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, rep(i, length(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]$order)))
                     
-                    if (isfirst) {
-                        write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
-                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-                        isfirst <- FALSE
-                    }
-                    else {
-                        write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
-                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                    if (write_phylo) {
+                        if (isfirst) {
+                            write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
+                                       file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                            isfirst <- FALSE
+                        }
+                        else {
+                            write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
+                                       file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                        }
                     }
                 }
                 else { ## should only happen if there is only 1 cell in the group so the clustering method was not able to generate a hclust
@@ -626,9 +630,10 @@ plot_cnv <- function(infercnv_obj,
         }
         else {
             obs_hcl <- infercnv_obj@tumor_subclusters$hc[["all_observations"]]
-            write.tree(as.phylo(obs_hcl),
-                file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-  
+            if (write_phylo) {
+                write.tree(as.phylo(obs_hcl),
+                    file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+            }
             obs_dendrogram <- as.dendrogram(obs_hcl)
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
@@ -693,14 +698,16 @@ plot_cnv <- function(infercnv_obj,
                 group_obs_dend <- as.dendrogram(group_obs_hcl)
                 obs_dendrogram[[length(obs_dendrogram) + 1]] <- group_obs_dend
 
-                if (isfirst) {
-                    write.tree(as.phylo(group_obs_hcl),
-                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-                    isfirst <- FALSE
-                }
-                else {
-                    write.tree(as.phylo(group_obs_hcl),
-                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                if (write_phylo) {
+                    if (isfirst) {
+                        write.tree(as.phylo(group_obs_hcl),
+                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                        isfirst <- FALSE
+                    }
+                    else {
+                        write.tree(as.phylo(group_obs_hcl),
+                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                    }
                 }
             }
 
@@ -723,10 +730,11 @@ plot_cnv <- function(infercnv_obj,
         flog.info(paste("clustering observations via method: ", hclust_method, sep=""))
         if (nrow(obs_data) > 1) {
             obs_hcl <- hclust(parallelDist(obs_data[, hcl_group_indices], threads=infercnv.env$GLOBAL_NUM_THREADS), method=hclust_method)
-                                            
-            write.tree(as.phylo(obs_hcl),
-                       file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
             
+            if (write_phylo) {
+                write.tree(as.phylo(obs_hcl),
+                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+            }
             obs_dendrogram <- as.dendrogram(obs_hcl)
             ordered_names <- obs_hcl$labels[obs_hcl$order]
             split_groups <- cutree(obs_hcl, k=num_obs_groups)
