@@ -251,7 +251,7 @@ run <- function(infercnv_obj,
                 ref_subtract_use_mean_bounds=TRUE,
 
                 # observation cell clustering settings
-                cluster_by_groups=FALSE,
+                cluster_by_groups=TRUE,
                 cluster_references=TRUE,
                 k_obs_groups=1,
 
