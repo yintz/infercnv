@@ -13,7 +13,7 @@ run(
   smooth_method = c("pyramidinal", "runmeans", "coordinates"),
   num_ref_groups = NULL,
   ref_subtract_use_mean_bounds = TRUE,
-  cluster_by_groups = FALSE,
+  cluster_by_groups = TRUE,
   cluster_references = TRUE,
   k_obs_groups = 1,
   hclust_method = "ward.D2",
