@@ -17,6 +17,9 @@ plot_subclusters(
 
 \item{output_filename}{Filename to save the figure to.}
 }
+\value{
+infercnv_obj the modified infercnv object that was plotted where subclusters are assigned as annotation groups
+}
 \description{
 Formats the data and sends it for plotting.
 }

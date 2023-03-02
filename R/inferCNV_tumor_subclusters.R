@@ -302,6 +302,8 @@ define_signif_tumor_subclusters <- function(infercnv_obj,
 #' @param out_dir Directory in which to output.
 #' @param output_filename Filename to save the figure to.
 #'
+#' @return infercnv_obj the modified infercnv object that was plotted where subclusters are assigned as annotation groups
+#'
 #' @export
 #'
 #' @examples
@@ -354,6 +356,8 @@ plot_subclusters = function(infercnv_obj, out_dir, output_filename = "subcluster
              output_filename = output_filename,
              out_dir=out_dir,
              write_expr_matrix=FALSE)
+
+    return(subcluster_obj)
 }
 
 
