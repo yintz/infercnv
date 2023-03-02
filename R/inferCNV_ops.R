@@ -1346,7 +1346,8 @@ run <- function(infercnv_obj,
                                                    HMM_type          = HMM_type,
                                                    k_obs_groups      = k_obs_groups,
                                                    cluster_by_groups = cluster_by_groups,
-                                                   reassignCNVs      = reassignCNVs)
+                                                   reassignCNVs      = reassignCNVs,
+                                                   useRaster         = useRaster)
 
             # mcmc_obj_file = file.path(out_dir, sprintf("%02d_HMM_pred.Bayes_Net%s.mcmc_obj",
             #                                        step_count, hmm_resume_file_token))
@@ -1373,8 +1374,9 @@ run <- function(infercnv_obj,
             flog.info(sprintf("\n\n\tSTEP %02d: Filter HMM predicted CNVs based on the Bayesian Network Model results and BayesMaxPNormal\n", step_count))
             ## Filter CNV's by posterior Probabilities
             mcmc_obj_hmm_states_list <- infercnv::filterHighPNormals( MCMC_inferCNV_obj = mcmc_obj,
-                                                                     HMM_states = hmm.infercnv_obj@expr.data, 
-                                                                     BayesMaxPNormal   = BayesMaxPNormal)
+                                                                     HMM_states         = hmm.infercnv_obj@expr.data, 
+                                                                     BayesMaxPNormal    = BayesMaxPNormal,
+                                                                     useRaster          = useRaster)
             
             hmm_states_highPnormCNVsRemoved.matrix <- mcmc_obj_hmm_states_list[[2]]
 
