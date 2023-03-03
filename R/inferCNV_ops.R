@@ -157,6 +157,8 @@
 #'
 #' @param plot_steps If true, saves infercnv objects and plots data at the intermediate steps.
 #'
+#' @param inspect_subclusters If true, plot subclusters as annotations after the subclustering step to easily see if the subclustering options are good. (default = TRUE)
+#'
 #' @param resume_mode  leverage pre-computed and stored infercnv objects where possible. (default=TRUE)
 #'
 #' @param png_res Resolution for png output.
@@ -310,6 +312,7 @@ run <- function(infercnv_obj,
                 debug=FALSE, #for debug level logging
                 num_threads = 4,
                 plot_steps=FALSE,
+                inspect_subclusters = TRUE,
                 resume_mode=TRUE,
                 png_res=300,
                 plot_probabilities = TRUE,
@@ -737,6 +740,12 @@ run <- function(infercnv_obj,
                          useRaster=useRaster)
                 
             }
+
+            if (inspect_subclusters) {
+                plot_subclusters(infercnv_obj,
+                                 out_dir=out_dir,
+                                 output_filename="infercnv_subclusters")
+            }
         }
     }
     
@@ -1095,7 +1104,12 @@ run <- function(infercnv_obj,
                          png_res=png_res,
                          useRaster=useRaster)
             }
-            
+
+            if (inspect_subclusters) {
+                plot_subclusters(infercnv_obj,
+                                 out_dir=out_dir,
+                                 output_filename="infercnv_subclusters")
+            }
         }
     }
     else if (analysis_mode != 'subclusters') {
