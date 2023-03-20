@@ -343,7 +343,7 @@ plot_subclusters = function(infercnv_obj, out_dir, output_filename = "subcluster
     }
     
     subcluster_obj@observation_grouped_cell_indices = list()
-    for (grp in names(infercnv_obj@observation_grouped_cell_indices)) {
+    for (grp in c(names(infercnv_obj@observation_grouped_cell_indices), "all_observations")) {
         for (grp2 in names(infercnv_obj@tumor_subclusters$subclusters[[grp]])) {
             subcluster_obj@observation_grouped_cell_indices[[grp2]] = infercnv_obj@tumor_subclusters$subclusters[[grp]][[grp2]]
         }
