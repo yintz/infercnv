@@ -21,6 +21,8 @@
         normal_cells_idx_lists = list()
         normal_cells_idx_lists[[ 'normalsToUse' ]] = idx 
         flog.info("-no normals defined, using all observation cells as proxy") 
+        infercnv_obj_tmp = infercnv_obj
+        infercnv_obj_tmp@observation_grouped_cell_indices = normal_cells_idx_lists
     }
 
     params = list()
@@ -84,8 +86,12 @@
                                                                        common_dispersion=0.1)
         } else if (sim_method == 'meanvar') {
             ## using mean,var trend
-            sim_normal_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
-            
+            if (exists("infercnv_obj_tmp")) {
+                sim_normal_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj_tmp, gene_means, num_cells, include.dropout=TRUE)
+            }
+            else {
+                sim_normal_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, gene_means, num_cells, include.dropout=TRUE)
+            }
         }
 
 
@@ -116,8 +122,12 @@
                                                                            num_cells=num_cells,
                                                                            common_dispersion=0.1)
         } else if (sim_method == 'meanvar') {
-            
-            sim_spiked_cnv_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, hspike_gene_means, num_cells, include.dropout=TRUE)
+            if (exists("infercnv_obj_tmp")) {
+                sim_spiked_cnv_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj_tmp, hspike_gene_means, num_cells, include.dropout=TRUE)
+            }
+            else {
+                sim_spiked_cnv_matrix <- .get_simulated_cell_matrix_using_meanvar_trend(infercnv_obj, hspike_gene_means, num_cells, include.dropout=TRUE)
+            }
         }
 
         spike_tumor_name = sprintf("spike_tumor_cell_%s", normal_type)
