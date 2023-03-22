@@ -95,7 +95,7 @@ plot_cnv <- function(infercnv_obj,
                      cluster_references=TRUE,
                      plot_chr_scale=FALSE,
                      chr_lengths=NULL,
-                     k_obs_groups = 3,
+                     k_obs_groups = 1,
                      contig_cex=1,
                      x.center=mean(infercnv_obj@expr.data),
                      x.range="auto", #NA,
@@ -575,6 +575,7 @@ plot_cnv <- function(infercnv_obj,
     if (!is.null(infercnv_obj@tumor_subclusters)) {
         if (cluster_by_groups) {
             # for (i in seq(1, max(obs_annotations_groups))) {
+            split_groups = vector()
             for (i in seq_along(obs_annotations_names)) {
                 if (!is.null(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]])) {
 
@@ -611,14 +612,20 @@ plot_cnv <- function(infercnv_obj,
                         stop("Error")
                     }
                 }
+                for (subcluster in names(infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]])) {
+                    tmp = infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]][[subcluster]]
+                    tmp[] = subcluster
+                    split_groups = c(split_groups, tmp)
+                }
             }
+            split_groups <- split_groups[ordered_names]
             if (length(obs_dendrogram) > 1) {
                 obs_dendrogram <- do.call(merge, obs_dendrogram)
             } else {
                 obs_dendrogram <- obs_dendrogram[[1]]
             }
-            split_groups <- rep(1, dim(obs_data)[1])
-            names(split_groups) <- ordered_names
+            # split_groups <- rep(1, dim(obs_data)[1])
+            # names(split_groups) <- ordered_names
             
             for(subtumor in infercnv_obj@tumor_subclusters$subclusters[[ obs_annotations_names[i] ]]) {
                 sub_obs_seps <- c(sub_obs_seps, (sub_obs_seps[length(sub_obs_seps)] + length(subtumor)))
@@ -631,7 +638,17 @@ plot_cnv <- function(infercnv_obj,
   
             obs_dendrogram <- as.dendrogram(obs_hcl)
             ordered_names <- obs_hcl$labels[obs_hcl$order]
-            split_groups <- cutree(obs_hcl, k=num_obs_groups)
+            if (num_obs_groups > 1) {
+                split_groups <- cutree(obs_hcl, k=num_obs_groups)
+            }
+            else {
+                split_groups = vector()
+                for (subcluster in names(infercnv_obj@tumor_subclusters$subclusters[["all_observations"]])) {
+                    tmp = infercnv_obj@tumor_subclusters$subclusters[["all_observations"]][[subcluster]]
+                    tmp[] = subcluster
+                    split_groups = c(split_groups, tmp)
+                }
+            }
             split_groups <- split_groups[ordered_names]
             hcl_obs_annotations_groups <- obs_annotations_groups[ordered_names]
 
@@ -773,7 +790,15 @@ plot_cnv <- function(infercnv_obj,
     # Record locations of seperations
 
     # Make colors based on groupings
-    row_groupings <- get_group_color_palette()(length(table(split_groups)))[split_groups]
+    idx = 1
+    split_groups_as_idx = split_groups
+    for (grp in unique(split_groups)) {
+        to_replace = which(split_groups == grp)
+        split_groups_as_idx[to_replace] = idx
+        idx = idx + 1
+    }
+    split_groups_as_idx = as.integer(split_groups_as_idx)
+    row_groupings <- get_group_color_palette()(length(table(split_groups_as_idx)))[split_groups_as_idx]
     row_groupings <- cbind(row_groupings, get_group_color_palette()(length(table(hcl_obs_annotations_groups)))[hcl_obs_annotations_groups])
     annotations_legend <- cbind(obs_annotations_names, get_group_color_palette()(length(table(hcl_obs_annotations_groups))))
 

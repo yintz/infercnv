@@ -14,7 +14,7 @@ plot_cnv(
   cluster_references = TRUE,
   plot_chr_scale = FALSE,
   chr_lengths = NULL,
-  k_obs_groups = 3,
+  k_obs_groups = 1,
   contig_cex = 1,
   x.center = mean(infercnv_obj@expr.data),
   x.range = "auto",
