@@ -105,9 +105,23 @@ add_to_seurat <- function(seurat_obj = NULL,
     else {
         flog.warn(sprintf("::Could not find any HMM predictions outputs at: %s", infercnv_output_path))
         flog.warn("::add_to_seurat works by transcribing (and copying if a Seurat object is provided) the HMM results from infercnv, so it cannot be used without having run the HMM.")
-        stop()
+        # stop()
     }
     
+    # subcluster ids information
+    subcluster_groups = vector()
+    annotation_names = c(names(infercnv_obj@reference_grouped_cell_indices),
+                         names(infercnv_obj@observation_grouped_cell_indices),
+                         "all_observations")
+    for (annot_name in annotation_names) {
+        for (subcluster in names(infercnv_obj@tumor_subclusters$subclusters[[ annot_name ]])) {
+            tmp = infercnv_obj@tumor_subclusters$subclusters[[ annot_name ]][[subcluster]]
+            tmp[] = subcluster
+            subcluster_groups = c(subcluster_groups, tmp)
+        }
+    }
+    subcluster_groups = subcluster_groups[colnames(infercnv_obj@expr.data)]
+
     features_to_add <- .get_features(infercnv_obj = infercnv_obj,
                                      infercnv_output_path = infercnv_output_path,
                                      regions = regions, 
@@ -120,12 +134,12 @@ add_to_seurat <- function(seurat_obj = NULL,
                                      bp_tolerance = bp_tolerance)
     if (!is.null(seurat_obj)) {
       
-      if (! is.null(column_prefix)) {
-        prefix <- paste(column_prefix, "_", sep = "")
-        
-      } else {
-        prefix <- ""
-      }
+        if (! is.null(column_prefix)) {
+          prefix <- paste(column_prefix, "_", sep = "")
+          
+        } else {
+          prefix <- ""
+        }
       
       
         for (lv in levels(infercnv_obj@gene_order$chr)) {
@@ -146,6 +160,8 @@ add_to_seurat <- function(seurat_obj = NULL,
           
             seurat_obj@meta.data[[paste0(prefix, n)]] = features_to_add[[n]][cell_ordering_match]
         }
+
+        seurat_obj@meta.data[["infercnv_subcluster"]] = subcluster_groups[cell_ordering_match]
     }
 
     if (mode == "i6") {
@@ -186,6 +202,9 @@ add_to_seurat <- function(seurat_obj = NULL,
         i = i + 1
     }
     
+    out_mat_feature_names = c("subcluster", out_mat_feature_names)
+    out_mat = cbind(subcluster_groups, out_mat)
+
     colnames(out_mat) = out_mat_feature_names
     row.names(out_mat) = colnames(infercnv_obj@expr.data)
     
