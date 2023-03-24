@@ -72,6 +72,7 @@ run(
   no_plot = FALSE,
   no_prelim_plot = FALSE,
   write_expr_matrix = FALSE,
+  write_phylo = FALSE,
   output_format = "png",
   plot_chr_scale = FALSE,
   chr_lengths = NULL,
@@ -275,6 +276,8 @@ other experimental opts}
 \item{no_prelim_plot}{don't make the preliminary infercnv image (default: FALSE)}
 
 \item{write_expr_matrix}{Whether to write text files with the content of matrices when generating plots (default: FALSE)}
+
+\item{write_phylo}{Whether to write newick strings of the dendrograms displayed on the left side of the heatmap to file (default: FALSE)}
 
 \item{output_format}{Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")}
 

@@ -27,6 +27,7 @@ plot_cnv(
   dynamic_resize = 0,
   ref_contig = NULL,
   write_expr_matrix = FALSE,
+  write_phylo = FALSE,
   useRaster = TRUE
 )
 }
@@ -79,6 +80,8 @@ Default is 0, which disables the scaling. Try 1 first if you want to enable.}
 \item{ref_contig}{If given, will focus cluster on only genes in this contig.}
 
 \item{write_expr_matrix}{Includes writing a matrix file containing the expression data that is plotted in the heatmap.}
+
+\item{write_phylo}{Write newick strings of the dendrograms displayed on the left side of the heatmap to file.}
 
 \item{useRaster}{Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it.}
 }

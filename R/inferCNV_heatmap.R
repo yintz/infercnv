@@ -41,6 +41,7 @@ get_group_color_palette <- function(){
 #'                       Default is 0, which disables the scaling. Try 1 first if you want to enable.
 #' @param ref_contig If given, will focus cluster on only genes in this contig.
 #' @param write_expr_matrix Includes writing a matrix file containing the expression data that is plotted in the heatmap.
+#' @param write_phylo Write newick strings of the dendrograms displayed on the left side of the heatmap to file.
 #' @param useRaster Whether to use rasterization for drawing heatmap. Only disable if it produces an error as it is much faster than not using it.
 #' 
 #' @return A list of all relevent settings used for the plotting to be able to reuse them in another plot call while keeping consistant plotting settings, most importantly x.range.
@@ -108,6 +109,7 @@ plot_cnv <- function(infercnv_obj,
                      dynamic_resize=0,
                      ref_contig = NULL,
                      write_expr_matrix=FALSE,
+                     write_phylo=FALSE,
                      useRaster=TRUE) {
 
 
@@ -402,6 +404,7 @@ plot_cnv <- function(infercnv_obj,
                           file_base_name=out_dir,
                           do_plot=!is.na(output_format),
                           write_expr_matrix=write_expr_matrix,
+                          write_phylo=write_phylo,
                           output_filename_prefix=output_filename,
                           cluster_contig=ref_contig,
                           contigs=contigs,
@@ -510,6 +513,7 @@ plot_cnv <- function(infercnv_obj,
                                   file_base_name,
                                   do_plot=TRUE,
                                   write_expr_matrix,
+                                  write_phylo,
                                   output_filename_prefix,
                                   cnv_title,
                                   cnv_obs_title,
@@ -537,9 +541,8 @@ plot_cnv <- function(infercnv_obj,
                     ncol(obs_data),
                     sep=" "))
     observation_file_base <- paste(file_base_name, sprintf("%s.observations.txt", output_filename_prefix), sep=.Platform$file.sep)
+    dendrogram_file_path = paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep)
 
-    write_phylo = FALSE
-    
     # Output dendrogram representation as Newick
     # Need to precompute the dendrogram so we can manipulate
     # it before the heatmap plot
@@ -589,12 +592,12 @@ plot_cnv <- function(infercnv_obj,
                     if (write_phylo) {
                         if (isfirst) {
                             write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
-                                       file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                                       file=dendrogram_file_path)
                             isfirst <- FALSE
                         }
                         else {
                             write.tree(as.phylo(infercnv_obj@tumor_subclusters$hc[[ obs_annotations_names[i] ]]),
-                                       file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                                       file=dendrogram_file_path, append=TRUE)
                         }
                     }
                 }
@@ -639,7 +642,7 @@ plot_cnv <- function(infercnv_obj,
             obs_hcl <- infercnv_obj@tumor_subclusters$hc[["all_observations"]]
             if (write_phylo) {
                 write.tree(as.phylo(obs_hcl),
-                    file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                    file=dendrogram_file_path)
             }
             obs_dendrogram <- as.dendrogram(obs_hcl)
             ordered_names <- obs_hcl$labels[obs_hcl$order]
@@ -697,14 +700,16 @@ plot_cnv <- function(infercnv_obj,
                 obs_dendrogram[[length(obs_dendrogram) + 1]] = .single_element_dendrogram(unique_label=row.names(obs_data[which(obs_annotations_groups == i),, drop=FALSE]))
                 # hcl_obs_annotations_groups <- c(hcl_obs_annotations_groups, i)
 
-                if (isfirst) {
-                    write(row.names(obs_data[which(obs_annotations_groups == i), ]),
-                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
-                    isfirst <- FALSE
-                }
-                else {
-                    write(row.names(obs_data[which(obs_annotations_groups == i), ]),
-                               file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                if (write_phylo) {
+                    if (isfirst) {
+                        write(row.names(obs_data[which(obs_annotations_groups == i), ]),
+                                   file=dendrogram_file_path)
+                        isfirst <- FALSE
+                    }
+                    else {
+                        write(row.names(obs_data[which(obs_annotations_groups == i), ]),
+                                   file=dendrogram_file_path, append=TRUE)
+                    }
                 }
             }
             else {
@@ -718,12 +723,12 @@ plot_cnv <- function(infercnv_obj,
                 if (write_phylo) {
                     if (isfirst) {
                         write.tree(as.phylo(group_obs_hcl),
-                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                                   file=dendrogram_file_path)
                         isfirst <- FALSE
                     }
                     else {
                         write.tree(as.phylo(group_obs_hcl),
-                                   file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep), append=TRUE)
+                                   file=dendrogram_file_path, append=TRUE)
                     }
                 }
             }
@@ -750,7 +755,7 @@ plot_cnv <- function(infercnv_obj,
             
             if (write_phylo) {
                 write.tree(as.phylo(obs_hcl),
-                           file=paste(file_base_name, sprintf("%s.observations_dendrogram.txt", output_filename_prefix), sep=.Platform$file.sep))
+                           file=dendrogram_file_path)
             }
             obs_dendrogram <- as.dendrogram(obs_hcl)
             ordered_names <- obs_hcl$labels[obs_hcl$order]

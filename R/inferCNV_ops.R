@@ -169,6 +169,8 @@
 #'
 #' @param write_expr_matrix Whether to write text files with the content of matrices when generating plots (default: FALSE)
 #'
+#' @param write_phylo Whether to write newick strings of the dendrograms displayed on the left side of the heatmap to file (default: FALSE)
+#'
 #' @param output_format Output format for the figure. Choose between "png", "pdf" and NA. NA means to only write the text outputs without generating the figure itself. (default: "png")
 #'
 #' @param plot_chr_scale Whether to scale the chromosme width on the heatmap based on their actual size rather than just the number of expressed genes.
@@ -335,6 +337,7 @@ run <- function(infercnv_obj,
                 no_plot = FALSE,
                 no_prelim_plot = FALSE,
                 write_expr_matrix = FALSE,
+                write_phylo = FALSE,
                 output_format = "png",
                 plot_chr_scale = FALSE,
                 chr_lengths = NULL,
@@ -628,6 +631,7 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_log_transformed",step_count),
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster
                      )
@@ -666,6 +670,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_scaled",step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
                 
@@ -736,6 +741,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters.%s", step_count, tumor_subcluster_partition_method),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
                 
@@ -781,6 +787,7 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster)
         }
@@ -828,6 +835,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_apply_max_centred_expr_threshold",step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
                 
@@ -880,6 +888,7 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_smoothed_by_chr", step_count),
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster)
         }
@@ -920,6 +929,7 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_centering_of_smoothed", step_count),
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster)
             
@@ -958,6 +968,7 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_remove_average", step_count),
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster)
         }
@@ -997,6 +1008,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_remove_genes_at_chr_ends",step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res)
                 
             }
@@ -1035,6 +1047,7 @@ run <- function(infercnv_obj,
                      output_filename=sprintf("infercnv.%02d_invert_log_FC",step_count),
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster)
             
@@ -1101,6 +1114,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_tumor_subclusters",step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
             }
@@ -1160,6 +1174,7 @@ run <- function(infercnv_obj,
                      output_filename="infercnv.preliminary", # png ext auto added
                      output_format=output_format,
                      write_expr_matrix=write_expr_matrix,
+                     write_phylo=write_phylo,
                      png_res=png_res,
                      useRaster=useRaster)
             #}
@@ -1206,6 +1221,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_removed_outliers", step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
             }
@@ -1322,6 +1338,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_HMM_pred%s", step_count, hmm_resume_file_token),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          x.center=hmm_center,
                          x.range=hmm_state_range,
                          png_res=png_res,
@@ -1416,6 +1433,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_HMM_pred.Bayes_Net.Pnorm_%g",step_count, BayesMaxPNormal),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          x.center=hmm_center,
                          x.range=hmm_state_range,
                          png_res=png_res,
@@ -1468,6 +1486,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_HMM_pred%s.Pnorm_%g.repr_intensities", step_count, hmm_resume_file_token, BayesMaxPNormal),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          x.center=1,
                          x.range=c(-1,3),
                          png_res=png_res,
@@ -1521,6 +1540,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_mask_nonDE", step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
                 
@@ -1583,6 +1603,7 @@ run <- function(infercnv_obj,
                          output_filename=sprintf("infercnv.%02d_denoised", step_count),
                          output_format=output_format,
                          write_expr_matrix=write_expr_matrix,
+                         write_phylo=write_phylo,
                          png_res=png_res,
                          useRaster=useRaster)
             }
@@ -1618,6 +1639,7 @@ run <- function(infercnv_obj,
                  output_filename="infercnv",
                  output_format=output_format,
                  write_expr_matrix=write_expr_matrix,
+                 write_phylo=write_phylo,
                  png_res=png_res,
                  useRaster=useRaster)
     }
