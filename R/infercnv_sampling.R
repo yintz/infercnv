@@ -609,6 +609,7 @@ plot_per_group <- function(infercnv_obj,
              
                 for (subcluster_id in names(infercnv_obj@tumor_subclusters$subclusters[[sample_name]])) {
                     new_obj@tumor_subclusters$subclusters[["all_observations"]][[subcluster_id]] = unlist(match(infercnv_obj@tumor_subclusters$subclusters[[sample_name]][[subcluster_id]], infercnv_obj@observation_grouped_cell_indices[[sample_name]]))
+                    names(new_obj@tumor_subclusters$subclusters[["all_observations"]][[subcluster_id]]) = colnames(new_obj@expr.data[, new_obj@tumor_subclusters$subclusters[["all_observations"]][[subcluster_id]], drop=FALSE])
                 }
             }
             else {
