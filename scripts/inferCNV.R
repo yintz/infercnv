@@ -30,6 +30,12 @@ C_LEVEL_CHOICES <- c("DEBUG", "INFO", "WARN", "ERROR")
 C_VIS_OUTLIER_CHOICES <- c("average_bound")
 C_REF_SUBTRACT_METHODS <- c("by_mean", "by_quantiles")
 C_HCLUST_METHODS <- c("ward.D", "ward.D2", "single", "complete", "average", "mcquitty", "median", "centroid")
+C_SMOOTH_METHODS <- c('pyramidinal', 'runmeans', 'coordinates')
+C_ANALYSIS_MODES <- c('subclusters', 'samples', 'cells')
+C_TUMOR_SUBCLUSTERS_PARTITION_METHODS <- c('leiden', 'random_trees', 'qnorm', 'pheight', 'qgamma', 'shc')
+C_LEIDEN_METHODS <- c("PCA", "simple")
+C_LEIDEN_FUNCTIONS <- c("CPM", "modularity")
+
 
 CHR = "chr"
 START = "start"
@@ -96,6 +102,37 @@ check_arguments <- function(arguments){
                                 paste(C_HCLUST_METHODS, collapse=","), sep="") )
         stop("error, must specify acceptable --hclust_method")
     }
+
+    # Check the smoothing method choice
+    if (!(arguments$smoothing_method %in% C_SMOOTH_METHODS)) {
+      flog.error(paste(":: --smoothing_method: acceptable values are: ", paste(C_SMOOTH_METHODS, collapse = ","), sep = ""))
+      stop("error, must specify acceptable --smoothing_method")
+    }
+
+    # Check the analysis mode choice
+    if (!(arguments$analysis_mode %in% C_ANALYSIS_MODES)) {
+      flog.error(paste(":: --analysis_mode: acceptable values are: ", paste(C_ANALYSIS_MODES, collapse = ","), sep = ""))
+      stop("error, must specify acceptable --analysis_mode")
+    }
+
+    # Check the tumor subclusters partition method choice
+    if (!(arguments$tumor_subclusters_partition_method %in% C_TUMOR_SUBCLUSTERS_PARTITION_METHODS)) {
+      flog.error(paste(":: --tumor_subclusters_partition_method: acceptable values are: ", paste(C_TUMOR_SUBCLUSTERS_PARTITION_METHODS, collapse = ","), sep = ""))
+      stop("error, must specify acceptable --tumor_subclusters_partition_method")
+    }
+
+    # Check the Leiden method choice
+    if (!(arguments$leiden_method %in% C_LEIDEN_METHODS)) {
+      flog.error(paste(":: --leiden_method: acceptable values are: ", paste(C_LEIDEN_METHODS, collapse = ","), sep = ""))
+      stop("error, must specify acceptable --leiden_method")
+    }
+
+    # Check the Leiden function choice
+    if (!(arguments$leiden_function %in% C_LEIDEN_FUNCTIONS)) {
+      flog.error(paste(":: --leiden_function: acceptable values are: ", paste(C_LEIDEN_FUNCTIONS, collapse = ","), sep = ""))
+      stop("error, must specify acceptable --leiden_function")
+    }
+
 
     # # Warn that an average of the samples is used in the absence of
     # # normal / reference samples
@@ -205,7 +242,7 @@ pargs <- optparse::add_option(pargs, c("--num_ref_groups"),
                                          "relation to reference_obs. ",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--ref_subtract_use_mean_bounds"),
+pargs <- optparse::add_option(pargs, c("--no_ref_subtract_use_mean_bounds"),
                               type="logical",
                               default=TRUE,
                               action="store_false",
@@ -215,6 +252,8 @@ pargs <- optparse::add_option(pargs, c("--ref_subtract_use_mean_bounds"),
                                          "then remove intensities within bounds of means",
                                          "[Default %default]",
                                          "Otherwise, uses mean of the means across groups."))
+
+######################
 
 pargs <- optparse::add_option(pargs, c("--cluster_by_groups"),
                               type="logical",
@@ -226,6 +265,16 @@ pargs <- optparse::add_option(pargs, c("--cluster_by_groups"),
                                          "(ie. patients), each group of cells will be ",
                                          "clustered separately. ([Default %default]",
                                          ", instead will use k_obs_groups setting)"))
+
+pargs <- optparse::add_option(pargs, c("--cluster_references"),
+                              type="logical",
+                              default=TRUE,
+                              action="store_false",
+                              dest="cluster_references",
+                              metavar="Cluster References",
+                              help=paste("Whether to cluster references within their annotations or not.",
+                                         "[Default %default]"))
+
 
 pargs <- optparse::add_option(pargs, c("--k_obs_groups"),
                               type="numeric",
@@ -246,16 +295,6 @@ pargs <- optparse::add_option(pargs, c("--hclust_method"),
                                          "Valid choices are: \"ward.D\", \"ward.D2\", \"single\"",
                                          ", \"complete\", \"average\", \"mcquitty\", \"median\", \"centroid\". ",
                                          "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--analysis_mode"),
-                              type="character",
-                              default="samples",
-                              action="store",
-                              dest="analysis_mode",
-                              metavar="Analysis Mode",
-                              help=paste("options(samples|subclusters|cells), ",
-                                         "Grouping level for image filtering or HMM predictions.",
-                                         "[Default %default] (fastest, but subclusters is ideal)"))
 
 pargs <- optparse::add_option(pargs, c("--max_centered_threshold"),
                               type="numeric",
@@ -282,6 +321,9 @@ pargs <- optparse::add_option(pargs, c("--scale_data"),
                                          "to leverage normal single cell data that ",
                                          "goes with your experiment."))
 
+
+##########################
+
 pargs <- optparse::add_option(pargs, c("--HMM"),
                               type="logical",
                               default=FALSE,
@@ -299,29 +341,6 @@ pargs <- optparse::add_option(pargs, c("--HMM_transition_prob"),
                               metavar="HMM Transition Probabiltie",
                               help=paste("transition probability in HMM",
                                          "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--tumor_subcluster_pval"),
-                              type="numeric",
-                              default=0.01,
-                              action="store",
-                              dest="tumor_subcluster_pval",
-                              metavar="Tumor Subcluster p-value",
-                              help=paste("Max p-value for defining a significant tumor subcluster. ",
-                                         "[Default %default]"))
-
-
-pargs <- optparse::add_option(pargs, c("--tumor_subcluster_partition_method"),
-                              type="character",
-                              default="leiden",
-                              action="store",
-                              dest="tumor_subcluster_partition_method",
-                              metavar="Tumor Subcluster Partition Method",
-                              help=paste("c('leiden', 'random_trees', 'qnorm')",
-                                         "[Default %default]",
-                                         "method for defining tumor subclusters.",
-                                         "leiden: Runs a nearest neighbor search, where communities are then partitionned with the Leiden algorithm.",
-                                         "random_trees: Slow, uses permutation statistics w/ tree construction.",
-                                         "qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval"))
 
 pargs <- optparse::add_option(pargs, c("--HMM_report_by"),
                               type="character",
@@ -350,14 +369,169 @@ pargs <- optparse::add_option(pargs, c("--HMM_type"),
                                          "configured based on normal cells and HMM_i3_z_pval.\n",
                                          "[Default %default]"))
 
-# pargs <- optparse::add_option(pargs, c("--HMM_i3_z_pval"),
-#                               type="numeric",
-#                               default=0.05,
-#                               action="store",
-#                               dest="HMM_i3_z_pval",
-#                               metavar="HMM i3 z p-value",
-#                               help=paste("p-value for HMM i3 state overlap",
-#                                          "[Default %default]"))
+ pargs <- optparse::add_option(pargs, c("--HMM_i3_pval"),
+                               type="numeric",
+                               default=0.05,
+                               action="store",
+                               dest="HMM_i3_pval",
+                               metavar="HMM i3 p-value",
+                               help=paste("p-value for HMM i3 state overlap",
+                                          "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--HMM_i3_use_KS"),
+                              type="logical",
+                              default=TRUE,
+                              action="store_false",
+                              dest="HMM_i3_use_KS",
+                              metavar="HMM i3 use KS",
+                              help=paste("boolean: use the KS test statistic to estimate mean of amp/del distributions (ala HoneyBadger)",
+                                         "[Default %default]"))
+
+ pargs <- optparse::add_option(pargs, c("--BayesMaxPNormal"),
+                               type="numeric",
+                               default=0.5,
+                               action="store",
+                               dest="BayesMaxPNormal",
+                               metavar="Bayes Max PNormal",
+                               help=paste("maximum P(Normal) allowed for a CNV prediction according to BayesNet.",
+                                          " [Default %default] (note: zero turns it off)"))
+
+pargs <- optparse::add_option(pargs, c("--reassignCNVs"),
+                              type="logical",
+                              default=TRUE,
+                              action="store_false",
+                              dest="reassignCNVs",
+                              metavar="reassign CNVs",
+                              help=paste("Given the CNV associated probability of belonging to each possible state,",
+                                         "reassign the state assignments made by the HMM to the state that has the highest probability.",
+                                         "[Default %default]"))
+
+####################################
+
+pargs <- optparse::add_option(pargs, c("--analysis_mode"),
+                              type="character",
+                              default="samples",
+                              action="store",
+                              dest="analysis_mode",
+                              metavar="Analysis Mode",
+                              help=paste("options(samples|subclusters|cells), ",
+                                         "Grouping level for image filtering or HMM predictions.",
+                                         "[Default %default] (fastest, but subclusters is ideal)"))
+
+pargs <- optparse::add_option(pargs, c("--tumor_subcluster_partition_method"),
+                              type="character",
+                              default="leiden",
+                              action="store",
+                              dest="tumor_subcluster_partition_method",
+                              metavar="Tumor Subcluster Partition Method",
+                              help=paste("c('leiden', 'random_trees', 'qnorm')",
+                                         "[Default %default]",
+                                         "method for defining tumor subclusters.",
+                                         "leiden: Runs a nearest neighbor search, where communities are then partitionned with the Leiden algorithm.",
+                                         "random_trees: Slow, uses permutation statistics w/ tree construction.",
+                                         "qnorm: defines tree height based on the quantile defined by the tumor_subcluster_pval"))
+
+pargs <- optparse::add_option(pargs, c("--tumor_subcluster_pval"),
+                              type="numeric",
+                              default=0.01,
+                              action="store",
+                              dest="tumor_subcluster_pval",
+                              metavar="Tumor Subcluster p-value",
+                              help=paste("Max p-value for defining a significant tumor subcluster. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--k_nn"),
+                              type="numeric",
+                              default=20,
+                              action="store",
+                              dest="k_nn",
+                              metavar="K nearest neighbor",
+                              help=paste("number k of nearest neighbors to search for when using the Leiden partition method for subclustering. ",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--leiden_method"),
+                              type="character",
+                              default="PCA",
+                              action="store",
+                              dest="leiden_method",
+                              metavar="Leiden method",
+                              help=paste("Method used to generate the graph on which the Leiden algorithm is applied,",
+                                         "one of 'PCA' or 'simple'. [Default: %default]"))
+
+pargs <- optparse::add_option(pargs, c("--leiden_function"),
+                              type="character",
+                              default="CPM",
+                              action="store",
+                              dest="leiden_function",
+                              metavar="Leiden function",
+                              help=paste("Whether to use the Constant Potts Model (CPM) or modularity in igraph.",
+                                         "Must be either 'CPM' or 'modularity'. [Default: %default]"))
+
+pargs <- optparse::add_option(pargs, c("--leiden_resolution"),
+                              type="numeric",
+                              default=0.05,
+                              action="store",
+                              dest="leiden_resolution",
+                              metavar="Leiden resolution",
+                              help=paste("Resolution parameter for the Leiden algorithm using the CPM quality score.",
+                                         "[Default: %default]"))
+
+pargs <- optparse::add_option(pargs, c("--leiden_method_per_chr"),
+                              type="character",
+                              default="simple",
+                              action="store",
+                              dest="leiden_method_per_chr",
+                              metavar="Leiden method per chromosome",
+                              help=paste("Method used to generate the graph on which the Leiden algorithm is applied",
+                                         "for the per chromosome subclustering, one of 'PCA' or 'simple'. [Default: %default]"))
+
+pargs <- optparse::add_option(pargs, c("--leiden_function_per_chr"),
+                              type="character",
+                              default="modularity",
+                              action="store",
+                              dest="leiden_function_per_chr",
+                              metavar="Leiden function per chromosome",
+                              help=paste("Whether to use the Constant Potts Model (CPM) or modularity in igraph",
+                                         "for the per chromosome subclustering.",
+                                         "Must be either 'CPM' or 'modularity'. [Default: %default]"))
+
+pargs <- optparse::add_option(pargs, c("--leiden_resolution_per_chr"),
+                              type="numeric",
+                              default=1,
+                              action="store",
+                              dest="leiden_resolution_per_chr",
+                              metavar="Leiden resolution per chromosome",
+                              help=paste("Resolution parameter for the Leiden algorithm for the per chromosome subclustering.",
+                                         "[Default: %default]"))
+
+pargs <- optparse::add_option(pargs, c("--per_chr_hmm_subclusters"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="per_chr_hmm_subclusters",
+                              help=paste("Run subclustering per chromosome over all cells combined to run the HMM on those subclusters instead.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--per_chr_hmm_subclusters_references"),
+                              type="logical",
+                              action="store_true",
+                              default=FALSE,
+                              dest="per_chr_hmm_subclusters_references",
+                              help=paste("Whether the per chromosome subclustering should also be done on references, which should not have as much variation as observations.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--z_score_filter"),
+                              type="numeric",
+                              default=0.8,
+                              action="store",
+                              dest="z_score_filter",
+                              metavar="Z-score filter",
+                              help=paste("Z-score used as a threshold to filter genes used for subclustering.",
+                                         "Applied based on reference genes to automatically ignore genes with high expression variability",
+                                         "such as MHC genes.",
+                                         "[Default %default]"))
+
+###############################
 
 pargs <- optparse::add_option(pargs, c("--denoise"),
                               type="logical",
@@ -401,6 +575,8 @@ pargs <- optparse::add_option(pargs, c("--noise_logistic"),
                                          "downscaling values close to the mean. ",
                                          "[Default %default]"))
 
+###########################
+
 pargs <- optparse::add_option(pargs, c("--outlier_method_bound"),
                               type="character",
                               default="average_bound",
@@ -432,15 +608,7 @@ pargs <- optparse::add_option(pargs, c("--outlier_upper_bound"),
                                          "will be set to this value.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--plot_steps"),
-                              type="logical",
-                              default=FALSE,
-                              action="store_true",
-                              dest="plot_steps",
-                              metavar="Plot Steps",
-                              help=paste("If true, saves infercnv objects and ",
-                                         "plots data at the intermediate steps.",
-                                         "[Default %default]"))
+##########################
 
 pargs <- optparse::add_option(pargs, c("--final_scale_limits"),
                               type="character",
@@ -480,6 +648,159 @@ pargs <- optparse::add_option(pargs, c("--num_threads"),
                               metavar="Number of Threads",
                               help=paste("(int) number of threads for parallel steps. ",
                                          "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--plot_steps"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="plot_steps",
+                              metavar="Plot Steps",
+                              help=paste("If true, saves infercnv objects and ",
+                                         "plots data at the intermediate steps.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--inspect_subclusters"),
+                              type="logical",
+                              default=TRUE,
+                              action="store_false",
+                              dest="inspect_subclusters",
+                              metavar="Inspect Subclusters",
+                              help=paste("If true, plot subclusters as annotations after the subclustering step to easily see if the subclustering options are good.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--resume_mode"),
+                              type="logical",
+                              default=TRUE,
+                              metavar="RESUME_MODE",
+                              action="store_false",
+                              dest="resume_mode",
+                              help=paste("Leverage pre-computed and stored infercnv objects where possible.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--png_res"),
+                              type="numeric",
+                              metavar="PNG_RES",
+                              action="store",
+                              dest="png_res",
+                              default=300,
+                              help=paste("Resolution for PNG output. [Default: 300]",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--no_plot"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="no_plot",
+                              metavar="No Plot",
+                              help=paste("don't make any of the images.",
+                                         "Instead, generate all non-image outputs as part of the run.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--no_prelim_plot"),
+                              type="logical",
+                              default=FALSE,
+                              action="store_true",
+                              dest="no_prelim_plot",
+                              metavar="No Preliminary Plot",
+                              help=paste("don't make the preliminary infercnv image",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--write_expr_matrix"),
+                              type="logical",
+                              metavar="WRITE_EXPR_MATRIX",
+                              action="store_true",
+                              dest="write_expr_matrix",
+                              default=FALSE,
+                              help=paste("Whether to write text files with the content of matrices when generating plots.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--write_phylo"),
+                              type="logical",
+                              metavar="WRITE_PHYLO",
+                              action="store_true",
+                              dest="write_phylo",
+                              default=FALSE,
+                              help=paste("Whether to write newick strings of the dendrograms displayed on the left side of the heatmap to file.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--output_format"),
+                              type="character",
+                              default="png",
+                              action="store",
+                              dest="output_format",
+                              metavar="Output Format",
+                              help=paste("Output format for the figure. Default is NA, ",
+                                          "which means to only write the text outputs ",
+                                          "without generating the figure itself. ",
+                                          "Other choices are \"png\" and \"pdf\".",
+                                          "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--plot_chr_scale"),
+                              type="logical",
+                              default=FALSE,
+                              metavar="PLOT_CHR_SCALE",
+                              action="store_true",
+                              dest="plot_chr_scale",
+                              help=paste("Whether to scale the chromosome width on the heatmap based on their actual size rather than just the number of expressed genes.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--chr_lengths"),
+                              type="character",
+                              default=NULL,
+                              metavar="CHR_LENGTHS",
+                              action="store",
+                              dest="chr_lengths",
+                              help=paste("A named list of chromosomes lengths to use when plot_chr_scale=TRUE. If not provided, the chromosome size is assumed to be the last chromosome's stop position + 10k bp.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--useRaster"),
+                              type="logical",
+                              default=TRUE,
+                              metavar="USE_RASTER",
+                              action="store_false",
+                              dest="useRaster",
+                              help=paste("Whether to use rasterization for drawing the heatmap. Only disable if it produces an error, as it is much faster than not using it.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--plot_probabilities"),
+                              type="logical",
+                              default=TRUE,
+                              metavar="PLOT_PROBABILITIES",
+                              action="store_false",
+                              dest="plot_probabilities",
+                              help=paste("Option to plot posterior probabilities.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--save_rds"),
+                              type="logical",
+                              default=TRUE,
+                              metavar="SAVE_RDS",
+                              action="store_false",
+                              dest="save_rds",
+                              help=paste("Whether to save the current step object results as an .rds file.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--save_final_rds"),
+                              type="logical",
+                              default=TRUE,
+                              metavar="SAVE_FINAL_RDS",
+                              action="store_false",
+                              dest="save_final_rds",
+                              help=paste("Whether to save the final object results as an .rds file.",
+                                         "[Default %default]"))
+
+pargs <- optparse::add_option(pargs, c("--diagnostics"),
+                              type="logical",
+                              default=FALSE,
+                              metavar="DIAGNOSTICS",
+                              action="store_true",
+                              dest="diagnostics",
+                              help=paste("Option to create diagnostic plots after running the Bayesian model.",
+                                         "[Default %default]"))
+
+
+
+################ inputs
 
 pargs <- optparse::add_option(pargs, c("--raw_counts_matrix"),
                               type="character",
@@ -553,6 +874,7 @@ pargs <- optparse::add_option(pargs, c("--log_file"),
                               help=paste("File for logging. If not given,",
                                          "logging will occur to console.",
                                          "[Default %default]"))
+
 
 #pargs <- optparse::add_option(pargs, c("--contig_lab_size"),
 #                              type="integer",
@@ -632,35 +954,8 @@ pargs <- optparse::add_option(pargs, c("--log_file"),
 #                                   "genes. Possible gene label types to choose from are specified on",
 #                                   "the broadinstitute/inferCNV wiki and bmbroom/NGCHM-config-biobase."))
 
-pargs <- optparse::add_option(pargs, c("--no_plot"),
-                              type="logical",
-                              default=FALSE,
-                              action="store_true",
-                              dest="no_plot",
-                              metavar="No Plot",
-                              help=paste("don't make any of the images.",
-                                         "Instead, generate all non-image outputs as part of the run.",
-                                         "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--no_prelim_plot"),
-                              type="logical",
-                              default=FALSE,
-                              action="store_true",
-                              dest="no_prelim_plot",
-                              metavar="No Preliminary Plot",
-                              help=paste("don't make the preliminary infercnv image",
-                                         "[Default %default]"))
-
-pargs <- optparse::add_option(pargs, c("--output_format"),
-                              type="character",
-                              default="png",
-                              action="store",
-                              dest="output_format",
-                              metavar="Output Format",
-                              help=paste("Output format for the figure. Default is NA, ",
-                                          "which means to only write the text outputs ",
-                                          "without generating the figure itself. ",
-                                          "Other choices are \"png\" and \"pdf\"."))
+################ extra outputs
 
 pargs <- optparse::add_option(pargs, c("--median_filter"),
                               type="logical",
@@ -739,52 +1034,82 @@ infercnv_obj <- infercnv::CreateInfercnvObject(raw_counts_matrix=args$raw_counts
                                                chr_exclude=args$chr_exclude)
 
 infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
-                            cutoff=args$cutoff,
-                            min_cells_per_gene=args$min_cells_per_gene,
-                            out_dir=args$out_dir,
-                            analysis_mode=args$analysis_mode,
-                            window_length=args$window_length,
-                            smooth_method=args$smooth_method,
-                            num_ref_groups=args$num_ref_groups,
-                            ref_subtract_use_mean_bounds=args$ref_subtract_use_mean_bounds,
-                            max_centered_threshold=args$max_centered_threshold,
-                            tumor_subcluster_pval=args$tumor_subcluster_pval,
-                            tumor_subcluster_partition_method=args$tumor_subcluster_partition_method,
-                            HMM=args$HMM,
-                            HMM_transition_prob=args$HMM_transition_prob,
-                            HMM_report_by=args$HMM_report_by,
-                            HMM_type=args$HMM_type,
-                            # HMM_i3_z_pval=args$HMM_i3_z_pval,
-                            #sim_method=args$sim_method,
-                            #sim_foreground=args$sim_foreground,
-                            scale_data=args$scale_data,
-                            denoise=args$denoise,
-                            noise_filter=args$noise_filter,
-                            sd_amplifier=args$sd_amplifier,
-                            noise_logistic=args$noise_logistic,
-                            cluster_by_groups=args$cluster_by_groups,
-                            k_obs_groups=args$k_obs_groups,
-                            outlier_method_bound=args$outlier_method_bound,
-                            outlier_lower_bound=args$outlier_lower_bound,
-                            outlier_upper_bound=args$outlier_upper_bound,
-                            hclust_method=args$hclust_method,
-                            #remove_genes_at_chr_ends=args$remove_genes_at_chr_ends,
-                            #mask_nonDE_genes=args$mask_nonDE_genes,
-                            #mask_nonDE_pval=args$mask_nonDE_pval,
-                            #test.use=args$test.use,
-                            #require_DE_all_normals=args$require_DE_all_normals,
-                            plot_steps=args$plot_steps,
-                            no_plot=args$no_plot,
-                            no_prelim_plot=args$no_prelim_plot,
-                            output_format=args$output_format,
-                            debug=args$debug,
-                            #prune_outliers=args$prune_outliers,
-                            final_scale_limits=args$final_scale_limits,
-                            final_center_val=args$final_center_val,
-                            #reuse_subtracted=args$reuse_subtracted,
-                            num_threads=args$num_threads#,
-                            #hspike_aggregate_normals =args$hspike_aggregate_normals
-                            )
+                             cutoff=args$cutoff,
+                             min_cells_per_gene=args$min_cells_per_gene,
+                             out_dir=args$out_dir,
+                             window_length=args$window_length,
+                             smooth_method=args$smooth_method,
+                             num_ref_groups=args$num_ref_groups,
+                             ref_subtract_use_mean_bounds=args$ref_subtract_use_mean_bounds,
+                             #
+                             cluster_by_groups=args$cluster_by_groups,
+                             cluster_references=args$cluster_references,
+                             k_obs_groups=args$k_obs_groups,
+                             hclust_method=args$hclust_method,
+                             max_centered_threshold=args$max_centered_threshold,
+                             scale_data=args$scale_data,
+                             # HMM
+                             HMM=args$HMM,
+                             HMM_transition_prob=args$HMM_transition_prob,
+                             HMM_report_by=args$HMM_report_by,
+                             HMM_type=args$HMM_type,
+                             HMM_i3_pval=args$HMM_i3_pval,
+                             HMM_i3_use_KS=args$HMM_i3_use_KS,
+                             BayesMaxPNormal=args$BayesMaxPNormal,
+                             reassignCNVs=args$reassignCNVs,
+                             # tumor subclustering
+                             analysis_mode=args$analysis_mode,
+                             tumor_subcluster_partition_method=args$tumor_subcluster_partition_method,
+                             tumor_subcluster_pval=args$tumor_subclster_pval,
+                             k_nn=args$k_nn,
+                             leiden_method=args$leiden_method,
+                             leiden_function=args$leiden_function,
+                             leiden_resolution=args$leiden_resolution,
+                             leiden_method_per_chr=args$leiden_method_per_chr,
+                             leiden_function_per_chr=args$leiden_function_per_chr,
+                             leiden_resolution_per_chr=args$leiden_resolution_per_chr,
+                             per_chr_hmm_subclusters=args$per_chr_hmm_subclusters,
+                             per_chr_hmm_subclusters_references=args$per_chr_hmm_subclusters_references,
+                             z_score_filter=args$z_score_filter,
+                             # de-noising
+                             denoise=args$denoise,
+                             noise_filter=args$noise_filter,
+                             sd_amplifier=args$sd_amplifier,
+                             noise_logistic=args$noise_logistic,
+                             # outlier pruning
+                             outlier_method_bound=args$outlier_method_bound,
+                             outlier_lower_bound=args$outlier_lower_bound,
+                             outlier_upper_bound=args$outlier_upper_bound,
+                             # misc options
+                             final_scale_limits=args$final_scale_limits,
+                             final_center_val=args$final_center_val,
+                             debug=args$debug,
+                             num_threads=args$num_threads,
+                             plot_steps=args$plot_steps,
+                             inspect_subclusters=args$inspect_subclusters,
+                             resume_mode=args$resume_mode,
+                             png_res=args$png_res,
+                             no_plot=args$no_plot,
+                             no_prelim_plot=args$no_prelim_plot,
+                             write_expr_matrix=args$write_expr_matrix,
+                             write_phylo=args$write_phylo,
+                             output_format=args$output_format,
+                             plot_chr_scale=args$plot_chr_scale,
+                             chr_lengths=args$chr_lengths,
+                             useRaster=args$useRaster,
+                             plot_probabilities=args$plot_probabilities,
+                             save_rds=args$save_rds,
+                             save_final_rds=args$save_final_rds,
+                             diagnostics=args$diagnostics#,
+                             #prune_outliers=args$prune_outliers,
+                             #reuse_subtracted=args$reuse_subtracted,
+                             #remove_genes_at_chr_ends=args$remove_genes_at_chr_ends,
+                             #mask_nonDE_genes=args$mask_nonDE_genes,
+                             #mask_nonDE_pval=args$mask_nonDE_pval,
+                             #test.use=args$test.use,
+                             #require_DE_all_normals=args$require_DE_all_normals,
+                             #hspike_aggregate_normals =args$hspike_aggregate_normals
+                             )
 
 if (args$median_filter) {
 
