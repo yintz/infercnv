@@ -266,7 +266,7 @@ pargs <- optparse::add_option(pargs, c("--cluster_by_groups"),
                                          "clustered separately. ([Default %default]",
                                          ", instead will use k_obs_groups setting)"))
 
-pargs <- optparse::add_option(pargs, c("--cluster_references"),
+pargs <- optparse::add_option(pargs, c("--no_cluster_references"),
                               type="logical",
                               default=TRUE,
                               action="store_false",
@@ -378,7 +378,7 @@ pargs <- optparse::add_option(pargs, c("--HMM_type"),
                                help=paste("p-value for HMM i3 state overlap",
                                           "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--HMM_i3_use_KS"),
+pargs <- optparse::add_option(pargs, c("--no_HMM_i3_use_KS"),
                               type="logical",
                               default=TRUE,
                               action="store_false",
@@ -396,7 +396,7 @@ pargs <- optparse::add_option(pargs, c("--HMM_i3_use_KS"),
                                help=paste("maximum P(Normal) allowed for a CNV prediction according to BayesNet.",
                                           " [Default %default] (note: zero turns it off)"))
 
-pargs <- optparse::add_option(pargs, c("--reassignCNVs"),
+pargs <- optparse::add_option(pargs, c("--no_reassignCNVs"),
                               type="logical",
                               default=TRUE,
                               action="store_false",
@@ -563,7 +563,7 @@ pargs <- optparse::add_option(pargs, c("--sd_amplifier"),
                                          "+- sdev(reference_cells) * sd_amplifier ",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--noise_logistic"),
+pargs <- optparse::add_option(pargs, c("--no_noise_logistic"),
                               type="logical",
                               default=TRUE,
                               action="store_false",
@@ -659,7 +659,7 @@ pargs <- optparse::add_option(pargs, c("--plot_steps"),
                                          "plots data at the intermediate steps.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--inspect_subclusters"),
+pargs <- optparse::add_option(pargs, c("--no_inspect_subclusters"),
                               type="logical",
                               default=TRUE,
                               action="store_false",
@@ -668,7 +668,7 @@ pargs <- optparse::add_option(pargs, c("--inspect_subclusters"),
                               help=paste("If true, plot subclusters as annotations after the subclustering step to easily see if the subclustering options are good.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--resume_mode"),
+pargs <- optparse::add_option(pargs, c("--no_resume_mode"),
                               type="logical",
                               default=TRUE,
                               metavar="RESUME_MODE",
@@ -753,7 +753,7 @@ pargs <- optparse::add_option(pargs, c("--chr_lengths"),
                               help=paste("A named list of chromosomes lengths to use when plot_chr_scale=TRUE. If not provided, the chromosome size is assumed to be the last chromosome's stop position + 10k bp.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--useRaster"),
+pargs <- optparse::add_option(pargs, c("--no_useRaster"),
                               type="logical",
                               default=TRUE,
                               metavar="USE_RASTER",
@@ -762,7 +762,7 @@ pargs <- optparse::add_option(pargs, c("--useRaster"),
                               help=paste("Whether to use rasterization for drawing the heatmap. Only disable if it produces an error, as it is much faster than not using it.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--plot_probabilities"),
+pargs <- optparse::add_option(pargs, c("--no_plot_probabilities"),
                               type="logical",
                               default=TRUE,
                               metavar="PLOT_PROBABILITIES",
@@ -771,7 +771,7 @@ pargs <- optparse::add_option(pargs, c("--plot_probabilities"),
                               help=paste("Option to plot posterior probabilities.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--save_rds"),
+pargs <- optparse::add_option(pargs, c("--no_save_rds"),
                               type="logical",
                               default=TRUE,
                               metavar="SAVE_RDS",
@@ -780,7 +780,7 @@ pargs <- optparse::add_option(pargs, c("--save_rds"),
                               help=paste("Whether to save the current step object results as an .rds file.",
                                          "[Default %default]"))
 
-pargs <- optparse::add_option(pargs, c("--save_final_rds"),
+pargs <- optparse::add_option(pargs, c("--no_save_final_rds"),
                               type="logical",
                               default=TRUE,
                               metavar="SAVE_FINAL_RDS",
