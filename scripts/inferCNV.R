@@ -1060,7 +1060,7 @@ infercnv_obj = infercnv::run(infercnv_obj=infercnv_obj,
                              # tumor subclustering
                              analysis_mode=args$analysis_mode,
                              tumor_subcluster_partition_method=args$tumor_subcluster_partition_method,
-                             tumor_subcluster_pval=args$tumor_subclster_pval,
+                             tumor_subcluster_pval=args$tumor_subcluster_pval,
                              k_nn=args$k_nn,
                              leiden_method=args$leiden_method,
                              leiden_function=args$leiden_function,
