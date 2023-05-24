@@ -244,9 +244,12 @@ define_signif_tumor_subclusters_via_random_smooothed_trees <- function(infercnv_
     
     
     flog.info(sprintf("random trees, using %g parallel threads", infercnv.env$GLOBAL_NUM_THREADS))
-    if (infercnv.env$GLOBAL_NUM_THREADS > future::availableCores()) {
-        flog.warn(sprintf("not enough cores available, setting to num avail cores: %g", future::availableCores()))
-        infercnv.env$GLOBAL_NUM_THREADS <- future::availableCores()
+
+    available_cores = future::availableCores(which="max")
+
+    if (infercnv.env$GLOBAL_NUM_THREADS > available_cores) {
+        flog.warn(sprintf("not enough cores available, setting to num avail cores: %g", available_cores))
+        infercnv.env$GLOBAL_NUM_THREADS <- available_cores
     }
     
     # library(doParallel)
