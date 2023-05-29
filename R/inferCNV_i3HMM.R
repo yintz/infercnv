@@ -16,7 +16,12 @@
 
 .i3HMM_get_sd_trend_by_num_cells_fit <- function(infercnv_obj, i3_p_val=0.05) {
     
-    tumor_samples = infercnv_obj@reference_grouped_cell_indices
+    if (length(infercnv_obj@reference_grouped_cell_indices) > 0) {
+        tumor_samples = infercnv_obj@reference_grouped_cell_indices
+    }
+    else {
+        tumor_samples = infercnv_obj@observation_grouped_cell_indices
+    }
     
     tumor_expr_vals <- infercnv_obj@expr.data[,unlist(tumor_samples)]
     
